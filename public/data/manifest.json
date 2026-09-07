@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/prepare-data.py",
+  "retrievedAt": "2026-09-07",
+  "inputs": {
+    "natural-earth-countries": {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+      "sha256": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f",
+      "bytes": 838726
+    },
+    "natural-earth-land": {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
+      "sha256": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9",
+      "bytes": 138160
+    },
+    "geography-0ma": {
+      "path": "public/data/geography-0ma.json",
+      "sha256": "c0c5cdac2a18123ca705e9103a1808b86b4076bc209c00799195a3c5b12b10b8",
+      "bytes": 314682
+    },
+    "scotese-wright-paleodem-v2": {
+      "url": "https://zenodo.org/records/5460860/files/PaleoDEMS_long_lat_elev_csv_v2.zip?download=1",
+      "sha256": "db43e6261411ff468c9030ca240778a73f224bf34bf8186c735477e41454c873",
+      "bytes": 20302272,
+      "nativeGrid": "1 degree longitude/latitude/elevation CSV",
+      "derivedGrid": "180x91 grid points at lon -180..178 and lat 90..-90, 2 degree spacing; nearest source samples, with -90 nearest-row closure where older CSVs end at -89; int16-range metres serialized as JSON integers",
+      "outputs": [
+        {
+          "ageMa": 0,
+          "path": "public/data/paleodem-0ma.json",
+          "sha256": "b60ac5a54e260c3d8a882bd07bdc26f61115bac7dc91c88f1b689e0a0b0ed7e0",
+          "bytes": 84693
+        },
+        {
+          "ageMa": 20,
+          "path": "public/data/paleodem-20ma.json",
+          "sha256": "d7d7703c7f7baaf4e9fb65885ceef1689351597dc5515a65d54a2b65f92f467d",
+          "bytes": 84743
+        },
+        {
+          "ageMa": 35,
+          "path": "public/data/paleodem-35ma.json",
+          "sha256": "da186ed6584bf6ec7e6fa01ff947265110cb8755a53dcd79922438ab0d67e8dc",
+          "bytes": 84150
+        },
+        {
+          "ageMa": 55,
+          "path": "public/data/paleodem-55ma.json",
+          "sha256": "b340cc7c81ac7f374be3b282df5a45645108e11863d9b56c72429b068891f8dc",
+          "bytes": 84076
+        },
+        {
+          "ageMa": 65,
+          "path": "public/data/paleodem-65ma.json",
+          "sha256": "7e27d15a9867426a274084a4579455bd9dfabdbecca9dd2ab0bd1a9bb6c4a4e9",
+          "bytes": 82876
+        },
+        {
+          "ageMa": 95,
+          "path": "public/data/paleodem-95ma.json",
+          "sha256": "1b540b970b5f6d49637d91484743bf8b28178148d01f7a1c6890174abeb3115a",
+          "bytes": 85177
+        },
+        {
+          "ageMa": 130,
+          "path": "public/data/paleodem-130ma.json",
+          "sha256": "7a4da27f684e8d5756a34945a4e8e0472905bd11a6175f7234f2c33947028636",
+          "bytes": 84069
+        },
+        {
+          "ageMa": 185,
+          "path": "public/data/paleodem-185ma.json",
+          "sha256": "80856f179cc519e0451072972e60eacc95c9497601808c9de54a3e0dbfa32371",
+          "bytes": 86135
+        },
+        {
+          "ageMa": 220,
+          "path": "public/data/paleodem-220ma.json",
+          "sha256": "71df3a3524bd90002ce337befc66de7fc4d637b98e4af6e6112f354141771d0b",
+          "bytes": 83535
+        },
+        {
+          "ageMa": 250,
+          "path": "public/data/paleodem-250ma.json",
+          "sha256": "2f583404aaaf5b5fd2f52ddb09d119bb4d1715e5f539a129a434ee63810f7d57",
+          "bytes": 85234
+        },
+        {
+          "ageMa": 300,
+          "path": "public/data/paleodem-300ma.json",
+          "sha256": "9ae1bb3fa17a1b6a0e3343483f47ea2481c245953a22dd6af2bda3cd24a212a3",
+          "bytes": 87921
+        },
+        {
+          "ageMa": 320,
+          "path": "public/data/paleodem-320ma.json",
+          "sha256": "713a42555b50c04f1475a36dccb3421e09e3b30edabf6b5f70ce16723055aa16",
+          "bytes": 87208
+        },
+        {
+          "ageMa": 360,
+          "path": "public/data/paleodem-360ma.json",
+          "sha256": "1452a4e1da37ecc61d96d45f2c24c4ec027c31434c719a2314debfcb73c03e9d",
+          "bytes": 88590
+        },
+        {
+          "ageMa": 400,
+          "path": "public/data/paleodem-400ma.json",
+          "sha256": "49118d49a8248d07fc2e41366ddb2e59703ab1d0063f193689ded24be5812fc6",
+          "bytes": 88355
+        },
+        {
+          "ageMa": 430,
+          "path": "public/data/paleodem-430ma.json",
+          "sha256": "cee86ebd6331796d2c771fb640d2853221411632247886a63cb2b52aceaeb4ad",
+          "bytes": 89348
+        },
+        {
+          "ageMa": 470,
+          "path": "public/data/paleodem-470ma.json",
+          "sha256": "b1e616317699d7713556818f0725d652c1c6a02c6b67506cae0292ebeb640b71",
+          "bytes": 89168
+        },
+        {
+          "ageMa": 520,
+          "path": "public/data/paleodem-520ma.json",
+          "sha256": "9e91248b8930167b773e9cf98b587bc7c2bc4840bf1d1c8c6bc19bd328643a09",
+          "bytes": 89581
+        },
+        {
+          "ageMa": 540,
+          "path": "public/data/paleodem-540ma.json",
+          "sha256": "1fa009594fcb51d61d4fb61fe166ce862f80aeb29bf9e9483a8fa0ea83fe98be",
+          "bytes": 88948
+        }
+      ]
+    },
+    "paleomap-country-reference-v3": {
+      "record": "https://doi.org/10.5281/zenodo.7994000",
+      "license": "CC BY 4.0",
+      "politicalArchiveSha256": "44bdd3625796e77effc0bb5d0dab05a9bda2c86e5fe0ea4b401a66220d426962",
+      "rotationArchiveSha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; line simplification tolerance 0.18 degrees",
+      "outputs": [
+        {
+          "ageMa": 20,
+          "path": "public/data/countries-20ma.json",
+          "sha256": "59c8b316c26f0171bb4f22fe71c6a143719c69ccadcf340d997966314d404492",
+          "bytes": 163537
+        },
+        {
+          "ageMa": 35,
+          "path": "public/data/countries-35ma.json",
+          "sha256": "e9a83664fe2b1a20c5bf6ee707442dcc2f0059509117874f6c7964628db30ca8",
+          "bytes": 163338
+        },
+        {
+          "ageMa": 55,
+          "path": "public/data/countries-55ma.json",
+          "sha256": "ed70cdd3c4abd31e0532311679186decce3b2c64063815ca759b690a057c8af1",
+          "bytes": 160779
+        },
+        {
+          "ageMa": 65,
+          "path": "public/data/countries-65ma.json",
+          "sha256": "d392f575285197ba35d2a9bcfd91bfdf407617f9ef37de962c6593646b4952a0",
+          "bytes": 160931
+        },
+        {
+          "ageMa": 95,
+          "path": "public/data/countries-95ma.json",
+          "sha256": "7a7938d892fd6c3825921946e84525e0b136d696b0341a680c9fdd0a85885e8a",
+          "bytes": 156700
+        },
+        {
+          "ageMa": 130,
+          "path": "public/data/countries-130ma.json",
+          "sha256": "19855c64951dd91bd0d4a0aaf925fee7314fc3726a7f6c488989109e0e88dafc",
+          "bytes": 152463
+        },
+        {
+          "ageMa": 185,
+          "path": "public/data/countries-185ma.json",
+          "sha256": "0c3ea4cdffd83af81f250aca8420c120252c572c030dfa895376963e9b708205",
+          "bytes": 146527
+        },
+        {
+          "ageMa": 220,
+          "path": "public/data/countries-220ma.json",
+          "sha256": "17381d90ef3a99327c5688f58aa82720e9ba479c20ac80fbdad5c6b8052d9a9b",
+          "bytes": 145402
+        },
+        {
+          "ageMa": 250,
+          "path": "public/data/countries-250ma.json",
+          "sha256": "34615086271699d707a0d72398dd77557215db1428fc1238dea8fa6dba1efd41",
+          "bytes": 133840
+        },
+        {
+          "ageMa": 300,
+          "path": "public/data/countries-300ma.json",
+          "sha256": "5e441d7932dcb234e2f01fc7696ed5163591c4d5c60e62d6bfa7d50f0bbbac77",
+          "bytes": 132176
+        },
+        {
+          "ageMa": 320,
+          "path": "public/data/countries-320ma.json",
+          "sha256": "31a1748879061670275b32ee4265ea463453e33ba39511c6eca20dcbbc196bc7",
+          "bytes": 132894
+        },
+        {
+          "ageMa": 360,
+          "path": "public/data/countries-360ma.json",
+          "sha256": "324674c437dd2126b1e06d01024ec07f7c6f0421bd56db9adbffd51ffab12497",
+          "bytes": 133556
+        },
+        {
+          "ageMa": 400,
+          "path": "public/data/countries-400ma.json",
+          "sha256": "fb81e9e3e7fde09e5de6b540f2044b96e003c5f7dfb1cd1d756c7dc2b6f47e5e",
+          "bytes": 138175
+        },
+        {
+          "ageMa": 430,
+          "path": "public/data/countries-430ma.json",
+          "sha256": "90f1c603055af51b6894108b148571afda916b8bfc8a9a26b93d6889fd1affdd",
+          "bytes": 138398
+        },
+        {
+          "ageMa": 470,
+          "path": "public/data/countries-470ma.json",
+          "sha256": "2fb1566aabbe4cf922f7a24af20f2492a6f99091ffc35552e63fcc9ce63df842",
+          "bytes": 139678
+        },
+        {
+          "ageMa": 520,
+          "path": "public/data/countries-520ma.json",
+          "sha256": "c0070ec18a3184202afb0f2dd6f2cd0efa62a0dc36cd0f160d65d72c583115f7",
+          "bytes": 141167
+        },
+        {
+          "ageMa": 540,
+          "path": "public/data/countries-540ma.json",
+          "sha256": "aa1e2f97715435059f623e7dc2e82b2d6e4f0bb6092aebb48e3eabc7b9e4d5ff",
+          "bytes": 141974
+        }
+      ]
+    },
+    "beck-koppen-geiger-2023": {
+      "record": "https://doi.org/10.6084/m9.figshare.21937571",
+      "api": "https://api.figshare.com/v2/articles/21937571",
+      "url": "https://ndownloader.figshare.com/files/42602809",
+      "license": "CC0",
+      "archiveBytes": 92221371,
+      "archiveMd5": "544e895588b90ecc5903c27f50f4b761",
+      "archiveEntry": "1991_2020/koppen_geiger_0p5.tif",
+      "entryBytes": 20931,
+      "entryCrc32": "bdf670a8",
+      "processing": "Bounded ZIP HTTP range extraction; source-authored 0.5 degree GeoTIFF classes; lossless row-major run-length encoding",
+      "outputs": [
+        {
+          "period": "1991\u20132020",
+          "path": "public/data/koppen-1991-2020-0p5.json",
+          "sha256": "6a3bd0e86c13c63720330825c74fab6dabbacbb1a408ec3005ee886678c0059b",
+          "bytes": 88652
+        }
+      ]
+    },
+    "noaa-etopo-2022-regional": {
+      "record": "https://doi.org/10.25921/fd45-gt74",
+      "service": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage",
+      "license": "NOAA public-domain data; attribution requested",
+      "sourceProduct": "ETOPO_2022_v1_60s_surface",
+      "processing": "ArcGIS ImageServer 256x256 F32 export, WGS84, bilinear source resampling, rounded to metre-scale int16 and base64 encoded; outer bounds and pixel centers retained",
+      "outputs": [
+        {
+          "id": "mid-atlantic-ridge",
+          "bbox": [
+            -60.0,
+            10.0,
+            -30.0,
+            40.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=-60%2C10%2C-30%2C40&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "sourceTiffSha256": "019a7f8eda196e28e285fddc3bb55e56d37cb103c3a815b92177a5fb4c0700af",
+          "sourceTiffBytes": 277784,
+          "path": "public/data/etopo-mid-atlantic-ridge.json",
+          "sha256": "d0a204352907b25f05b29e1f577c0b05950905fdff768b9f265c60aaba9f5465",
+          "bytes": 175275
+        },
+        {
+          "id": "himalayas",
+          "bbox": [
+            72.0,
+            22.0,
+            100.0,
+            38.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=72%2C22%2C100%2C38&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "sourceTiffSha256": "e326d804326529ed47b3c948becc30a753b9ab934b203c52b0ccd3e63258c90b",
+          "sourceTiffBytes": 290293,
+          "path": "public/data/etopo-himalayas.json",
+          "sha256": "8e69fc5ca25dcc259063bc6a25e855b911338ac97582905543f33899eaae1645",
+          "bytes": 175250
+        },
+        {
+          "id": "andes",
+          "bbox": [
+            -78.0,
+            -32.0,
+            -62.0,
+            -15.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=-78%2C-32%2C-62%2C-15&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "sourceTiffSha256": "ce7f58a845897c6f310ae006bbfdbc980f951c8f87399829ef6e1da59a9dc9a6",
+          "sourceTiffBytes": 294027,
+          "path": "public/data/etopo-andes.json",
+          "sha256": "9d37dae555b080b3999ab09faed205823f2bba852973d75cf6e492f4af60a197",
+          "bytes": 175259
+        },
+        {
+          "id": "east-african-rift",
+          "bbox": [
+            28.0,
+            -15.0,
+            44.0,
+            14.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=28%2C-15%2C44%2C14&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "sourceTiffSha256": "bbe387838d4aa7bd311889684b4b1204d87acd13b45165804b21586131361d29",
+          "sourceTiffBytes": 290557,
+          "path": "public/data/etopo-east-african-rift.json",
+          "sha256": "c9bffb4603d55796c7d890ab9cc7df87acd44842c8b46315b5925a4ade1f58ed",
+          "bytes": 175265
+        },
+        {
+          "id": "greenland",
+          "bbox": [
+            -60.0,
+            58.0,
+            -20.0,
+            84.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=-60%2C58%2C-20%2C84&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "sourceTiffSha256": "d14416437d8908f3133e2d090390b0b64ae0121c39a890574a2896e157ef6223",
+          "sourceTiffBytes": 299283,
+          "path": "public/data/etopo-greenland.json",
+          "sha256": "6b4237f2099bc0b18f63bdc0afd2ed05d4dafedb72178acc83603265fd5ec46b",
+          "bytes": 175259
+        }
+      ]
+    }
+  },
+  "scratchCacheBytes": 33048747
+}

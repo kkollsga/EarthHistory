@@ -1,0 +1,56 @@
+# Reusable repositories for the palaeogeography and basin pipeline
+
+Status: bounded repository review for stack discussion, not an approved architecture
+
+Research date: 2026-09-07
+
+Method: six canonical repositories; GPlately and PyBasin inspected structurally with the Open Source MCP; official documentation and pinned GitHub trees inspected for the other four. Nothing was installed or run.
+
+## Recommendation
+
+Do not write a plate reconstruction engine or rigid raster-advection system. Use **pyGPlates as the scientific geometry kernel** and **GPlately as the offline curation/orchestration layer**. Convert pinned models into compact, self-hosted scientific controls—coarse geometry/elevation, plate motion/validity, masks and provenance—then synthesize visual detail in the frontend. The browser must not call GWS, Plate Model Manager, GeoServer or another provider at runtime. Defer pyBacktrack and PyBasin: aerial regional views are sufficient for the initial product and do not require well-scale backstripping or thermal modelling.
+
+The two existing web apps are useful interaction references, but neither is a reusable foundation for EarthHistory. GPlates App demonstrates low-resolution playback followed by tiled high-resolution imagery when playback stops. New Paleomap Maker demonstrates model/age controls. Their provider-dependent runtime paths are explicitly out of scope, and both repositories lack a licence file, so their code should only be studied unless the owners grant reuse rights.
+
+## Repository shortlist
+
+| Repository (pinned inspection) | Reusable seam | Maintenance / licence | Decision and confidence |
+| --- | --- | --- | --- |
+| [GPlates/GPlates, pyGPlates development branch](https://github.com/GPlates/GPlates/tree/af7747a3b6ccd2af6e235d783431244a5d6d54e0) | `pygplates.reconstruct`, `partition_into_plates`, `PlatePartitioner`, `TopologicalModel.reconstruct_geometry`, resolved topologies/networks; GPML/GPMLZ, `.rot`, Shapefile and derived feature output | Development updated 2026-09-07; released [PyGPlates 1.0.0](https://github.com/GPlates/GPlates/releases/tag/PyGPlates-1.0.0); [GPL-2.0-only](https://github.com/GPlates/GPlates/blob/af7747a3b6ccd2af6e235d783431244a5d6d54e0/COPYING) | Adopt as offline kernel. Docs/API inspected, not run. |
+| [GPlates/gplately](https://github.com/GPlates/gplately/tree/ea90b45063a27bf7b85ec52cf2f00fe2b8fa0c0b) | `PlateReconstruction`, `Points`, `Raster.reconstruct`, `Raster.rotate_reference_frames`, topology snapshots, seafloor-grid generation, Plate Model Manager integration | Updated 2026-09-07; latest release [2.0.0](https://github.com/GPlates/gplately/releases/tag/v2.0.0); [GPL-2.0](https://github.com/GPlates/gplately/blob/ea90b45063a27bf7b85ec52cf2f00fe2b8fa0c0b/LICENSE) | Adopt for preprocessing prototype. Code graph and selected source inspected, not run. |
+| [EarthByte/pyBacktrack](https://github.com/EarthByte/pyBacktrack/tree/2190ebf55608c845048de11f7c083e72e75dc480) | `backtrack_well`, `backstrip_well`, `reconstruct_paleo_bathymetry(_grids)`, lithology/decompaction and age-to-depth models; text/CSV-like well inputs and NetCDF grids | Updated 2026-06-19; release [1.5.0](https://github.com/EarthByte/pyBacktrack/releases/tag/v1.5.0); [GPL-2.0](https://github.com/EarthByte/pyBacktrack/blob/2190ebf55608c845048de11f7c083e72e75dc480/LICENSE) | Defer; evaluate only if chosen assets need palaeobathymetry preprocessing. API/docs inspected, not run. |
+| [ElcoLuijendijk/pybasin](https://github.com/ElcoLuijendijk/pybasin/tree/c6122322fd84695189d57106050119175a649bf4) | `read_model_input_data`, `run_burial_hist_model`, 1-D heat-flow solver, `easyRo`/`basinRo`, AFT and (U-Th)/He calibration, labelled xarray result grid | Main updated 2026-07-31, but latest release remains [0.91-alpha (2020)](https://github.com/ElcoLuijendijk/pybasin/releases/tag/v0.91-alpha); [LGPL-3.0](https://github.com/ElcoLuijendijk/pybasin/blob/c6122322fd84695189d57106050119175a649bf4/LICENSE.txt) | Defer; integration cost is unjustified for aerial regional views. Code graph and selected source inspected, not run. |
+| [GPlates/gplates-app](https://github.com/GPlates/gplates-app/tree/9c33230e9bcc1caeaa69c877652771835c8d29ad) | Cesium/Ionic UI; WMTS time-keyed layers; raster/vector menus; offline cache; low-resolution animation then high-resolution redraw | Active 2026-09-07; no licence file in pinned tree | Study playback, cache and layer UX only; no code reuse without a grant. Metadata/source inspected, not run. |
+| [GPlates/new-paleomap-maker](https://github.com/GPlates/new-paleomap-maker/tree/4d0ef154f4230c4df1dd920b5b97610f4675f91a) | Minimal Next/D3 client calling GWS coastlines as GeoJSON, model/age/projection selection and SVG export | Last change 2025-05-04; README says proof of concept; no licence file | Reference for a diagnostic 2-D view only. Metadata/source inspected, not run. |
+
+## Plate, raster and country preprocessing
+
+Construct `PlateReconstruction(rotation_model, topology_features, static_polygons, anchor_plate_id)` from a pinned model bundle. Inputs may be filenames or pyGPlates collections. Preserve the original GPML/GPMLZ and rotation files; export GeoJSON/vector tiles only as derivatives because those formats lose geological feature semantics.
+
+GPlately coordinates are longitude/latitude in degrees; geological time is Ma before present. The anchor plate ID and model reference frame are part of every job key. Beware a documented API inconsistency: `PlateReconstruction` velocity methods default to kilometres/Myr, while `Points.plate_velocity()` defaults to centimetres/year. Normalize units at the adapter boundary.
+
+`Raster.reconstruct(time, partitioning_features=..., anchor_plate_id=...)` is immediately reusable for rigid crustal rasters. The inspected implementation normalizes to −180…180, resolves partition polygons at source and destination ages, reverse-rotates destination pixels, and samples the source grid with nearest-neighbour interpolation ([source](https://github.com/GPlates/gplately/blob/ea90b45063a27bf7b85ec52cf2f00fe2b8fa0c0b/gplately/raster.py#L697)). It assumes partition polygons normally use −180…180 and contains a TODO for 0…360 polygons. This transports values by rigid plate ID; it does **not** deform raster cells through a rift.
+
+For deforming regions and temporal coherence, seed material points and use `pygplates.TopologicalModel.reconstruct_geometry` through resolved boundaries/networks. It supports points/multipoints, optional scalar histories, default 1 My increments, natural-neighbour deformation and point deactivation. GPlately's `SeafloorGrid.reconstruct_by_topological_model()` already creates ocean seeds at their birth times, reconstructs them, removes consumed/colliding seeds and writes `.npz` gridding input ([source](https://github.com/GPlates/gplately/blob/ea90b45063a27bf7b85ec52cf2f00fe2b8fa0c0b/gplately/grids/oceans.py#L1152)). Reuse that lifecycle for time-coherent ocean fields; do not independently noise-fill each snapshot.
+
+For the modern-country reference overlay, densify boundaries geodesically, then call `pygplates.partition_into_plates(..., partition_method=split_into_plates, reconstruction_time=0)`. Copy plate ID and validity, while retaining ISO identity in our manifest. The API clones each plate fragment and can return unpartitioned residue; copied properties unsupported by a GPML feature type are silently ignored. Polygon partition support is explicitly partial, and the desktop cookie-cut path can yield polylines. Therefore validate/repair rings after partitioning and keep fragment-to-country/source IDs outside the geometry file. Reconstruct fragments in the same model/frame as the visible land; deform densely sampled boundary points only where a topology network supports it.
+
+## Deferred basin and thermal capability
+
+No basin repository is needed in the initial pipeline. If scope later expands, PyBacktrack accepts well longitude/latitude in degrees, unit ages in Ma and depths in metres. Its time increment is My; palaeobathymetry output is NetCDF, with an option controlling whether bathymetry is positive below sea level. `backstrip_well` yields decompacted thickness and tectonic-subsidence ranges. Its global grid method reconstructs only crust surviving today; synthetic/subducted crust must come from another model and can be merged.
+
+PyBasin is complementary rather than a replacement. CSV inputs describe well stratigraphy, unit ages/lithology, thermal properties, surface temperature, measured temperature and optional VR/AFT/AHe data. The central orchestration function calls burial reconstruction, compaction and a 1-D heat solver; `calculate_vr` feeds each active node's time-temperature path to `easyRo` or `basinRo` ([source](https://github.com/ElcoLuijendijk/pybasin/blob/c6122322fd84695189d57106050119175a649bf4/lib/pybasin_lib.py#L2393)). Output grid dimensions are time × stratigraphic node with explicit units: years before present, m, °C, W m⁻², Pa and kg m⁻³ ([source](https://github.com/ElcoLuijendijk/pybasin/blob/c6122322fd84695189d57106050119175a649bf4/lib/pybasin_io.py#L19)). Detailed runs are currently Python `.pck` plus optional CSVs, so any future use requires a controlled export adapter.
+
+PyBasin estimates burial, temperature, vitrinite reflectance and thermochronometer response for 1-D columns. It does not establish source-rock kinetics, expulsion, carrier-bed/fault migration, accumulation, leakage, trap integrity or recoverable resources. Display its VR as model output calibrated at a well, never as a complete petroleum-system simulation or basin-wide truth.
+
+## Rights and browser boundary
+
+The software licences above govern code. Plate models, bundled rasters, example wells and derived scientific data retain their own licences and attribution duties. In particular, pyBacktrack's bundle READMEs cite Zahirovic, ETOPO1, GlobSed and Seton age-grid sources but do not themselves supply a single blanket data licence. GPlately's code licence likewise does not relicense models downloaded by Plate Model Manager.
+
+Run GPL/LGPL scientific tools in a reproducible offline curation step and publish only validated, self-hosted compact controls: source manifest/checksums; model/frame/anchor; age and unit conventions; uncertainty/status; coarse scientific fields and vector features; deterministic generation parameters. The browser should reconstruct display state and synthesize terrain/material detail from those controls without requesting external data. This does not require pre-baked full-resolution terrain/textures or mandate a WebGL2-only renderer, and it does not erase upstream data obligations. Resolve each dataset licence before a derivative enters a distributable build.
+
+## Unknowns before adoption
+
+- No repository was executed, so numerical equivalence, offline build time, memory use and output quality at the chosen globe resolutions remain unmeasured.
+- GPlately's rigid-raster path needs a small control case for antimeridian handling, plate seams, categorical masks and nodata. Country fragments need explicit polygon-ring repair and provenance tests.
+- Model and raster licences still need per-file verification. Repository software licences do not settle redistribution rights for generated texture and terrain assets.

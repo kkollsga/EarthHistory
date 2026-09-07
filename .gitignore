@@ -1,0 +1,17 @@
+# Local doctrine working state. Keep the hand-authored benchmark harnesses.
+/dev-docs/*
+!/dev-docs/bench/
+/dev-docs/bench/*
+!/dev-docs/bench/scripts/
+!/dev-docs/bench/scripts/**
+
+# Local cross-project coordination; messages are not project source.
+/inbox/
+
+# Installed dependencies and reproducible build/test output.
+/node_modules/
+/dist/
+*.tsbuildinfo
+/test-results/
+/playwright-report/
+/blob-report/
