@@ -61,8 +61,8 @@ After that one-time setting, the expected address is
   it does not alter the source elevation values. The default is 8×.
 - Open field notes to inspect dated places and events. A globe-location action
   appears only when the active reconstruction has a defensible display point.
-- Use **Share view** to copy the selected chapter, layers, quality and relief to
-  the URL.
+- Use **Share view** to copy the selected chapter, layers, relief and modern
+  landscape to the URL.
 
 ## Scientific data
 

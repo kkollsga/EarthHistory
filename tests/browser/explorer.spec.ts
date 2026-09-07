@@ -14,6 +14,14 @@ async function selectChapter(page: Page, id: string, heading: string) {
   await waitForSurface(page);
 }
 
+async function useHighDetail(page: Page) {
+  await page.getByRole("button", { name: /^Rendering quality:/ }).click();
+  await page.getByRole("button", { name: "High detail" }).click();
+  await expect(page.getByRole("button", { name: "Rendering quality: high" })).toBeVisible();
+  await expect.poll(() => canvas(page).getAttribute("data-quality")).toBe("high");
+  await page.getByRole("button", { name: "Close dialog" }).click();
+}
+
 test("loads the Pages subpath with local assets and a complete chapter picker", async ({ page }) => {
   const externalRequests = new Set<string>();
   const failedResponses: string[] = [];
@@ -82,6 +90,7 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
   await expect.poll(() => canvas(page).getAttribute("data-vertical-exaggeration")).toBe("30.0");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();
+  await useHighDetail(page);
 
   const bounds = await canvas(page).boundingBox();
   expect(bounds).not.toBeNull();
@@ -95,6 +104,7 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
 test("opens repeatable modern landscape views and marks the seafloor explicitly", async ({ page }) => {
   await page.goto("./");
   await waitForSurface(page);
+  await useHighDetail(page);
   const landscapes = page.getByLabel("Explore a landscape");
   await expect(landscapes.locator("option")).toHaveCount(11);
 
@@ -109,6 +119,7 @@ test("opens repeatable modern landscape views and marks the seafloor explicitly"
   await expect(page).toHaveURL(/place=mid-atlantic-ridge/);
   await page.reload();
   await waitForSurface(page);
+  await useHighDetail(page);
   await expect(page.getByLabel("Explore a landscape")).toHaveValue("mid-atlantic-ridge");
   await expect.poll(() => canvas(page).getAttribute("data-detail")).toBe("regional");
   await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance"))).toBeLessThan(1.82);
