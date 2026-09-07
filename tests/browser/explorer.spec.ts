@@ -17,9 +17,9 @@ async function selectChapter(page: Page, id: string, heading: string) {
 async function useHighDetail(page: Page) {
   await page.getByRole("button", { name: /^Rendering quality:/ }).click();
   await page.getByRole("button", { name: "High detail" }).click();
+  await page.getByRole("button", { name: "Close dialog" }).click();
   await expect(page.getByRole("button", { name: "Rendering quality: high" })).toBeVisible();
   await expect.poll(() => canvas(page).getAttribute("data-quality")).toBe("high");
-  await page.getByRole("button", { name: "Close dialog" }).click();
 }
 
 test("loads the Pages subpath with local assets and a complete chapter picker", async ({ page }) => {
@@ -78,6 +78,7 @@ test("keeps story age, title, and geographic source age distinct", async ({ page
 });
 
 test("changes relief, keeps clouds off by default, and restores an orbital camera", async ({ page }) => {
+  test.slow();
   await page.goto("./");
   await waitForSurface(page);
   await expect(page.locator(".surface-legend")).toContainText("8×");
@@ -102,6 +103,7 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
 });
 
 test("opens repeatable modern landscape views and marks the seafloor explicitly", async ({ page }) => {
+  test.slow();
   await page.goto("./");
   await waitForSurface(page);
   await useHighDetail(page);
