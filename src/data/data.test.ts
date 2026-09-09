@@ -24,6 +24,11 @@ function localAssetFetch() {
       ? requested.slice(requested.indexOf("/data/") + 1)
       : requested;
     try {
+      if (assetPath.endsWith(".bin")) {
+        const bytes = await readFile(resolve(process.cwd(), "public", assetPath));
+        const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+        return new Response(body, { status: 200, headers: { "content-type": "application/octet-stream" } });
+      }
       const body = await readFile(resolve(process.cwd(), "public", assetPath), "utf8");
       return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
     } catch {
@@ -60,7 +65,7 @@ describe("science catalogs", () => {
         expect(Math.abs(poi.coordinates[1]), poi.id).toBeLessThanOrEqual(90);
       }
     }
-    expect(modernLandscapePresets).toHaveLength(10);
+    expect(modernLandscapePresets).toHaveLength(11);
     for (const preset of modernLandscapePresets) {
       expect(Math.abs(preset.coordinates[0]), preset.id).toBeLessThanOrEqual(180);
       expect(Math.abs(preset.coordinates[1]), preset.id).toBeLessThanOrEqual(90);
@@ -69,6 +74,7 @@ describe("science catalogs", () => {
       for (const sourceId of preset.sourceIds) expect(sourceIds.has(sourceId), `${preset.id}: ${sourceId}`).toBe(true);
     }
   });
+
 });
 
 describe("snapshot selection and assets", () => {
@@ -87,10 +93,46 @@ describe("snapshot selection and assets", () => {
     expect(snapshot.evidence).toBe("model-output");
     expect(snapshot.countries.length).toBeGreaterThan(100);
     expect(snapshot.countries.every((country) => country.evidence === "model-output")).toBe(true);
+    expect(snapshot.areaTracking?.ageMa).toBe(400);
+    expect(snapshot.areaTracking?.catalog.referenceFrameId).toBe("anchor-plate-0");
     expect(snapshot.controls?.width).toBe(180);
     expect(snapshot.controls?.height).toBe(91);
     expect(snapshot.controls?.elevation).toHaveLength(180 * 91);
     expect(snapshot.caveat).toContain("Requested 385 Ma");
+  });
+
+  it("loads a same-model temporal tracking layer at the present and preserves stable parts", async () => {
+    vi.stubGlobal("fetch", localAssetFetch());
+    const present = await getSnapshot(0);
+    const cambrian = await getSnapshot(520);
+    expect(present.areaTracking?.ageMa).toBe(0);
+    expect(present.areaTracking?.catalog.id).toBe("paleomap-country-tracking-v1");
+    expect(present.areaTracking?.catalog).toBe(cambrian.areaTracking?.catalog);
+    expect(present.areaTracking?.partIds.length).toBeGreaterThan(cambrian.areaTracking?.partIds.length ?? 0);
+    expect([...present.areaTracking!.partIds]).toEqual([...present.areaTracking!.partIds].sort((a, b) => a - b));
+    expect(present.areaTracking?.pointOffsets.at(-1)).toBe(present.areaTracking!.coordinates.length / 2);
+    expect(present.areaTracking?.byteLength).toBeLessThan(64 * 1024);
+    const sharedPartId = [...present.areaTracking!.partIds].find((partId) =>
+      cambrian.areaTracking!.partIds.includes(partId)
+    );
+    expect(sharedPartId).toBeDefined();
+    const presentPartIndex = present.areaTracking!.partIds.indexOf(sharedPartId!);
+    const cambrianPartIndex = cambrian.areaTracking!.partIds.indexOf(sharedPartId!);
+    const presentPointCount = present.areaTracking!.pointOffsets[presentPartIndex + 1] -
+      present.areaTracking!.pointOffsets[presentPartIndex];
+    const cambrianPointCount = cambrian.areaTracking!.pointOffsets[cambrianPartIndex + 1] -
+      cambrian.areaTracking!.pointOffsets[cambrianPartIndex];
+    expect(cambrianPointCount).toBe(presentPointCount);
+    const unsupportedFeatures = new Set(
+      present.areaTracking!.catalog.features
+        .map((feature, index) => feature.plateId === null ? index : -1)
+        .filter((index) => index >= 0),
+    );
+    const unsupportedParts = present.areaTracking!.catalog.parts
+      .filter((part) => unsupportedFeatures.has(part.feature))
+      .map((part) => part.id);
+    expect(unsupportedParts.length).toBeGreaterThan(0);
+    expect(unsupportedParts.some((partId) => present.areaTracking!.partIds.includes(partId))).toBe(false);
   });
 
   it("applies the evolution mask before land plants", async () => {
@@ -181,7 +223,7 @@ describe("snapshot selection and assets", () => {
 
   it("loads bounded modern relief patches with explicit registration", async () => {
     vi.stubGlobal("fetch", localAssetFetch());
-    expect(modernReliefPatches).toHaveLength(5);
+    expect(modernReliefPatches).toHaveLength(7);
     const metadata = modernReliefPatches.find((patch) => patch.id === "himalayas");
     expect(metadata?.bounds).toEqual([72, 22, 100, 38]);
     expect(metadata?.registration).toBe("pixel-center");
@@ -190,6 +232,16 @@ describe("snapshot selection and assets", () => {
     expect(patch.elevation).toHaveLength(256 * 256);
     expect(Math.max(...patch.elevation)).toBeGreaterThan(6000);
     expect(patch.verticalDatum).toBe("EGM2008");
+    const northSea = await getModernReliefPatch("north-sea-basin");
+    const northSeaParent = await getModernReliefPatch("north-sea-basin-coarse");
+    expect(northSea.elevation).toHaveLength(256 * 256);
+    expect(northSeaParent.elevation).toHaveLength(64 * 64);
+    expect(northSea.parentId).toBe(northSeaParent.id);
+    expect(northSeaParent.childIds).toContain(northSea.id);
+    expect(Math.min(...northSea.elevation)).toBeLessThan(-100);
+    expect(Math.max(...northSea.elevation)).toBeLessThan(0);
+    expect(northSea.verticalDatum).toBe("LAT");
+    expect(northSea.priority).toBeGreaterThan(patch.priority);
     await expect(getModernReliefPatch("unknown")).rejects.toThrow(RangeError);
   });
 
@@ -200,13 +252,32 @@ describe("snapshot selection and assets", () => {
 
   it("ships every declared source-age grid and country derivative within the static budget", async () => {
     const manifest = JSON.parse(await readFile(resolve(process.cwd(), "public/data/manifest.json"), "utf8")) as {
-      inputs: Record<string, { outputs?: Array<{ ageMa: number; bytes: number }> }>;
+      inputs: Record<string, {
+        outputs?: Array<{
+          ageMa?: number;
+          bytes: number;
+          role?: string;
+          features?: number;
+          parts?: number;
+        }>;
+      }>;
     };
     const paleodem = manifest.inputs["scotese-wright-paleodem-v2"].outputs ?? [];
     const countries = manifest.inputs["paleomap-country-reference-v3"].outputs ?? [];
+    const trackingOutputs = manifest.inputs["paleomap-area-tracking-v1"].outputs ?? [];
+    const trackingCatalog = trackingOutputs.find((output) => output.role === "catalog");
+    const tracking = trackingOutputs.filter((output) => output.ageMa !== undefined);
     expect(paleodem).toHaveLength(18);
     expect(countries).toHaveLength(17);
+    expect(tracking).toHaveLength(18);
     expect(new Set(paleodem.map((output) => output.ageMa)).size).toBe(18);
-    expect(paleodem.reduce((sum, output) => sum + output.bytes, 0) + countries.reduce((sum, output) => sum + output.bytes, 0)).toBeLessThan(5 * 1024 * 1024);
+    expect(new Set(tracking.map((output) => output.ageMa)).size).toBe(18);
+    expect(trackingCatalog).toMatchObject({ features: 437, parts: 999 });
+    expect(
+      paleodem.reduce((sum, output) => sum + output.bytes, 0) +
+      countries.reduce((sum, output) => sum + output.bytes, 0) +
+      tracking.reduce((sum, output) => sum + output.bytes, 0) +
+      (trackingCatalog?.bytes ?? 0),
+    ).toBeLessThan(5 * 1024 * 1024);
   });
 });

@@ -1,5 +1,15 @@
 import type { PointOfInterest } from "./types";
 
+export function pointOfInterestIncludesAge(
+  poi: Pick<PointOfInterest, "ageStartMa" | "ageEndMa">,
+  ageMa: number,
+): boolean {
+  if (!Number.isFinite(ageMa)) return false;
+  const oldest = Math.max(poi.ageStartMa, poi.ageEndMa);
+  const youngest = Math.min(poi.ageStartMa, poi.ageEndMa);
+  return ageMa <= oldest && ageMa >= youngest;
+}
+
 export const pointsOfInterest: PointOfInterest[] = [
   { id: "earth-formation", title: "Earth assembles", subtitle: "Solar System chronology", description: "Primitive meteorite chronology anchors Solar System formation near 4.567 billion years ago; the globe is an accretion scenario rather than a geographic map.", ageStartMa: 4567.4, ageEndMa: 4567.0, category: "formation", sourceIds: ["connelly-formation-2012"], evidence: "proxy-constrained", locationNote: "Global and nonlocalizable.", confidence: "B" },
   { id: "moon-forming-impact", title: "Moon-forming impact", subtitle: "Dated but uncertain scenario", description: "Giant-impact simulations explain important Earth–Moon properties. A 4.51 Ga lunar-zircon chronology constrains early Moon formation, but does not uniquely date the collision or locate an impact site.", ageStartMa: 4530, ageEndMa: 4470, category: "impact", sourceIds: ["canup-asphaug-2001", "barboni-moon-2017"], evidence: "model-output", locationNote: "Orbit-space story only; no point on Earth is defensible.", confidence: "C" },

@@ -51,6 +51,7 @@ function surface(width = 64, height = 32): SurfaceFields {
   const relief = new Uint8Array(length);
   const reliefMetres = new Float32Array(width * height);
   const roughness = new Uint8Array(length);
+  const landMask = new Uint8Array(width * height).fill(255);
   const clouds = new Uint8Array(length);
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -74,18 +75,27 @@ function surface(width = 64, height = 32): SurfaceFields {
     relief,
     reliefMetres,
     roughness,
+    landMask,
     clouds,
+    cloudWidth: width,
+    cloudHeight: height,
     reliefRangeMetres: 9_000,
     reliefBiasMetres: 0,
     rivers: [],
     generationMs: 0,
-    byteLength: albedo.byteLength + relief.byteLength + roughness.byteLength + clouds.byteLength,
+    byteLength:
+      albedo.byteLength + relief.byteLength + reliefMetres.byteLength +
+      roughness.byteLength + landMask.byteLength + clouds.byteLength,
   };
 }
 
 function patch(): ModernReliefPatch {
   return {
     id: "fixture-relief",
+    setId: "fixture",
+    level: 0,
+    childIds: [],
+    priority: 10,
     validRequestedAgeMa: [0, 0],
     bounds: [-45, -45, 45, 45],
     cellCenterBounds: [-30, -30, 30, 30],
@@ -96,12 +106,24 @@ function patch(): ModernReliefPatch {
     registration: "pixel-center",
     rowOrder: "north-to-south",
     units: "m",
+    horizontalCrs: "EPSG:4326",
+    referenceFrameId: "present-day-geographic",
     verticalDatum: "EGM2008",
     surfaceMode: "surface",
+    domain: "topobathymetry",
+    composition: "absolute-replace",
+    evidence: "model-output",
+    nativeResolutionMetres: 1_000,
+    maxErrorMetres: 100,
+    splitErrorPixels: 1.5,
+    mergeErrorPixels: 1,
+    edgeTransitionCells: 1,
     sourceProduct: "ETOPO_2022_v1_60s_surface",
+    sourceVersion: "test",
     sourceIds: ["fixture"],
     assetPath: "fixture.json",
     elevation: new Float32Array(9).fill(5_000),
+    byteLength: 9 * Float32Array.BYTES_PER_ELEMENT,
   };
 }
 
@@ -365,7 +387,7 @@ describe("cube tile fields", () => {
     }
   });
 
-  it("feathers ETOPO source heights while leaving global palette authority intact", () => {
+  it("feathers refinement height without exposing the refinement footprint in albedo", () => {
     const fixtureSurface = surface();
     const baseGenerator = createCubeTileFieldGenerator({
       snapshot: snapshot(), surface: fixtureSurface, mode: "surface", detail: "coarse",
@@ -388,8 +410,7 @@ describe("cube tile fields", () => {
     expect(base.heightsMetres[center]).toBeLessThan(4_000);
     const westEdgeCenter = 16 * 33;
     expect(enhanced.heightsMetres[westEdgeCenter]).toBe(base.heightsMetres[westEdgeCenter]);
-    // ETOPO affects source height only; the global field remains the palette.
-    expect(Array.from(enhanced.albedo)).toEqual(Array.from(base.albedo));
+    expect(enhanced.albedo).toEqual(base.albedo);
   });
 
   it("keeps the requested level-zero 64/256 output under the memory target", () => {

@@ -1,6 +1,8 @@
 import { pointsOfInterest, timeSlices } from "./catalog";
 import { tectonicsAt } from "./tectonics";
 import type {
+  AreaTrackingCatalog,
+  AreaTrackingLayer,
   CountryOutline,
   LandPolygon,
   LonLat,
@@ -49,8 +51,10 @@ interface ModernClimateAsset {
 const PALEODEM_AGES = [0, 20, 35, 55, 65, 95, 130, 185, 220, 250, 300, 320, 360, 400, 430, 470, 520, 540] as const;
 const elevationAssets = new Map<number, Promise<ElevationAsset>>();
 const countryAssets = new Map<number, Promise<CountryAsset>>();
+const areaTrackingAssets = new Map<number, Promise<AreaTrackingLayer>>();
 let modernGeography: Promise<GeographyAsset> | undefined;
 let modernClimateAsset: Promise<ModernClimateAsset> | undefined;
+let areaTrackingCatalogAsset: Promise<AreaTrackingCatalog> | undefined;
 
 export function resolveDataAssetUrl(
   path: string,
@@ -73,6 +77,113 @@ function loadJson<T>(path: string, clear: () => void): Promise<T> {
       clear();
       throw error;
     });
+}
+
+function loadAreaTrackingCatalog(): Promise<AreaTrackingCatalog> {
+  areaTrackingCatalogAsset ??= loadJson<AreaTrackingCatalog>(
+    "data/country-tracking-catalog.json",
+    () => {
+      areaTrackingCatalogAsset = undefined;
+    },
+  ).then((catalog) => {
+    if (
+      catalog.schemaVersion !== 1 ||
+      catalog.coordinateEncoding !== "int16-le-longitude-latitude" ||
+      catalog.measure !== "normalized-geodesic-arclength" ||
+      !(catalog.coordinateScaleDegrees > 0) ||
+      catalog.parts.some((part, index) =>
+        part.id !== index || part.feature < 0 || part.feature >= catalog.features.length
+      )
+    ) {
+      areaTrackingCatalogAsset = undefined;
+      throw new Error("Invalid country tracking catalog");
+    }
+    return catalog;
+  });
+  return areaTrackingCatalogAsset;
+}
+
+function decodeAreaTracking(
+  ageMa: number,
+  catalog: AreaTrackingCatalog,
+  buffer: ArrayBuffer,
+): AreaTrackingLayer {
+  const headerBytes = 16;
+  const recordBytes = 8;
+  if (buffer.byteLength < headerBytes) throw new Error(`Country tracking ${ageMa} Ma header is truncated`);
+  const view = new DataView(buffer);
+  if (
+    view.getUint8(0) !== 0x45 || view.getUint8(1) !== 0x48 ||
+    view.getUint8(2) !== 0x54 || view.getUint8(3) !== 0x52 ||
+    view.getUint16(4, true) !== catalog.schemaVersion ||
+    view.getUint16(6, true) !== ageMa ||
+    view.getUint16(10, true) !== 0
+  ) throw new Error(`Country tracking ${ageMa} Ma header does not match its catalog`);
+  const partCount = view.getUint16(8, true);
+  const pointCount = view.getUint32(12, true);
+  const coordinateOffset = headerBytes + partCount * recordBytes;
+  const expectedBytes = coordinateOffset + pointCount * 2 * Int16Array.BYTES_PER_ELEMENT;
+  if (buffer.byteLength !== expectedBytes) {
+    throw new Error(`Country tracking ${ageMa} Ma byte length is invalid`);
+  }
+  const partIds = new Uint16Array(partCount);
+  const pointOffsets = new Uint32Array(partCount + 1);
+  let previousPartId = -1;
+  let previousOffset = 0;
+  for (let index = 0; index < partCount; index += 1) {
+    const offset = headerBytes + index * recordBytes;
+    const partId = view.getUint16(offset, true);
+    const reserved = view.getUint16(offset + 2, true);
+    const pointOffset = view.getUint32(offset + 4, true);
+    if (
+      reserved !== 0 || partId <= previousPartId || partId >= catalog.parts.length ||
+      pointOffset < previousOffset || pointOffset >= pointCount
+    ) throw new Error(`Country tracking ${ageMa} Ma part table is invalid`);
+    partIds[index] = partId;
+    pointOffsets[index] = pointOffset;
+    previousPartId = partId;
+    previousOffset = pointOffset;
+  }
+  pointOffsets[partCount] = pointCount;
+  if (partCount > 0 && pointOffsets[0] !== 0) {
+    throw new Error(`Country tracking ${ageMa} Ma first part does not start at zero`);
+  }
+  for (let index = 0; index < partCount; index += 1) {
+    if (pointOffsets[index + 1] - pointOffsets[index] < 2) {
+      throw new Error(`Country tracking ${ageMa} Ma contains a degenerate part`);
+    }
+  }
+  const coordinates = new Int16Array(pointCount * 2);
+  for (let index = 0; index < coordinates.length; index += 1) {
+    coordinates[index] = view.getInt16(coordinateOffset + index * 2, true);
+  }
+  return {
+    ageMa,
+    catalog,
+    partIds,
+    pointOffsets,
+    coordinates,
+    byteLength: partIds.byteLength + pointOffsets.byteLength + coordinates.byteLength,
+  };
+}
+
+function loadAreaTracking(ageMa: number): Promise<AreaTrackingLayer> {
+  const cached = areaTrackingAssets.get(ageMa);
+  if (cached) return cached;
+  const pending = Promise.all([
+    loadAreaTrackingCatalog(),
+    fetch(resolveDataAssetUrl(`data/country-tracking-${ageMa}ma.bin`)).then(async (response) => {
+      if (!response.ok) throw new Error(`Could not load country tracking at ${ageMa} Ma (${response.status})`);
+      return response.arrayBuffer();
+    }),
+  ])
+    .then(([catalog, buffer]) => decodeAreaTracking(ageMa, catalog, buffer))
+    .catch((error: unknown) => {
+      areaTrackingAssets.delete(ageMa);
+      throw error;
+    });
+  areaTrackingAssets.set(ageMa, pending);
+  return pending;
 }
 
 function loadModernGeography(): Promise<GeographyAsset> {
@@ -288,11 +399,12 @@ export async function getSnapshot(ageMa: number): Promise<WorldSnapshot> {
   if (ageMa <= 540) {
     const actualAge = nearest(PALEODEM_AGES, (candidate) => Math.abs(candidate - ageMa));
     const chapter = closestTimelineSlice(ageMa);
-    const [elevationAsset, geography, reconstructedCountries, climateAsset] = await Promise.all([
+    const [elevationAsset, geography, reconstructedCountries, climateAsset, areaTracking] = await Promise.all([
       loadElevation(actualAge),
       actualAge === 0 ? loadModernGeography() : Promise.resolve(undefined),
       actualAge === 0 ? Promise.resolve(undefined) : loadCountries(actualAge),
       chapter.id === "present" ? loadModernClimate() : Promise.resolve(undefined),
+      loadAreaTracking(actualAge),
     ]);
     const environment = environmentFor(ageMa);
     const elevation = Float32Array.from(elevationAsset.elevation);
@@ -320,6 +432,7 @@ export async function getSnapshot(ageMa: number): Promise<WorldSnapshot> {
         : ["scotese-wright-paleodem-v2", "paleomap-political-boundaries-v3", "paleomap-global-plate-model-v3"],
       land: geography?.land ?? [],
       countries: geography?.countries ?? reconstructedCountries?.countries ?? [],
+      areaTracking,
       tectonics: tectonicsAt(chapter.ageMa),
       poiIds,
       poiCoordinates,

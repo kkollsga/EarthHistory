@@ -117,7 +117,7 @@ explicit seafloor mode retains the signed bed. Neither rule supplies measured
 ice thickness, ice-surface elevation, or a new ice-sheet outline.
 
 Five modern landscape views can lazily request independent 256 by 256 ETOPO
-2022 relief patches: the Mid-Atlantic Ridge, Himalayas, Central Andes, East
+2022 relief tiles: the Mid-Atlantic Ridge, Himalayas, Central Andes, East
 African Rift and Greenland. Each asset records outer WGS84 bounds, first/last
 pixel-center bounds, longitude/latitude step, north-to-south row order, metres,
 the EGM2008 vertical datum and the `ETOPO_2022_v1_60s_surface` product. Source
@@ -125,6 +125,31 @@ pixels are bilinearly resampled by NOAA's ImageServer, then rounded to whole
 metres and stored as little-endian int16 data. Greenland therefore uses visible
 ice-surface relief rather than the separate bedrock product. These patches are
 generation inputs and cannot also serve as independent accuracy tests.
+
+Local surface refinements use a sparse multi-resolution set contract. Every
+tile declares set and parent/child identity, valid requested age, reference
+frame and datum, surface domain/mode, source priority, native resolution,
+bounded transition width and projected-error split/merge thresholds. A complete
+coarser parent remains the fallback; finer children are authored only where
+height/normal residuals or categorical boundaries project visibly. Runtime
+selection uses 1.5 pixel split and 1.0 pixel merge hysteresis, so coasts,
+mountains and zone boundaries can gain resolution without expanding flat-area
+payloads. Resolution never establishes scientific authority: priority, age and
+frame compatibility do.
+
+The first non-ETOPO refinement is a two-level central North Sea subset of
+EMODnet DTM 2024, requested from the official mean-elevation WCS over 1–4°E and
+55–58°N. A 64 by 64 block-mean parent provides the complete local fallback; a
+256 by 256 child is selected only when the parent's delivered cell footprint
+projects above the split threshold. The child cell step is 0.01171875 degrees;
+the source product is approximately 115 m, uses EPSG:4326 horizontally and
+Lowest Astronomical Tide vertically, and is a harmonized/interpolated DTM
+rather than raw survey soundings. It applies only to the present-day seafloor
+view. Because the global ETOPO controls use EGM2008, the wide boundary feather
+is explicitly visual synthesis and must not be read as a datum conversion or
+navigation surface. The regional overlay retains the global material palette,
+so a refinement's rectangular storage footprint is not presented as a mapped
+scientific boundary.
 
 ## Reproduction and bounds
 
@@ -134,10 +159,12 @@ and PaleoDEM assets using the Python standard library. Run
 regenerate the country reference assets. `scripts/prepare-data-modern.py`
 reproduces the compact climate asset with bounded ZIP range reads, and
 `scripts/prepare-data-relief.py` requests only the five named ETOPO subsets.
+`scripts/prepare-data-refinements.py` requests the bounded EMODnet North Sea
+subset and records its exact service URL and response hash.
 The scripts pin archive or response hashes in the manifest. The owned scratch
 cache is `dev-docs/temp/earthhistory-data/`, has a hard 50 MiB limit, and is
 regenerated/cleaned by the data-preparation owner. The checked-in runtime bundle
-is about 5.1 MiB.
+is kept within the validated static-asset budget.
 
 The static source manifest is the byte-level authority. Scientific citations,
 licenses, time coverage, geographic basis, and reference-frame notes are also

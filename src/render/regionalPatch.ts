@@ -90,6 +90,39 @@ function sampleModernRelief(
   return northValue * (1 - ty) + southValue * ty;
 }
 
+function modernReliefFeatherWeight(
+  patch: ModernReliefPatch | undefined,
+  longitude: number,
+  latitude: number,
+): number {
+  if (patch === undefined) return 0;
+  const [west, south, east, north] = patch.bounds;
+  const fixedLongitude = normalizeDeltaLongitude(longitude);
+  const span = west <= east ? east - west : east + 360 - west;
+  const fromWest = ((fixedLongitude - west) % 360 + 360) % 360;
+  if (fromWest > span || latitude < south || latitude > north) return 0;
+  const edgeDistanceCells = Math.min(
+    fromWest / patch.longitudeStep,
+    (span - fromWest) / patch.longitudeStep,
+    (latitude - south) / patch.latitudeStep,
+    (north - latitude) / patch.latitudeStep,
+  );
+  return smoothstep(0, Math.max(1, patch.edgeTransitionCells), edgeDistanceCells);
+}
+
+function sampleBlendedSourceElevation(
+  snapshot: WorldSnapshot,
+  patch: ModernReliefPatch | undefined,
+  longitude: number,
+  latitude: number,
+): number {
+  const base = sampleElevation(snapshot, longitude, latitude);
+  const refined = sampleModernRelief(patch, longitude, latitude);
+  if (refined === undefined) return base;
+  const weight = modernReliefFeatherWeight(patch, longitude, latitude);
+  return base + (refined - base) * weight;
+}
+
 function sampleByteControl(
   field: Uint8Array | undefined,
   snapshot: WorldSnapshot,
@@ -268,8 +301,7 @@ export function generateRegionalPatch(
 
       const gradientStep = sourcePatch === undefined ? 1 : 0.16;
       const sourceAt = (sampleLon: number, sampleLat: number) =>
-        sampleModernRelief(sourcePatch, sampleLon, sampleLat) ??
-        sampleElevation(snapshot, sampleLon, sampleLat);
+        sampleBlendedSourceElevation(snapshot, sourcePatch, sampleLon, sampleLat);
       const eastGradient =
         sourceAt(longitude + gradientStep, latitude) -
         sourceAt(longitude - gradientStep, latitude);
@@ -284,7 +316,9 @@ export function generateRegionalPatch(
           : smoothstep(0, 650, sourceElevation);
       const edgeDistance = Math.min(u, 1 - u, v, 1 - v);
       const edgeWeight = smoothstep(0, 0.12, edgeDistance);
-      sourceBlendWeights[index] = modernElevation === undefined ? 0 : edgeWeight;
+      sourceBlendWeights[index] = modernElevation === undefined
+        ? 0
+        : edgeWeight * modernReliefFeatherWeight(sourcePatch, longitude, latitude);
       const icePotential = sampleByteControl(
         snapshot.controls?.potentialIce,
         snapshot,

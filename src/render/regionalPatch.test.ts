@@ -77,6 +77,10 @@ describe("regional relief patch", () => {
   it("uses a registered modern relief tile in its interior and fades to the globe base", () => {
     const patch: ModernReliefPatch = {
       id: "registered-test",
+      setId: "fixture",
+      level: 0,
+      childIds: [],
+      priority: 10,
       bounds: [-12, -12, 12, 12],
       cellCenterBounds: [-9, -9, 9, 9],
       width: 4,
@@ -86,13 +90,25 @@ describe("regional relief patch", () => {
       registration: "pixel-center",
       rowOrder: "north-to-south",
       units: "m",
+      horizontalCrs: "EPSG:4326",
+      referenceFrameId: "present-day-geographic",
       verticalDatum: "EGM2008",
       surfaceMode: "surface",
+      domain: "topobathymetry",
+      composition: "absolute-replace",
+      evidence: "model-output",
+      nativeResolutionMetres: 1_000,
+      maxErrorMetres: 100,
+      splitErrorPixels: 1.5,
+      mergeErrorPixels: 1,
+      edgeTransitionCells: 1,
       sourceProduct: "ETOPO_2022_v1_60s_surface",
+      sourceVersion: "test",
       sourceIds: ["test"],
       assetPath: "test.json",
       validRequestedAgeMa: [0, 0],
       elevation: new Float32Array(16).fill(3_000),
+      byteLength: 16 * Float32Array.BYTES_PER_ELEMENT,
     };
     const fields = generateRegionalPatch(
       controlledSnapshot(),
@@ -107,5 +123,8 @@ describe("regional relief patch", () => {
     expect(fields.sourceBlendWeights[center]).toBeCloseTo(1);
     expect(fields.sourceHeightsMetres[center]).toBeCloseTo(3_000);
     expect(fields.sourceBlendWeights[0]).toBe(0);
+    const insideWestFeather = 12 * 25 + 3;
+    expect(fields.sourceBlendWeights[insideWestFeather]).toBeGreaterThan(0);
+    expect(fields.sourceBlendWeights[insideWestFeather]).toBeLessThan(1);
   });
 });

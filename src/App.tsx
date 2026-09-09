@@ -21,6 +21,7 @@ import { GlobeView } from "./render";
 import {
   getSnapshot,
   modernLandscapePresets,
+  pointOfInterestIncludesAge,
   pointsOfInterest,
   sources,
   timeSlices,
@@ -33,7 +34,17 @@ import {
 import { EvidenceBadge } from "./components/EvidenceBadge";
 import { Modal } from "./components/Modal";
 import { formatAge, formatGeographicSourceAge, Timeline } from "./components/Timeline";
-import { parseFocusCoordinates, serializeFocusCoordinates } from "./focusState";
+import {
+  createAreaFocusDescriptor,
+  resolveAreaFocusDescriptor,
+  type AreaFocusDescriptor,
+} from "./areaTracking";
+import {
+  parseAreaFocusDescriptor,
+  parseFocusCoordinates,
+  serializeAreaFocusDescriptor,
+  serializeFocusCoordinates,
+} from "./focusState";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
 type Quality = "auto" | "high" | "low";
@@ -45,6 +56,7 @@ type SpatialFocus =
 const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
   borders: true,
+  guides: false,
   tectonics: true,
   rivers: false,
 };
@@ -56,7 +68,8 @@ const LAYER_META: Array<{
   icon: typeof Cloud;
 }> = [
   { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
-  { key: "borders", label: "Modern reference", detail: "Present-day outlines where reconstruction supports them", icon: Map },
+  { key: "borders", label: "Modern-country reference", detail: "Present-day locator outlines; not historical borders", icon: Map },
+  { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
   { key: "tectonics", label: "Tectonics & rifts", detail: "Dated margins, belts and rift structures", icon: Mountain },
   { key: "rivers", label: "Inferred drainage", detail: "Modelled drainage tendency, not mapped ancient rivers", icon: Waves },
 ];
@@ -78,6 +91,7 @@ function parseInitialState() {
     focus: params.get("focus"),
     place: params.get("place"),
     at: parseFocusCoordinates(params.get("at")),
+    tracking: parseAreaFocusDescriptor(params.get("track")),
     relief: Number.isFinite(parsedRelief) ? Math.min(30, Math.max(1, Math.round(parsedRelief))) : 8,
   };
 }
@@ -94,9 +108,7 @@ function serializeAge(ageMa: number) {
 }
 
 function poiDisplayCoordinate(poi: PointOfInterest, snapshot: WorldSnapshot | null, ageMa: number) {
-  const oldest = Math.max(poi.ageStartMa, poi.ageEndMa);
-  const youngest = Math.min(poi.ageStartMa, poi.ageEndMa);
-  if (!snapshot?.poiIds.includes(poi.id) || ageMa < youngest || ageMa > oldest) return undefined;
+  if (!snapshot?.poiIds.includes(poi.id) || !pointOfInterestIncludesAge(poi, ageMa)) return undefined;
   return snapshot.poiCoordinates?.[poi.id];
 }
 
@@ -107,6 +119,9 @@ export default function App() {
     ? modernLandscapePresets.find((preset) => preset.id === initial.place)
     : undefined;
   const initialArea = initialPoi === undefined && initialLandscape === undefined ? initial.at : null;
+  const initialTracking = initialPoi === undefined && initialLandscape === undefined
+    ? initial.tracking
+    : null;
   const [ageMa, setAgeMa] = useState(initial.age);
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +132,12 @@ export default function App() {
   const [menuActiveIndex, setMenuActiveIndex] = useState(0);
   const [contextExpanded, setContextExpanded] = useState(false);
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(initialPoi?.id ?? null);
+  const [areaFocusDescriptor, setAreaFocusDescriptor] = useState<AreaFocusDescriptor | null>(
+    initialTracking,
+  );
+  const [areaFocusStatus, setAreaFocusStatus] = useState<
+    "resolving" | "resolved" | "unresolved" | null
+  >(initialTracking ? "resolving" : null);
   const [spatialFocus, setSpatialFocus] = useState<SpatialFocus | null>(
     initialLandscape
       ? {
@@ -131,7 +152,8 @@ export default function App() {
         : null,
   );
   const [autoRotateEnabled, setAutoRotateEnabled] = useState(
-    initialPoi === undefined && initialLandscape === undefined && initialArea === null,
+    initialPoi === undefined && initialLandscape === undefined &&
+      initialArea === null && initialTracking === null,
   );
   const [resetNonce, setResetNonce] = useState(0);
   const [quality, setQuality] = useState<Quality>("auto");
@@ -154,10 +176,13 @@ export default function App() {
     [],
   );
 
-  const selectedPoi = useMemo(
+  const selectedPoiRecord = useMemo(
     () => pointsOfInterest.find((poi) => poi.id === selectedPoiId) ?? null,
     [selectedPoiId],
   );
+  const selectedPoi = selectedPoiRecord && pointOfInterestIncludesAge(selectedPoiRecord, ageMa)
+    ? selectedPoiRecord
+    : null;
   const selectedPoiCoordinate = selectedPoi
     ? poiDisplayCoordinate(selectedPoi, snapshot, ageMa)
     : undefined;
@@ -176,9 +201,11 @@ export default function App() {
     [chapter.id, orderedSlices],
   );
   const contextSnapshot = snapshot?.requestedAgeMa === ageMa ? snapshot : null;
-  const chronologicalPois = useMemo(
-    () => [...pointsOfInterest].sort((a, b) => b.ageStartMa - a.ageStartMa),
-    [],
+  const currentPois = useMemo(
+    () => pointsOfInterest
+      .filter((poi) => pointOfInterestIncludesAge(poi, ageMa))
+      .sort((a, b) => b.ageStartMa - a.ageStartMa),
+    [ageMa],
   );
 
   const loadSnapshot = useCallback(async (age: number) => {
@@ -235,11 +262,16 @@ export default function App() {
     params.set("relief", String(verticalExaggeration));
     if (selectedPoiId) params.set("focus", selectedPoiId);
     else if (spatialFocus?.kind === "place") params.set("place", spatialFocus.placeId);
-    else if (spatialFocus?.kind === "area") {
+    else if (areaFocusDescriptor !== null) {
+      params.set("track", serializeAreaFocusDescriptor(areaFocusDescriptor));
+      if (spatialFocus?.kind === "area" && areaFocusStatus === "resolved") {
+        params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
+      }
+    } else if (spatialFocus?.kind === "area") {
       params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
     }
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${params}`);
-  }, [ageMa, layers, selectedPoiId, spatialFocus, verticalExaggeration]);
+  }, [ageMa, areaFocusDescriptor, areaFocusStatus, layers, selectedPoiId, spatialFocus, verticalExaggeration]);
 
   useEffect(() => {
     if (!playing || orderedSlices.length === 0) return;
@@ -255,6 +287,15 @@ export default function App() {
     }, 1800);
     return () => window.clearInterval(timer);
   }, [playing, orderedSlices]);
+
+  useEffect(() => {
+    if (selectedPoiId === null || selectedPoiRecord === null || selectedPoi !== null) return;
+    setSelectedPoiId(null);
+    setSpatialFocus((current) =>
+      current?.kind === "poi" && current.poiId === selectedPoiId ? null : current
+    );
+    setAutoRotateEnabled(true);
+  }, [selectedPoi, selectedPoiId, selectedPoiRecord]);
 
   useEffect(() => {
     if (!selectedPoi) return;
@@ -280,6 +321,39 @@ export default function App() {
       };
     });
   }, [ageMa, snapshot?.id, selectedPoi?.id]);
+
+  useEffect(() => {
+    if (areaFocusDescriptor === null) return;
+    if (snapshot === null || snapshot.requestedAgeMa !== ageMa) {
+      setAreaFocusStatus("resolving");
+      return;
+    }
+    if (snapshot.areaTracking === undefined) {
+      setAreaFocusStatus("unresolved");
+      setSpatialFocus((current) => current?.kind === "area" ? null : current);
+      return;
+    }
+    const resolution = resolveAreaFocusDescriptor(snapshot.areaTracking, areaFocusDescriptor);
+    if (resolution.status === "unresolved") {
+      setAreaFocusStatus("unresolved");
+      setSpatialFocus((current) => current?.kind === "area" ? null : current);
+      return;
+    }
+    setAreaFocusStatus("resolved");
+    setAutoRotateEnabled(false);
+    setSpatialFocus((current) => {
+      if (
+        current?.kind === "area" &&
+        Math.abs(current.coordinates[0] - resolution.coordinates[0]) < 0.0001 &&
+        Math.abs(current.coordinates[1] - resolution.coordinates[1]) < 0.0001
+      ) return current;
+      return {
+        kind: "area",
+        coordinates: resolution.coordinates,
+        nonce: ++focusNonce.current,
+      };
+    });
+  }, [ageMa, areaFocusDescriptor, snapshot]);
 
   useEffect(() => {
     if (ageMa <= 0.0001) return;
@@ -359,9 +433,11 @@ export default function App() {
 
   const openPoi = (id: string, openNotes = true) => {
     const poi = pointsOfInterest.find((item) => item.id === id);
-    if (!poi) return;
+    if (!poi || !pointOfInterestIncludesAge(poi, ageMa)) return;
     setSelectedPoiId(id);
     setSelectedLandscapeId(null);
+    setAreaFocusDescriptor(null);
+    setAreaFocusStatus(null);
     if (openNotes) setPanel("notes");
     const coordinates = poiDisplayCoordinate(poi, snapshot, ageMa);
     if (coordinates) {
@@ -380,14 +456,24 @@ export default function App() {
 
   const selectSurface = (coordinates: LonLat) => {
     setAutoRotateEnabled(false);
-    if (spatialFocus !== null) {
-      if (spatialFocus.kind === "poi") setSelectedPoiId(null);
-      if (spatialFocus.kind === "place") setSelectedLandscapeId(null);
+    if (
+      spatialFocus !== null || selectedPoiId !== null ||
+      selectedLandscapeId !== null || areaFocusDescriptor !== null
+    ) {
+      setSelectedPoiId(null);
+      setSelectedLandscapeId(null);
+      setAreaFocusDescriptor(null);
+      setAreaFocusStatus(null);
       setSpatialFocus(null);
       return;
     }
     setSelectedPoiId(null);
     setSelectedLandscapeId(null);
+    const descriptor = snapshot?.areaTracking === undefined
+      ? null
+      : createAreaFocusDescriptor(snapshot.areaTracking, coordinates, 25 * Math.PI / 180);
+    setAreaFocusDescriptor(descriptor);
+    setAreaFocusStatus(descriptor === null ? null : "resolved");
     setSpatialFocus({ kind: "area", coordinates, nonce: ++focusNonce.current });
   };
 
@@ -402,6 +488,8 @@ export default function App() {
   const resetCamera = () => {
     setSelectedLandscapeId(null);
     setSelectedPoiId(null);
+    setAreaFocusDescriptor(null);
+    setAreaFocusStatus(null);
     setSpatialFocus(null);
     setAutoRotateEnabled(true);
     setResetNonce((value) => value + 1);
@@ -431,6 +519,8 @@ export default function App() {
     const preset = modernLandscapePresets.find((item) => item.id === id);
     setSelectedLandscapeId(preset?.id ?? null);
     setSelectedPoiId(null);
+    setAreaFocusDescriptor(null);
+    setAreaFocusStatus(null);
     setLayers((current) => ({ ...current, clouds: false }));
     if (!preset) {
       setSpatialFocus(null);
@@ -551,8 +641,10 @@ export default function App() {
             <button type="button" onClick={() => loadSnapshot(ageMa)}>Try again</button>
           </div>
         )}
-        <div className="surface-legend" aria-label={`${selectedLandscape?.surfaceMode === "seafloor" ? "Seafloor view, " : ""}visual terrain relief ${verticalExaggeration} times`}>
+        <div className="surface-legend" aria-label={`${selectedLandscape?.surfaceMode === "seafloor" ? "Seafloor view, " : ""}${layers.guides ? "schematic climatological reference guides, " : ""}visual terrain relief ${verticalExaggeration} times`}>
           {selectedLandscape?.surfaceMode === "seafloor" && <span>Seafloor view</span>}
+          {layers.guides && <span>Schematic climate guides</span>}
+          {areaFocusStatus === "unresolved" && <span role="status">Tracked land unavailable at this age · tag retained</span>}
           Visual relief <strong>{verticalExaggeration}×</strong>
         </div>
       </section>
@@ -695,7 +787,7 @@ export default function App() {
         </div>
       </Modal>
 
-      <Modal open={panel === "notes"} title={selectedPoi?.title ?? "Field notes"} eyebrow={selectedPoi ? `${selectedPoi.category} · ${formatAge(selectedPoi.ageStartMa)}` : `${chronologicalPois.length} notes across deep time`} onClose={closePanel}>
+      <Modal open={panel === "notes"} title={selectedPoi?.title ?? "Field notes"} eyebrow={selectedPoi ? `${selectedPoi.category} · ${formatAge(selectedPoi.ageStartMa)}` : `${currentPois.length} notes at ${formatAge(ageMa)}`} onClose={closePanel}>
         {selectedPoi ? (
           <article className="poi-detail">
             {selectedPoi.subtitle && <p className="poi-subtitle">{selectedPoi.subtitle}</p>}
@@ -710,20 +802,15 @@ export default function App() {
             {!selectedPoiCoordinate && snapshot?.poiIds.includes(selectedPoi.id) && (
               <p className="location-note"><Info size={15} /> This note has no defensible map position in this chapter.</p>
             )}
-            {!selectedPoiCoordinate && !snapshot?.poiIds.includes(selectedPoi.id) && (
-              <button type="button" className="text-action" onClick={() => changeAge(selectedPoi.ageStartMa)}>
-                <Aperture size={15} /> View this chapter
-              </button>
-            )}
             <div className="detail-sources">
               <h3>Sources</h3>
               {poiSources.map((source) => <SourceLink key={source.id} source={source} />)}
             </div>
             <button type="button" className="back-action" onClick={clearSelectedPoi}>← All notes</button>
           </article>
-        ) : chronologicalPois.length ? (
+        ) : currentPois.length ? (
           <div className="notes-list">
-            {chronologicalPois.map((poi, index) => (
+            {currentPois.map((poi, index) => (
               <button type="button" key={poi.id} onClick={() => openPoi(poi.id, false)}>
                 <span className="note-index">{String(index + 1).padStart(2, "0")}</span>
                 <span><small>{poi.category} · {formatAge(poi.ageStartMa)}{snapshot?.poiCoordinates?.[poi.id] ? " · Located now" : snapshot?.poiIds.includes(poi.id) ? " · This chapter" : ""}</small><strong>{poi.title}</strong><i>{poi.subtitle ?? poi.locationNote}</i></span>
@@ -732,7 +819,7 @@ export default function App() {
             ))}
           </div>
         ) : (
-          <div className="empty-panel"><BookOpen size={24} /><p>No positioned field notes are supported for this reconstruction. The geological context remains available through its sources.</p></div>
+          <div className="empty-panel"><BookOpen size={24} /><p>No field notes have a supported time interval at this age. Use the period navigation to explore another time.</p></div>
         )}
       </Modal>
 

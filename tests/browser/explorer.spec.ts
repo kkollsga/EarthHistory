@@ -71,11 +71,12 @@ async function canvasPosition(page: Page, xRatio = 0.5, yRatio = 0.5) {
   };
 }
 
-test("loads the Pages subpath with local assets and a complete chapter picker", { tag: "@ci" }, async ({ page }) => {
+test("loads the Pages subpath with local assets and a complete chapter picker", { tag: "@ci" }, async ({ page, baseURL }) => {
   const externalRequests = new Set<string>();
   const failedResponses: string[] = [];
+  const localOrigin = new URL(baseURL!).origin;
   page.on("request", (request) => {
-    if (new URL(request.url()).origin !== "http://127.0.0.1:4174") externalRequests.add(request.url());
+    if (new URL(request.url()).origin !== localOrigin) externalRequests.add(request.url());
   });
   page.on("response", (response) => {
     if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`);
@@ -100,6 +101,34 @@ test("supports the explicit WebGL 2 fallback", { tag: "@ci" }, async ({ page }) 
   await waitForSurface(page);
   await expect(canvas(page)).toHaveAttribute("data-renderer-backend", "webgl2");
   expect(errors).toEqual([]);
+});
+
+test("lazily creates and then toggles bounded schematic reference guides", async ({ page }) => {
+  await page.goto("./#age=0&layers=borders,tectonics&relief=8");
+  await waitForSurface(page);
+  const target = canvas(page);
+  await expect(target).toHaveAttribute("data-country-ribbon-batches", "2");
+  await expect(target).toHaveAttribute("data-reference-guide-batches", "0");
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const guides = page.getByRole("button", { name: /^Reference guides/ });
+  await expect(guides).toHaveAttribute("aria-pressed", "false");
+  await guides.click();
+  await expect(guides).toHaveAttribute("aria-pressed", "true");
+  await expect(target).toHaveAttribute("data-reference-guide-visible", "true");
+  await expect(target).toHaveAttribute("data-reference-guide-batches", "1");
+  await expect(page.locator(".surface-legend")).toContainText(/schematic climate guides/i);
+  const created = await target.evaluate((element) => ({
+    bytes: element.dataset.referenceGuideBytes,
+    vertices: element.dataset.referenceGuideVertices,
+  }));
+  expect(Number(created.bytes)).toBeLessThanOrEqual(2 * 1024 * 1024);
+
+  await guides.click();
+  await expect(target).toHaveAttribute("data-reference-guide-visible", "false");
+  await expect(target).toHaveAttribute("data-reference-guide-bytes", created.bytes!);
+  await expect(target).toHaveAttribute("data-reference-guide-vertices", created.vertices!);
 });
 
 test("keeps story age, title, and geographic source age distinct", async ({ page }) => {
@@ -177,7 +206,7 @@ test("opens repeatable modern landscape views and marks the seafloor explicitly"
   await waitForSurface(page);
   await useHighDetail(page);
   const landscapes = page.getByLabel("Explore a landscape");
-  await expect(landscapes.locator("option")).toHaveCount(11);
+  await expect(landscapes.locator("option")).toHaveCount(12);
 
   await landscapes.selectOption("mid-atlantic-ridge");
   await expect(page.locator(".landscape-summary")).toContainText("submerged divergent plate boundary");
@@ -303,6 +332,35 @@ test("does not offer globe navigation for an unlocalized ancient evidence site",
   await expect(canvas(page)).toHaveAttribute("data-focus-kind", "none");
 });
 
+test("shows only field notes valid at the requested age and clears an expired selection", async ({ page }) => {
+  await page.goto("./");
+  await waitForSurface(page);
+  await page.getByRole("button", { name: "Field notes", exact: true }).click();
+  await expect(page.locator(".notes-list button")).toHaveCount(2);
+  await expect(page.getByRole("dialog")).toContainText("2 notes at Today");
+  await expect(page.getByRole("button", { name: /Andean volcanic margin/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Chicxulub impact/ })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Andean volcanic margin/ }).click();
+  await expect(page).toHaveURL(/(?:#|&)focus=andes-volcanic-margin(?:&|$)/);
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await selectChapter(page, "neogene", "Neogene");
+  await expect(page).toHaveURL(/(?:#|&)focus=andes-volcanic-margin(?:&|$)/);
+  await expect(page.locator(".selected-note")).toContainText("Andean volcanic margin");
+
+  await selectChapter(page, "kpg-boundary", "K–Pg boundary");
+  await expect(page).not.toHaveURL(/(?:#|&)focus=/);
+  await expect(page.locator(".selected-note")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Field notes", exact: true }).click();
+  await expect(page.locator(".notes-list button")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /Chicxulub impact/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Andean volcanic margin/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /View this chapter/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /Chicxulub impact/ }).click();
+  await expect(page.locator(".age-display")).toHaveText("66.04 Ma");
+});
+
 test("activates and clears one explicit surface focus without treating drags or space as clicks", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
@@ -351,6 +409,48 @@ test("activates and clears one explicit surface focus without treating drags or 
   await page.getByRole("menuitem", { name: "Reset camera" }).click();
   await expect(canvas(page)).toHaveAttribute("data-focus-kind", "none");
   await expect(page).not.toHaveURL(/(?:#|&)at=/);
+});
+
+test("retains a land anchor through disappearance and reacquires its exact source part", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const track = [
+    "1",
+    "paleomap-country-tracking-v1",
+    "paleomap-global-plate-model-v3",
+    "anchor-plate-0",
+    "GPlates-2718995b-b38a-44d8-9692-faa1a225003c",
+    "275",
+    "0.5",
+    "0",
+    "0",
+  ].join("~");
+  const params = new URLSearchParams({
+    age: "0",
+    layers: "borders,tectonics",
+    relief: "8",
+    track,
+  });
+  await page.goto(`./#${params}`);
+  await waitForSurface(page);
+  await expect(canvas(page)).toHaveAttribute("data-focus-kind", "area");
+  const presentAt = new URL(page.url()).hash.match(/(?:#|&)at=([^&]+)/)?.[1];
+  expect(presentAt).toBeTruthy();
+
+  await page.locator("#chapter-jump").selectOption("ordovician");
+  await waitForSurface(page);
+  await expect(canvas(page)).toHaveAttribute("data-focus-kind", "none");
+  const retainedStatus = page.getByText(/Tracked land unavailable.*tag retained/);
+  await expect(retainedStatus).toBeVisible();
+  expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get("track")).toBe(track);
+  expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).has("at")).toBe(false);
+
+  await page.locator("#chapter-jump").selectOption("silurian");
+  await waitForSurface(page);
+  await expect(canvas(page)).toHaveAttribute("data-focus-kind", "area");
+  await expect(retainedStatus).toHaveCount(0);
+  const reappearedAt = new URL(page.url()).hash.match(/(?:#|&)at=([^&]+)/)?.[1];
+  expect(reappearedAt).toBeTruthy();
+  expect(reappearedAt).not.toBe(presentAt);
 });
 
 test("keeps the cleared focus camera pose stationary with normal motion enabled", async ({ page }) => {

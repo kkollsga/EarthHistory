@@ -92,14 +92,7 @@ export function createCubeTileMesh(
   const normals = new Float32Array(fields.normals.length);
   const uvs = fields.localUvs.slice();
   const indices = fields.indices.slice();
-  updateCubeDisplayGeometry(
-    fields.directions,
-    fields.heightsMetres,
-    fields.normals,
-    verticalExaggeration,
-    positions,
-    normals,
-  );
+  updateCubeTileMeshGeometry(fields, verticalExaggeration, coarseEdges, positions, normals);
 
   const stitchedEdges = EDGES.filter((edge) => coarseEdges[edge]);
   for (const edge of stitchedEdges) {
@@ -107,8 +100,6 @@ export function createCubeTileMesh(
       const destination = edgeVertex(segments, edge, along);
       const before = edgeVertex(segments, edge, along - 1);
       const after = edgeVertex(segments, edge, along + 1);
-      midpointVector3(positions, destination, before, after, false);
-      midpointVector3(normals, destination, before, after, true);
       midpointUv(uvs, destination, before, after);
     }
   }
@@ -123,4 +114,35 @@ export function createCubeTileMesh(
     stitchedEdges,
     byteLength: positions.byteLength + normals.byteLength + uvs.byteLength + indices.byteLength,
   };
+}
+
+/** Update only the mutable display attributes during relief-slider changes. */
+export function updateCubeTileMeshGeometry(
+  fields: Readonly<CubeTileFields>,
+  verticalExaggeration: number,
+  coarseEdges: Readonly<Record<CubeEdge, boolean>>,
+  positions: Float32Array,
+  normals: Float32Array,
+): void {
+  if (positions.length !== fields.directions.length || normals.length !== fields.normals.length) {
+    throw new RangeError("Cube display target dimensions do not match source fields");
+  }
+  updateCubeDisplayGeometry(
+    fields.directions,
+    fields.heightsMetres,
+    fields.normals,
+    verticalExaggeration,
+    positions,
+    normals,
+  );
+  for (const edge of EDGES) {
+    if (!coarseEdges[edge]) continue;
+    for (let along = 1; along < fields.meshSegments; along += 2) {
+      const destination = edgeVertex(fields.meshSegments, edge, along);
+      const before = edgeVertex(fields.meshSegments, edge, along - 1);
+      const after = edgeVertex(fields.meshSegments, edge, along + 1);
+      midpointVector3(positions, destination, before, after, false);
+      midpointVector3(normals, destination, before, after, true);
+    }
+  }
 }

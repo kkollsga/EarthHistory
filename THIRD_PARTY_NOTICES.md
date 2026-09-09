@@ -29,6 +29,13 @@ below apply only to the identified third-party software and datasets.
   public-domain U.S. government data with attribution requested. EarthHistory
   distributes five 256² bilinear service subsets of the v1 60 arc-second
   surface product, rounded to whole metres in the EGM2008 vertical datum.
+- **EMODnet Digital Bathymetry (DTM 2024)** — EMODnet Bathymetry Consortium,
+  [DOI 10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1](https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1),
+  licensed under CC BY 4.0. EarthHistory distributes one bounded 256² central
+  North Sea derivative of the official mean-elevation WCS, rounded to whole
+  metres relative to Lowest Astronomical Tide. It is for visualization, not
+  navigation; the visual transition to the global EGM2008 surface is labelled
+  synthesis rather than a numerical datum conversion.
 
 The source catalog in `src/data/sources.ts` contains full scientific citations,
 versions, temporal ranges, geographic bases and retrieval dates. Papers marked

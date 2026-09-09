@@ -149,7 +149,7 @@
       "license": "CC BY 4.0",
       "politicalArchiveSha256": "44bdd3625796e77effc0bb5d0dab05a9bda2c86e5fe0ea4b401a66220d426962",
       "rotationArchiveSha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
-      "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; line simplification tolerance 0.18 degrees",
+      "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; display lines are simplified after reconstruction; line simplification tolerance 0.18 degrees",
       "outputs": [
         {
           "ageMa": 20,
@@ -358,7 +358,177 @@
           "bytes": 175259
         }
       ]
+    },
+    "emodnet-bathymetry-2024-refinements": {
+      "record": "https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1",
+      "service": "https://ows.emodnet-bathymetry.eu/wcs",
+      "license": "CC BY 4.0",
+      "sourceProduct": "EMODnet DTM 2024 mean depth/elevation",
+      "processing": "WCS 256x256 EPSG:4326 F32 subset, bilinear service resampling, rounded to metre-scale int16 and base64 encoded; a 64x64 parent is block-mean downsampled for projected-error LOD and parent fallback; vertical datum LAT; rendered feather is explicitly synthesis",
+      "outputs": [
+        {
+          "id": "north-sea-basin-coarse",
+          "bbox": [
+            1.0,
+            55.0,
+            4.0,
+            58.0
+          ],
+          "level": 0,
+          "sourceUrl": "https://ows.emodnet-bathymetry.eu/wcs?service=wcs&version=1.0.0&request=getcoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&BBOX=1%2C55%2C4%2C58&format=image%2Ftiff&interpolation=bilinear&width=256&height=256",
+          "sourceTiffSha256": "c09506e78dd8e3d7efb3958b33eef55640551c8cc6e34222008e4e14e46121b7",
+          "sourceTiffBytes": 262528,
+          "path": "public/data/emodnet-north-sea-basin-coarse.json",
+          "sha256": "b4130d3478ae28babe047cc2ce2f585277418f3d7905a2c4571cc61d9c767860",
+          "bytes": 11423,
+          "minimumMetresLat": -132,
+          "maximumMetresLat": -23
+        },
+        {
+          "id": "north-sea-basin",
+          "bbox": [
+            1.0,
+            55.0,
+            4.0,
+            58.0
+          ],
+          "level": 1,
+          "sourceUrl": "https://ows.emodnet-bathymetry.eu/wcs?service=wcs&version=1.0.0&request=getcoverage&coverage=emodnet%3Amean&crs=EPSG%3A4326&BBOX=1%2C55%2C4%2C58&format=image%2Ftiff&interpolation=bilinear&width=256&height=256",
+          "sourceTiffSha256": "c09506e78dd8e3d7efb3958b33eef55640551c8cc6e34222008e4e14e46121b7",
+          "sourceTiffBytes": 262528,
+          "path": "public/data/emodnet-north-sea-basin.json",
+          "sha256": "bf4ae5507042ee79cc5fd5ae3a5501cd28c9062511ce457ab8609613a91b5d99",
+          "bytes": 175270,
+          "minimumMetresLat": -135,
+          "maximumMetresLat": -22
+        }
+      ]
+    },
+    "paleomap-area-tracking-v1": {
+      "record": "https://doi.org/10.5281/zenodo.7994000",
+      "license": "CC BY 4.0",
+      "politicalArchiveSha256": "44bdd3625796e77effc0bb5d0dab05a9bda2c86e5fe0ea4b401a66220d426962",
+      "rotationArchiveSha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "processing": "Stable GPML feature identity plus source geometry-part index; source geometry is simplified once before rigid plate rotation so normalized geodesic measure remains stable; signed local offsets are resolved by the frontend; int16 longitude/latitude uses the catalog scale",
+      "outputs": [
+        {
+          "role": "catalog",
+          "path": "public/data/country-tracking-catalog.json",
+          "sha256": "dccd3aa77fd0a0f1d3a3d9ac10f4efcb0868650f4c4c898fa01e3ba2ee4ecb7d",
+          "bytes": 101130,
+          "features": 437,
+          "parts": 999
+        },
+        {
+          "ageMa": 0,
+          "path": "public/data/country-tracking-0ma.bin",
+          "sha256": "b95aaac158bef6f90f7af1e575a4f9bc3b1c9551fce6808cfffb06cd7c233bf0",
+          "bytes": 42204
+        },
+        {
+          "ageMa": 20,
+          "path": "public/data/country-tracking-20ma.bin",
+          "sha256": "e8909beae29107ee80883d0714b08723747b1473612852923819bb04d533a82f",
+          "bytes": 38808
+        },
+        {
+          "ageMa": 35,
+          "path": "public/data/country-tracking-35ma.bin",
+          "sha256": "1bc186385118a493d4206f1a1f3fc0bd66d98e9720873ff2662a859b41d2d391",
+          "bytes": 38792
+        },
+        {
+          "ageMa": 55,
+          "path": "public/data/country-tracking-55ma.bin",
+          "sha256": "6500d498c7fa6bb5217a41132c477e668316c589f5660704c577fbdec71e99c0",
+          "bytes": 38176
+        },
+        {
+          "ageMa": 65,
+          "path": "public/data/country-tracking-65ma.bin",
+          "sha256": "3908b40d7afe385659b2aefd8f3fbaa5953cc5944c73bad0672c2ffb5ed24171",
+          "bytes": 38176
+        },
+        {
+          "ageMa": 95,
+          "path": "public/data/country-tracking-95ma.bin",
+          "sha256": "b99ce6afc8aeabdb274bc24ecc830da0d1df0ac94d4a331508763a256b1d3359",
+          "bytes": 36764
+        },
+        {
+          "ageMa": 130,
+          "path": "public/data/country-tracking-130ma.bin",
+          "sha256": "f9dfdd2a7bf8581ce24aefacfa6ba7782f82899d9f81c09507482f267159edb2",
+          "bytes": 35776
+        },
+        {
+          "ageMa": 185,
+          "path": "public/data/country-tracking-185ma.bin",
+          "sha256": "cb499ba9ce457930f49d28a327873b4d471443fad714db12bf03b22fd940bed9",
+          "bytes": 35008
+        },
+        {
+          "ageMa": 220,
+          "path": "public/data/country-tracking-220ma.bin",
+          "sha256": "a107702b1697d186813136afd455a0387fa038358101cdfea35f026e2cce8451",
+          "bytes": 34992
+        },
+        {
+          "ageMa": 250,
+          "path": "public/data/country-tracking-250ma.bin",
+          "sha256": "d3ed3a4bdf15cba7fd9f5d6265258ec09e23286df46d07c1d36edea6ad2e6a80",
+          "bytes": 31660
+        },
+        {
+          "ageMa": 300,
+          "path": "public/data/country-tracking-300ma.bin",
+          "sha256": "732f82847571f4036a3c610cfb0008351e9cf930d78a7c7ca20dc163d2308e0f",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 320,
+          "path": "public/data/country-tracking-320ma.bin",
+          "sha256": "13f876b3c41c8b7308e1903736c19006b0ab19fbd343e546528751ac1fcc2cb9",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 360,
+          "path": "public/data/country-tracking-360ma.bin",
+          "sha256": "faeab64bd75b12057e4253f95e8605e53aee792c9b718ad0cdd413bd48ee5900",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 400,
+          "path": "public/data/country-tracking-400ma.bin",
+          "sha256": "561e6e8cd7087b862b3c41bbcd0da721ae022346e6dba9ca543bc9af668430bd",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 430,
+          "path": "public/data/country-tracking-430ma.bin",
+          "sha256": "e12a83e17b68542554814ceea2a3f8f90faeb5ec8d6e2d8cb3c5a2a57c06d0e3",
+          "bytes": 30596
+        },
+        {
+          "ageMa": 470,
+          "path": "public/data/country-tracking-470ma.bin",
+          "sha256": "0d484c8a834c9fd8daed56d91cbe622d749c2a063c2ed2c75b8ce74e58dce273",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 520,
+          "path": "public/data/country-tracking-520ma.bin",
+          "sha256": "eeef47e1e1a59000ce266a72f76bb26fbbf083aa85358e4525e18410f45f2b19",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 540,
+          "path": "public/data/country-tracking-540ma.bin",
+          "sha256": "55de37ece43c33d1810914adfba47fa3b6aa40549ff7573c1aa4f10d2a73a101",
+          "bytes": 30488
+        }
+      ]
     }
   },
-  "scratchCacheBytes": 24193239
+  "scratchCacheBytes": 24272760
 }

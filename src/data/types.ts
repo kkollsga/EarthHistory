@@ -67,6 +67,7 @@ export interface PointOfInterest {
 export interface LayerVisibility {
   clouds: boolean;
   borders: boolean;
+  guides: boolean;
   tectonics: boolean;
   rivers: boolean;
 }
@@ -124,9 +125,14 @@ export interface ModernClimateControl {
 
 export type GeographicBounds = [west: number, south: number, east: number, north: number];
 
-export interface ModernReliefPatchMetadata {
+export interface SurfaceRefinementTileMetadata {
   id: string;
-  validRequestedAgeMa: [oldest: 0, youngest: 0];
+  setId: string;
+  level: number;
+  parentId?: string;
+  childIds: string[];
+  priority: number;
+  validRequestedAgeMa: [oldest: number, youngest: number];
   bounds: GeographicBounds;
   cellCenterBounds: GeographicBounds;
   width: number;
@@ -136,16 +142,47 @@ export interface ModernReliefPatchMetadata {
   registration: "pixel-center";
   rowOrder: "north-to-south";
   units: "m";
-  verticalDatum: "EGM2008";
+  horizontalCrs: string;
+  referenceFrameId: string;
+  verticalDatum: string;
   surfaceMode: "surface" | "seafloor";
-  sourceProduct: "ETOPO_2022_v1_60s_surface";
+  domain: "land" | "bathymetry" | "topobathymetry";
+  composition:
+    | "absolute-replace"
+    | "prepared-datum-transform"
+    | "additive-residual"
+    | "visual-feather";
+  evidence: EvidenceStatus;
+  nativeResolutionMetres: number;
+  maxErrorMetres: number;
+  splitErrorPixels: number;
+  mergeErrorPixels: number;
+  edgeTransitionCells: number;
+  sourceProduct: string;
+  sourceVersion: string;
   sourceIds: string[];
   assetPath: string;
 }
 
-export interface ModernReliefPatch extends ModernReliefPatchMetadata {
+export interface SurfaceRefinementTile extends SurfaceRefinementTileMetadata {
   elevation: Float32Array;
+  landCoverage?: Uint8Array;
+  byteLength: number;
 }
+
+export interface SurfaceRefinementSetMetadata {
+  id: string;
+  label: string;
+  rootTileIds: string[];
+  priority: number;
+  cacheBudgetBytes: number;
+  sourceIds: string[];
+}
+
+/** @deprecated Compatibility name while callers migrate to surface refinements. */
+export type ModernReliefPatchMetadata = SurfaceRefinementTileMetadata;
+/** @deprecated Compatibility name while callers migrate to surface refinements. */
+export type ModernReliefPatch = SurfaceRefinementTile;
 
 export interface LandPolygon {
   id: string;
@@ -158,6 +195,43 @@ export interface CountryOutline {
   lines: LonLat[][];
   sourceIds: string[];
   evidence: EvidenceStatus;
+}
+
+export interface AreaTrackingFeatureMetadata {
+  id: string;
+  countryId: string;
+  name: string;
+  plateId: number | null;
+  validTimeMa: [oldest: number | null, youngest: number | null];
+}
+
+export interface AreaTrackingPartMetadata {
+  id: number;
+  feature: number;
+  geometryIndex: number;
+}
+
+export interface AreaTrackingCatalog {
+  schemaVersion: 1;
+  id: string;
+  plateModelId: string;
+  referenceFrameId: string;
+  coordinateEncoding: "int16-le-longitude-latitude";
+  coordinateScaleDegrees: number;
+  measure: "normalized-geodesic-arclength";
+  sourceSimplificationToleranceDegrees: number;
+  sourceIds: string[];
+  features: AreaTrackingFeatureMetadata[];
+  parts: AreaTrackingPartMetadata[];
+}
+
+export interface AreaTrackingLayer {
+  ageMa: number;
+  catalog: AreaTrackingCatalog;
+  partIds: Uint16Array;
+  pointOffsets: Uint32Array;
+  coordinates: Int16Array;
+  byteLength: number;
 }
 
 export type TectonicFeatureType =
@@ -208,6 +282,7 @@ export interface WorldSnapshot extends TimeSlice {
   geographicSourceAgeMa?: number;
   land: LandPolygon[];
   countries: CountryOutline[];
+  areaTracking?: AreaTrackingLayer;
   tectonics: TectonicFeature[];
   poiIds: string[];
   poiCoordinates?: Record<string, LonLat>;
