@@ -36,7 +36,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Validate application
-        run: make gate-full
+        run: make gate-full-ci
 
       - name: Upload browser failure evidence
         if: failure()
