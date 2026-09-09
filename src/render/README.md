@@ -23,6 +23,46 @@ Normal `surface` mode holds oceans at sea level. Explicit `seafloor` mode uses
 the snapshot's negative elevation, a signed ±9,000 metre displacement encoding,
 and a bathymetric palette; the cache key includes the mode.
 
+`SurfaceFields` also retains the completed render relief as one Float32 metre
+value per pixel. Cube CPU geometry and physical normals sample this field so
+they do not incur another 8-bit encode/decode step; the RGBA relief remains for
+the legacy globe and GPU displacement path. This representation preserves the
+same generated relief and scientific controls, so it adds no scientific
+accuracy. At 768×384 the Float32 field adds 1,179,648 bytes (1.125 MiB).
+`SurfaceFields.byteLength`, the bounded cache, and cube-worker retained-context
+diagnostics include it; transferring the active context also creates the
+worker-owned copy.
+
+The synchronous textured fallback and cloud layer use even-detail geodesic
+shells with no vertex at either geographic pole. This keeps equirectangular UV
+seams from collapsing into the radial fan produced by a latitude/longitude
+sphere while the adaptive cube surface loads or recovers from an error.
+
+Country references, tectonic features, and inferred river corridors follow
+the same continuous displayed-height sampler used for cube vertices. Great-
+circle subdivision is limited to 0.75° steps, exact pole/seam duplicates are
+removed, and each line retains immutable unit directions plus metre heights.
+Relief changes rebuild positions from those values, so 1× → 30× → 1× cannot
+compound. Clearance remains a small constant physical distance above the local
+surface, and retained drape arrays are capped at 16 MiB.
+
+Cube material requests keep their bounded power-of-two density target but add
+one sampled interior row and column. The odd grid includes one canonical texel
+at the center of each level-zero polar face; an even grid straddles the pole
+and interpolates four unrelated longitudes into a radial fan. Surrounding
+high-latitude samples remain unchanged.
+
+Geographic control grids use a bounded equal-footprint longitude filter where
+their polar cells become at least four times narrower than their latitude
+spacing. This removes equirectangular oversampling spokes while retaining the
+directional geography resolvable by the source grid. Sampling is capped at 32
+longitude taps and allocates no additional retained field.
+
+Procedural cloud terms also remain in Cartesian sphere space. Frequency changes
+provide the front and wisp scales; latitude-dependent longitude warps are
+forbidden because they turn the one geographic pole into a longitude ring and
+produce the same radial discontinuity on the cloud shell.
+
 The current limb is a thin, day/night-weighted geometric atmosphere that uses
 standard Three materials on both backends. The researched Takram atmosphere was
 not adopted in this bounded proof because its published package brings React

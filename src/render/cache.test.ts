@@ -10,6 +10,7 @@ describe("BoundedLruCache", () => {
     cache.set("c", { byteLength: 4, value: "c" });
     expect(cache.get("b")).toBeUndefined();
     expect(cache.byteLength).toBe(8);
+    expect(cache.evictions).toBe(1);
   });
 
   it("declines an item that cannot fit by itself", () => {

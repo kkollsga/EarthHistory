@@ -18,14 +18,14 @@ const viewport = { width: 1440, height: 900 };
 
 // Stop rule established before this measurement: pause optional rendering work
 // if reduced quality misses 30 fps on a hardware-backed renderer, if repeat
-// first visual camera response exceeds 100 ms, or if the added regional mesh
-// stage repeatedly takes more than 250 ms after its request. Orbit-control
-// damping is reported separately rather than charged to synthesis.
+// first visual camera response exceeds 100 ms, or if the first useful cube
+// refinement repeatedly takes more than 250 ms after its base surface. Orbit-
+// control damping is reported separately rather than charged to synthesis.
 const stopRule = {
   reducedQualityMaxP50Ms: 33.33,
   regionalMaxP95Ms: 20,
   repeatedFirstCameraResponseMaxMs: 100,
-  repeatedRegionalRequestToReadyMaxMs: 250,
+  repeatedCubeBaseToFirstRefinementMaxMs: 250,
   consequence: "Pause optional visual detail and fix the responsive baseline.",
 };
 
@@ -145,9 +145,10 @@ async function loadControl(page, label) {
 
 async function setQuality(page, accessibleName) {
   if (!(await page.getByRole("dialog").isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /^Rendering quality:/ }).click();
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("menuitem", { name: /^Rendering quality/ }).click();
   }
-  const option = page.getByRole("button", { name: accessibleName });
+  const option = page.getByRole("button", { name: new RegExp(`^${accessibleName}`) });
   const started = performance.now();
   await option.click();
   const expected = accessibleName === "Reduced detail" ? "low" : "high";
@@ -171,8 +172,10 @@ async function zoomToRegional(page) {
   const before = await page.evaluate(() => ({
     requestedAt: Number(document.querySelector("canvas")?.dataset.surfaceRequestedAt ?? 0),
     readyAt: Number(document.querySelector("canvas")?.dataset.surfaceReadyAt ?? 0),
-    regionalRequestedAt: Number(document.querySelector("canvas")?.dataset.regionalRequestedAt ?? 0),
-    regionalReadyAt: Number(document.querySelector("canvas")?.dataset.regionalReadyAt ?? 0),
+    cubeRequestedAt: Number(document.querySelector("canvas")?.dataset.cubeRequestedAt ?? 0),
+    cubeReadyAt: Number(document.querySelector("canvas")?.dataset.cubeReadyAt ?? 0),
+    cubeTargetLodRequestedAt: Number(document.querySelector("canvas")?.dataset.cubeTargetLodRequestedAt ?? 0),
+    cubeTargetLodCompleteAt: Number(document.querySelector("canvas")?.dataset.cubeTargetLodCompleteAt ?? 0),
     startedAt: performance.now(),
     cameraDistance: Number(document.querySelector("canvas")?.dataset.cameraDistance ?? 0),
   }));
@@ -189,7 +192,9 @@ async function zoomToRegional(page) {
       const target = document.querySelector("canvas");
       return target?.dataset.detail === "regional" &&
         target.dataset.surfaceStatus === "ready" &&
-        target.dataset.regionalStatus === "ready";
+        target.dataset.cubeStatus === "ready" &&
+        target.dataset.cubeRefinementStatus === "ready" &&
+        target.dataset.cubeDisplayedKey?.includes(":regional:");
     },
     undefined,
     { timeout: 30_000 },
@@ -197,27 +202,36 @@ async function zoomToRegional(page) {
   const after = await page.evaluate(() => ({
     requestedAt: Number(document.querySelector("canvas")?.dataset.surfaceRequestedAt ?? 0),
     readyAt: Number(document.querySelector("canvas")?.dataset.surfaceReadyAt ?? 0),
-    regionalRequestedAt: Number(document.querySelector("canvas")?.dataset.regionalRequestedAt ?? 0),
-    regionalReadyAt: Number(document.querySelector("canvas")?.dataset.regionalReadyAt ?? 0),
-    regionalSource: document.querySelector("canvas")?.dataset.regionalSource ?? null,
-    regionalVertices: Number(document.querySelector("canvas")?.dataset.regionalVertices ?? 0),
+    cubeRequestedAt: Number(document.querySelector("canvas")?.dataset.cubeRequestedAt ?? 0),
+    cubeReadyAt: Number(document.querySelector("canvas")?.dataset.cubeReadyAt ?? 0),
+    cubeFirstRefinementAt: Number(document.querySelector("canvas")?.dataset.cubeFirstRefinementAt ?? 0),
+    cubeTargetLodRequestedAt: Number(document.querySelector("canvas")?.dataset.cubeTargetLodRequestedAt ?? 0),
+    cubeTargetLodCompleteAt: Number(document.querySelector("canvas")?.dataset.cubeTargetLodCompleteAt ?? 0),
+    cubeDisplayedKey: document.querySelector("canvas")?.dataset.cubeDisplayedKey ?? null,
   }));
   if (after.requestedAt <= before.requestedAt || after.readyAt <= before.readyAt) {
     throw new Error("Regional refinement did not publish a new request/ready timing pair.");
   }
-  if (after.regionalRequestedAt <= before.regionalRequestedAt || after.regionalReadyAt <= before.regionalReadyAt) {
-    throw new Error("Regional mesh did not publish a new request/ready timing pair.");
+  if (after.cubeRequestedAt <= before.cubeRequestedAt || after.cubeReadyAt <= before.cubeReadyAt) {
+    throw new Error("Regional cube did not publish a new base request/ready timing pair.");
   }
-  const finalReadyAt = Math.max(after.readyAt, after.regionalReadyAt);
+  if (
+    after.cubeFirstRefinementAt <= after.cubeReadyAt ||
+    after.cubeTargetLodRequestedAt <= before.cubeTargetLodRequestedAt ||
+    after.cubeTargetLodCompleteAt < after.cubeTargetLodRequestedAt
+  ) {
+    throw new Error("Regional cube did not publish a complete refinement timing chain.");
+  }
+  const finalReadyAt = Math.max(after.readyAt, after.cubeTargetLodCompleteAt);
   return {
     inputToFirstCameraResponseMs: Number((firstCameraResponseAt - before.startedAt).toFixed(2)),
     inputToRequestMs: Number((after.requestedAt - before.startedAt).toFixed(2)),
     requestToReadyMs: Number((after.readyAt - after.requestedAt).toFixed(2)),
-    regionalInputToRequestMs: Number((after.regionalRequestedAt - before.startedAt).toFixed(2)),
-    regionalRequestToReadyMs: Number((after.regionalReadyAt - after.regionalRequestedAt).toFixed(2)),
+    cubeInputToBaseMs: Number((after.cubeReadyAt - before.startedAt).toFixed(2)),
+    cubeBaseToFirstRefinementMs: Number((after.cubeFirstRefinementAt - after.cubeReadyAt).toFixed(2)),
+    cubeLatestTargetToCompleteMs: Number((after.cubeTargetLodCompleteAt - after.cubeTargetLodRequestedAt).toFixed(2)),
     inputToReadyMs: Number((finalReadyAt - before.startedAt).toFixed(2)),
-    regionalSource: after.regionalSource,
-    regionalVertices: after.regionalVertices,
+    cubeDisplayedKey: after.cubeDisplayedKey,
   };
 }
 
@@ -372,8 +386,8 @@ try {
       .every((value) => value != null && value > stopRule.regionalMaxP95Ms) ||
     [regionalTiming.inputToFirstCameraResponseMs, repeatedRegionalTiming.inputToFirstCameraResponseMs]
       .every((value) => value > stopRule.repeatedFirstCameraResponseMaxMs) ||
-    [regionalTiming.regionalRequestToReadyMs, repeatedRegionalTiming.regionalRequestToReadyMs]
-      .every((value) => value > stopRule.repeatedRegionalRequestToReadyMaxMs)
+    [regionalTiming.cubeBaseToFirstRefinementMs, repeatedRegionalTiming.cubeBaseToFirstRefinementMs]
+      .every((value) => value > stopRule.repeatedCubeBaseToFirstRefinementMaxMs)
   );
 
   const result = {

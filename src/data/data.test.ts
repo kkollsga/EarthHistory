@@ -130,6 +130,32 @@ describe("snapshot selection and assets", () => {
     expect(lgm.modernClimate).toBeUndefined();
   });
 
+  it("uses the valid +180 twin for the verified 0 Ma southern duplicate-zero run", async () => {
+    const asset = JSON.parse(
+      await readFile(resolve(process.cwd(), "public/data/paleodem-0ma.json"), "utf8"),
+    ) as { width: number; height: number; elevation: number[] };
+    const expected = new Map([
+      [-60, -4360], [-62, -4040], [-64, -2320], [-66, -3360], [-68, -2320],
+      [-70, -3520], [-72, -2160], [-74, -160], [-76, -400], [-78, -760],
+      [-80, -680], [-82, -480], [-84, -360], [-86, 2120], [-88, 920],
+    ]);
+    expect(asset.width).toBe(180);
+    expect(asset.height).toBe(91);
+    for (const [latitude, elevation] of expected) {
+      const row = (90 - latitude) / 2;
+      expect(asset.elevation[row * asset.width], `${latitude}° at -180°`).toBe(elevation);
+    }
+    // The source-authored -90° pole is outside the verified duplicate-zero run.
+    expect(asset.elevation[90 * asset.width]).toBe(0);
+
+    const manifest = JSON.parse(
+      await readFile(resolve(process.cwd(), "public/data/manifest.json"), "utf8"),
+    ) as { inputs: Record<string, { sourceAdapters?: Array<{ ageMa: number; affectedOutputCells: number }> }> };
+    expect(manifest.inputs["scotese-wright-paleodem-v2"].sourceAdapters).toEqual([
+      expect.objectContaining({ ageMa: 0, affectedOutputCells: 15 }),
+    ]);
+  });
+
   it("constrains modern climate potential with source-authored semantic classes", async () => {
     vi.stubGlobal("fetch", localAssetFetch());
     const climate = (await getSnapshot(0)).modernClimate;

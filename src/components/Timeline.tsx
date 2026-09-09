@@ -197,10 +197,17 @@ export function Timeline({
             <span>Geography source: {formatGeographicSourceAge(geographicSourceAgeMa)}</span>
           )}
         </div>
-        <div className="timeline-scale-controls" aria-label="Timeline scale">
-          <button type="button" aria-pressed={scaleMode === "recent"} onClick={() => chooseScale("recent")}>Recent Earth</button>
-          <button type="button" aria-pressed={scaleMode === "phanerozoic"} onClick={() => chooseScale("phanerozoic")}>Phanerozoic</button>
-          <button type="button" aria-pressed={scaleMode === "deep"} onClick={() => chooseScale("deep")}>Deep time</button>
+        <div className="timeline-scale-control">
+          <label htmlFor="timeline-scale">Timeline range</label>
+          <select
+            id="timeline-scale"
+            value={scaleMode}
+            onChange={(event) => chooseScale(event.target.value as ScaleMode)}
+          >
+            <option value="recent">Recent Earth</option>
+            <option value="phanerozoic">Phanerozoic</option>
+            <option value="deep">Deep time</option>
+          </select>
         </div>
         <span className="timeline-direction">{scaleMode === "deep" ? "Nonlinear full history" : scaleMode === "phanerozoic" ? "Linear last 538.8 Ma" : "Linear last 2.58 Ma"}</span>
       </div>
@@ -225,32 +232,27 @@ export function Timeline({
           aria-label={`Geological age, ${formatAge(ageMa)}`}
           aria-valuetext={formatAge(ageMa)}
         />
-        <div className="chapter-marks" aria-label="Exact chapter positions">
+        <div className="chapter-marks" aria-hidden="true">
           {visibleScaleChapters.map((slice) => (
-            <button
-              type="button"
+            <span
               key={slice.id}
               className={`chapter-mark ${Math.abs(ageMa - slice.ageMa) < 0.0001 ? "is-current" : ""}`}
               style={{ left: `${sliderPosition(slice.ageMa) / 10}%` }}
-              onClick={() => onAgeChange(slice.ageMa)}
-              aria-label={`${slice.label}, ${formatAge(slice.ageMa)}`}
             />
           ))}
         </div>
       </div>
 
-      <div className="timeline-chapters" aria-label="Representative timeline chapters" ref={chaptersRef}>
+      <div className="timeline-chapters" aria-hidden="true" ref={chaptersRef}>
         {visibleChapters.map((slice, index) => (
-          <button
-            type="button"
+          <span
             key={slice.id}
             className={`${Math.abs(ageMa - slice.ageMa) < 0.04 ? "is-current " : ""}${index === 0 ? "is-first" : index === visibleChapters.length - 1 ? "is-last" : ""}`}
             style={{ left: `${sliderPosition(slice.ageMa) / 10}%` }}
-            onClick={() => onAgeChange(slice.ageMa)}
             title={`${slice.period} · ${formatAge(slice.ageMa)}`}
           >
             {slice.label}
-          </button>
+          </span>
         ))}
       </div>
       <div className={`geological-bands ${scaleMode}`} aria-label={scaleMode === "deep" ? "Geological eons" : scaleMode === "phanerozoic" ? "Geological eras and periods" : "Recent geological periods and epochs"}>

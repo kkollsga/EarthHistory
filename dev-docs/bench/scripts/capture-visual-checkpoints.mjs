@@ -47,7 +47,8 @@ async function capture(name) {
 }
 
 async function setRelief(value) {
-  await page.getByRole("button", { name: "Choose visible layers" }).click();
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
   await page.getByRole("slider", { name: /^Terrain relief/ }).fill(String(value));
   await page.waitForFunction(
     (expected) => document.querySelector("canvas")?.dataset.verticalExaggeration === `${expected}.0`,
@@ -83,7 +84,8 @@ try {
 
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await waitReady();
-  await page.getByRole("button", { name: "Choose visible layers" }).click();
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
   await page.getByRole("button", { name: /^Clouds/ }).click();
   await page.getByRole("button", { name: "Close dialog" }).click();
   await capture("ui-modern-orbit-8x-clouds-on");

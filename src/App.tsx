@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Aperture,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   Layers3,
   Link,
   Map,
+  Menu,
   Mountain,
   RotateCcw,
   Share2,
@@ -25,16 +26,21 @@ import {
   timeSlices,
   type GlobeStats,
   type LayerVisibility,
+  type LonLat,
   type PointOfInterest,
   type WorldSnapshot,
 } from "./data";
 import { EvidenceBadge } from "./components/EvidenceBadge";
-import { IconButton } from "./components/IconButton";
 import { Modal } from "./components/Modal";
 import { formatAge, formatGeographicSourceAge, Timeline } from "./components/Timeline";
+import { parseFocusCoordinates, serializeFocusCoordinates } from "./focusState";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
 type Quality = "auto" | "high" | "low";
+type SpatialFocus =
+  | { kind: "poi"; poiId: string; coordinates: LonLat; nonce: number }
+  | { kind: "place"; placeId: string; coordinates: LonLat; nonce: number; distance: number }
+  | { kind: "area"; coordinates: LonLat; nonce: number };
 
 const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
@@ -71,6 +77,7 @@ function parseInitialState() {
     layers,
     focus: params.get("focus"),
     place: params.get("place"),
+    at: parseFocusCoordinates(params.get("at")),
     relief: Number.isFinite(parsedRelief) ? Math.min(30, Math.max(1, Math.round(parsedRelief))) : 8,
   };
 }
@@ -86,22 +93,6 @@ function serializeAge(ageMa: number) {
   return String(Number(ageMa.toFixed(precision)));
 }
 
-function getJourneySlices() {
-  if (!timeSlices.length) return [];
-  const sorted = [...timeSlices].sort((a, b) => b.ageMa - a.ageMa);
-  const find = (pattern: RegExp) =>
-    sorted.find((slice) => pattern.test(`${slice.id} ${slice.label} ${slice.period} ${slice.description}`));
-  const candidates = [
-    sorted[0],
-    find(/moon|impact/i),
-    find(/ocean|sea|cool/i),
-    find(/oxygen|biome|life/i),
-    find(/ice|glaci/i),
-    sorted[sorted.length - 1],
-  ].filter((slice): slice is (typeof timeSlices)[number] => Boolean(slice));
-  return candidates.filter((slice, index) => candidates.findIndex((item) => item.id === slice.id) === index);
-}
-
 function poiDisplayCoordinate(poi: PointOfInterest, snapshot: WorldSnapshot | null, ageMa: number) {
   const oldest = Math.max(poi.ageStartMa, poi.ageEndMa);
   const youngest = Math.min(poi.ageStartMa, poi.ageEndMa);
@@ -111,18 +102,36 @@ function poiDisplayCoordinate(poi: PointOfInterest, snapshot: WorldSnapshot | nu
 
 export default function App() {
   const initial = useRef(parseInitialState()).current;
-  const initialLandscape = modernLandscapePresets.find((preset) => preset.id === initial.place);
+  const initialPoi = pointsOfInterest.find((poi) => poi.id === initial.focus);
+  const initialLandscape = initialPoi === undefined && initial.age === 0
+    ? modernLandscapePresets.find((preset) => preset.id === initial.place)
+    : undefined;
+  const initialArea = initialPoi === undefined && initialLandscape === undefined ? initial.at : null;
   const [ageMa, setAgeMa] = useState(initial.age);
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>(initial.layers);
   const [panel, setPanel] = useState<Panel>(null);
-  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(initial.focus);
-  const [focusTarget, setFocusTarget] = useState<{ coordinates: [number, number]; nonce: number; distance?: number } | undefined>(
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuActiveIndex, setMenuActiveIndex] = useState(0);
+  const [contextExpanded, setContextExpanded] = useState(false);
+  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(initialPoi?.id ?? null);
+  const [spatialFocus, setSpatialFocus] = useState<SpatialFocus | null>(
     initialLandscape
-      ? { coordinates: initialLandscape.coordinates, distance: initialLandscape.distance, nonce: Date.now() }
-      : undefined,
+      ? {
+          kind: "place",
+          placeId: initialLandscape.id,
+          coordinates: initialLandscape.coordinates,
+          distance: initialLandscape.distance,
+          nonce: 0,
+        }
+      : initialArea
+        ? { kind: "area", coordinates: initialArea, nonce: 0 }
+        : null,
+  );
+  const [autoRotateEnabled, setAutoRotateEnabled] = useState(
+    initialPoi === undefined && initialLandscape === undefined && initialArea === null,
   );
   const [resetNonce, setResetNonce] = useState(0);
   const [quality, setQuality] = useState<Quality>("auto");
@@ -134,6 +143,10 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [shareComplete, setShareComplete] = useState(false);
   const lastStatsUpdate = useRef(0);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const panelOpenedFromMenu = useRef(false);
+  const focusNonce = useRef(0);
   const requestedAgeRef = useRef(ageMa);
   requestedAgeRef.current = ageMa;
   const reducedMotion = useMemo(
@@ -152,21 +165,17 @@ export default function App() {
     () => modernLandscapePresets.find((preset) => preset.id === selectedLandscapeId) ?? null,
     [selectedLandscapeId],
   );
-  const journeySlices = useMemo(() => getJourneySlices(), []);
   const orderedSlices = useMemo(() => [...timeSlices].sort((a, b) => a.ageMa - b.ageMa), []);
   const chapter = useMemo(() => closestChapter(ageMa), [ageMa]);
+  const chapterReference = useMemo(
+    () => chapter.sourceIds.map((sourceId) => sources.find((source) => source.id === sourceId)).find(Boolean),
+    [chapter],
+  );
   const chapterNumber = useMemo(
     () => [...orderedSlices].reverse().findIndex((slice) => slice.id === chapter.id) + 1,
     [chapter.id, orderedSlices],
   );
   const contextSnapshot = snapshot?.requestedAgeMa === ageMa ? snapshot : null;
-  const availablePois = useMemo(
-    () =>
-      pointsOfInterest
-        .filter((poi) => snapshot?.poiIds.includes(poi.id))
-        .sort((a, b) => b.ageStartMa - a.ageStartMa),
-    [snapshot],
-  );
   const chronologicalPois = useMemo(
     () => [...pointsOfInterest].sort((a, b) => b.ageStartMa - a.ageStartMa),
     [],
@@ -225,9 +234,12 @@ export default function App() {
     params.set("layers", visibleLayers.join(","));
     params.set("relief", String(verticalExaggeration));
     if (selectedPoiId) params.set("focus", selectedPoiId);
-    if (selectedLandscapeId) params.set("place", selectedLandscapeId);
+    else if (spatialFocus?.kind === "place") params.set("place", spatialFocus.placeId);
+    else if (spatialFocus?.kind === "area") {
+      params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
+    }
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${params}`);
-  }, [ageMa, layers, selectedLandscapeId, selectedPoiId, verticalExaggeration]);
+  }, [ageMa, layers, selectedPoiId, spatialFocus, verticalExaggeration]);
 
   useEffect(() => {
     if (!playing || orderedSlices.length === 0) return;
@@ -245,9 +257,85 @@ export default function App() {
   }, [playing, orderedSlices]);
 
   useEffect(() => {
-    if (!selectedPoiCoordinate) return;
-    setFocusTarget({ coordinates: selectedPoiCoordinate, nonce: Date.now() });
-  }, [snapshot?.id, selectedPoi?.id]);
+    if (!selectedPoi) return;
+    if (!selectedPoiCoordinate) {
+      setSpatialFocus((current) =>
+        current?.kind === "poi" && current.poiId === selectedPoi.id ? null : current
+      );
+      setAutoRotateEnabled(true);
+      return;
+    }
+    setAutoRotateEnabled(false);
+    setSpatialFocus((current) => {
+      if (
+        current?.kind === "poi" && current.poiId === selectedPoi.id &&
+        current.coordinates[0] === selectedPoiCoordinate[0] &&
+        current.coordinates[1] === selectedPoiCoordinate[1]
+      ) return current;
+      return {
+        kind: "poi",
+        poiId: selectedPoi.id,
+        coordinates: selectedPoiCoordinate,
+        nonce: ++focusNonce.current,
+      };
+    });
+  }, [ageMa, snapshot?.id, selectedPoi?.id]);
+
+  useEffect(() => {
+    if (ageMa <= 0.0001) return;
+    setSelectedLandscapeId(null);
+    setSpatialFocus((current) => current?.kind === "place" ? null : current);
+  }, [ageMa]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const menu = menuRef.current;
+    const items = () => [...(menu?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menu?.contains(event.target as Node) && !menuButtonRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    requestAnimationFrame(() => items()[0]?.focus());
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [menuOpen]);
+
+  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      const focusable = [...document.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )].filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      const nextTarget = focusable[currentIndex + (event.shiftKey ? -1 : 1)];
+      event.preventDefault();
+      setMenuOpen(false);
+      requestAnimationFrame(() => nextTarget?.focus());
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const menuItems = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+    if (!menuItems.length) return;
+    const currentIndex = menuItems.indexOf(document.activeElement as HTMLButtonElement);
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? menuItems.length - 1
+        : event.key === "ArrowDown"
+          ? (currentIndex + 1 + menuItems.length) % menuItems.length
+          : (currentIndex - 1 + menuItems.length) % menuItems.length;
+    setMenuActiveIndex(nextIndex);
+    menuItems[nextIndex]?.focus();
+  };
 
   const changeAge = useCallback((age: number) => {
     setPlaying(false);
@@ -271,17 +359,72 @@ export default function App() {
 
   const openPoi = (id: string, openNotes = true) => {
     const poi = pointsOfInterest.find((item) => item.id === id);
+    if (!poi) return;
     setSelectedPoiId(id);
+    setSelectedLandscapeId(null);
     if (openNotes) setPanel("notes");
-    const coordinates = poi ? poiDisplayCoordinate(poi, snapshot, ageMa) : undefined;
+    const coordinates = poiDisplayCoordinate(poi, snapshot, ageMa);
     if (coordinates) {
-      setFocusTarget({ coordinates, nonce: Date.now() });
+      setAutoRotateEnabled(false);
+      setSpatialFocus({
+        kind: "poi",
+        poiId: poi.id,
+        coordinates,
+        nonce: ++focusNonce.current,
+      });
+    } else {
+      setSpatialFocus(null);
+      setAutoRotateEnabled(true);
+    }
+  };
+
+  const selectSurface = (coordinates: LonLat) => {
+    setAutoRotateEnabled(false);
+    if (spatialFocus !== null) {
+      if (spatialFocus.kind === "poi") setSelectedPoiId(null);
+      if (spatialFocus.kind === "place") setSelectedLandscapeId(null);
+      setSpatialFocus(null);
+      return;
+    }
+    setSelectedPoiId(null);
+    setSelectedLandscapeId(null);
+    setSpatialFocus({ kind: "area", coordinates, nonce: ++focusNonce.current });
+  };
+
+  const clearSelectedPoi = () => {
+    setSelectedPoiId(null);
+    if (spatialFocus?.kind === "poi") {
+      setSpatialFocus(null);
+      setAutoRotateEnabled(false);
     }
   };
 
   const resetCamera = () => {
     setSelectedLandscapeId(null);
+    setSelectedPoiId(null);
+    setSpatialFocus(null);
+    setAutoRotateEnabled(true);
     setResetNonce((value) => value + 1);
+  };
+
+  const openMenuPanel = (nextPanel: Exclude<Panel, "notes" | null>) => {
+    panelOpenedFromMenu.current = true;
+    setMenuOpen(false);
+    setPanel(nextPanel);
+  };
+
+  const closePanel = () => {
+    setPanel(null);
+    if (panelOpenedFromMenu.current) {
+      panelOpenedFromMenu.current = false;
+      requestAnimationFrame(() => menuButtonRef.current?.focus());
+    }
+  };
+
+  const handleMenuReset = () => {
+    resetCamera();
+    setMenuOpen(false);
+    requestAnimationFrame(() => menuButtonRef.current?.focus());
   };
 
   const selectLandscape = (id: string) => {
@@ -290,14 +433,19 @@ export default function App() {
     setSelectedPoiId(null);
     setLayers((current) => ({ ...current, clouds: false }));
     if (!preset) {
+      setSpatialFocus(null);
+      setAutoRotateEnabled(true);
       setResetNonce((value) => value + 1);
       return;
     }
     setAgeMa(0);
-    setFocusTarget({
+    setAutoRotateEnabled(false);
+    setSpatialFocus({
+      kind: "place",
+      placeId: preset.id,
       coordinates: preset.coordinates,
       distance: preset.distance,
-      nonce: Date.now(),
+      nonce: ++focusNonce.current,
     });
   };
 
@@ -328,13 +476,55 @@ export default function App() {
         </button>
         <nav className="primary-nav" aria-label="Primary navigation">
           <button type="button" className="is-active" onClick={() => setPanel(null)}>Explore</button>
-          <button type="button" onClick={() => setPanel("notes")}>Field notes</button>
-          <button type="button" onClick={() => setPanel("sources")}>Sources</button>
+          <button type="button" onClick={() => {
+            panelOpenedFromMenu.current = false;
+            setPanel("notes");
+          }}>Field notes</button>
         </nav>
-        <button type="button" className="share-button" onClick={shareView}>
-          {shareComplete ? <Check size={15} /> : <Share2 size={15} />}
-          <span>{shareComplete ? "Copied" : "Share view"}</span>
-        </button>
+        <div className="site-menu">
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className="menu-button"
+            aria-label="Open menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-controls="site-menu-items"
+            onClick={() => {
+              if (!menuOpen) setMenuActiveIndex(0);
+              setMenuOpen((current) => !current);
+            }}
+          >
+            <Menu size={19} aria-hidden="true" />
+            <span>Menu</span>
+          </button>
+          {menuOpen && (
+            <div ref={menuRef} id="site-menu-items" className="menu-popover" role="menu" aria-label="Explore tools" onKeyDown={handleMenuKeyDown}>
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 0 ? 0 : -1} onFocus={() => setMenuActiveIndex(0)} onClick={() => openMenuPanel("layers")}>
+                <Layers3 size={17} aria-hidden="true" /><span>Layers &amp; relief</span>
+                <small>{Object.values(layers).filter(Boolean).length} visible</small>
+              </button>
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 1 ? 0 : -1} onFocus={() => setMenuActiveIndex(1)} onClick={handleMenuReset}>
+                <Compass size={17} aria-hidden="true" /><span>Reset camera</span>
+              </button>
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 2 ? 0 : -1} onFocus={() => setMenuActiveIndex(2)} onClick={() => openMenuPanel("quality")}>
+                <Gauge size={17} aria-hidden="true" /><span>Rendering quality</span><small>{quality}</small>
+              </button>
+              <span className="menu-rule" aria-hidden="true" />
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 3 ? 0 : -1} onFocus={() => setMenuActiveIndex(3)} onClick={() => openMenuPanel("sources")}>
+                <Database size={17} aria-hidden="true" /><span>Sources</span>
+              </button>
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 4 ? 0 : -1} onFocus={() => setMenuActiveIndex(4)} onClick={() => openMenuPanel("about")}>
+                <Info size={17} aria-hidden="true" /><span>About</span>
+              </button>
+              <button type="button" role="menuitem" tabIndex={menuActiveIndex === 5 ? 0 : -1} onFocus={() => setMenuActiveIndex(5)} onClick={shareView}>
+                {shareComplete ? <Check size={17} aria-hidden="true" /> : <Share2 size={17} aria-hidden="true" />}
+                <span>{shareComplete ? "Link copied" : "Share view"}</span>
+              </button>
+            </div>
+          )}
+        </div>
+        <span className="share-status" aria-live="polite">{shareComplete ? "View link copied" : ""}</span>
       </header>
 
       <section className="globe-stage" aria-label="Interactive Earth reconstruction">
@@ -343,10 +533,11 @@ export default function App() {
           layers={layers}
           selectedPoiId={selectedPoiId}
           onSelectPoi={(id: string) => openPoi(id)}
+          onSelectSurface={selectSurface}
           onStats={handleStats}
-          focusTarget={focusTarget}
+          focusTarget={spatialFocus}
           resetNonce={resetNonce}
-          autoRotate={!reducedMotion && !selectedPoiId}
+          autoRotate={!reducedMotion && autoRotateEnabled}
           quality={quality}
           verticalExaggeration={verticalExaggeration}
           surfaceMode={selectedLandscape?.surfaceMode ?? "surface"}
@@ -366,108 +557,92 @@ export default function App() {
         </div>
       </section>
 
-      <aside className="context-panel" aria-label="Current chapter">
-        <div className="context-topline">
-          <span className="index-label">Chapter {String(chapterNumber).padStart(2, "0")}</span>
-          <span className="view-evidence"><i>Rendered view</i><EvidenceBadge status={contextSnapshot?.evidence ?? chapter.evidence} /></span>
-        </div>
-        <p className="era-line">{chapter.eon} <span>·</span> {chapter.period}</p>
-        <h1>{chapter.label}</h1>
-        <p className="age-display">{formatAge(ageMa)}</p>
-        <p className="geography-age">
-          Geography source <strong>{loading ? "Resolving…" : contextSnapshot?.geographicSourceAgeMa == null ? "Illustrative field" : formatGeographicSourceAge(contextSnapshot.geographicSourceAgeMa)}</strong>
-        </p>
-        <p className="chapter-copy">{chapter.description}</p>
-        {scenarioLike && <span className="scenario-label"><Aperture size={13} /> Illustrative scene · geography unresolved</span>}
-
-        {selectedPoi && (
-          <button type="button" className="selected-note" onClick={() => setPanel("notes")}>
-            <span className="index-label">Selected field note</span>
-            <strong>{selectedPoi.title}</strong>
-            <small>{selectedPoi.locationNote ?? selectedPoi.subtitle}</small>
-          </button>
-        )}
-
-        <div className="jump-row">
-          <label htmlFor="chapter-jump">Jump to chapter</label>
-          <select id="chapter-jump" value={chapter.id} onChange={(event) => {
-            const slice = timeSlices.find((item) => item.id === event.target.value);
-            if (slice) changeAge(slice.ageMa);
-          }}>
-            {orderedSlices.slice().reverse().map((slice) => (
-              <option key={slice.id} value={slice.id}>{slice.label} · {formatAge(slice.ageMa)}</option>
-            ))}
-          </select>
-        </div>
-        {chapter.id === "present" && (
-          <div className="landscape-picker">
-            <label htmlFor="landscape-jump">Explore a landscape</label>
-            <select
-              id="landscape-jump"
-              value={selectedLandscapeId ?? ""}
-              onChange={(event) => selectLandscape(event.target.value)}
-            >
-              <option value="">Orbital overview</option>
-              <optgroup label="Landforms">
-                {modernLandscapePresets.filter((preset) => preset.category === "landform").map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.label}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Climate regions">
-                {modernLandscapePresets.filter((preset) => preset.category === "climate").map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.label}</option>
-                ))}
-              </optgroup>
-            </select>
-            {selectedLandscape && (
-              <div className={`landscape-summary ${selectedLandscape.surfaceMode === "seafloor" ? "is-seafloor" : ""}`}>
-                <strong>{selectedLandscape.label}</strong>
-                <p>{selectedLandscape.description}</p>
-              </div>
-            )}
+      <aside className="context-panel" aria-label="Current chapter" data-expanded={contextExpanded}>
+        <button
+          type="button"
+          className="context-toggle"
+          aria-expanded={contextExpanded}
+          aria-controls="chapter-context-details"
+          onClick={() => setContextExpanded((current) => !current)}
+        >
+          <span><small>Current period</small><strong>{chapter.period}</strong></span>
+          <i aria-hidden="true">{contextExpanded ? "−" : "+"}</i>
+        </button>
+        <div className="context-heading">
+          <div className="context-topline">
+            <span className="index-label">Chapter {String(chapterNumber).padStart(2, "0")}</span>
+            <span className="view-evidence"><i>Rendered view</i><EvidenceBadge status={contextSnapshot?.evidence ?? chapter.evidence} /></span>
           </div>
-        )}
-      </aside>
-
-      <aside className="journey-rail" aria-label="Curated journey">
-        <span className="vertical-label">Travel through time</span>
-        <div className="journey-stops">
-          {journeySlices.map((slice) => (
-            <button
-              type="button"
-              key={slice.id}
-              className={snapshot?.id === slice.id ? "is-active" : ""}
-              onClick={() => changeAge(slice.ageMa)}
-              title={`${slice.label}, ${formatAge(slice.ageMa)}`}
-            >
-              <span />
-              <b>{formatAge(slice.ageMa)}</b>
-              <small>{slice.label}</small>
-            </button>
-          ))}
+          <p className="era-line">{chapter.eon} <span>·</span> {chapter.period}</p>
+          <h1>{chapter.label}</h1>
+          <p className="age-display">{formatAge(ageMa)}</p>
         </div>
-      </aside>
+        <div id="chapter-context-details" className="context-details">
+          <p className="geography-age">
+            Geography source <strong>{loading ? "Resolving…" : contextSnapshot?.geographicSourceAgeMa == null ? "Illustrative field" : formatGeographicSourceAge(contextSnapshot.geographicSourceAgeMa)}</strong>
+          </p>
+          <p className="chapter-copy">{chapter.description}</p>
+          {scenarioLike && <span className="scenario-label"><Aperture size={13} /> Illustrative scene · geography unresolved</span>}
 
-      <aside className="tool-rail" aria-label="Globe tools">
-        <IconButton label="Choose visible layers" onClick={() => setPanel("layers")} active={panel === "layers"}>
-          <Layers3 size={19} />
-          <span className="tool-count">{Object.values(layers).filter(Boolean).length}</span>
-        </IconButton>
-        <IconButton label="Reset camera" onClick={resetCamera}><Compass size={19} /></IconButton>
-        <IconButton label={`Rendering quality: ${quality}`} onClick={() => setPanel("quality")} active={panel === "quality"}>
-          <Gauge size={19} />
-        </IconButton>
-        <span className="tool-rule" />
-        <IconButton label="Open field notes" onClick={() => setPanel("notes")} active={panel === "notes"}>
-          <BookOpen size={18} />
-          {availablePois.length > 0 && <span className="tool-count">{availablePois.length}</span>}
-        </IconButton>
-        <IconButton label="Open sources" onClick={() => setPanel("sources")} active={panel === "sources"}>
-          <Database size={18} />
-        </IconButton>
-        <IconButton label="About this reconstruction" onClick={() => setPanel("about")} active={panel === "about"}>
-          <Info size={18} />
-        </IconButton>
+          {chapterReference && (
+            <div className="chapter-reference">
+              <span>Period reference</span>
+              <a href={chapterReference.url} target="_blank" rel="noreferrer">
+                <strong>{chapterReference.title}</strong>
+                <small>{[chapterReference.authors, chapterReference.year].filter(Boolean).join(" · ")}</small>
+                <Link size={14} aria-hidden="true" />
+              </a>
+            </div>
+          )}
+
+          {selectedPoi && (
+            <button type="button" className="selected-note" onClick={() => setPanel("notes")}>
+              <span className="index-label">Selected field note</span>
+              <strong>{selectedPoi.title}</strong>
+              <small>{selectedPoi.locationNote ?? selectedPoi.subtitle}</small>
+            </button>
+          )}
+
+          <div className="jump-row">
+            <label htmlFor="chapter-jump">Jump to chapter</label>
+            <select id="chapter-jump" value={chapter.id} onChange={(event) => {
+              const slice = timeSlices.find((item) => item.id === event.target.value);
+              if (slice) changeAge(slice.ageMa);
+            }}>
+              {orderedSlices.slice().reverse().map((slice) => (
+                <option key={slice.id} value={slice.id}>{slice.label} · {formatAge(slice.ageMa)}</option>
+              ))}
+            </select>
+          </div>
+          {chapter.id === "present" && (
+            <div className="landscape-picker">
+              <label htmlFor="landscape-jump">Explore a landscape</label>
+              <select
+                id="landscape-jump"
+                value={selectedLandscapeId ?? ""}
+                onChange={(event) => selectLandscape(event.target.value)}
+              >
+                <option value="">Orbital overview</option>
+                <optgroup label="Landforms">
+                  {modernLandscapePresets.filter((preset) => preset.category === "landform").map((preset) => (
+                    <option key={preset.id} value={preset.id}>{preset.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Climate regions">
+                  {modernLandscapePresets.filter((preset) => preset.category === "climate").map((preset) => (
+                    <option key={preset.id} value={preset.id}>{preset.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+              {selectedLandscape && (
+                <div className={`landscape-summary ${selectedLandscape.surfaceMode === "seafloor" ? "is-seafloor" : ""}`}>
+                  <strong>{selectedLandscape.label}</strong>
+                  <p>{selectedLandscape.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </aside>
 
       <Timeline
@@ -481,7 +656,7 @@ export default function App() {
         onNext={() => stepChapter(1)}
       />
 
-      <Modal open={panel === "layers"} title="Visible layers" eyebrow="Map controls" onClose={() => setPanel(null)}>
+      <Modal open={panel === "layers"} title="Visible layers" eyebrow="Map controls" onClose={closePanel}>
         <div className="layer-list">
           {LAYER_META.map(({ key, label, detail, icon: LayerIcon }) => (
             <button type="button" key={key} aria-pressed={layers[key]} onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}>
@@ -508,7 +683,7 @@ export default function App() {
         </div>
       </Modal>
 
-      <Modal open={panel === "quality"} title="Rendering quality" eyebrow="Globe controls" onClose={() => setPanel(null)}>
+      <Modal open={panel === "quality"} title="Rendering quality" eyebrow="Globe controls" onClose={closePanel}>
         <div className="quality-options">
           {(["auto", "high", "low"] as Quality[]).map((option) => (
             <button type="button" key={option} aria-pressed={quality === option} className={quality === option ? "is-selected" : ""} onClick={() => setQuality(option)}>
@@ -520,7 +695,7 @@ export default function App() {
         </div>
       </Modal>
 
-      <Modal open={panel === "notes"} title={selectedPoi?.title ?? "Field notes"} eyebrow={selectedPoi ? `${selectedPoi.category} · ${formatAge(selectedPoi.ageStartMa)}` : `${chronologicalPois.length} notes across deep time`} onClose={() => setPanel(null)}>
+      <Modal open={panel === "notes"} title={selectedPoi?.title ?? "Field notes"} eyebrow={selectedPoi ? `${selectedPoi.category} · ${formatAge(selectedPoi.ageStartMa)}` : `${chronologicalPois.length} notes across deep time`} onClose={closePanel}>
         {selectedPoi ? (
           <article className="poi-detail">
             {selectedPoi.subtitle && <p className="poi-subtitle">{selectedPoi.subtitle}</p>}
@@ -544,7 +719,7 @@ export default function App() {
               <h3>Sources</h3>
               {poiSources.map((source) => <SourceLink key={source.id} source={source} />)}
             </div>
-            <button type="button" className="back-action" onClick={() => setSelectedPoiId(null)}>← All notes</button>
+            <button type="button" className="back-action" onClick={clearSelectedPoi}>← All notes</button>
           </article>
         ) : chronologicalPois.length ? (
           <div className="notes-list">
@@ -561,14 +736,14 @@ export default function App() {
         )}
       </Modal>
 
-      <Modal open={panel === "sources"} title="Sources & provenance" eyebrow={snapshot ? `${snapshot.label} reconstruction` : "Scientific record"} onClose={() => setPanel(null)}>
+      <Modal open={panel === "sources"} title="Sources & provenance" eyebrow={snapshot ? `${snapshot.label} reconstruction` : "Scientific record"} onClose={closePanel}>
         <p className="modal-intro">Each reconstruction distinguishes source evidence from interpolation and visual synthesis. These references support the current chapter.</p>
         <div className="source-list">
           {(snapshotSources.length ? snapshotSources : sources).map((source) => <SourceLink key={source.id} source={source} />)}
         </div>
       </Modal>
 
-      <Modal open={panel === "about"} title="Reading this globe" eyebrow="Scientific context" onClose={() => setPanel(null)}>
+      <Modal open={panel === "about"} title="Reading this globe" eyebrow="Scientific context" onClose={closePanel}>
         <div className="about-copy">
           <p>The geological record becomes sparser and less certain deeper in time. Coastlines, climates and events are shown at the resolution their evidence supports; fine visual detail may be synthesized for legibility.</p>
           {ageMa > 4000 && <p>Early-Earth impact and cooling sequences are illustrative scenarios constrained by available models. Their motion is not a measured replay of a single event.</p>}
