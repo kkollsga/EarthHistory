@@ -31,23 +31,15 @@ at a project path such as `/EarthHistory/`.
 
 The public repository is
 [kkollsga/EarthHistory](https://github.com/kkollsga/EarthHistory). GitHub Pages
-serves the root of its `gh-pages` branch. The validation workflow runs
-`make gate-full` for `main` and pull requests and retains the checked `dist/`
-output for seven days; it does not deploy automatically.
+deploys through GitHub Actions. Pull requests run `make gate-full` without
+publishing. Every successful push to `main` validates the application, retains
+the checked `dist/` output for seven days, uploads the Pages artifact, and
+deploys that exact artifact. The workflow can also be dispatched manually on
+`main` to republish the current commit.
 
-After the source commit is on `main`, the source worktree is clean, and the
-remote `gh-pages` branch exists, publish the validated build with:
-
-```sh
-./scripts/publish-pages-branch.sh
-```
-
-The script uses the existing `origin` authentication, creates a temporary
-worktree from the remote Pages branch, adds `.nojekyll`, commits the exact
-validated `dist/`, and performs a normal non-force push. Configure the repository
-Pages source to `gh-pages` and `/ (root)` once in GitHub settings. No additional
-application secret or runtime API credential is needed.
-After that one-time setting, the expected address is
+Configure the repository Pages source to **GitHub Actions** once. The workflow
+uses GitHub's built-in Pages token and needs no application secret or runtime
+API credential. The production address is
 `https://kkollsga.github.io/EarthHistory/`.
 
 ## Explore the globe
