@@ -1,4 +1,4 @@
-.PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e check-dev-docs \
+.PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
 	prune-build-cache sync-agents
 
@@ -39,7 +39,7 @@ gate-full:
 
 gate-full-ci:
 	@$(MAKE) gate-ci
-	@$(MAKE) test-e2e
+	@$(MAKE) test-e2e-ci
 	@$(MAKE) check-app-artifacts
 	@echo "gate-full-ci: application and browser checks passed"
 
@@ -54,6 +54,9 @@ build:
 
 test-e2e:
 	@npm run test:e2e:built
+
+test-e2e-ci:
+	@npm run test:e2e:ci
 
 # R4: local state is gitignored, so only a local gate can enforce its bound.
 check-dev-docs:

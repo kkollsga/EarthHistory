@@ -31,11 +31,12 @@ at a project path such as `/EarthHistory/`.
 
 The public repository is
 [kkollsga/EarthHistory](https://github.com/kkollsga/EarthHistory). GitHub Pages
-deploys through GitHub Actions. Pull requests run `make gate-full` without
-publishing. Every successful push to `main` validates the application, retains
-the checked `dist/` output for seven days, uploads the Pages artifact, and
-deploys that exact artifact. The workflow can also be dispatched manually on
-`main` to republish the current commit.
+deploys through GitHub Actions. Pull requests run the deterministic gate plus a
+focused Pages/browser smoke set without publishing; the complete 16-scenario
+browser union remains the local release gate. Every successful push to `main`
+validates the same CI set, retains the checked `dist/` output for seven days,
+uploads the Pages artifact, and deploys that exact artifact. The workflow can
+also be dispatched manually on `main` to republish the current commit.
 
 Configure the repository Pages source to **GitHub Actions** once. The workflow
 uses GitHub's built-in Pages token and needs no application secret or runtime
@@ -105,6 +106,7 @@ a validation failure disappear; verify any upstream change first.
 ```sh
 make gate             # doctrine, adapters, types, unit/data tests, build, hashes and budgets
 make gate-full        # gate plus the Chromium Pages-subpath browser suite
+make gate-full-ci     # checkout-safe deterministic gate plus tagged browser smoke tests
 make self-test-gates  # proves size, checksum and cleanup gates reject bad fixtures
 ```
 
