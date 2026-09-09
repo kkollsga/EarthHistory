@@ -127,7 +127,7 @@ test("keeps story age, title, and geographic source age distinct", async ({ page
   await expect(page.locator(".geography-age")).toContainText("Illustrative field");
 });
 
-test("changes relief, keeps clouds off by default, and restores an orbital camera", { tag: "@ci" }, async ({ page }) => {
+test("changes relief, keeps clouds off by default, and restores an orbital camera", async ({ page }) => {
   test.slow();
   await page.goto("./");
   await waitForSurface(page);
@@ -303,7 +303,7 @@ test("does not offer globe navigation for an unlocalized ancient evidence site",
   await expect(canvas(page)).toHaveAttribute("data-focus-kind", "none");
 });
 
-test("activates and clears one explicit surface focus without treating drags or space as clicks", { tag: "@ci" }, async ({ page }) => {
+test("activates and clears one explicit surface focus without treating drags or space as clicks", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
   await waitForSurface(page);
@@ -407,7 +407,7 @@ test("makes positioned notes the sole POI focus and clears them from the globe",
   await expect(page.locator(".selected-note")).toHaveCount(0);
 });
 
-test("keeps niche actions unique in a keyboard accessible menu", { tag: "@ci" }, async ({ page }) => {
+test("keeps niche actions unique in a keyboard accessible menu", async ({ page }) => {
   await page.goto("./");
   await waitForSurface(page);
   await expect(page.locator(".tool-rail")).toHaveCount(0);
