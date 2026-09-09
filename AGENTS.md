@@ -8,12 +8,13 @@ Volcanic margins and rifts may appear as aerial regional stories. Detailed
 basin sections, basin infill, subsurface burial/thermal histories, and
 petroleum-system maturity are deferred future scope.
 
-> **Status, 2026-09-07:** the approved TypeScript, React, Vite and Three.js
+> **Status, 2026-09-08:** the approved TypeScript, React, Vite and Three.js
 > application has a versioned private package, static scientific assets,
 > production build, unit/data/browser tests, artifact validation and a GitHub
-> Pages workflow. The public repository is `kkollsga/EarthHistory`. The user
-> authorized its initial commit and push on 2026-09-07; Pages activation and
-> a successful remote deployment must be verified separately.
+> validation workflow. The public repository is `kkollsga/EarthHistory`.
+> Pages serves `gh-pages` at `https://kkollsga.github.io/EarthHistory/`;
+> initial deployment and live browser checks succeeded, and main CI passed
+> at `906262f`. Later local renderer work is not part of that published build.
 
 The numbered invariants live in the doctrine oracle at
 `../../Rust/doctrine/rules/RULES.md`. This installation was initially audited

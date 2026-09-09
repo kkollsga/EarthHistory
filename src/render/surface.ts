@@ -27,6 +27,7 @@ export interface SurfaceFields {
   height: number;
   albedo: Uint8Array;
   relief: Uint8Array;
+  reliefMetres: Float32Array;
   reliefRangeMetres: number;
   reliefBiasMetres: number;
   roughness: Uint8Array;
@@ -51,11 +52,10 @@ export function sampleSurfaceReliefMetres(
   const y1 = Math.min(fields.height - 1, y0 + 1);
   const tx = fx - xBase;
   const ty = fy - y0;
-  const at = (x: number, y: number) => fields.relief[(y * fields.width + x) * 4] / 255;
+  const at = (x: number, y: number) => fields.reliefMetres[y * fields.width + x];
   const north = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
   const south = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
-  return fields.reliefBiasMetres +
-    (north * (1 - ty) + south * ty) * fields.reliefRangeMetres;
+  return north * (1 - ty) + south * ty;
 }
 
 export function inferDrainageCorridors(snapshot: WorldSnapshot): LonLat[][] {
@@ -168,53 +168,169 @@ function createSphericalNoise(seed: number) {
   };
 }
 
-function sampleGrid(
+export function polarLongitudeSampleCount(
+  width: number,
+  height: number,
+  latitude: number,
+): number {
+  if (width < 1 || height < 2) return 1;
+  const latitudeStep = 180 / (height - 1);
+  const longitudeStep = 360 / width;
+  const physicalLongitudeStep = longitudeStep * Math.max(
+    1e-6,
+    Math.abs(Math.cos(latitude * Math.PI / 180)),
+  );
+  const footprintRatio = latitudeStep / physicalLongitudeStep;
+  // Below this threshold extra work has little visual value. Near a pole the
+  // cap prevents a malformed or extremely dense source row from making worker
+  // cost unbounded.
+  return footprintRatio < 4 ? 1 : Math.min(32, Math.ceil(footprintRatio));
+}
+
+export function sampleGeographicGrid(
   field: Float32Array | Uint8Array,
   width: number,
   height: number,
   u: number,
   v: number,
+  northPoleValue?: number,
+  southPoleValue?: number,
 ): number {
   if (field.length === 0) return 0;
   // Source grids are geographic points: -180..+178 wraps in longitude and
   // +90..-90 includes both poles. Bilinear display sampling smooths the compact
   // field without moving or adding scientific control points.
-  const fx = u * width;
   const fy = Math.max(0, Math.min(height - 1, v * (height - 1)));
-  const x0 = Math.floor(fx) % width;
-  const x1 = (x0 + 1) % width;
   const y0 = Math.floor(fy);
   const y1 = Math.min(height - 1, y0 + 1);
-  const tx = fx - Math.floor(fx);
   const ty = fy - y0;
   const valueAt = (x: number, y: number) => {
+    if (y === 0 && northPoleValue !== undefined) return northPoleValue;
+    if (y === height - 1 && southPoleValue !== undefined) return southPoleValue;
     const value = field[y * width + x];
     return Number.isFinite(value) ? value : 0;
   };
-  const north = valueAt(x0, y0) * (1 - tx) + valueAt(x1, y0) * tx;
-  const south = valueAt(x0, y1) * (1 - tx) + valueAt(x1, y1) * tx;
-  return north * (1 - ty) + south * ty;
+  const sampleLongitude = (sampleU: number) => {
+    const fx = sampleU * width;
+    const xBase = Math.floor(fx);
+    const x0 = ((xBase % width) + width) % width;
+    const x1 = (x0 + 1) % width;
+    const tx = fx - xBase;
+    const north = valueAt(x0, y0) * (1 - tx) + valueAt(x1, y0) * tx;
+    const south = valueAt(x0, y1) * (1 - tx) + valueAt(x1, y1) * tx;
+    return north * (1 - ty) + south * ty;
+  };
+  const latitude = 90 - v * 180;
+  const longitudeSamples = polarLongitudeSampleCount(width, height, latitude);
+  if (longitudeSamples === 1) return sampleLongitude(u);
+  let total = 0;
+  for (let sample = 0; sample < longitudeSamples; sample += 1) {
+    const cellOffset = sample - (longitudeSamples - 1) / 2;
+    total += sampleLongitude(u + cellOffset / width);
+  }
+  return total / longitudeSamples;
 }
 
-function sampleElevation(snapshot: WorldSnapshot, u: number, v: number): number {
+function sampleElevation(
+  snapshot: WorldSnapshot,
+  u: number,
+  v: number,
+  northPoleValue?: number,
+  southPoleValue?: number,
+): number {
   const controls = snapshot.controls;
   if (controls === undefined) return 0;
-  return sampleGrid(controls.elevation, controls.width, controls.height, u, v);
+  return sampleGeographicGrid(
+    controls.elevation,
+    controls.width,
+    controls.height,
+    u,
+    v,
+    northPoleValue,
+    southPoleValue,
+  );
 }
 
 function poleElevation(snapshot: WorldSnapshot, north: boolean): number | undefined {
   const controls = snapshot.controls;
   if (controls === undefined) return undefined;
   const row = north ? 0 : controls.height - 1;
-  let total = 0;
-  for (let x = 0; x < controls.width; x++) total += controls.elevation[row * controls.width + x];
-  return total / controls.width;
+  const values = Array.from(
+    controls.elevation.subarray(row * controls.width, (row + 1) * controls.width),
+  ).filter(Number.isFinite).sort((left, right) => left - right);
+  if (values.length === 0) return undefined;
+  const middle = Math.floor(values.length / 2);
+  return values.length % 2 === 0
+    ? (values[middle - 1] + values[middle]) / 2
+    : values[middle];
+}
+
+interface SouthPoleClimateGapFill {
+  value: number;
+  boundaryLatitude: number;
+}
+
+const SOUTH_POLE_CLIMATE_GAP_CACHE = new WeakMap<
+  ModernClimateControl,
+  SouthPoleClimateGapFill | null
+>();
+
+function southPoleClimateGapFill(
+  control: ModernClimateControl,
+): SouthPoleClimateGapFill | undefined {
+  const cached = SOUTH_POLE_CLIMATE_GAP_CACHE.get(control);
+  if (cached !== undefined) return cached ?? undefined;
+  for (let y = control.height - 1; y >= 0; y -= 1) {
+    const offset = y * control.width;
+    let value: number | undefined;
+    let complete = true;
+    for (let x = 0; x < control.width; x += 1) {
+      const candidate = control.classes[offset + x];
+      if (candidate === control.noDataValue) {
+        complete = false;
+        break;
+      }
+      value ??= candidate;
+      if (candidate !== value) {
+        complete = false;
+        break;
+      }
+    }
+    if (!complete || value === undefined) continue;
+    const boundaryLatitude = control.latitudeOrigin - y * control.cellSizeDegrees;
+    const group = control.legend.find((entry) => entry.value === value)?.group;
+    const result = boundaryLatitude <= -88 && group === "frost"
+      ? { value, boundaryLatitude }
+      : undefined;
+    SOUTH_POLE_CLIMATE_GAP_CACHE.set(control, result ?? null);
+    return result;
+  }
+  SOUTH_POLE_CLIMATE_GAP_CACHE.set(control, null);
+  return undefined;
+}
+
+function climateValueAt(
+  control: ModernClimateControl,
+  x: number,
+  y: number,
+  southPoleGapFill: SouthPoleClimateGapFill | undefined,
+): number | undefined {
+  const value = control.classes[y * control.width + x];
+  if (value !== undefined && value !== control.noDataValue) return value;
+  const latitude = control.latitudeOrigin - y * control.cellSizeDegrees;
+  // Beck's final three southern raster rows are no-data after a complete EF
+  // row at 88.25°S. Extend that class only to the mathematical pole without
+  // mutating the source climate/control bytes.
+  return southPoleGapFill !== undefined && latitude < southPoleGapFill.boundaryLatitude
+    ? southPoleGapFill.value
+    : undefined;
 }
 
 function sampleModernClimateValue(
   control: ModernClimateControl,
   longitude: number,
   latitude: number,
+  southPoleGapFill = southPoleClimateGapFill(control),
 ): number | undefined {
   const wrappedLongitude = ((longitude + 180) % 360 + 360) % 360 - 180;
   const x =
@@ -229,8 +345,8 @@ function sampleModernClimateValue(
       Math.round((control.latitudeOrigin - latitude) / control.cellSizeDegrees),
     ),
   );
-  const value = control.classes[y * control.width + x];
-  return value === undefined || value === control.noDataValue ? undefined : value;
+  const value = climateValueAt(control, x, y, southPoleGapFill);
+  return value;
 }
 
 function sampleModernClimateMembership(
@@ -239,6 +355,7 @@ function sampleModernClimateMembership(
   longitude: number,
   latitude: number,
   requestedGroup: ModernClimateGroup,
+  southPoleGapFill = southPoleClimateGapFill(control),
 ): number {
   const wrappedLongitude = ((longitude + 180) % 360 + 360) % 360 - 180;
   const fx = (wrappedLongitude - control.longitudeOrigin) / control.cellSizeDegrees;
@@ -251,8 +368,8 @@ function sampleModernClimateMembership(
   const tx = fx - xBase;
   const ty = Math.max(0, Math.min(1, fy - Math.floor(fy)));
   const membership = (x: number, y: number) => {
-    const value = control.classes[y * control.width + x];
-    return value !== control.noDataValue && groups[value] === requestedGroup ? 1 : 0;
+    const value = climateValueAt(control, x, y, southPoleGapFill);
+    return value !== undefined && groups[value] === requestedGroup ? 1 : 0;
   };
   const north = membership(x0, y0) * (1 - tx) + membership(x1, y0) * tx;
   const south = membership(x0, y1) * (1 - tx) + membership(x1, y1) * tx;
@@ -427,6 +544,7 @@ export function generateSurface(
   const length = width * height * 4;
   const albedo = new Uint8Array(length);
   const relief = new Uint8Array(length);
+  const reliefMetresField = new Float32Array(width * height);
   const roughness = new Uint8Array(length);
   const clouds = new Uint8Array(length);
   const seed = hashString(snapshot.id);
@@ -444,6 +562,9 @@ export function generateSurface(
   const rivers = inferDrainageCorridors(snapshot);
   const northPoleElevation = poleElevation(snapshot, true);
   const southPoleElevation = poleElevation(snapshot, false);
+  const southClimateGapFill = snapshot.modernClimate === undefined
+    ? undefined
+    : southPoleClimateGapFill(snapshot.modernClimate);
   const climateGroups: Array<ModernClimateGroup | undefined> = [];
   for (const entry of snapshot.modernClimate?.legend ?? []) {
     climateGroups[entry.value] = entry.group;
@@ -459,12 +580,18 @@ export function generateSurface(
       const n = sphericalNoise(longitude, latitude, 1.65, 3);
       const small =
         detail === "regional" ? sphericalNoise(longitude, latitude, 7.4, 2) : n;
-      const elevation = sampleElevation(snapshot, u, v);
+      const elevation = sampleElevation(
+        snapshot,
+        u,
+        v,
+        northPoleElevation,
+        southPoleElevation,
+      );
       const vegetationControl = snapshot.controls?.vegetationPotential;
       const vegetationAtPoint =
         vegetationControl === undefined
           ? undefined
-          : sampleGrid(
+          : sampleGeographicGrid(
               vegetationControl,
               snapshot.controls!.width,
               snapshot.controls!.height,
@@ -475,7 +602,7 @@ export function generateSurface(
       const iceAtPoint =
         iceControl === undefined
           ? undefined
-          : sampleGrid(
+          : sampleGeographicGrid(
               iceControl,
               snapshot.controls!.width,
               snapshot.controls!.height,
@@ -484,12 +611,17 @@ export function generateSurface(
             ) / 255;
       const climateValue = snapshot.modernClimate === undefined
         ? undefined
-        : sampleModernClimateValue(snapshot.modernClimate, longitude, latitude);
+        : sampleModernClimateValue(
+            snapshot.modernClimate,
+            longitude,
+            latitude,
+            southClimateGapFill,
+          );
       const climateGroup = climateValue === undefined ? undefined : climateGroups[climateValue];
       let modernFrostCoverage: number | undefined;
       if (snapshot.modernClimate !== undefined) {
         const frostAt = (lon: number, lat: number) => sampleModernClimateMembership(
-          snapshot.modernClimate!, climateGroups, lon, lat, "frost",
+          snapshot.modernClimate!, climateGroups, lon, lat, "frost", southClimateGapFill,
         );
         modernFrostCoverage = frostAt(longitude, latitude);
         if (Math.abs(latitude) > 45) {
@@ -502,13 +634,18 @@ export function generateSurface(
         }
       }
       const hasMappedLand = snapshot.controls !== undefined || snapshot.land.length > 0;
-      const land =
+      const sourceLand =
         mature &&
         (snapshot.controls !== undefined
           ? elevation >= 0
           : snapshot.land.length > 0
             ? polygonContains(snapshot, [longitude, latitude])
             : n > 0.34 + oceanCoverage * 0.26);
+      // An EF control, including the documented Antarctic pole display gap-fill,
+      // can establish an ice-covered surface over negative bed elevation. It
+      // never replaces signed seafloor bed relief or infers ice thickness.
+      const modernIceSurface = mature && mode === "surface" && climateGroup === "frost";
+      const land = sourceLand || modernIceSurface;
 
       let color: [number, number, number];
       let reliefMetres: number;
@@ -591,7 +728,7 @@ export function generateSurface(
         (iceIntensity >= 0.9 || Math.abs(latitude) > raggedIceEdge);
       const ice = mature &&
         (modernFrostCoverage !== undefined
-          ? land && modernFrostCoverage > 0.015
+          ? modernIceSurface || (land && modernFrostCoverage > 0.015)
           : iceAtPoint !== undefined
           ? iceAtPoint > 0.025 && potentialIceAllowed
           : iceIntensity > 0 &&
@@ -608,28 +745,23 @@ export function generateSurface(
         );
         color = mixColor(color, [228, 238, 236], iceMix);
         roughnessValue = 208;
-        reliefMetres += 180 * (iceAtPoint ?? iceIntensity);
-      }
-
-      const poleDistance = 90 - Math.abs(latitude);
-      if (mature && poleDistance < 3 && snapshot.controls !== undefined) {
-        const authoredPole = latitude >= 0 ? northPoleElevation : southPoleElevation;
-        if (authoredPole !== undefined) {
-          const poleRelief = seafloorActive ? authoredPole : Math.max(0, authoredPole);
-          reliefMetres = mixNumber(
-            poleRelief,
-            reliefMetres,
-            smoothstep(0, 3, poleDistance),
-          );
+        // EF over negative bed has no authored ice-surface elevation. Keep the
+        // illustrative ice cover at the display datum instead of turning its
+        // potential mask into invented topography; signed bed remains in the
+        // explicit seafloor view.
+        if (!(modernIceSurface && !sourceLand)) {
+          reliefMetres += 180 * (iceAtPoint ?? iceIntensity);
         }
       }
 
       writePixel(albedo, offset, color);
+      const clampedReliefMetres = Math.max(
+        reliefBiasMetres,
+        Math.min(reliefBiasMetres + reliefRangeMetres, reliefMetres),
+      );
+      reliefMetresField[y * width + x] = clampedReliefMetres;
       const encodedRelief =
-        ((Math.max(
-          reliefBiasMetres,
-          Math.min(reliefBiasMetres + reliefRangeMetres, reliefMetres),
-        ) -
+        ((clampedReliefMetres -
           reliefBiasMetres) /
           reliefRangeMetres) *
         255;
@@ -637,14 +769,14 @@ export function generateSurface(
       writePixel(roughness, offset, [roughnessValue, roughnessValue, roughnessValue]);
 
       const front = sphericalNoise(
-        longitude + latitude * 0.34,
-        latitude * 0.82,
+        longitude,
+        latitude,
         2.35,
         3,
       );
       const wisps = sphericalNoise(
-        longitude - latitude * 0.58,
-        latitude * 1.2,
+        longitude,
+        latitude,
         7.2,
         2,
       );
@@ -662,6 +794,7 @@ export function generateSurface(
     height,
     albedo,
     relief,
+    reliefMetres: reliefMetresField,
     reliefRangeMetres,
     reliefBiasMetres,
     roughness,
@@ -671,12 +804,9 @@ export function generateSurface(
     byteLength:
       albedo.byteLength +
       relief.byteLength +
+      reliefMetresField.byteLength +
       roughness.byteLength +
       clouds.byteLength +
       rivers.length * 4 * Float64Array.BYTES_PER_ELEMENT,
   };
-}
-
-function mixNumber(a: number, b: number, amount: number): number {
-  return a + (b - a) * Math.max(0, Math.min(1, amount));
 }

@@ -15,3 +15,6 @@
 /test-results/
 /playwright-report/
 /blob-report/
+# Local Codex/Claude workflow skills are installation state, not public source.
+/.claude/skills/
+/.agents/skills/

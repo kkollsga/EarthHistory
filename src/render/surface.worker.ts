@@ -28,6 +28,7 @@ self.onmessage = (event: MessageEvent<SurfaceRequest>) => {
     transfer: [
       fields.albedo.buffer,
       fields.relief.buffer,
+      fields.reliefMetres.buffer,
       fields.roughness.buffer,
       fields.clouds.buffer,
     ],

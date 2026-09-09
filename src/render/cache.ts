@@ -7,6 +7,7 @@ export class BoundedLruCache<T extends ByteSized> {
   readonly maxBytes: number;
   private readonly entries = new Map<string, T>();
   private bytes = 0;
+  private evictionCount = 0;
 
   constructor(maxEntries = 4, maxBytes = 20 * 1024 * 1024) {
     this.maxEntries = maxEntries;
@@ -19,6 +20,14 @@ export class BoundedLruCache<T extends ByteSized> {
 
   get byteLength(): number {
     return this.bytes;
+  }
+
+  get evictions(): number {
+    return this.evictionCount;
+  }
+
+  keys(): IterableIterator<string> {
+    return this.entries.keys();
   }
 
   get(key: string): T | undefined {
@@ -49,12 +58,16 @@ export class BoundedLruCache<T extends ByteSized> {
       if (oldest === undefined) break;
       const removed = this.entries.get(oldest);
       this.entries.delete(oldest);
-      if (removed !== undefined) this.bytes -= removed.byteLength;
+      if (removed !== undefined) {
+        this.bytes -= removed.byteLength;
+        this.evictionCount++;
+      }
     }
   }
 
   clear(): void {
     this.entries.clear();
     this.bytes = 0;
+    this.evictionCount = 0;
   }
 }

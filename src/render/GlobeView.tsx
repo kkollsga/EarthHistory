@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { GlobeStats, LayerVisibility, LonLat, WorldSnapshot } from "../data";
-import { GlobeScene } from "./GlobeScene";
+import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
+
+export interface FocusTarget {
+  kind: SpatialFocusKind;
+  coordinates: LonLat;
+  nonce: number;
+  distance?: number;
+}
 
 export interface GlobeViewProps {
   snapshot: WorldSnapshot | null;
   layers: LayerVisibility;
   selectedPoiId: string | null;
   onSelectPoi: (id: string) => void;
+  onSelectSurface: (coordinates: LonLat) => void;
   onStats?: (stats: GlobeStats) => void;
-  focusTarget?: { coordinates: LonLat; nonce: number; distance?: number };
+  focusTarget: FocusTarget | null;
   resetNonce?: number;
   autoRotate?: boolean;
   quality?: "auto" | "high" | "low";
@@ -21,6 +29,7 @@ export function GlobeView({
   layers,
   selectedPoiId,
   onSelectPoi,
+  onSelectSurface,
   onStats,
   focusTarget,
   resetNonce,
@@ -37,6 +46,7 @@ export function GlobeView({
     layers,
     selectedPoiId,
     onSelectPoi,
+    onSelectSurface,
     onStats,
     focusTarget,
     resetNonce,
@@ -50,6 +60,7 @@ export function GlobeView({
     layers,
     selectedPoiId,
     onSelectPoi,
+    onSelectSurface,
     onStats,
     focusTarget,
     resetNonce,
@@ -64,7 +75,7 @@ export function GlobeView({
     if (mount === null) return;
     let active = true;
     let created: GlobeScene | null = null;
-    void GlobeScene.create(mount, onSelectPoi, onStats, quality)
+    void GlobeScene.create(mount, onSelectPoi, onSelectSurface, onStats, quality)
       .then((scene) => {
         if (!active) {
           scene.dispose();
@@ -73,7 +84,7 @@ export function GlobeView({
         created = scene;
         sceneRef.current = scene;
         const current = latestProps.current;
-        scene.setCallbacks(current.onSelectPoi, current.onStats);
+        scene.setCallbacks(current.onSelectPoi, current.onSelectSurface, current.onStats);
         scene.setSurfaceMode(current.surfaceMode);
         scene.setVerticalExaggeration(current.verticalExaggeration);
         scene.setSnapshot(current.snapshot);
@@ -81,8 +92,12 @@ export function GlobeView({
         scene.setSelectedPoi(current.selectedPoiId);
         scene.setAutoRotate(current.autoRotate);
         scene.setQuality(current.quality);
-        if (current.focusTarget !== undefined) {
-          scene.focus(current.focusTarget.coordinates, current.focusTarget.distance);
+        if (current.focusTarget !== null) {
+          scene.focus(
+            current.focusTarget.coordinates,
+            current.focusTarget.distance,
+            current.focusTarget.kind,
+          );
         } else if (current.resetNonce !== undefined) scene.resetCamera();
       })
       .catch((error: unknown) => {
@@ -109,8 +124,8 @@ export function GlobeView({
   }, []);
 
   useEffect(() => {
-    sceneRef.current?.setCallbacks(onSelectPoi, onStats);
-  }, [onSelectPoi, onStats]);
+    sceneRef.current?.setCallbacks(onSelectPoi, onSelectSurface, onStats);
+  }, [onSelectPoi, onSelectSurface, onStats]);
 
   useEffect(() => {
     sceneRef.current?.setSnapshot(snapshot);
@@ -137,9 +152,8 @@ export function GlobeView({
   }, [verticalExaggeration]);
 
   useEffect(() => {
-    if (focusTarget !== undefined) {
-      sceneRef.current?.focus(focusTarget.coordinates, focusTarget.distance);
-    }
+    if (focusTarget === null) sceneRef.current?.clearFocus();
+    else sceneRef.current?.focus(focusTarget.coordinates, focusTarget.distance, focusTarget.kind);
   }, [focusTarget]);
 
   useEffect(() => {

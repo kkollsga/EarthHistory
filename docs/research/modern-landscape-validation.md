@@ -43,6 +43,23 @@ source resampling method and source/output hashes. Values are bilinearly sampled
 then rounded to metre-scale int16. The patches are generation inputs and are not
 also treated as independent withheld accuracy tests.
 
+### Polar display normalization
+
+The 0 Ma PaleoDEM grid repeats one mathematical pole across every longitude,
+and those duplicate values are not internally consistent. EarthHistory uses
+the finite-row median at the exact pole and interpolates it to the unchanged
+±88° controls. This normalization leaves source bytes and non-pole relief
+untouched and remains model output rather than measured polar topography.
+
+The Beck 1991–2020 raster has a complete all-`EF` row at 88.25°S followed by
+three terminal no-data rows. The modern renderer uses that boundary as a
+clearly inferred display gap-fill to the South Pole, with the same lookup for
+class and membership. `EF` can establish ice-covered color over negative bed
+elevation in the surface view; seafloor inspection keeps the signed bed. This
+does not estimate Antarctic ice thickness or surface altitude. ETOPO's
+ice-surface Greenland patch is a separate measured/modelled relief input and
+must not be generalized to Antarctica.
+
 ## Rendering and measurement
 
 Capture the same camera, viewport and lighting with clouds off. Compare 1×

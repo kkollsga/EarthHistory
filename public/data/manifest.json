@@ -24,12 +24,21 @@
       "bytes": 20302272,
       "nativeGrid": "1 degree longitude/latitude/elevation CSV",
       "derivedGrid": "180x91 grid points at lon -180..178 and lat 90..-90, 2 degree spacing; nearest source samples, with -90 nearest-row closure where older CSVs end at -89; int16-range metres serialized as JSON integers",
+      "sourceAdapters": [
+        {
+          "ageMa": 0,
+          "condition": "Verified -180 degree source duplicate is zero at every integer latitude -60 through -89 while the same physical +180 degree duplicate is populated",
+          "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before 2 degree sampling",
+          "affectedOutputCells": 15,
+          "notes": "15 sampled even-latitude cells (-60 through -88); the source-authored -90 row and raw archive bytes remain unchanged"
+        }
+      ],
       "outputs": [
         {
           "ageMa": 0,
           "path": "public/data/paleodem-0ma.json",
-          "sha256": "b60ac5a54e260c3d8a882bd07bdc26f61115bac7dc91c88f1b689e0a0b0ed7e0",
-          "bytes": 84693
+          "sha256": "12c61154f5a5671e55933fe171b2bce59f03f324da6398f6b7085b69aa6b9a25",
+          "bytes": 84744
         },
         {
           "ageMa": 20,
@@ -351,5 +360,5 @@
       ]
     }
   },
-  "scratchCacheBytes": 33048747
+  "scratchCacheBytes": 24193239
 }

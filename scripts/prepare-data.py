@@ -40,6 +40,7 @@ PALEODEM_URL = (
 )
 PALEODEM_SHA256 = "db43e6261411ff468c9030ca240778a73f224bf34bf8186c735477e41454c873"
 PALEODEM_AGES = (0, 20, 35, 55, 65, 95, 130, 185, 220, 250, 300, 320, 360, 400, 430, 470, 520, 540)
+PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES = frozenset(range(-60, -90, -1))
 
 
 def fetch(name: str, url: str, cache_dir: pathlib.Path, suffix: str = ".geojson") -> pathlib.Path:
@@ -67,6 +68,34 @@ def prepare_paleodem(cache_dir: pathlib.Path, requested_ages: tuple[int, ...]) -
         }
         for age in requested_ages:
             name = members[age]
+            east_meridian: dict[int, int] = {}
+            if age == 0:
+                west_meridian: dict[int, int] = {}
+                with source_zip.open(name) as raw_source:
+                    source = io.TextIOWrapper(raw_source, encoding="ascii", newline=None)
+                    for raw_line in source:
+                        if raw_line.startswith("#"):
+                            continue
+                        lon_text, lat_text, elevation_text = raw_line.strip().split(",")
+                        lon = int(float(lon_text))
+                        lat = int(float(lat_text))
+                        elevation = round(float(elevation_text))
+                        if lon == -180:
+                            west_meridian[lat] = elevation
+                        elif lon == 180:
+                            east_meridian[lat] = elevation
+                bad_zero_run = {
+                    latitude
+                    for latitude, elevation in west_meridian.items()
+                    if elevation == 0 and -89 <= latitude <= -55
+                }
+                if bad_zero_run != PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES:
+                    raise SystemExit(
+                        f"{name}: verified 0 Ma -180 duplicate-zero run changed: "
+                        f"{sorted(bad_zero_run, reverse=True)}"
+                    )
+                if any(east_meridian.get(latitude, 0) == 0 for latitude in bad_zero_run):
+                    raise SystemExit(f"{name}: +180 duplicate cannot repair the verified zero run")
             grid: list[int] = []
             with source_zip.open(name) as raw_source:
                 source = io.TextIOWrapper(raw_source, encoding="ascii", newline=None)
@@ -78,7 +107,19 @@ def prepare_paleodem(cache_dir: pathlib.Path, requested_ages: tuple[int, ...]) -
                     lat = int(float(lat_text))
                     if lon == 180 or lon % 2 or (90 - lat) % 2:
                         continue
-                    grid.append(max(-12000, min(12000, round(float(elevation_text)))))
+                    elevation = round(float(elevation_text))
+                    # The deposited 0 Ma CSV has a verified artificial zero run
+                    # in one of two records for the same physical meridian. Use
+                    # its valid +180° duplicate only for those exact -180° cells;
+                    # every other source value and every other age stays literal.
+                    if (
+                        age == 0
+                        and lon == -180
+                        and lat in PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES
+                        and elevation == 0
+                    ):
+                        elevation = east_meridian[lat]
+                    grid.append(max(-12000, min(12000, elevation)))
             width = 180
             height = len(grid) // width
             if len(grid) != width * height:
@@ -115,6 +156,15 @@ def prepare_paleodem(cache_dir: pathlib.Path, requested_ages: tuple[int, ...]) -
         "bytes": archive.stat().st_size,
         "nativeGrid": "1 degree longitude/latitude/elevation CSV",
         "derivedGrid": "180x91 grid points at lon -180..178 and lat 90..-90, 2 degree spacing; nearest source samples, with -90 nearest-row closure where older CSVs end at -89; int16-range metres serialized as JSON integers",
+        "sourceAdapters": [
+            {
+                "ageMa": 0,
+                "condition": "Verified -180 degree source duplicate is zero at every integer latitude -60 through -89 while the same physical +180 degree duplicate is populated",
+                "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before 2 degree sampling",
+                "affectedOutputCells": 15,
+                "notes": "15 sampled even-latitude cells (-60 through -88); the source-authored -90 row and raw archive bytes remain unchanged",
+            }
+        ],
         "outputs": outputs,
     }
 
@@ -194,15 +244,29 @@ def main() -> None:
 
     existing_manifest = OUTPUT / "manifest.json"
     previous = json.loads(existing_manifest.read_text()) if existing_manifest.exists() else {"inputs": {}}
+    inputs = {**previous.get("inputs", {})}
+    if args.modern_only or not args.paleodem_age:
+        inputs.update(prepare_modern(args.cache_dir))
     manifest = {
         "schemaVersion": 1,
         "generatedBy": "scripts/prepare-data.py",
         "retrievedAt": "2026-09-07",
-        "inputs": {**previous.get("inputs", {}), **prepare_modern(args.cache_dir)},
+        "inputs": inputs,
     }
     if not args.modern_only or args.paleodem_age:
         ages = tuple(args.paleodem_age) if args.paleodem_age else PALEODEM_AGES
-        manifest["inputs"]["scotese-wright-paleodem-v2"] = prepare_paleodem(args.cache_dir, ages)
+        prepared = prepare_paleodem(args.cache_dir, ages)
+        if args.paleodem_age:
+            previous_paleodem = previous.get("inputs", {}).get("scotese-wright-paleodem-v2")
+            if previous_paleodem is None:
+                raise SystemExit("targeted PaleoDEM regeneration requires an existing manifest")
+            outputs_by_age = {
+                output["ageMa"]: output
+                for output in previous_paleodem.get("outputs", [])
+            }
+            outputs_by_age.update({output["ageMa"]: output for output in prepared["outputs"]})
+            prepared["outputs"] = [outputs_by_age[age] for age in sorted(outputs_by_age)]
+        manifest["inputs"]["scotese-wright-paleodem-v2"] = prepared
     cache_bytes = sum(path.stat().st_size for path in args.cache_dir.iterdir() if path.is_file())
     if cache_bytes > MAX_CACHE_BYTES:
         raise SystemExit(f"cache is {cache_bytes} bytes, above the {MAX_CACHE_BYTES} byte bound")

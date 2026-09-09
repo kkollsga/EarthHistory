@@ -145,9 +145,10 @@ async function loadControl(page, label) {
 
 async function setQuality(page, accessibleName) {
   if (!(await page.getByRole("dialog").isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /^Rendering quality:/ }).click();
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("menuitem", { name: /^Rendering quality/ }).click();
   }
-  const option = page.getByRole("button", { name: accessibleName });
+  const option = page.getByRole("button", { name: new RegExp(`^${accessibleName}`) });
   const started = performance.now();
   await option.click();
   const expected = accessibleName === "Reduced detail" ? "low" : "high";

@@ -14,6 +14,39 @@ import {
 } from "../data";
 import { BoundedLruCache } from "./cache";
 import {
+  CUBE_FACES,
+  cubeTileId,
+  type CubeFace,
+  type CubeTileKey,
+} from "./cubeSphere";
+import { reliefHorizonExtensionRadians } from "./cubeRelief";
+import { planCubeRender } from "./cubeRenderPlan";
+import {
+  describeCubeLodLeaves,
+  selectCubeLod,
+  type CubeLodLeaf,
+} from "./cubeLod";
+import { createCubeTileMesh } from "./cubeTileMesh";
+import { cubeWorkerPoolLimit, partitionCubeWorkerRequests } from "./cubeWorkerPool";
+import {
+  createCubeTileFieldGenerator,
+  type CubeTileFieldContext,
+  type CubeTileFieldGenerator,
+  type CubeTileFieldRequest,
+  type CubeTileFields,
+} from "./cubeTileFields";
+import {
+  createDrapedLineDataSegments,
+  createSurfaceFieldHeightSampler,
+  DEFAULT_OVERLAY_STEP_DEGREES,
+  MAX_OVERLAY_CACHE_BYTES,
+  type DisplayedHeightSampler,
+  type DrapedLineData,
+  updateDrapedLinePositions,
+} from "./displayedHeight";
+import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
+import type { CubeSurfaceRequest, CubeSurfaceResponse } from "./cube.worker";
+import {
   angularDistanceDegrees,
   lonLatToVector3,
   resolveDetailMode,
@@ -48,7 +81,31 @@ export interface EarthHistoryDiagnostics {
   cameraDistance: number;
   regionalGenerationMs: number;
   transition: "idle" | "crossfade";
+  cube: {
+    status: string;
+    requestedSnapshotId: string | null;
+    requestedKey: string | null;
+    displayedSnapshotId: string | null;
+    displayedKey: string | null;
+    visibleTiles: number;
+    residentTiles: number;
+    byFace: Record<string, number>;
+    maxNeighborLevelDelta: number;
+    generationMs: number;
+    selectionMs: number;
+    installMs: number;
+    cacheBytes: number;
+    geometryCopyBytes: number;
+    gpuTextureEstimateBytes: number;
+    workerRetainedBytes: number;
+    evictions: number;
+    queuedJobs: number;
+    workerPoolSize: number;
+    staleJobs: number;
+  };
 }
+
+export type SpatialFocusKind = "poi" | "place" | "area";
 
 declare global {
   interface Window {
@@ -248,6 +305,234 @@ class RegionalWorkerClient {
   }
 }
 
+interface CubeWorkerResult {
+  fields: CubeTileFields[];
+  retainedBytes: number;
+  generationMs: number;
+}
+
+class CubeWorkerSlot {
+  private worker: Worker | null = null;
+  private pending: {
+    id: number;
+    resolve: (result: CubeSurfaceResponse) => void;
+    reject: (error: Error) => void;
+  } | null = null;
+  private nextId = 0;
+  private contextKey: string | null = null;
+
+  private ensureWorker(): Worker {
+    if (this.worker !== null) return this.worker;
+    const worker = new Worker(new URL("./cube.worker.ts", import.meta.url), {
+      type: "module",
+      name: "earthhistory-cube-surface",
+    });
+    worker.onmessage = (event: MessageEvent<CubeSurfaceResponse>) => {
+      if (this.pending?.id !== event.data.id) return;
+      const pending = this.pending;
+      this.pending = null;
+      if (event.data.type === "error") pending.reject(new Error(event.data.message));
+      else pending.resolve(event.data);
+    };
+    worker.onerror = (event) => {
+      const error = new Error(event.message || "Cube surface worker failed");
+      this.pending?.reject(error);
+      this.pending = null;
+      worker.terminate();
+      if (this.worker === worker) this.worker = null;
+      this.contextKey = null;
+    };
+    this.worker = worker;
+    this.contextKey = null;
+    return worker;
+  }
+
+  private exchange(request: CubeSurfaceRequest): Promise<CubeSurfaceResponse> {
+    if (this.pending !== null) throw new Error("Cube worker slot already has an active request");
+    const worker = this.ensureWorker();
+    return new Promise((resolve, reject) => {
+      this.pending = { id: request.id, resolve, reject };
+      try {
+        worker.postMessage(request);
+      } catch (error) {
+        this.pending = null;
+        reject(error);
+      }
+    });
+  }
+
+  async request(
+    contextKey: string,
+    context: CubeTileFieldContext,
+    requests: CubeTileFieldRequest[],
+  ): Promise<CubeWorkerResult> {
+    if (this.contextKey !== contextKey) {
+      const initialize: CubeSurfaceRequest = {
+        type: "initialize",
+        id: ++this.nextId,
+        contextKey,
+        context,
+      };
+      const ready = await this.exchange(initialize);
+      if (ready.type !== "ready") throw new Error("Cube worker initialization failed");
+      this.contextKey = contextKey;
+    }
+    const generate: CubeSurfaceRequest = {
+      type: "generate",
+      id: ++this.nextId,
+      contextKey,
+      requests,
+    };
+    const response = await this.exchange(generate);
+    if (response.type !== "fields") throw new Error("Cube worker returned no fields");
+    return response;
+  }
+
+  cancel(error: Error): void {
+    this.pending?.reject(error);
+    this.pending = null;
+    this.worker?.terminate();
+    this.worker = null;
+    this.contextKey = null;
+  }
+
+  dispose(): void {
+    this.cancel(new Error("Cube surface worker disposed"));
+  }
+}
+
+class CubeWorkerClient {
+  private readonly poolLimit = cubeWorkerPoolLimit(
+    typeof navigator === "undefined" ? undefined : navigator.hardwareConcurrency,
+  );
+  private readonly slots: CubeWorkerSlot[] = [];
+  private active: {
+    epoch: number;
+    tileCount: number;
+    reject: (error: Error) => void;
+  } | null = null;
+  private epoch = 0;
+  private contextKey: string | null = null;
+  private fallbackGenerator: CubeTileFieldGenerator | null = null;
+  staleJobs = 0;
+
+  get queuedJobs(): number {
+    return this.active?.tileCount ?? 0;
+  }
+
+  get workerPoolSize(): number {
+    return this.slots.length;
+  }
+
+  get maxConcurrency(): number {
+    return this.poolLimit;
+  }
+
+  warm(): void {
+    if (typeof Worker === "undefined" || this.slots.length > 0) return;
+    this.slots.push(new CubeWorkerSlot());
+  }
+
+  private slot(index: number): CubeWorkerSlot {
+    while (this.slots.length <= index) this.slots.push(new CubeWorkerSlot());
+    return this.slots[index];
+  }
+
+  request(
+    contextKey: string,
+    context: CubeTileFieldContext,
+    requests: CubeTileFieldRequest[],
+    concurrency: number = this.poolLimit,
+  ): Promise<CubeWorkerResult> {
+    if (this.active !== null) {
+      return Promise.reject(new Error("Cube worker pool already has an active request"));
+    }
+    const epoch = this.epoch;
+    const started = performance.now();
+    return new Promise((resolve, reject) => {
+      this.active = { epoch, tileCount: requests.length, reject };
+      const finish = (result: CubeWorkerResult) => {
+        if (this.active?.epoch !== epoch) return;
+        this.active = null;
+        resolve(result);
+      };
+      const fail = (error: unknown) => {
+        if (this.active?.epoch !== epoch) return;
+        this.active = null;
+        this.epoch++;
+        const failure = error instanceof Error ? error : new Error("Cube surface worker failed");
+        for (const slot of this.slots) slot.cancel(failure);
+        this.slots.length = 0;
+        this.contextKey = null;
+        this.fallbackGenerator = null;
+        reject(failure);
+      };
+
+      if (typeof Worker === "undefined") {
+        try {
+          if (this.contextKey !== contextKey || this.fallbackGenerator === null) {
+            this.fallbackGenerator = createCubeTileFieldGenerator(context);
+            this.contextKey = contextKey;
+          }
+          finish({
+            fields: requests.map((request) => this.fallbackGenerator!.generate(request)),
+            retainedBytes: this.fallbackGenerator.retainedBytes,
+            generationMs: performance.now() - started,
+          });
+        } catch (error) {
+          fail(error);
+        }
+        return;
+      }
+
+      const groups = partitionCubeWorkerRequests(
+        requests,
+        Math.min(this.poolLimit, concurrency),
+      );
+      void Promise.all(groups.map((group, index) =>
+        this.slot(index).request(contextKey, context, group)
+      )).then((results) => {
+        finish({
+          fields: results.flatMap((result) => result.fields),
+          retainedBytes: results.reduce((sum, result) => sum + result.retainedBytes, 0),
+          // Generation occurs concurrently; the longest slot is the critical
+          // worker path while outer round-trip diagnostics retain wall time.
+          generationMs: Math.max(...results.map((result) => result.generationMs)),
+        });
+      }, fail);
+    });
+  }
+
+  cancel(): void {
+    const error = new Error("Cube surface request superseded");
+    if (this.active !== null) {
+      this.staleJobs += this.active.tileCount;
+      const active = this.active;
+      this.active = null;
+      this.epoch++;
+      active.reject(error);
+    }
+    for (const slot of this.slots) slot.cancel(error);
+    this.slots.length = 0;
+    this.contextKey = null;
+    this.fallbackGenerator = null;
+  }
+
+  dispose(): void {
+    const error = new Error("Cube surface worker disposed");
+    if (this.active !== null) {
+      const active = this.active;
+      this.active = null;
+      this.epoch++;
+      active.reject(error);
+    }
+    for (const slot of this.slots) slot.dispose();
+    this.slots.length = 0;
+    this.contextKey = null;
+    this.fallbackGenerator = null;
+  }
+}
+
 function percentile(values: number[], fraction: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -414,24 +699,19 @@ function createAtmosphere(): THREE.Mesh {
   return atmosphere;
 }
 
-function lineSegmentsForCoordinates(
-  coordinates: LonLat[],
-  radius: number,
-): THREE.Vector3[][] {
-  const segments: THREE.Vector3[][] = [];
-  let current: THREE.Vector3[] = [];
-  for (let index = 0; index < coordinates.length; index++) {
-    if (
-      index > 0 &&
-      Math.abs(coordinates[index][0] - coordinates[index - 1][0]) > 180
-    ) {
-      if (current.length > 1) segments.push(current);
-      current = [];
-    }
-    current.push(lonLatToVector3(coordinates[index], radius));
-  }
-  if (current.length > 1) segments.push(current);
-  return segments;
+function cubeKeyContains(ancestor: CubeTileKey, descendant: CubeTileKey): boolean {
+  if (ancestor.face !== descendant.face || ancestor.level > descendant.level) return false;
+  const divisor = 2 ** (descendant.level - ancestor.level);
+  return Math.floor(descendant.x / divisor) === ancestor.x &&
+    Math.floor(descendant.y / divisor) === ancestor.y;
+}
+
+function sameCubeEdgeFlags(
+  left: Readonly<{ north: boolean; east: boolean; south: boolean; west: boolean }> | undefined,
+  right: Readonly<{ north: boolean; east: boolean; south: boolean; west: boolean }>,
+): boolean {
+  return left !== undefined && left.north === right.north && left.east === right.east &&
+    left.south === right.south && left.west === right.west;
 }
 
 function buildImpactGroup(): THREE.Group {
@@ -486,6 +766,7 @@ export class GlobeScene {
   static async create(
     mount: HTMLDivElement,
     onSelectPoi: (id: string) => void,
+    onSelectSurface: (coordinates: LonLat) => void,
     onStats?: (stats: GlobeStats) => void,
     requestedQuality: RequestedQuality = "auto",
   ): Promise<GlobeScene> {
@@ -495,6 +776,7 @@ export class GlobeScene {
       initialized.renderer,
       initialized.backend,
       onSelectPoi,
+      onSelectSurface,
       onStats,
       requestedQuality,
     );
@@ -514,27 +796,53 @@ export class GlobeScene {
   private readonly atmosphereMesh: THREE.Mesh;
   private readonly worker = new SurfaceWorkerClient();
   private readonly regionalWorker = new RegionalWorkerClient();
+  private readonly cubeWorker = new CubeWorkerClient();
   private readonly cache = new BoundedLruCache<SurfaceFields>(4, 20 * 1024 * 1024);
   private readonly regionalCache = new BoundedLruCache<RegionalPatchFields>(
     3,
     8 * 1024 * 1024,
   );
+  private readonly cubeCache = new BoundedLruCache<CubeTileFields>(160, 48 * 1024 * 1024);
   private readonly raycaster = new THREE.Raycaster();
   private readonly markerTexture = createMarkerTexture();
   private readonly pointer = new THREE.Vector2();
   private readonly frameTimes: number[] = [];
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private resizeObserver: ResizeObserver;
-  private globeMesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshPhysicalMaterial>;
-  private cloudMesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+  private globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
+  private cloudMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   private textures: TextureSet | null = null;
   private activeSurfaceFields: SurfaceFields | null = null;
+  private activeSurfaceDetail: SurfaceDetail = "coarse";
   private displayedSnapshotId: string | null = null;
   private surfaceTransition: {
-    mesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshPhysicalMaterial>;
+    mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
     textures: TextureSet;
     started: number;
   } | null = null;
+  private cubeSurfaceGroup: THREE.Group | null = null;
+  private cubeDisplayedKey: string | null = null;
+  private cubeDisplayedSnapshotId: string | null = null;
+  private cubeContext: CubeTileFieldContext | null = null;
+  private cubeContextKey: string | null = null;
+  private displayedHeightSampler: DisplayedHeightSampler | null = null;
+  private displayedHeightSamplerKey: string | null = null;
+  private cubeRootFields = new Map<CubeFace, CubeTileFields>();
+  private cubeDesiredLeaves: CubeLodLeaf[] = [];
+  private cubePreviousLeafKeys: CubeTileKey[] = [];
+  private cubeRefinementRunning = false;
+  private cubeSelectionSerial = 0;
+  private cubeStaleTileJobs = 0;
+  private cubeSelectionMs = 0;
+  private cubeInstallMs = 0;
+  private cubeMaxNeighborLevelDelta = 0;
+  private readonly cubeLastSelectionDirection = new THREE.Vector3(Number.NaN, 0, 0);
+  private cubeLastSelectionDistance = Number.NaN;
+  private cubeLastSelectionViewportHeight = 0;
+  private cubeLastSelectionAt = 0;
+  private cubeTransition: { group: THREE.Group; started: number } | null = null;
+  private cubeRequestSerial = 0;
+  private cubeGenerationMs = 0;
   private snapshot: WorldSnapshot | null = null;
   private layers: LayerVisibility = { clouds: false, borders: false, tectonics: true, rivers: false };
   private selectedPoiId: string | null = null;
@@ -569,6 +877,7 @@ export class GlobeScene {
   } | null = null;
   private pointerDown: { x: number; y: number } | null = null;
   private onSelectPoi: (id: string) => void;
+  private onSelectSurface: (coordinates: LonLat) => void;
   private onStats?: (stats: GlobeStats) => void;
 
   private constructor(
@@ -576,6 +885,7 @@ export class GlobeScene {
     renderer: RendererLike,
     backend: EarthHistoryDiagnostics["backend"],
     onSelectPoi: (id: string) => void,
+    onSelectSurface: (coordinates: LonLat) => void,
     onStats: ((stats: GlobeStats) => void) | undefined,
     requestedQuality: RequestedQuality,
   ) {
@@ -583,6 +893,7 @@ export class GlobeScene {
     this.renderer = renderer;
     this.backend = backend;
     this.onSelectPoi = onSelectPoi;
+    this.onSelectSurface = onSelectSurface;
     this.onStats = onStats;
     this.requestedQuality = requestedQuality;
     this.effectiveQuality = initialEffectiveQuality(requestedQuality);
@@ -597,6 +908,7 @@ export class GlobeScene {
     renderer.domElement.style.touchAction = "none";
     renderer.domElement.setAttribute("aria-label", "Interactive three-dimensional Earth");
     renderer.domElement.dataset.rendererBackend = backend;
+    renderer.domElement.dataset.focusKind = "none";
     mount.appendChild(renderer.domElement);
 
     this.scene.background = new THREE.Color(0x010507);
@@ -632,7 +944,7 @@ export class GlobeScene {
     this.globeMesh.renderOrder = 0;
 
     this.cloudMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1.014, 128, 64),
+      this.makeCloudGeometry(),
       new THREE.MeshStandardMaterial({
         color: 0xdde7e8,
         transparent: true,
@@ -666,20 +978,33 @@ export class GlobeScene {
     renderer.domElement.addEventListener("pointerup", this.handlePointerUp);
     this.reducedMotion.addEventListener("change", this.handleMotionPreference);
     this.regionalWorker.warm();
+    this.cubeWorker.warm();
     this.resize();
     this.frameHandle = requestAnimationFrame(this.frame);
   }
 
-  setCallbacks(onSelectPoi: (id: string) => void, onStats?: (stats: GlobeStats) => void): void {
+  setCallbacks(
+    onSelectPoi: (id: string) => void,
+    onSelectSurface: (coordinates: LonLat) => void,
+    onStats?: (stats: GlobeStats) => void,
+  ): void {
     this.onSelectPoi = onSelectPoi;
+    this.onSelectSurface = onSelectSurface;
     this.onStats = onStats;
   }
 
   setSnapshot(snapshot: WorldSnapshot | null): void {
     if (this.snapshot === snapshot) return;
     this.snapshot = snapshot;
+    if (snapshot === null) {
+      this.displayedHeightSampler = null;
+      this.displayedHeightSamplerKey = null;
+      delete this.renderer.domElement.dataset.overlayDrapeSurfaceKey;
+    }
     this.currentRivers = [];
     this.regionalWorker.cancel();
+    this.cubeWorker.cancel();
+    this.invalidateCubeRefinement();
     this.removeRegionalPatch();
     this.rebuildOverlays();
     const stage = snapshot?.environment.stage;
@@ -712,6 +1037,7 @@ export class GlobeScene {
   }
 
   setAutoRotate(value: boolean): void {
+    if (!value) this.cancelControlInertia();
     this.autoRotate = value;
   }
 
@@ -726,19 +1052,28 @@ export class GlobeScene {
     if (clamped === this.verticalExaggeration) return;
     this.verticalExaggeration = clamped;
     this.applyReliefScale();
+    this.updateCubeReliefScale();
     this.updateRegionalPatchScale();
+    this.scheduleCubeRefinement();
   }
 
   setSurfaceMode(mode: SurfaceMode): void {
     if (mode === this.surfaceMode) return;
     this.surfaceMode = mode;
     this.regionalWorker.cancel();
+    this.cubeWorker.cancel();
+    this.invalidateCubeRefinement();
     this.removeRegionalPatch();
     if (this.snapshot !== null) void this.loadSurface();
   }
 
-  focus(coordinates: LonLat, requestedDistance = 1.82): void {
+  focus(
+    coordinates: LonLat,
+    requestedDistance = 1.82,
+    kind: SpatialFocusKind = "area",
+  ): void {
     this.prefetchModernRelief(coordinates);
+    this.renderer.domElement.dataset.focusKind = kind;
     const direction = lonLatToVector3(coordinates).applyQuaternion(this.globeGroup.quaternion).normalize();
     this.focusAnimation = {
       from: this.camera.position.clone().normalize(),
@@ -749,8 +1084,14 @@ export class GlobeScene {
     };
   }
 
-  resetCamera(): void {
+  clearFocus(): void {
     this.focusAnimation = null;
+    this.cancelControlInertia();
+    this.renderer.domElement.dataset.focusKind = "none";
+  }
+
+  resetCamera(): void {
+    this.clearFocus();
     this.controls.target.set(0, 0, 0);
     this.camera.position.set(2.41, 1.2, 2.51);
     this.camera.lookAt(0, 0, 0);
@@ -769,8 +1110,11 @@ export class GlobeScene {
     cancelAnimationFrame(this.frameHandle);
     this.worker.dispose();
     this.regionalWorker.dispose();
+    this.cubeWorker.dispose();
     this.cache.clear();
     this.regionalCache.clear();
+    this.cubeCache.clear();
+    this.cubeRootFields.clear();
     this.resizeObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.handleMotionPreference);
     this.renderer.domElement.removeEventListener("pointerdown", this.handlePointerDown);
@@ -778,6 +1122,11 @@ export class GlobeScene {
     this.controls.dispose();
     this.controls.removeEventListener("end", this.handleControlsEnd);
     this.finishSurfaceTransition();
+    this.finishCubeTransition();
+    if (this.cubeSurfaceGroup !== null) {
+      this.disposeCubeGroup(this.cubeSurfaceGroup);
+      this.cubeSurfaceGroup = null;
+    }
     this.textures && this.disposeTextures(this.textures);
     this.markerTexture.dispose();
     this.scene.traverse((object) => {
@@ -793,19 +1142,35 @@ export class GlobeScene {
     }
   }
 
-  private makeGlobeGeometry(): THREE.SphereGeometry {
-    const segments = this.effectiveQuality === "high" ? [192, 96] : [96, 48];
-    return new THREE.SphereGeometry(1, segments[0], segments[1]);
+  private makeGlobeGeometry(): THREE.BufferGeometry {
+    return createPoleSafeShellGeometry(1, this.effectiveQuality === "high" ? 24 : 16);
+  }
+
+  private makeCloudGeometry(): THREE.BufferGeometry {
+    return createPoleSafeShellGeometry(1.014, this.effectiveQuality === "high" ? 18 : 12);
   }
 
   private applyEffectiveQuality(value: "high" | "low"): void {
     this.finishSurfaceTransition();
+    this.cubeWorker.cancel();
+    this.invalidateCubeRefinement();
     this.effectiveQuality = value;
     this.globeMesh.geometry.dispose();
     this.globeMesh.geometry = this.makeGlobeGeometry();
+    this.cloudMesh.geometry.dispose();
+    this.cloudMesh.geometry = this.makeCloudGeometry();
     this.resize();
     if (value === "low" && this.detail === "regional") this.detail = "coarse";
     if (this.snapshot !== null) void this.loadSurface();
+  }
+
+  private invalidateCubeRefinement(): void {
+    this.cubeContext = null;
+    this.cubeContextKey = null;
+    this.cubeDesiredLeaves = [];
+    this.cubePreviousLeafKeys = [];
+    this.cubeSelectionSerial++;
+    this.renderer.domElement.dataset.cubeRefinementStatus = "waiting-base";
   }
 
   private updateAtmosphere(stage: SurfaceStage | undefined, opacity: number): void {
@@ -826,7 +1191,7 @@ export class GlobeScene {
     const serial = ++this.requestSerial;
     const cached = this.cache.get(key);
     if (cached !== undefined) {
-      this.applySurface(cached);
+      this.applySurface(cached, detail);
       return;
     }
     this.renderer.domElement.dataset.surfaceStatus = "generating";
@@ -836,7 +1201,7 @@ export class GlobeScene {
       if (this.disposed || serial !== this.requestSerial || snapshot !== this.snapshot) return;
       this.cache.set(key, fields);
       this.generationMs = fields.generationMs;
-      this.applySurface(fields);
+      this.applySurface(fields, detail);
     } catch (error) {
       if (serial === this.requestSerial && !this.disposed) {
         this.renderer.domElement.dataset.surfaceStatus = "error";
@@ -847,7 +1212,7 @@ export class GlobeScene {
     }
   }
 
-  private applySurface(fields: SurfaceFields): void {
+  private applySurface(fields: SurfaceFields, detail: SurfaceDetail): void {
     this.removeRegionalPatch();
     const textures: TextureSet = {
       albedo: createTexture(fields.albedo, fields.width, fields.height, true),
@@ -863,6 +1228,7 @@ export class GlobeScene {
       previousTextures !== null &&
       this.displayedSnapshotId !== null &&
       nextSnapshotId !== this.displayedSnapshotId &&
+      this.cubeSurfaceGroup === null &&
       !wasAlreadyTransitioning &&
       !this.reducedMotion.matches;
     if (previousTextures !== null && shouldCrossfade) {
@@ -888,10 +1254,15 @@ export class GlobeScene {
     }
     this.textures = textures;
     this.activeSurfaceFields = fields;
+    this.activeSurfaceDetail = detail;
     this.displayedSnapshotId = nextSnapshotId;
     this.reliefRangeMetres = fields.reliefRangeMetres;
     this.reliefBiasMetres = fields.reliefBiasMetres;
     this.currentRivers = fields.rivers;
+    if (this.snapshot !== null && this.cubeSurfaceGroup === null) {
+      const samplerKey = `fallback:${this.snapshot.id}:${this.surfaceMode}:${detail}`;
+      this.installDisplayedHeightSampler(createSurfaceFieldHeightSampler(fields), samplerKey);
+    }
     this.globeMesh.material.color.set(0xffffff);
     this.globeMesh.material.emissive.set(this.surfaceMode === "seafloor" ? 0x061b24 : 0x000000);
     this.globeMesh.material.emissiveIntensity = this.surfaceMode === "seafloor" ? 0.28 : 0;
@@ -909,7 +1280,7 @@ export class GlobeScene {
     this.rebuildOverlays();
     this.renderer.domElement.dataset.surfaceStatus = "ready";
     this.renderer.domElement.dataset.surfaceReadyAt = performance.now().toFixed(2);
-    if (this.detail === "regional") void this.loadRegionalPatch();
+    void this.loadCubeSurface(fields, detail);
   }
 
   private applyReliefScale(): void {
@@ -932,8 +1303,8 @@ export class GlobeScene {
       this.verticalExaggeration;
     const cloudRadius = 1.007 + maximumPositiveDisplacement;
     this.cloudMesh.scale.setScalar(cloudRadius / 1.014);
-    const overlayScale = (1.004 + maximumPositiveDisplacement) / 1.012;
-    this.overlayGroup.scale.setScalar(overlayScale);
+    this.overlayGroup.scale.setScalar(1);
+    this.updateDrapedOverlays();
     this.markerGroup.scale.setScalar((1.008 + maximumPositiveDisplacement) / 1.028);
     this.atmosphereMesh.scale.setScalar(
       (1.009 + maximumPositiveDisplacement) / 1.012,
@@ -950,6 +1321,590 @@ export class GlobeScene {
     textures.relief.dispose();
     textures.roughness.dispose();
     textures.clouds.dispose();
+  }
+
+  private installDisplayedHeightSampler(
+    sampler: DisplayedHeightSampler,
+    displayKey: string,
+  ): void {
+    if (displayKey === this.displayedHeightSamplerKey) return;
+    this.displayedHeightSampler = sampler;
+    this.displayedHeightSamplerKey = displayKey;
+    this.renderer.domElement.dataset.overlayDrapeSurfaceKey = displayKey;
+  }
+
+  private async loadCubeSurface(fields: SurfaceFields, detail: SurfaceDetail): Promise<void> {
+    const snapshot = this.snapshot;
+    if (snapshot === null) return;
+    const serial = ++this.cubeRequestSerial;
+    const reliefMetadata = this.modernReliefMetadataAt(this.cameraCenter());
+    const sourceKey = reliefMetadata === undefined
+      ? "procedural"
+      : `${reliefMetadata.sourceProduct}:${reliefMetadata.id}`;
+    const contextKey = `${snapshot.id}:${this.surfaceMode}:${detail}:${sourceKey}`;
+    this.renderer.domElement.dataset.cubeStatus =
+      reliefMetadata === undefined ? "generating" : "loading-source";
+    this.renderer.domElement.dataset.cubeRequestedSnapshotId = snapshot.id;
+    this.renderer.domElement.dataset.cubeRequestedKey = contextKey;
+    this.renderer.domElement.dataset.cubeRequestedAt = performance.now().toFixed(2);
+    let modernRelief: ModernReliefPatch[] | undefined;
+    if (reliefMetadata !== undefined) {
+      try {
+        modernRelief = [await getModernReliefPatch(reliefMetadata.id)];
+      } catch (error) {
+        if (serial === this.cubeRequestSerial && !this.disposed) {
+          this.renderer.domElement.dataset.cubeStatus = "error";
+          console.error("Cube relief source failed", error);
+        }
+        return;
+      }
+      if (
+        this.disposed || serial !== this.cubeRequestSerial || snapshot !== this.snapshot ||
+        fields !== this.activeSurfaceFields || detail !== this.activeSurfaceDetail
+      ) return;
+      this.renderer.domElement.dataset.cubeStatus = "generating";
+    }
+    const context: CubeTileFieldContext = {
+      snapshot,
+      surface: fields,
+      mode: this.surfaceMode,
+      detail,
+      modernRelief,
+    };
+    if (contextKey !== this.cubeContextKey) {
+      this.cubeWorker.cancel();
+      this.invalidateCubeRefinement();
+      this.cubeCache.clear();
+    }
+    // Roots are deliberately cheap parents. Screen-sized child tiles restore
+    // local material density incrementally while this complete globe remains.
+    const meshSegments: 32 | 64 = 32;
+    const textureSize: 128 | 256 = 128;
+    const requests: CubeTileFieldRequest[] = CUBE_FACES.map((face) => ({
+      key: { face, level: 0, x: 0, y: 0 },
+      meshSegments,
+      textureSize,
+    }));
+    const cached = requests.map((request) =>
+      this.cubeCache.get(cubeTileId(request.key)),
+    );
+    if (cached.every((item): item is CubeTileFields => item !== undefined)) {
+      this.cubeContext = context;
+      this.cubeContextKey = contextKey;
+      this.applyCubeSurface(cached, contextKey, snapshot.id);
+      return;
+    }
+
+    const postedAt = performance.now();
+    try {
+      const result = await this.cubeWorker.request(
+        contextKey,
+        context,
+        requests,
+        this.effectiveQuality === "high" ? this.cubeWorker.maxConcurrency : 1,
+      );
+      const receivedAt = performance.now();
+      if (
+        this.disposed || serial !== this.cubeRequestSerial || snapshot !== this.snapshot ||
+        fields !== this.activeSurfaceFields || detail !== this.activeSurfaceDetail
+      ) return;
+      this.cubeGenerationMs = result.generationMs;
+      for (const tile of result.fields) {
+        this.cubeCache.set(cubeTileId(tile.key), tile);
+      }
+      this.renderer.domElement.dataset.cubeWorkerRoundTripMs = (receivedAt - postedAt).toFixed(2);
+      this.renderer.domElement.dataset.cubeWorkerGenerationMs = result.generationMs.toFixed(2);
+      this.renderer.domElement.dataset.cubeWorkerOverheadMs =
+        Math.max(0, receivedAt - postedAt - result.generationMs).toFixed(2);
+      this.renderer.domElement.dataset.cubeRetainedWorkerBytes = String(result.retainedBytes);
+      this.cubeContext = context;
+      this.cubeContextKey = contextKey;
+      this.applyCubeSurface(result.fields, contextKey, snapshot.id);
+    } catch (error) {
+      if (
+        serial === this.cubeRequestSerial && !this.disposed &&
+        (!(error instanceof Error) || error.message !== "Cube surface request superseded")
+      ) {
+        this.renderer.domElement.dataset.cubeStatus = "error";
+        console.error("Cube surface generation failed", error);
+      }
+    }
+  }
+
+  private applyCubeSurface(
+    fields: CubeTileFields[],
+    displayKey: string,
+    snapshotId: string,
+  ): void {
+    if (fields.length !== CUBE_FACES.length) return;
+    const installStarted = performance.now();
+    if (displayKey !== this.cubeDisplayedKey) {
+      this.cubeDesiredLeaves = [];
+      this.cubePreviousLeafKeys = [];
+      this.cubeRootFields.clear();
+      this.cubeSelectionSerial++;
+    }
+    const group = new THREE.Group();
+    group.name = "adaptive-cube-sphere";
+    for (const field of fields) {
+      this.cubeCache.set(cubeTileId(field.key), field);
+      this.cubeRootFields.set(field.key.face, field);
+      group.add(this.createCubeMesh(field));
+    }
+
+    if (this.cubeTransition !== null) this.finishCubeTransition();
+    const previous = this.cubeSurfaceGroup;
+    const previousSnapshotId = this.cubeDisplayedSnapshotId;
+    this.cubeSurfaceGroup = group;
+    this.cubeDisplayedKey = displayKey;
+    this.cubeDisplayedSnapshotId = snapshotId;
+    this.renderer.domElement.dataset.cubeDisplayedKey = displayKey;
+    this.renderer.domElement.dataset.cubeDisplayedSnapshotId = snapshotId;
+    this.globeGroup.add(group);
+    this.globeMesh.visible = false;
+    this.updateCubeReliefScale();
+    if (this.cubeContext !== null && this.cubeContextKey === displayKey) {
+      const samplerChanged = displayKey !== this.displayedHeightSamplerKey;
+      if (samplerChanged) {
+        this.installDisplayedHeightSampler(
+          createCubeTileFieldGenerator(this.cubeContext),
+          displayKey,
+        );
+        this.rebuildOverlays();
+      }
+    }
+
+    if (previous !== null) {
+      const shouldCrossfade =
+        snapshotId !== previousSnapshotId && !this.reducedMotion.matches;
+      if (shouldCrossfade) {
+        for (const child of previous.children) {
+          if (!(child instanceof THREE.Mesh)) continue;
+          child.material.transparent = true;
+          child.material.depthWrite = false;
+          child.renderOrder = 0.5;
+        }
+        this.cubeTransition = { group: previous, started: performance.now() };
+        this.renderer.domElement.dataset.surfaceTransition = "crossfade";
+      } else {
+        this.disposeCubeGroup(previous);
+      }
+    }
+    this.renderer.domElement.dataset.cubeStatus = "ready";
+    const baseDisplayedAt = performance.now();
+    this.renderer.domElement.dataset.cubeReadyAt = baseDisplayedAt.toFixed(2);
+    this.renderer.domElement.dataset.cubeBaseDisplayedAt = baseDisplayedAt.toFixed(2);
+    delete this.renderer.domElement.dataset.cubeFirstRefinementAt;
+    delete this.renderer.domElement.dataset.cubeTargetLodCompleteAt;
+    this.renderer.domElement.dataset.cubeInstallMs =
+      (performance.now() - installStarted).toFixed(2);
+    this.renderer.domElement.dataset.cubeVisibleTiles = "6";
+    this.renderer.domElement.dataset.cubeMaxNeighborLevelDelta = "0";
+    this.removeRegionalPatch();
+    this.scheduleCubeRefinement();
+  }
+
+  private createCubeMesh(
+    field: CubeTileFields,
+    coarseEdges = { north: false, east: false, south: false, west: false },
+  ): THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial> {
+    const meshData = createCubeTileMesh(field, this.verticalExaggeration, coarseEdges);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(meshData.positions, 3));
+    geometry.setAttribute("normal", new THREE.BufferAttribute(meshData.normals, 3));
+    geometry.setAttribute("uv", new THREE.BufferAttribute(meshData.uvs, 2));
+    geometry.setIndex(new THREE.BufferAttribute(meshData.indices, 1));
+    geometry.computeBoundingSphere();
+    const material = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      map: createTexture(field.albedo, field.textureStride, field.textureStride, true),
+      roughness: this.surfaceMode === "seafloor" ? 0.91 : 0.82,
+      roughnessMap: createTexture(field.roughness, field.textureStride, field.textureStride),
+      bumpMap: createTexture(field.detailHeight, field.textureStride, field.textureStride),
+      bumpScale: 0.0028 * Math.sqrt(this.verticalExaggeration),
+      metalness: 0,
+      clearcoat: this.surfaceMode === "seafloor" ? 0.015 : 0.08,
+      clearcoatRoughness: 0.5,
+      ior: 1.37,
+      specularIntensity: this.surfaceMode === "seafloor" ? 0.18 : 0.3,
+      emissive: this.surfaceMode === "seafloor" ? 0x061b24 : 0x000000,
+      emissiveIntensity: this.surfaceMode === "seafloor" ? 0.25 : 0,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = `cube-${cubeTileId(field.key)}`;
+    mesh.userData.cubeFields = field;
+    mesh.userData.coarseEdges = { ...coarseEdges };
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  private selectCubeLeaves(): CubeLodLeaf[] {
+    const started = performance.now();
+    const localDirection = this.camera.position
+      .clone()
+      .normalize()
+      .applyQuaternion(this.globeGroup.quaternion.clone().invert());
+    const maximumPositiveDisplacement =
+      ((this.reliefBiasMetres + this.reliefRangeMetres) / EARTH_RADIUS_METRES) *
+      this.verticalExaggeration;
+    const selection = selectCubeLod({
+      camera: {
+        direction: [localDirection.x, localDirection.y, localDirection.z],
+        distance: this.camera.position.length(),
+        verticalFovRadians: THREE.MathUtils.degToRad(this.camera.fov),
+        viewportHeight: Math.max(1, this.mount.clientHeight),
+      },
+      previousKeys: this.cubePreviousLeafKeys,
+      maxLevel: this.effectiveQuality === "high" ? 4 : 1,
+      maxLeaves: this.effectiveQuality === "high" ? 96 : 24,
+      horizonPaddingRadians:
+        0.015 + reliefHorizonExtensionRadians(
+          this.camera.position.length(),
+          maximumPositiveDisplacement,
+        ),
+    });
+    this.cubePreviousLeafKeys = selection.leaves.map((leaf) => leaf.key);
+    this.cubeSelectionMs = performance.now() - started;
+    this.cubeLastSelectionDirection.copy(localDirection);
+    this.cubeLastSelectionDistance = this.camera.position.length();
+    this.cubeLastSelectionViewportHeight = Math.max(1, this.mount.clientHeight);
+    this.cubeLastSelectionAt = performance.now();
+    this.cubeMaxNeighborLevelDelta = selection.leaves.reduce(
+      (maximum, leaf) => Math.max(
+        maximum,
+        ...Object.values(leaf.neighbors).flat().map((neighbor) =>
+          Math.abs(neighbor.levelDelta)
+        ),
+      ),
+      0,
+    );
+    this.renderer.domElement.dataset.cubeSelectionMs = this.cubeSelectionMs.toFixed(2);
+    this.renderer.domElement.dataset.cubeDesiredTiles = String(selection.leaves.length);
+    this.renderer.domElement.dataset.cubeSelectionCapped = String(selection.capped);
+    return selection.leaves;
+  }
+
+  private cubeSelectionNeedsRefresh(now: number): boolean {
+    if (
+      this.cubeSurfaceGroup === null || this.cubeContext === null ||
+      now - this.cubeLastSelectionAt < 80
+    ) return false;
+    const localDirection = this.camera.position
+      .clone()
+      .normalize()
+      .applyQuaternion(this.globeGroup.quaternion.clone().invert());
+    const directionChanged =
+      !Number.isFinite(this.cubeLastSelectionDirection.x) ||
+      localDirection.dot(this.cubeLastSelectionDirection) < Math.cos(THREE.MathUtils.degToRad(0.8));
+    const distance = this.camera.position.length();
+    const distanceChanged =
+      !Number.isFinite(this.cubeLastSelectionDistance) ||
+      Math.abs(distance - this.cubeLastSelectionDistance) >
+        Math.max(0.008, this.cubeLastSelectionDistance * 0.008);
+    const viewportChanged =
+      Math.abs(this.mount.clientHeight - this.cubeLastSelectionViewportHeight) >= 8;
+    return directionChanged || distanceChanged || viewportChanged;
+  }
+
+  private scheduleCubeRefinement(): void {
+    if (
+      this.disposed || this.cubeSurfaceGroup === null ||
+      this.cubeContext === null || this.cubeContextKey === null
+    ) return;
+    this.cubeDesiredLeaves = this.selectCubeLeaves();
+    this.cubeSelectionSerial++;
+    this.renderer.domElement.dataset.cubeTargetLodRequestedAt = performance.now().toFixed(2);
+    this.renderer.domElement.dataset.cubeRefinementStatus = "planning";
+    this.syncCubeRenderPlan();
+    if (!this.cubeRefinementRunning) void this.runCubeRefinement();
+  }
+
+  private syncCubeRenderPlan(): ReturnType<typeof planCubeRender> {
+    const installStarted = performance.now();
+    this.pinRenderedCubeFields();
+    const plan = planCubeRender(
+      this.cubeDesiredLeaves.map((leaf) => leaf.key),
+      new Set(this.cubeCache.keys()),
+    );
+    const group = this.cubeSurfaceGroup;
+    if (group === null) return plan;
+    const actualLeaves = describeCubeLodLeaves(plan.renderKeys);
+    const actualById = new Map(actualLeaves.map((leaf) => [leaf.id, leaf]));
+    this.cubeMaxNeighborLevelDelta = actualLeaves.reduce(
+      (maximum, leaf) => Math.max(
+        maximum,
+        ...Object.values(leaf.neighbors).flat().map((neighbor) =>
+          Math.abs(neighbor.levelDelta)
+        ),
+      ),
+      0,
+    );
+    const requestedIds = new Set(actualLeaves.map((leaf) => leaf.id));
+    const existing = new Map<string, THREE.Mesh>();
+    for (const child of group.children) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      const field = child.userData.cubeFields as CubeTileFields | undefined;
+      if (field !== undefined) existing.set(cubeTileId(field.key), child);
+    }
+    // Add every replacement first, then remove its complete parent set in the
+    // same main-thread turn. No render can observe an incomplete child swap.
+    let addedRefinement = false;
+    for (const leaf of actualLeaves) {
+      const { key, id, coarseEdges } = leaf;
+      const current = existing.get(id);
+      if (current !== undefined) {
+        const previousEdges = current.userData.coarseEdges as
+          | { north: boolean; east: boolean; south: boolean; west: boolean }
+          | undefined;
+        if (!sameCubeEdgeFlags(previousEdges, coarseEdges)) {
+          current.userData.coarseEdges = { ...coarseEdges };
+          this.updateCubeMeshGeometry(current, current.userData.cubeFields, coarseEdges);
+        }
+        continue;
+      }
+      const field = this.cubeCache.get(id);
+      if (field !== undefined) {
+        group.add(this.createCubeMesh(field, coarseEdges));
+        if (key.level > 0) addedRefinement = true;
+      }
+    }
+    for (const [id, child] of existing) {
+      if (requestedIds.has(id)) continue;
+      group.remove(child);
+      this.disposeCubeMesh(child);
+    }
+    this.cubeInstallMs = performance.now() - installStarted;
+    if (
+      addedRefinement &&
+      this.renderer.domElement.dataset.cubeFirstRefinementAt === undefined
+    ) {
+      this.renderer.domElement.dataset.cubeFirstRefinementAt = performance.now().toFixed(2);
+    }
+    this.renderer.domElement.dataset.cubeInstallMs = this.cubeInstallMs.toFixed(2);
+    this.renderer.domElement.dataset.cubeVisibleTiles = String(group.children.length);
+    this.renderer.domElement.dataset.cubeMaxNeighborLevelDelta =
+      String(this.cubeMaxNeighborLevelDelta);
+    this.renderer.domElement.dataset.cubeVisibleByLod = JSON.stringify(
+      Object.fromEntries(Array.from({ length: 5 }, (_, level) => [
+        level,
+        actualLeaves.filter((leaf) => leaf.key.level === level).length,
+      ])),
+    );
+    this.renderer.domElement.dataset.cubeVisibleByFace = JSON.stringify(
+      Object.fromEntries(CUBE_FACES.map((face) => [
+        face,
+        actualLeaves.filter((leaf) => leaf.key.face === face).length,
+      ])),
+    );
+    return plan;
+  }
+
+  private prioritizeCubeRequests(keys: CubeTileKey[]): CubeTileKey[] {
+    const score = (key: CubeTileKey) => this.cubeDesiredLeaves.reduce(
+        (maximum, leaf) => cubeKeyContains(key, leaf.key)
+          ? Math.max(maximum, leaf.projectedErrorPx)
+          : maximum,
+        0,
+      );
+    const groups = new Map<string, CubeTileKey[]>();
+    for (const key of keys) {
+      const parentId = key.level === 0
+        ? cubeTileId(key)
+        : cubeTileId({
+            face: key.face,
+            level: key.level - 1,
+            x: Math.floor(key.x / 2),
+            y: Math.floor(key.y / 2),
+          });
+      const siblings = groups.get(parentId) ?? [];
+      siblings.push(key);
+      groups.set(parentId, siblings);
+    }
+    return [...groups.entries()]
+      .sort((left, right) =>
+        Math.max(...right[1].map(score)) - Math.max(...left[1].map(score)) ||
+        left[0].localeCompare(right[0]),
+      )
+      .flatMap(([, siblings]) => siblings.sort((left, right) =>
+        cubeTileId(left).localeCompare(cubeTileId(right))
+      ));
+  }
+
+  private pinRenderedCubeFields(): void {
+    for (const field of this.cubeRootFields.values()) {
+      const id = cubeTileId(field.key);
+      if (this.cubeCache.get(id) === undefined) this.cubeCache.set(id, field);
+    }
+    for (const child of this.cubeSurfaceGroup?.children ?? []) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      const field = child.userData.cubeFields as CubeTileFields | undefined;
+      if (field === undefined) continue;
+      const id = cubeTileId(field.key);
+      if (this.cubeCache.get(id) === undefined) this.cubeCache.set(id, field);
+    }
+    for (const leaf of this.cubeDesiredLeaves) {
+      let key: CubeTileKey | undefined = leaf.key;
+      while (key !== undefined) {
+        this.cubeCache.get(cubeTileId(key));
+        key = key.level === 0
+          ? undefined
+          : {
+              face: key.face,
+              level: key.level - 1,
+              x: Math.floor(key.x / 2),
+              y: Math.floor(key.y / 2),
+            };
+      }
+    }
+  }
+
+  private async runCubeRefinement(): Promise<void> {
+    if (this.cubeRefinementRunning) return;
+    this.cubeRefinementRunning = true;
+    let canContinue = true;
+    try {
+      while (
+        !this.disposed && this.cubeContext !== null && this.cubeContextKey !== null &&
+        this.cubeSurfaceGroup !== null
+      ) {
+        const context = this.cubeContext;
+        const contextKey = this.cubeContextKey;
+        const plan = this.syncCubeRenderPlan();
+        if (plan.complete) {
+          const completeAt = performance.now();
+          this.renderer.domElement.dataset.cubeRefinementStatus = "ready";
+          this.renderer.domElement.dataset.cubeRefinementReadyAt = completeAt.toFixed(2);
+          this.renderer.domElement.dataset.cubeTargetLodCompleteAt = completeAt.toFixed(2);
+          break;
+        }
+        if (plan.nextRequests.length === 0) {
+          this.renderer.domElement.dataset.cubeRefinementStatus = "stalled";
+          break;
+        }
+        const uncached: CubeTileKey[] = [];
+        for (const key of this.prioritizeCubeRequests(plan.nextRequests)) {
+          const cached = this.cubeCache.get(cubeTileId(key));
+          if (cached === undefined) uncached.push(key);
+        }
+        if (uncached.length === 0) continue;
+        const requests: CubeTileFieldRequest[] = uncached.slice(0, 24).map((key) => ({
+          key,
+          meshSegments: 32,
+          // At level four this still resolves roughly ten kilometres per
+          // material texel, near the authored regional control resolution.
+          textureSize: 64,
+        }));
+        this.renderer.domElement.dataset.cubeRefinementStatus = "generating";
+        this.renderer.domElement.dataset.cubeRefinementQueuedTiles = String(requests.length);
+        const selectionSerial = this.cubeSelectionSerial;
+        const postedAt = performance.now();
+        const result = await this.cubeWorker.request(
+          contextKey,
+          context,
+          requests,
+          this.effectiveQuality === "high" ? this.cubeWorker.maxConcurrency : 1,
+        );
+        const receivedAt = performance.now();
+        if (
+          this.disposed || context !== this.cubeContext || contextKey !== this.cubeContextKey
+        ) continue;
+        if (selectionSerial !== this.cubeSelectionSerial) {
+          this.cubeStaleTileJobs += result.fields.length;
+        }
+        this.pinRenderedCubeFields();
+        for (const field of result.fields) {
+          this.cubeCache.set(cubeTileId(field.key), field);
+        }
+        this.renderer.domElement.dataset.cubeRefinementGenerationMs =
+          result.generationMs.toFixed(2);
+        this.renderer.domElement.dataset.cubeRefinementRoundTripMs =
+          (receivedAt - postedAt).toFixed(2);
+        this.renderer.domElement.dataset.cubeRetainedWorkerBytes = String(result.retainedBytes);
+      }
+    } catch (error) {
+      if (
+        !this.disposed &&
+        (!(error instanceof Error) || error.message !== "Cube surface request superseded")
+      ) {
+        canContinue = false;
+        this.renderer.domElement.dataset.cubeRefinementStatus = "error";
+        console.error("Cube refinement failed", error);
+      }
+    } finally {
+      this.cubeRefinementRunning = false;
+      if (
+        canContinue && !this.disposed && this.cubeContext !== null && this.cubeContextKey !== null &&
+        this.cubeSurfaceGroup !== null
+      ) {
+        const current = this.syncCubeRenderPlan();
+        if (!current.complete && current.nextRequests.length > 0) {
+          void this.runCubeRefinement();
+        }
+      }
+    }
+  }
+
+  private disposeCubeMesh(mesh: THREE.Mesh): void {
+    mesh.geometry.dispose();
+    const material = mesh.material as THREE.MeshPhysicalMaterial;
+    material.map?.dispose();
+    material.roughnessMap?.dispose();
+    material.bumpMap?.dispose();
+    material.dispose();
+  }
+
+  private updateCubeReliefScale(): void {
+    const group = this.cubeSurfaceGroup;
+    if (group === null) return;
+    for (const child of group.children) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      const fields = child.userData.cubeFields as CubeTileFields | undefined;
+      if (fields === undefined) continue;
+      const coarseEdges = child.userData.coarseEdges as
+        | { north: boolean; east: boolean; south: boolean; west: boolean }
+        | undefined;
+      this.updateCubeMeshGeometry(
+        child,
+        fields,
+        coarseEdges ?? { north: false, east: false, south: false, west: false },
+      );
+      child.material.bumpScale = 0.0028 * Math.sqrt(this.verticalExaggeration);
+    }
+  }
+
+  private updateCubeMeshGeometry(
+    mesh: THREE.Mesh<THREE.BufferGeometry>,
+    fields: CubeTileFields,
+    coarseEdges: Readonly<{ north: boolean; east: boolean; south: boolean; west: boolean }>,
+  ): void {
+    const meshData = createCubeTileMesh(fields, this.verticalExaggeration, coarseEdges);
+    const positions = mesh.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const normals = mesh.geometry.getAttribute("normal") as THREE.BufferAttribute;
+    const uvs = mesh.geometry.getAttribute("uv") as THREE.BufferAttribute;
+    (positions.array as Float32Array).set(meshData.positions);
+    (normals.array as Float32Array).set(meshData.normals);
+    (uvs.array as Float32Array).set(meshData.uvs);
+    positions.needsUpdate = true;
+    normals.needsUpdate = true;
+    uvs.needsUpdate = true;
+    mesh.geometry.computeBoundingSphere();
+  }
+
+  private disposeCubeGroup(group: THREE.Group): void {
+    this.globeGroup.remove(group);
+    for (const child of group.children) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      this.disposeCubeMesh(child);
+    }
+    group.clear();
+  }
+
+  private finishCubeTransition(): void {
+    if (this.cubeTransition === null) return;
+    this.disposeCubeGroup(this.cubeTransition.group);
+    this.cubeTransition = null;
+    this.renderer.domElement.dataset.surfaceTransition = "idle";
   }
 
   private finishSurfaceTransition(): void {
@@ -984,6 +1939,19 @@ export class GlobeScene {
         coordinates[0] >= west && coordinates[0] <= east &&
         coordinates[1] >= south && coordinates[1] <= north;
     });
+  }
+
+  private refreshCubeForCamera(): void {
+    if (this.activeSurfaceFields === null) return;
+    const metadata = this.modernReliefMetadataAt(this.cameraCenter());
+    const expectedSource = metadata === undefined
+      ? "procedural"
+      : `${metadata.sourceProduct}:${metadata.id}`;
+    if (this.cubeContextKey === null || !this.cubeContextKey.endsWith(`:${expectedSource}`)) {
+      void this.loadCubeSurface(this.activeSurfaceFields, this.activeSurfaceDetail);
+      return;
+    }
+    this.scheduleCubeRefinement();
   }
 
   private prefetchModernRelief(coordinates: LonLat): void {
@@ -1232,6 +2200,53 @@ export class GlobeScene {
     const snapshot = this.snapshot;
     if (snapshot === null) return;
 
+    const sampler = this.displayedHeightSampler ?? {
+      sampleHeightMetres: () => 0,
+    };
+    let cachedBytes = 0;
+    let vertexCount = 0;
+    let budgetExceeded = false;
+    const addDrapedLine = (
+      coordinates: LonLat[],
+      material: THREE.LineBasicMaterial,
+      clearanceMetres: number,
+      renderOrder: number,
+      evidence?: string,
+    ) => {
+      if (coordinates.length < 2 || budgetExceeded) {
+        material.dispose();
+        return;
+      }
+      let drapes: DrapedLineData[];
+      try {
+        drapes = createDrapedLineDataSegments(coordinates, sampler, clearanceMetres);
+      } catch (error) {
+        material.dispose();
+        budgetExceeded = true;
+        console.warn("Scientific overlay exceeded its bounded drape geometry", error);
+        return;
+      }
+      for (const drape of drapes) {
+        if (drape.positions.length < 6) continue;
+        if (cachedBytes + drape.byteLength > MAX_OVERLAY_CACHE_BYTES) {
+          budgetExceeded = true;
+          break;
+        }
+        updateDrapedLinePositions(drape, this.verticalExaggeration);
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(drape.positions, 3));
+        geometry.computeBoundingSphere();
+        const line = new THREE.Line(geometry, material.clone());
+        line.renderOrder = renderOrder;
+        line.userData.drapedLine = drape;
+        if (evidence !== undefined) line.userData.evidence = evidence;
+        this.overlayGroup.add(line);
+        cachedBytes += drape.byteLength;
+        vertexCount += drape.heightsMetres.length;
+      }
+      material.dispose();
+    };
+
     if (this.layers.borders) {
       const material = new THREE.LineBasicMaterial({
         color: 0xb7d8d5,
@@ -1241,14 +2256,7 @@ export class GlobeScene {
       });
       for (const country of snapshot.countries) {
         for (const coordinates of country.lines) {
-          for (const positions of lineSegmentsForCoordinates(coordinates, 1.012)) {
-            const line = new THREE.Line(
-              new THREE.BufferGeometry().setFromPoints(positions),
-              material.clone(),
-            );
-            line.renderOrder = 3;
-            this.overlayGroup.add(line);
-          }
+          addDrapedLine(coordinates, material.clone(), 2_500, 3);
         }
       }
       material.dispose();
@@ -1262,19 +2270,17 @@ export class GlobeScene {
         volcano: 0xff583d,
       };
       for (const feature of snapshot.tectonics) {
-        for (const positions of lineSegmentsForCoordinates(feature.coordinates, 1.017)) {
-          const line = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(positions),
-            new THREE.LineBasicMaterial({
-              color: colors[feature.type],
-              transparent: true,
-              opacity: 0.86,
-              depthWrite: false,
-            }),
-          );
-          line.renderOrder = 4;
-          this.overlayGroup.add(line);
-        }
+        addDrapedLine(
+          feature.coordinates,
+          new THREE.LineBasicMaterial({
+            color: colors[feature.type],
+            transparent: true,
+            opacity: 0.86,
+            depthWrite: false,
+          }),
+          4_000,
+          4,
+        );
       }
     }
 
@@ -1286,18 +2292,18 @@ export class GlobeScene {
         depthWrite: false,
       });
       for (const corridor of this.currentRivers) {
-        for (const positions of lineSegmentsForCoordinates(corridor, 1.013)) {
-          const line = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(positions),
-            material.clone(),
-          );
-          line.renderOrder = 4;
-          line.userData.evidence = "inferred-drainage";
-          this.overlayGroup.add(line);
-        }
+        addDrapedLine(corridor, material.clone(), 1_500, 4, "inferred-drainage");
       }
       material.dispose();
     }
+
+    this.renderer.domElement.dataset.overlayDrapeStatus = budgetExceeded ? "bounded" : "ready";
+    this.renderer.domElement.dataset.overlayDrapeVertices = String(vertexCount);
+    this.renderer.domElement.dataset.overlayDrapeCacheBytes = String(cachedBytes);
+    this.renderer.domElement.dataset.overlayDrapeMaxStepDegrees =
+      DEFAULT_OVERLAY_STEP_DEGREES.toFixed(2);
+    this.renderer.domElement.dataset.overlayDrapeExaggeration =
+      this.verticalExaggeration.toFixed(1);
 
     for (const poiId of snapshot.poiIds) {
       const coordinates = snapshot.poiCoordinates?.[poiId];
@@ -1320,6 +2326,23 @@ export class GlobeScene {
     this.setSelectedPoi(this.selectedPoiId);
   }
 
+  private updateDrapedOverlays(): void {
+    let vertexCount = 0;
+    for (const child of this.overlayGroup.children) {
+      if (!(child instanceof THREE.Line)) continue;
+      const drape = child.userData.drapedLine as DrapedLineData | undefined;
+      if (drape === undefined) continue;
+      updateDrapedLinePositions(drape, this.verticalExaggeration);
+      const positions = child.geometry.getAttribute("position") as THREE.BufferAttribute;
+      positions.needsUpdate = true;
+      child.geometry.computeBoundingSphere();
+      vertexCount += drape.heightsMetres.length;
+    }
+    this.renderer.domElement.dataset.overlayDrapeVertices = String(vertexCount);
+    this.renderer.domElement.dataset.overlayDrapeExaggeration =
+      this.verticalExaggeration.toFixed(1);
+  }
+
   private resize(): void {
     const width = Math.max(1, this.mount.clientWidth);
     const height = Math.max(1, this.mount.clientHeight);
@@ -1328,6 +2351,21 @@ export class GlobeScene {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+  }
+
+  private cancelControlInertia(): void {
+    const position = this.camera.position.clone();
+    const quaternion = this.camera.quaternion.clone();
+    const target = this.controls.target.clone();
+    const damping = this.controls.enableDamping;
+    this.controls.autoRotate = false;
+    this.controls.enableDamping = false;
+    this.controls.update();
+    this.controls.target.copy(target);
+    this.camera.position.copy(position);
+    this.camera.quaternion.copy(quaternion);
+    this.controls.enableDamping = damping;
+    this.controls.update();
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -1344,13 +2382,40 @@ export class GlobeScene {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hit = this.raycaster.intersectObjects(this.markerGroup.children, false)[0];
-    const poiId = hit?.object.userData.poiId;
+    const surfaceTargets = this.cubeSurfaceGroup === null
+      ? this.globeMesh.visible ? [this.globeMesh] : []
+      : this.cubeSurfaceGroup.children;
+    const surfaceHit = this.raycaster.intersectObjects(surfaceTargets, false)[0];
+
+    // A click on the globe clears any active spatial focus before markers are
+    // considered. Focus animations can carry an unrelated marker beneath the
+    // pointer; that incidental overlap must not turn an intended toggle-off
+    // click into a different POI selection.
+    if (surfaceHit !== undefined && this.renderer.domElement.dataset.focusKind !== "none") {
+      this.globeGroup.updateWorldMatrix(true, false);
+      const localDirection = this.globeGroup.worldToLocal(surfaceHit.point.clone()).normalize();
+      this.onSelectSurface(vector3ToLonLat(localDirection));
+      return;
+    }
+
+    const cameraDirection = this.camera.position.clone().normalize();
+    const horizon = 1 / this.camera.position.length();
+    const markerHit = this.raycaster
+      .intersectObjects(this.markerGroup.children, false)
+      .find((candidate) => {
+        const markerDirection = candidate.object.getWorldPosition(new THREE.Vector3()).normalize();
+        return markerDirection.dot(cameraDirection) > horizon;
+      });
+    const poiId = markerHit?.object.userData.poiId;
     if (typeof poiId === "string") {
-      const markerDirection = hit.object.getWorldPosition(new THREE.Vector3()).normalize();
-      const cameraDirection = this.camera.position.clone().normalize();
-      const horizon = 1 / this.camera.position.length();
-      if (markerDirection.dot(cameraDirection) > horizon) this.onSelectPoi(poiId);
+      this.onSelectPoi(poiId);
+      return;
+    }
+
+    if (surfaceHit !== undefined) {
+      this.globeGroup.updateWorldMatrix(true, false);
+      const localDirection = this.globeGroup.worldToLocal(surfaceHit.point.clone()).normalize();
+      this.onSelectSurface(vector3ToLonLat(localDirection));
     }
   };
 
@@ -1359,7 +2424,7 @@ export class GlobeScene {
   };
 
   private readonly handleControlsEnd = (): void => {
-    if (this.detail === "regional") void this.loadRegionalPatch();
+    this.refreshCubeForCamera();
   };
 
   private readonly frame = (now: number): void => {
@@ -1385,7 +2450,7 @@ export class GlobeScene {
       this.camera.lookAt(0, 0, 0);
       if (progress >= 1) {
         this.focusAnimation = null;
-        if (this.detail === "regional") void this.loadRegionalPatch();
+        this.refreshCubeForCamera();
       }
     }
     const cameraDistance = this.camera.position.length();
@@ -1394,6 +2459,7 @@ export class GlobeScene {
       this.renderer.domElement.dataset.cameraDistance = cameraDistance.toFixed(4);
     }
     this.updateInspectionLight();
+    if (this.cubeSelectionNeedsRefresh(now)) this.scheduleCubeRefinement();
     if (this.regionalPatch !== null && this.regionalPatchFields !== null) {
       this.regionalPatch.visible =
         this.detail === "regional" &&
@@ -1405,6 +2471,15 @@ export class GlobeScene {
       this.surfaceTransition.mesh.material.opacity = 1 - eased;
       this.renderer.domElement.dataset.surfaceTransitionProgress = progress.toFixed(3);
       if (progress >= 1) this.finishSurfaceTransition();
+    }
+    if (this.cubeTransition !== null) {
+      const progress = Math.min(1, (now - this.cubeTransition.started) / 320);
+      const eased = progress * progress * (3 - 2 * progress);
+      for (const child of this.cubeTransition.group.children) {
+        if (child instanceof THREE.Mesh) child.material.opacity = 1 - eased;
+      }
+      this.renderer.domElement.dataset.surfaceTransitionProgress = progress.toFixed(3);
+      if (progress >= 1) this.finishCubeTransition();
     }
 
     if (this.impactGroup.visible && this.autoRotate && !this.reducedMotion.matches) {
@@ -1449,6 +2524,33 @@ export class GlobeScene {
     }
 
     const memory = this.renderer.info.memory ?? {};
+    const cubeFaceCounts = Object.fromEntries(CUBE_FACES.map((face) => [face, 0]));
+    let cubeGeometryCopyBytes = 0;
+    let cubeTextureEstimateBytes = 0;
+    const measuredCubeGroups = [
+      this.cubeSurfaceGroup,
+      this.cubeTransition?.group ?? null,
+    ];
+    for (const [groupIndex, group] of measuredCubeGroups.entries()) {
+      for (const child of group?.children ?? []) {
+        if (!(child instanceof THREE.Mesh)) continue;
+        const field = child.userData.cubeFields as CubeTileFields | undefined;
+        if (field === undefined) continue;
+        if (groupIndex === 0) cubeFaceCounts[field.key.face]++;
+        for (const name of ["position", "normal", "uv"]) {
+          const attribute = child.geometry.getAttribute(name);
+          if (ArrayBuffer.isView(attribute.array)) {
+            cubeGeometryCopyBytes += attribute.array.byteLength;
+          }
+        }
+        const index = child.geometry.getIndex();
+        if (index !== null && ArrayBuffer.isView(index.array)) {
+          cubeGeometryCopyBytes += index.array.byteLength;
+        }
+        cubeTextureEstimateBytes +=
+          field.albedo.byteLength + field.roughness.byteLength + field.detailHeight.byteLength;
+      }
+    }
     const diagnostics: EarthHistoryDiagnostics = {
       backend: this.backend,
       effectiveQuality: this.effectiveQuality,
@@ -1459,15 +2561,43 @@ export class GlobeScene {
         samples: recent.length,
       },
       generationMs: Number(this.generationMs.toFixed(2)),
-      staleJobs: this.worker.staleJobs + this.regionalWorker.staleJobs,
-      cacheBytes: this.cache.byteLength + this.regionalCache.byteLength,
+      staleJobs:
+        this.worker.staleJobs + this.regionalWorker.staleJobs +
+        this.cubeWorker.staleJobs + this.cubeStaleTileJobs,
+      cacheBytes: this.cache.byteLength + this.regionalCache.byteLength + this.cubeCache.byteLength,
       rendererMemory: {
         geometries: memory.geometries ?? 0,
         textures: memory.textures ?? 0,
       },
       cameraDistance: Number(this.camera.position.length().toFixed(4)),
       regionalGenerationMs: Number(this.regionalGenerationMs.toFixed(2)),
-      transition: this.surfaceTransition === null ? "idle" : "crossfade",
+      transition:
+        this.surfaceTransition === null && this.cubeTransition === null ? "idle" : "crossfade",
+      cube: {
+        status: this.renderer.domElement.dataset.cubeStatus ?? "initializing",
+        requestedSnapshotId:
+          this.renderer.domElement.dataset.cubeRequestedSnapshotId ?? null,
+        requestedKey: this.renderer.domElement.dataset.cubeRequestedKey ?? null,
+        displayedSnapshotId: this.cubeDisplayedSnapshotId,
+        displayedKey: this.cubeDisplayedKey,
+        visibleTiles: this.cubeSurfaceGroup?.children.length ?? 0,
+        residentTiles: this.cubeCache.size,
+        byFace: cubeFaceCounts,
+        maxNeighborLevelDelta: this.cubeMaxNeighborLevelDelta,
+        generationMs: Number(this.cubeGenerationMs.toFixed(2)),
+        selectionMs: Number(this.cubeSelectionMs.toFixed(2)),
+        installMs: Number(this.cubeInstallMs.toFixed(2)),
+        cacheBytes: this.cubeCache.byteLength,
+        geometryCopyBytes: cubeGeometryCopyBytes,
+        gpuTextureEstimateBytes: cubeTextureEstimateBytes,
+        workerRetainedBytes: Number(
+          this.renderer.domElement.dataset.cubeRetainedWorkerBytes ?? 0,
+        ),
+        evictions: this.cubeCache.evictions,
+        queuedJobs: this.cubeWorker.queuedJobs,
+        workerPoolSize: this.cubeWorker.workerPoolSize,
+        staleJobs: this.cubeWorker.staleJobs + this.cubeStaleTileJobs,
+      },
     };
     window.__earthHistoryDiagnostics = diagnostics;
     this.renderer.domElement.dataset.detail = diagnostics.detail;
@@ -1475,6 +2605,24 @@ export class GlobeScene {
     this.renderer.domElement.dataset.frameP50 = String(diagnostics.frameTimeMs.p50);
     this.renderer.domElement.dataset.frameP95 = String(diagnostics.frameTimeMs.p95);
     this.renderer.domElement.dataset.generationMs = String(diagnostics.generationMs);
+    const cameraCoordinates = this.cameraCenter();
+    this.renderer.domElement.dataset.cameraLongitude = cameraCoordinates[0].toFixed(4);
+    this.renderer.domElement.dataset.cameraLatitude = cameraCoordinates[1].toFixed(4);
+    this.renderer.domElement.dataset.cubeResidentTiles = String(diagnostics.cube.residentTiles);
+    this.renderer.domElement.dataset.cubeCacheBytes = String(diagnostics.cube.cacheBytes);
+    this.renderer.domElement.dataset.cubeCacheEvictions = String(diagnostics.cube.evictions);
+    this.renderer.domElement.dataset.cubeQueuedJobs = String(diagnostics.cube.queuedJobs);
+    this.renderer.domElement.dataset.cubeWorkerPoolSize =
+      String(diagnostics.cube.workerPoolSize);
+    this.renderer.domElement.dataset.cubeStaleJobs = String(diagnostics.cube.staleJobs);
+    this.renderer.domElement.dataset.cubeSelectionMs = String(diagnostics.cube.selectionMs);
+    this.renderer.domElement.dataset.cubeInstallMs = String(diagnostics.cube.installMs);
+    this.renderer.domElement.dataset.cubeGeometryCopyBytes =
+      String(diagnostics.cube.geometryCopyBytes);
+    this.renderer.domElement.dataset.cubeGpuTextureEstimateBytes =
+      String(diagnostics.cube.gpuTextureEstimateBytes);
+    this.renderer.domElement.dataset.cubeWorkerRetainedBytes =
+      String(diagnostics.cube.workerRetainedBytes);
 
     const fps = p50 > 0 ? 1000 / p50 : 0;
     this.onStats?.({
