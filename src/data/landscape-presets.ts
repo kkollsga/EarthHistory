@@ -22,6 +22,16 @@ export const modernLandscapePresets: ModernLandscapePreset[] = [
     sourceIds: ["nasa-himalaya-collision-2020", "noaa-etopo-2022"],
   },
   {
+    id: "north-sea-basin",
+    label: "North Sea Basin · seafloor",
+    category: "landform",
+    coordinates: [2.5, 56.5],
+    distance: 1.7,
+    surfaceMode: "seafloor",
+    description: "A compact EMODnet refinement resolves the shallow central North Sea seafloor more accurately than the global relief controls.",
+    sourceIds: ["emodnet-bathymetry-2024"],
+  },
+  {
     id: "andes",
     label: "Central Andes",
     category: "landform",

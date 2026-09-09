@@ -1,9 +1,20 @@
-export { pointsOfInterest, sources, timeSlices } from "./catalog";
+export { pointOfInterestIncludesAge, pointsOfInterest, sources, timeSlices } from "./catalog";
 export { modernLandscapePresets } from "./landscape-presets";
-export { getModernReliefPatch, modernReliefPatches } from "./modern-relief";
+export {
+  getModernReliefPatch,
+  getSurfaceRefinementTile,
+  modernReliefPatches,
+  surfaceRefinementSets,
+  surfaceRefinementTiles,
+} from "./modern-relief";
 export { getSnapshot } from "./snapshots";
+export { selectSurfaceRefinementMetadata } from "./refinementSelection";
 
 export type {
+  AreaTrackingCatalog,
+  AreaTrackingFeatureMetadata,
+  AreaTrackingLayer,
+  AreaTrackingPartMetadata,
   CountryOutline,
   EvidenceStatus,
   GlobeStats,
@@ -21,6 +32,9 @@ export type {
   PointOfInterestCategory,
   ProceduralControls,
   Source,
+  SurfaceRefinementSetMetadata,
+  SurfaceRefinementTile,
+  SurfaceRefinementTileMetadata,
   SurfaceStage,
   TectonicFeature,
   TectonicFeatureType,

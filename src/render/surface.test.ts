@@ -8,6 +8,7 @@ import {
   RELIEF_RANGE_METRES,
   reliefDisplacementScale,
   sampleModernClimateGroup,
+  sampleSurfaceLand,
   modernClimateAllowsPermanentIce,
   polarLongitudeSampleCount,
   sampleGeographicGrid,
@@ -79,9 +80,9 @@ describe("surface generation", () => {
       width: 360,
       height: 180,
     });
-    for (const row of [0, fields.height - 1]) {
-      const alpha = Array.from({ length: fields.width }, (_, x) =>
-        fields.clouds[(row * fields.width + x) * 4 + 3]
+    for (const row of [0, fields.cloudHeight - 1]) {
+      const alpha = Array.from({ length: fields.cloudWidth }, (_, x) =>
+        fields.clouds[(row * fields.cloudWidth + x) * 4 + 3]
       );
       expect(Math.max(...alpha) - Math.min(...alpha)).toBeLessThan(50);
     }
@@ -109,7 +110,44 @@ describe("surface generation", () => {
       width: 32,
       height: 16,
     });
-    expect(fields.byteLength).toBe(32 * 16 * 4 * 5);
+    expect(fields.byteLength).toBe(32 * 16 * (4 * 5 + 1));
+  });
+
+  it("uses explicit present-day land geometry ahead of coarse elevation sign", () => {
+    const world = snapshot("modern-biomes");
+    world.environment.iceIntensity = 0;
+    world.environment.iceLatitude = 90;
+    world.controls = {
+      width: 4,
+      height: 3,
+      elevation: new Float32Array(12).fill(-2_000),
+    };
+    const fields = generateSurface(world, "coarse", { width: 72, height: 36 });
+    expect(sampleSurfaceLand(fields, 0, 0)).toBe(true);
+    expect(sampleSurfaceLand(fields, 40, 0)).toBe(false);
+  });
+
+  it("retains signed control-grid land classification when polygons are unavailable", () => {
+    const world = snapshot("barren-continents");
+    world.land = [];
+    world.controls = {
+      width: 4,
+      height: 3,
+      elevation: new Float32Array(12).fill(1_500),
+    };
+    const landFields = generateSurface(world, "coarse", { width: 72, height: 36 });
+    world.controls.elevation.fill(-2_000);
+    const oceanFields = generateSurface(world, "coarse", { width: 72, height: 36 });
+    expect(sampleSurfaceLand(landFields, 45, 0)).toBe(true);
+    expect(sampleSurfaceLand(oceanFields, 45, 0)).toBe(false);
+  });
+
+  it("bounds global cloud synthesis independently from regional terrain detail", () => {
+    const fields = generateSurface(snapshot("modern-biomes"), "regional");
+    expect(fields.width).toBe(768);
+    expect(fields.cloudWidth).toBe(256);
+    expect(fields.cloudHeight).toBe(128);
+    expect(fields.clouds).toHaveLength(256 * 128 * 4);
   });
 
   it("defines 1x relief in metres against the mean Earth radius", () => {

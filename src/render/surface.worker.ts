@@ -30,6 +30,7 @@ self.onmessage = (event: MessageEvent<SurfaceRequest>) => {
       fields.relief.buffer,
       fields.reliefMetres.buffer,
       fields.roughness.buffer,
+      fields.landMask.buffer,
       fields.clouds.buffer,
     ],
   });

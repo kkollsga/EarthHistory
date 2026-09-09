@@ -9,7 +9,7 @@ import {
 import type { CubeTileFields } from "./cubeTileFields";
 import { cubeNeighbor } from "./cubeLod";
 import { updateCubeDisplayGeometry } from "./cubeRelief";
-import { createCubeTileMesh } from "./cubeTileMesh";
+import { createCubeTileMesh, updateCubeTileMeshGeometry } from "./cubeTileMesh";
 
 const EDGES: readonly CubeEdge[] = ["north", "east", "south", "west"];
 
@@ -284,5 +284,20 @@ describe("cube tile adaptive mesh", () => {
     expect(fields.normals).toEqual(originalNormals);
     expect(fields.localUvs).toEqual(originalUvs);
     expect(fields.indices).toEqual(originalIndices);
+  });
+
+  it("updates caller-owned relief buffers in place", () => {
+    const fields = fixture({ face: "px", level: 2, x: 2, y: 1 });
+    const coarseEdges = edgeFlags("south");
+    const positions = new Float32Array(fields.directions.length);
+    const normals = new Float32Array(fields.normals.length);
+    const positionsIdentity = positions;
+    const normalsIdentity = normals;
+    updateCubeTileMeshGeometry(fields, 18, coarseEdges, positions, normals);
+    const expected = createCubeTileMesh(fields, 18, coarseEdges);
+    expect(positions).toBe(positionsIdentity);
+    expect(normals).toBe(normalsIdentity);
+    expect(positions).toEqual(expected.positions);
+    expect(normals).toEqual(expected.normals);
   });
 });

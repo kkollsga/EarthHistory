@@ -9,7 +9,8 @@ import type {
 } from "../data";
 import {
   getModernReliefPatch,
-  modernReliefPatches,
+  selectSurfaceRefinementMetadata,
+  surfaceRefinementTiles,
   type ModernReliefPatch,
 } from "../data";
 import { BoundedLruCache } from "./cache";
@@ -26,7 +27,7 @@ import {
   selectCubeLod,
   type CubeLodLeaf,
 } from "./cubeLod";
-import { createCubeTileMesh } from "./cubeTileMesh";
+import { createCubeTileMesh, updateCubeTileMeshGeometry } from "./cubeTileMesh";
 import { cubeWorkerPoolLimit, partitionCubeWorkerRequests } from "./cubeWorkerPool";
 import {
   createCubeTileFieldGenerator,
@@ -44,7 +45,17 @@ import {
   type DrapedLineData,
   updateDrapedLinePositions,
 } from "./displayedHeight";
+import {
+  createCountryRibbonBatches,
+  resampleCountryRibbonHeights,
+  type CountryRibbonBatchData,
+  updateCountryRibbonPositions,
+} from "./countryRibbons";
 import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
+import {
+  createReferenceGuideRibbon,
+  REFERENCE_GUIDE_LABELS,
+} from "./referenceGuides";
 import type { CubeSurfaceRequest, CubeSurfaceResponse } from "./cube.worker";
 import {
   angularDistanceDegrees,
@@ -52,6 +63,10 @@ import {
   resolveDetailMode,
   vector3ToLonLat,
 } from "./math";
+import {
+  setInspectionLightPosition,
+  type InspectionLightScratch,
+} from "./inspectionLight";
 import { generateRegionalPatch, type RegionalPatchFields } from "./regionalPatch";
 import type {
   RegionalPatchRequest,
@@ -615,6 +630,8 @@ function clearGroup(group: THREE.Group): void {
     group.remove(child);
     if (child instanceof THREE.Mesh || child instanceof THREE.Line || child instanceof THREE.Sprite) {
       if (!(child instanceof THREE.Sprite)) child.geometry?.dispose();
+      const ownedTexture = child.userData.ownedTexture as THREE.Texture | undefined;
+      ownedTexture?.dispose();
       disposeMaterial(child.material);
     }
   }
@@ -668,6 +685,30 @@ function createMarkerTexture(): THREE.CanvasTexture {
   context.fillRect(0, 0, 64, 64);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.premultiplyAlpha = true;
+  return texture;
+}
+
+function createGuideLabelTexture(text: string): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 384;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+  if (context === null) throw new Error("Unable to create guide-label texture");
+  context.font = "600 28px system-ui, sans-serif";
+  context.letterSpacing = "1px";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.shadowColor = "rgba(1, 8, 10, 0.95)";
+  context.shadowBlur = 5;
+  context.fillStyle = "rgba(188, 216, 211, 0.9)";
+  context.fillText(text.toUpperCase(), 192, 32);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.premultiplyAlpha = true;
   return texture;
 }
 
@@ -793,6 +834,13 @@ export class GlobeScene {
   private readonly markerGroup = new THREE.Group();
   private readonly impactGroup = buildImpactGroup();
   private readonly sunLight = new THREE.DirectionalLight(0xfff1d4, 1.72);
+  private readonly inspectionLightScratch: InspectionLightScratch = {
+    view: new THREE.Vector3(),
+    right: new THREE.Vector3(),
+    upward: new THREE.Vector3(),
+  };
+  private readonly guideCameraDirection = new THREE.Vector3();
+  private readonly guideInverseGlobeQuaternion = new THREE.Quaternion();
   private readonly atmosphereMesh: THREE.Mesh;
   private readonly worker = new SurfaceWorkerClient();
   private readonly regionalWorker = new RegionalWorkerClient();
@@ -826,6 +874,10 @@ export class GlobeScene {
   private cubeContext: CubeTileFieldContext | null = null;
   private cubeContextKey: string | null = null;
   private displayedHeightSampler: DisplayedHeightSampler | null = null;
+  private countryRibbonCache: {
+    surfaceKey: string;
+    batches: CountryRibbonBatchData[];
+  } | null = null;
   private displayedHeightSamplerKey: string | null = null;
   private cubeRootFields = new Map<CubeFace, CubeTileFields>();
   private cubeDesiredLeaves: CubeLodLeaf[] = [];
@@ -844,13 +896,22 @@ export class GlobeScene {
   private cubeRequestSerial = 0;
   private cubeGenerationMs = 0;
   private snapshot: WorldSnapshot | null = null;
-  private layers: LayerVisibility = { clouds: false, borders: false, tectonics: true, rivers: false };
+  private layers: LayerVisibility = {
+    clouds: false,
+    borders: false,
+    guides: false,
+    tectonics: true,
+    rivers: false,
+  };
   private selectedPoiId: string | null = null;
   private requestedQuality: RequestedQuality;
   private effectiveQuality: "high" | "low";
   private detail: SurfaceDetail = "coarse";
   private requestSerial = 0;
   private frameHandle = 0;
+  private overlayRebuildHandle: number | null = null;
+  private cameraRefreshHandle: number | null = null;
+  private cameraInteractionActive = false;
   private disposed = false;
   private previousFrame = performance.now();
   private lastStatsAt = 0;
@@ -862,6 +923,7 @@ export class GlobeScene {
   private regionalPatchFields: RegionalPatchFields | null = null;
   private regionalRequestSerial = 0;
   private verticalExaggeration = 8;
+  private reliefScalePending = false;
   private reliefRangeMetres = RELIEF_RANGE_METRES;
   private reliefBiasMetres = 0;
   private surfaceMode: SurfaceMode = "surface";
@@ -973,6 +1035,7 @@ export class GlobeScene {
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(mount);
+    this.controls.addEventListener("start", this.handleControlsStart);
     this.controls.addEventListener("end", this.handleControlsEnd);
     renderer.domElement.addEventListener("pointerdown", this.handlePointerDown);
     renderer.domElement.addEventListener("pointerup", this.handlePointerUp);
@@ -1017,12 +1080,33 @@ export class GlobeScene {
     if (
       this.layers.clouds === layers.clouds &&
       this.layers.borders === layers.borders &&
+      this.layers.guides === layers.guides &&
       this.layers.tectonics === layers.tectonics &&
       this.layers.rivers === layers.rivers
     ) return;
+    const bordersChanged = this.layers.borders !== layers.borders;
+    const guidesChanged = this.layers.guides !== layers.guides;
+    const lineLayersChanged =
+      this.layers.tectonics !== layers.tectonics ||
+      this.layers.rivers !== layers.rivers;
     this.layers = layers;
     this.cloudMesh.visible = layers.clouds;
-    this.rebuildOverlays();
+    if (lineLayersChanged) {
+      this.rebuildOverlays();
+    } else if (
+      guidesChanged &&
+      layers.guides &&
+      !this.overlayGroup.children.some((child) => child.userData.overlayLayer === "guides")
+    ) {
+      this.rebuildOverlays();
+    } else if (bordersChanged || guidesChanged) {
+      for (const child of this.overlayGroup.children) {
+        if (child.userData.overlayLayer === "borders") child.visible = layers.borders;
+        if (child.userData.overlayLayer === "guides") child.visible = layers.guides;
+      }
+      this.renderer.domElement.dataset.countryRibbonVisible = String(layers.borders);
+      this.renderer.domElement.dataset.referenceGuideVisible = String(layers.guides);
+    }
   }
 
   setSelectedPoi(id: string | null): void {
@@ -1051,10 +1135,7 @@ export class GlobeScene {
     const clamped = THREE.MathUtils.clamp(Number.isFinite(value) ? value : 8, 1, 30);
     if (clamped === this.verticalExaggeration) return;
     this.verticalExaggeration = clamped;
-    this.applyReliefScale();
-    this.updateCubeReliefScale();
-    this.updateRegionalPatchScale();
-    this.scheduleCubeRefinement();
+    this.reliefScalePending = true;
   }
 
   setSurfaceMode(mode: SurfaceMode): void {
@@ -1096,6 +1177,7 @@ export class GlobeScene {
     this.camera.position.set(2.41, 1.2, 2.51);
     this.camera.lookAt(0, 0, 0);
     this.controls.update();
+
     if (this.regionalPatch !== null) this.regionalPatch.visible = false;
     const cameraDistance = this.camera.position.length();
     if (Math.abs(cameraDistance - this.lastReportedCameraDistance) > 0.0001) {
@@ -1108,6 +1190,8 @@ export class GlobeScene {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.frameHandle);
+    if (this.overlayRebuildHandle !== null) window.clearTimeout(this.overlayRebuildHandle);
+    if (this.cameraRefreshHandle !== null) window.clearTimeout(this.cameraRefreshHandle);
     this.worker.dispose();
     this.regionalWorker.dispose();
     this.cubeWorker.dispose();
@@ -1115,12 +1199,14 @@ export class GlobeScene {
     this.regionalCache.clear();
     this.cubeCache.clear();
     this.cubeRootFields.clear();
+    this.countryRibbonCache = null;
     this.resizeObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.handleMotionPreference);
     this.renderer.domElement.removeEventListener("pointerdown", this.handlePointerDown);
     this.renderer.domElement.removeEventListener("pointerup", this.handlePointerUp);
-    this.controls.dispose();
+    this.controls.removeEventListener("start", this.handleControlsStart);
     this.controls.removeEventListener("end", this.handleControlsEnd);
+    this.controls.dispose();
     this.finishSurfaceTransition();
     this.finishCubeTransition();
     if (this.cubeSurfaceGroup !== null) {
@@ -1218,7 +1304,7 @@ export class GlobeScene {
       albedo: createTexture(fields.albedo, fields.width, fields.height, true),
       relief: createTexture(fields.relief, fields.width, fields.height),
       roughness: createTexture(fields.roughness, fields.width, fields.height),
-      clouds: createTexture(fields.clouds, fields.width, fields.height, true),
+      clouds: createTexture(fields.clouds, fields.cloudWidth, fields.cloudHeight, true),
     };
     const previousTextures = this.textures;
     const wasAlreadyTransitioning = this.surfaceTransition !== null;
@@ -1277,7 +1363,11 @@ export class GlobeScene {
     this.cloudMesh.material.map = textures.clouds;
     this.cloudMesh.material.alphaMap = textures.clouds;
     this.cloudMesh.material.needsUpdate = true;
-    this.rebuildOverlays();
+    // Keep the previous surface's overlays paired with its visible cube during
+    // a transition. The incoming cube installs a matching sampler and rebuilds
+    // them atomically; rebuilding here would block refresh and briefly drape
+    // new linework against stale heights.
+    if (this.cubeSurfaceGroup === null) this.rebuildOverlays();
     this.renderer.domElement.dataset.surfaceStatus = "ready";
     this.renderer.domElement.dataset.surfaceReadyAt = performance.now().toFixed(2);
     void this.loadCubeSurface(fields, detail);
@@ -1331,6 +1421,18 @@ export class GlobeScene {
     this.displayedHeightSampler = sampler;
     this.displayedHeightSamplerKey = displayKey;
     this.renderer.domElement.dataset.overlayDrapeSurfaceKey = displayKey;
+  }
+
+  private scheduleOverlayRebuild(displayKey: string): void {
+    if (this.overlayRebuildHandle !== null) window.clearTimeout(this.overlayRebuildHandle);
+    this.overlayGroup.visible = false;
+    this.renderer.domElement.dataset.overlayDrapeStatus = "updating";
+    this.overlayRebuildHandle = window.setTimeout(() => {
+      this.overlayRebuildHandle = null;
+      if (this.disposed || this.displayedHeightSamplerKey !== displayKey) return;
+      this.rebuildOverlays();
+      this.overlayGroup.visible = true;
+    }, 0);
   }
 
   private async loadCubeSurface(fields: SurfaceFields, detail: SurfaceDetail): Promise<void> {
@@ -1470,7 +1572,10 @@ export class GlobeScene {
           createCubeTileFieldGenerator(this.cubeContext),
           displayKey,
         );
-        this.rebuildOverlays();
+        // Surface readiness is published without waiting for country ribbon
+        // tessellation. The old overlay is hidden for this brief asynchronous
+        // rebuild, so it can never float against the newly displayed relief.
+        this.scheduleOverlayRebuild(displayKey);
       }
     }
 
@@ -1878,16 +1983,17 @@ export class GlobeScene {
     fields: CubeTileFields,
     coarseEdges: Readonly<{ north: boolean; east: boolean; south: boolean; west: boolean }>,
   ): void {
-    const meshData = createCubeTileMesh(fields, this.verticalExaggeration, coarseEdges);
     const positions = mesh.geometry.getAttribute("position") as THREE.BufferAttribute;
     const normals = mesh.geometry.getAttribute("normal") as THREE.BufferAttribute;
-    const uvs = mesh.geometry.getAttribute("uv") as THREE.BufferAttribute;
-    (positions.array as Float32Array).set(meshData.positions);
-    (normals.array as Float32Array).set(meshData.normals);
-    (uvs.array as Float32Array).set(meshData.uvs);
+    updateCubeTileMeshGeometry(
+      fields,
+      this.verticalExaggeration,
+      coarseEdges,
+      positions.array as Float32Array,
+      normals.array as Float32Array,
+    );
     positions.needsUpdate = true;
     normals.needsUpdate = true;
-    uvs.needsUpdate = true;
     mesh.geometry.computeBoundingSphere();
   }
 
@@ -1929,16 +2035,37 @@ export class GlobeScene {
 
   private modernReliefMetadataAt(coordinates: LonLat) {
     const snapshot = this.snapshot;
-    if (snapshot?.modernClimate === undefined) return undefined;
+    if (snapshot === null) return undefined;
     const requestedAge = snapshot.requestedAgeMa ?? snapshot.ageMa;
-    return modernReliefPatches.find((metadata) => {
-      const [west, south, east, north] = metadata.bounds;
-      return metadata.surfaceMode === this.surfaceMode &&
-        requestedAge >= metadata.validRequestedAgeMa[0] &&
-        requestedAge <= metadata.validRequestedAgeMa[1] &&
-        coordinates[0] >= west && coordinates[0] <= east &&
-        coordinates[1] >= south && coordinates[1] <= north;
-    });
+    const focalPixels = Math.max(1, this.mount.clientHeight) /
+      (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
+    const surfaceDistanceMetres = Math.max(0.01, this.camera.position.length() - 1) *
+      EARTH_RADIUS_METRES;
+    const metadataById = new Map(surfaceRefinementTiles.map((metadata) => [metadata.id, metadata]));
+    const projectedErrorPixels = new Map(surfaceRefinementTiles.map((metadata) => {
+      const parent = metadata.parentId === undefined
+        ? metadata
+        : metadataById.get(metadata.parentId) ?? metadata;
+      const deliveredSpacingMetres = THREE.MathUtils.degToRad(
+        Math.max(parent.longitudeStep, parent.latitudeStep),
+      ) * EARTH_RADIUS_METRES;
+      return [
+        metadata.id,
+        Math.max(parent.maxErrorMetres, deliveredSpacingMetres) /
+          surfaceDistanceMetres * focalPixels,
+      ];
+    }));
+    const previousTileId = surfaceRefinementTiles.find((metadata) =>
+      this.cubeContextKey?.endsWith(`:${metadata.sourceProduct}:${metadata.id}`)
+    )?.id;
+    return selectSurfaceRefinementMetadata(surfaceRefinementTiles, {
+      coordinates,
+      requestedAgeMa: requestedAge,
+      surfaceMode: this.surfaceMode,
+      referenceFrameId: "present-day-geographic",
+      previousTileId,
+      projectedErrorPixels,
+    })[0];
   }
 
   private refreshCubeForCamera(): void {
@@ -1973,18 +2100,14 @@ export class GlobeScene {
   }
 
   private updateInspectionLight(): void {
-    const view = this.camera.position.clone().normalize();
-    const right = new THREE.Vector3().crossVectors(view, new THREE.Vector3(0, 1, 0));
-    if (right.lengthSq() < 0.01) right.crossVectors(view, new THREE.Vector3(0, 0, 1));
-    right.normalize();
-    const upward = new THREE.Vector3().crossVectors(right, view).normalize();
     // Keep the inspected region on the day side while retaining an oblique
     // angle that exposes regional normals and a terminator across the globe.
-    this.sunLight.position
-      .copy(view)
-      .multiplyScalar(4.2)
-      .addScaledVector(right, -2.2)
-      .addScaledVector(upward, 1.35);
+    setInspectionLightPosition(
+      this.sunLight.position,
+      this.camera.position,
+      this.camera.quaternion,
+      this.inspectionLightScratch,
+    );
   }
 
   private async loadRegionalPatch(): Promise<void> {
@@ -2082,33 +2205,9 @@ export class GlobeScene {
     geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(fields.directions.length), 3));
     geometry.setAttribute("uv", new THREE.BufferAttribute(fields.uvs, 2));
     geometry.setIndex(new THREE.BufferAttribute(fields.indices, 1));
-    const usesLocalSeafloorColor =
-      this.surfaceMode === "seafloor" && fields.sourcePatchId !== undefined;
-    if (usesLocalSeafloorColor && this.activeSurfaceFields !== null) {
-      const colors = new Float32Array(fields.heightsMetres.length * 3);
-      const baseColor = new THREE.Color();
-      const localColor = new THREE.Color();
-      for (let index = 0; index < fields.heightsMetres.length; index++) {
-        const [red, green, blue] = this.sampleSurfaceAlbedo(
-          this.activeSurfaceFields,
-          fields.uvs[index * 2],
-          fields.uvs[index * 2 + 1],
-        );
-        baseColor.setRGB(red / 255, green / 255, blue / 255, THREE.SRGBColorSpace);
-        const height = fields.sourceHeightsMetres[index];
-        const ridge = THREE.MathUtils.smoothstep(height, -6_100, -2_450);
-        localColor.set(0x071d37).lerp(new THREE.Color(0x39a4a2), Math.pow(ridge, 0.82));
-        baseColor.lerp(localColor, fields.sourceBlendWeights[index]);
-        colors[index * 3] = baseColor.r;
-        colors[index * 3 + 1] = baseColor.g;
-        colors[index * 3 + 2] = baseColor.b;
-      }
-      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    }
     const material = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      map: usesLocalSeafloorColor ? null : this.textures.albedo,
-      vertexColors: usesLocalSeafloorColor,
+      map: this.textures.albedo,
       roughness: 0.82,
       roughnessMap: this.textures.roughness,
       bumpMap: fields.sourcePatchId === undefined ? this.textures.relief : null,
@@ -2136,18 +2235,6 @@ export class GlobeScene {
     this.renderer.domElement.dataset.regionalVertices = String(fields.size * fields.size);
     this.renderer.domElement.dataset.regionalSyntheticLimitMetres = "250";
     this.renderer.domElement.dataset.regionalSource = fields.sourcePatchId ?? "procedural";
-  }
-
-  private sampleSurfaceAlbedo(
-    fields: SurfaceFields,
-    u: number,
-    v: number,
-  ): [number, number, number] {
-    const wrappedU = ((u % 1) + 1) % 1;
-    const x = ((Math.round(wrappedU * fields.width - 0.5) % fields.width) + fields.width) % fields.width;
-    const y = Math.max(0, Math.min(fields.height - 1, Math.round((1 - v) * fields.height - 0.5)));
-    const offset = (y * fields.width + x) * 4;
-    return [fields.albedo[offset], fields.albedo[offset + 1], fields.albedo[offset + 2]];
   }
 
   private updateRegionalPatchScale(): void {
@@ -2205,6 +2292,12 @@ export class GlobeScene {
     };
     let cachedBytes = 0;
     let vertexCount = 0;
+    let countryRibbonBatches = 0;
+    let countryRibbonBytes = 0;
+    let countryRibbonVertices = 0;
+    let referenceGuideBatches = 0;
+    let referenceGuideBytes = 0;
+    let referenceGuideVertices = 0;
     let budgetExceeded = false;
     const addDrapedLine = (
       coordinates: LonLat[],
@@ -2247,19 +2340,153 @@ export class GlobeScene {
       material.dispose();
     };
 
-    if (this.layers.borders) {
-      const material = new THREE.LineBasicMaterial({
-        color: 0xb7d8d5,
-        transparent: true,
-        opacity: 0.52,
-        depthWrite: false,
-      });
-      for (const country of snapshot.countries) {
-        for (const coordinates of country.lines) {
-          addDrapedLine(coordinates, material.clone(), 2_500, 3);
+    if (snapshot.countries.length > 0) {
+      try {
+        let batches: CountryRibbonBatchData[];
+        const ribbonSurfaceKey = `${snapshot.id}:${this.displayedHeightSamplerKey ?? "sphere"}`;
+        if (this.countryRibbonCache?.surfaceKey === ribbonSurfaceKey) {
+          batches = this.countryRibbonCache.batches;
+          for (const batch of batches) {
+            resampleCountryRibbonHeights(batch, sampler, this.verticalExaggeration);
+          }
+        } else {
+          batches = createCountryRibbonBatches(snapshot.countries, sampler, {
+            maxAngularStepDegrees: 0.4,
+            maxHeightErrorMetres: 120,
+            maxAdaptiveDepth: 1,
+            grooveHalfWidthMetres: 8_000,
+            verticalExaggeration: this.verticalExaggeration,
+          });
+          this.countryRibbonCache = { surfaceKey: ribbonSurfaceKey, batches };
+        }
+        const evidence = snapshot.countries.every((country) => country.evidence === "observed")
+          ? "observed"
+          : "model-output";
+        const sourceIds = [...new Set(snapshot.countries.flatMap((country) => country.sourceIds))];
+        for (const batch of batches) {
+          if (cachedBytes + batch.byteLength > MAX_OVERLAY_CACHE_BYTES) {
+            budgetExceeded = true;
+            break;
+          }
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute("position", new THREE.BufferAttribute(batch.positions, 3));
+          geometry.setAttribute("normal", new THREE.BufferAttribute(batch.directions, 3));
+          geometry.setIndex(new THREE.BufferAttribute(batch.indices, 1));
+          geometry.computeBoundingSphere();
+          const groove = batch.kind === "groove";
+          const material = new THREE.MeshStandardMaterial({
+            color: groove ? 0x263b37 : 0xa7c0b2,
+            emissive: groove ? 0x060b0a : 0x52675d,
+            emissiveIntensity: groove ? 0.25 : 0.38,
+            transparent: true,
+            opacity: groove ? 0.76 : 0.55,
+            roughness: groove ? 0.98 : 0.86,
+            metalness: 0,
+            alphaToCoverage: true,
+            depthTest: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -4,
+            polygonOffsetUnits: -4,
+          });
+          const ribbon = new THREE.Mesh(geometry, material);
+          ribbon.renderOrder = groove ? 3 : 3.1;
+          ribbon.visible = this.layers.borders;
+          ribbon.userData.countryRibbon = batch;
+          ribbon.userData.overlayLayer = "borders";
+          ribbon.userData.evidence = evidence;
+          ribbon.userData.sourceIds = sourceIds;
+          this.overlayGroup.add(ribbon);
+          cachedBytes += batch.byteLength;
+          vertexCount += batch.heightsMetres.length;
+          countryRibbonBatches += 1;
+          countryRibbonBytes += batch.byteLength;
+          countryRibbonVertices += batch.heightsMetres.length;
+        }
+      } catch (error) {
+        budgetExceeded = true;
+        console.warn("Country reference exceeded its bounded ribbon geometry", error);
+      }
+    }
+
+    if (this.layers.guides) try {
+      const guide = createReferenceGuideRibbon(
+        sampler,
+        this.detail,
+        this.verticalExaggeration,
+      );
+      if (guide !== undefined) {
+        if (cachedBytes + guide.byteLength > MAX_OVERLAY_CACHE_BYTES) {
+          budgetExceeded = true;
+        } else {
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute("position", new THREE.BufferAttribute(guide.positions, 3));
+          geometry.setAttribute("normal", new THREE.BufferAttribute(guide.directions, 3));
+          geometry.setIndex(new THREE.BufferAttribute(guide.indices, 1));
+          geometry.computeBoundingSphere();
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x668c88,
+            emissive: 0x273d3b,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.3,
+            roughness: 0.94,
+            metalness: 0,
+            alphaToCoverage: true,
+            depthTest: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -4,
+            polygonOffsetUnits: -4,
+          });
+          const ribbon = new THREE.Mesh(geometry, material);
+          ribbon.renderOrder = 2.8;
+          ribbon.visible = this.layers.guides;
+          ribbon.userData.countryRibbon = guide;
+          ribbon.userData.overlayLayer = "guides";
+          ribbon.userData.evidence = "schematic-climatological-reference";
+          ribbon.userData.sourceIds = ["noaa-global-circulation"];
+          this.overlayGroup.add(ribbon);
+          cachedBytes += guide.byteLength;
+          vertexCount += guide.heightsMetres.length;
+          referenceGuideBatches = 1;
+          referenceGuideBytes = guide.byteLength;
+          referenceGuideVertices = guide.heightsMetres.length;
+          for (const label of REFERENCE_GUIDE_LABELS) {
+            const direction = lonLatToVector3(label.coordinates).normalize();
+            const heightMetres = sampler.sampleHeightMetres([
+              direction.x,
+              direction.y,
+              direction.z,
+            ]);
+            const texture = createGuideLabelTexture(label.text);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+              map: texture,
+              transparent: true,
+              opacity: 0.72,
+              alphaTest: 0.025,
+              depthTest: false,
+              depthWrite: false,
+            }));
+            const radius = 1 +
+              (heightMetres * this.verticalExaggeration + 450) / EARTH_RADIUS_METRES;
+            sprite.position.copy(direction).multiplyScalar(radius);
+            sprite.scale.set(0.075, 0.0125, 1);
+            sprite.renderOrder = 2.9;
+            sprite.userData.overlayLayer = "guides";
+            sprite.userData.guideLabelDirection = direction;
+            sprite.userData.guideLabelHeightMetres = heightMetres;
+            sprite.userData.guideLabelClearanceMetres = 450;
+            sprite.userData.ownedTexture = texture;
+            sprite.userData.evidence = "schematic-climatological-reference";
+            sprite.userData.sourceIds = ["noaa-global-circulation"];
+            this.overlayGroup.add(sprite);
+          }
         }
       }
-      material.dispose();
+    } catch (error) {
+      budgetExceeded = true;
+      console.warn("Reference guides exceeded their bounded ribbon geometry", error);
     }
 
     if (this.layers.tectonics) {
@@ -2304,6 +2531,14 @@ export class GlobeScene {
       DEFAULT_OVERLAY_STEP_DEGREES.toFixed(2);
     this.renderer.domElement.dataset.overlayDrapeExaggeration =
       this.verticalExaggeration.toFixed(1);
+    this.renderer.domElement.dataset.countryRibbonBatches = String(countryRibbonBatches);
+    this.renderer.domElement.dataset.countryRibbonBytes = String(countryRibbonBytes);
+    this.renderer.domElement.dataset.countryRibbonVertices = String(countryRibbonVertices);
+    this.renderer.domElement.dataset.countryRibbonVisible = String(this.layers.borders);
+    this.renderer.domElement.dataset.referenceGuideBatches = String(referenceGuideBatches);
+    this.renderer.domElement.dataset.referenceGuideBytes = String(referenceGuideBytes);
+    this.renderer.domElement.dataset.referenceGuideVertices = String(referenceGuideVertices);
+    this.renderer.domElement.dataset.referenceGuideVisible = String(this.layers.guides);
 
     for (const poiId of snapshot.poiIds) {
       const coordinates = snapshot.poiCoordinates?.[poiId];
@@ -2313,6 +2548,7 @@ export class GlobeScene {
         color: 0x98dddc,
         transparent: true,
         opacity: 0.84,
+        alphaTest: 0.025,
         depthTest: true,
         depthWrite: false,
       });
@@ -2329,18 +2565,53 @@ export class GlobeScene {
   private updateDrapedOverlays(): void {
     let vertexCount = 0;
     for (const child of this.overlayGroup.children) {
-      if (!(child instanceof THREE.Line)) continue;
-      const drape = child.userData.drapedLine as DrapedLineData | undefined;
-      if (drape === undefined) continue;
-      updateDrapedLinePositions(drape, this.verticalExaggeration);
-      const positions = child.geometry.getAttribute("position") as THREE.BufferAttribute;
-      positions.needsUpdate = true;
-      child.geometry.computeBoundingSphere();
-      vertexCount += drape.heightsMetres.length;
+      if (child instanceof THREE.Sprite) {
+        const direction = child.userData.guideLabelDirection as THREE.Vector3 | undefined;
+        const heightMetres = child.userData.guideLabelHeightMetres as number | undefined;
+        const clearanceMetres = child.userData.guideLabelClearanceMetres as number | undefined;
+        if (direction === undefined || heightMetres === undefined || clearanceMetres === undefined) {
+          continue;
+        }
+        const radius = 1 +
+          (heightMetres * this.verticalExaggeration + clearanceMetres) / EARTH_RADIUS_METRES;
+        child.position.copy(direction).multiplyScalar(radius);
+      } else if (child instanceof THREE.Line) {
+        const drape = child.userData.drapedLine as DrapedLineData | undefined;
+        if (drape === undefined) continue;
+        updateDrapedLinePositions(drape, this.verticalExaggeration);
+        const positions = child.geometry.getAttribute("position") as THREE.BufferAttribute;
+        positions.needsUpdate = true;
+        child.geometry.computeBoundingSphere();
+        vertexCount += drape.heightsMetres.length;
+      } else if (child instanceof THREE.Mesh) {
+        const ribbon = child.userData.countryRibbon as CountryRibbonBatchData | undefined;
+        if (ribbon === undefined) continue;
+        updateCountryRibbonPositions(ribbon, this.verticalExaggeration);
+        const positions = child.geometry.getAttribute("position") as THREE.BufferAttribute;
+        positions.needsUpdate = true;
+        child.geometry.computeBoundingSphere();
+        vertexCount += ribbon.heightsMetres.length;
+      }
     }
     this.renderer.domElement.dataset.overlayDrapeVertices = String(vertexCount);
     this.renderer.domElement.dataset.overlayDrapeExaggeration =
       this.verticalExaggeration.toFixed(1);
+  }
+
+  private updateGuideLabelVisibility(): void {
+    if (!this.layers.guides) return;
+    this.guideInverseGlobeQuaternion.copy(this.globeGroup.quaternion).invert();
+    this.guideCameraDirection.copy(this.camera.position).normalize()
+      .applyQuaternion(this.guideInverseGlobeQuaternion);
+    const scale = THREE.MathUtils.clamp(this.camera.position.length() / 1.38, 1, 2.8);
+    for (const child of this.overlayGroup.children) {
+      if (!(child instanceof THREE.Sprite)) continue;
+      const direction = child.userData.guideLabelDirection as THREE.Vector3 | undefined;
+      if (direction !== undefined) {
+        child.visible = direction.dot(this.guideCameraDirection) > 0.16;
+        child.scale.set(0.075 * scale, 0.0125 * scale, 1);
+      }
+    }
   }
 
   private resize(): void {
@@ -2423,8 +2694,24 @@ export class GlobeScene {
     this.controls.autoRotate = this.autoRotate && !this.reducedMotion.matches;
   };
 
+  private readonly handleControlsStart = (): void => {
+    this.cameraInteractionActive = true;
+    if (this.cameraRefreshHandle !== null) {
+      window.clearTimeout(this.cameraRefreshHandle);
+      this.cameraRefreshHandle = null;
+    }
+  };
+
   private readonly handleControlsEnd = (): void => {
-    this.refreshCubeForCamera();
+    this.cameraInteractionActive = false;
+    if (this.cameraRefreshHandle !== null) window.clearTimeout(this.cameraRefreshHandle);
+    // Wheel events each emit an end event. Debouncing them prevents generating
+    // full tile plans for camera positions that will be obsolete milliseconds
+    // later while retaining a prompt final refresh.
+    this.cameraRefreshHandle = window.setTimeout(() => {
+      this.cameraRefreshHandle = null;
+      if (!this.disposed) this.refreshCubeForCamera();
+    }, 80);
   };
 
   private readonly frame = (now: number): void => {
@@ -2439,6 +2726,14 @@ export class GlobeScene {
     this.controls.autoRotate =
       this.autoRotate && !this.reducedMotion.matches && this.focusAnimation === null;
     this.controls.update();
+
+    if (this.reliefScalePending) {
+      this.reliefScalePending = false;
+      this.applyReliefScale();
+      this.updateCubeReliefScale();
+      this.updateRegionalPatchScale();
+      this.scheduleCubeRefinement();
+    }
 
     if (this.focusAnimation !== null) {
       const focus = this.focusAnimation;
@@ -2459,7 +2754,10 @@ export class GlobeScene {
       this.renderer.domElement.dataset.cameraDistance = cameraDistance.toFixed(4);
     }
     this.updateInspectionLight();
-    if (this.cubeSelectionNeedsRefresh(now)) this.scheduleCubeRefinement();
+    if (
+      !this.cameraInteractionActive && this.cameraRefreshHandle === null &&
+      this.cubeSelectionNeedsRefresh(now)
+    ) this.scheduleCubeRefinement();
     if (this.regionalPatch !== null && this.regionalPatchFields !== null) {
       this.regionalPatch.visible =
         this.detail === "regional" &&
@@ -2503,6 +2801,7 @@ export class GlobeScene {
       if (this.snapshot !== null) void this.loadSurface();
     }
 
+    this.updateGuideLabelVisibility();
     this.renderer.render(this.scene, this.camera);
     if (now - this.lastStatsAt >= 1000) this.publishStats(now);
     this.frameHandle = requestAnimationFrame(this.frame);

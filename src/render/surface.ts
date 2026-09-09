@@ -7,7 +7,8 @@ import type {
   TectonicFeature,
   WorldSnapshot,
 } from "../data";
-import { normalizeLongitude, pointInRing } from "./math";
+import { rasterizeLandMask } from "./landMask";
+import { normalizeLongitude } from "./math";
 
 export type SurfaceDetail = "coarse" | "regional";
 export type SurfaceMode = "surface" | "seafloor";
@@ -31,10 +32,35 @@ export interface SurfaceFields {
   reliefRangeMetres: number;
   reliefBiasMetres: number;
   roughness: Uint8Array;
+  landMask: Uint8Array;
   clouds: Uint8Array;
+  cloudWidth: number;
+  cloudHeight: number;
   rivers: LonLat[][];
   generationMs: number;
   byteLength: number;
+}
+
+export function sampleSurfaceLand(
+  fields: SurfaceFields,
+  longitude: number,
+  latitude: number,
+): boolean {
+  const u = (normalizeLongitude(longitude) + 180) / 360;
+  const v = (latitude + 90) / 180;
+  const fx = u * fields.width - 0.5;
+  const fy = Math.max(0, Math.min(fields.height - 1, (1 - v) * fields.height - 0.5));
+  const xBase = Math.floor(fx);
+  const x0 = ((xBase % fields.width) + fields.width) % fields.width;
+  const x1 = (x0 + 1) % fields.width;
+  const y0 = Math.floor(fy);
+  const y1 = Math.min(fields.height - 1, y0 + 1);
+  const tx = fx - xBase;
+  const ty = fy - y0;
+  const at = (x: number, y: number) => fields.landMask[y * fields.width + x];
+  const north = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
+  const south = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
+  return north * (1 - ty) + south * ty >= 127.5;
 }
 
 export function sampleSurfaceReliefMetres(
@@ -408,17 +434,6 @@ export function modernClimateAllowsPermanentIce(
   return group === undefined ? undefined : group === "frost";
 }
 
-function polygonContains(snapshot: WorldSnapshot, point: LonLat): boolean {
-  for (const polygon of snapshot.land) {
-    let inside = false;
-    for (const ring of polygon.coordinates) {
-      if (pointInRing(point, ring)) inside = !inside;
-    }
-    if (inside) return true;
-  }
-  return false;
-}
-
 function distanceToFeature(point: LonLat, feature: TectonicFeature): number {
   let minimum = Number.POSITIVE_INFINITY;
   for (let index = 1; index < feature.coordinates.length; index++) {
@@ -546,7 +561,14 @@ export function generateSurface(
   const relief = new Uint8Array(length);
   const reliefMetresField = new Float32Array(width * height);
   const roughness = new Uint8Array(length);
-  const clouds = new Uint8Array(length);
+  const landMask = snapshot.land.length > 0
+    ? rasterizeLandMask(snapshot.land, width, height)
+    : new Uint8Array(width * height);
+  // Cloud structure is broad and translucent; capping it below the terrain
+  // raster avoids recomputing imperceptible texels on every period change.
+  const cloudWidth = Math.min(width, 256);
+  const cloudHeight = Math.max(1, Math.round(cloudWidth / 2));
+  const clouds = new Uint8Array(cloudWidth * cloudHeight * 4);
   const seed = hashString(snapshot.id);
   const sphericalNoise = createSphericalNoise(seed);
   const stage = snapshot.environment.stage ?? "modern-biomes";
@@ -634,18 +656,19 @@ export function generateSurface(
         }
       }
       const hasMappedLand = snapshot.controls !== undefined || snapshot.land.length > 0;
-      const sourceLand =
-        mature &&
-        (snapshot.controls !== undefined
-          ? elevation >= 0
-          : snapshot.land.length > 0
-            ? polygonContains(snapshot, [longitude, latitude])
-            : n > 0.34 + oceanCoverage * 0.26);
+      const sourceLand = mature && (
+        snapshot.land.length > 0
+          ? landMask[y * width + x] > 0
+          : snapshot.controls !== undefined
+            ? elevation > 0
+            : n > 0.34 + oceanCoverage * 0.26
+      );
       // An EF control, including the documented Antarctic pole display gap-fill,
       // can establish an ice-covered surface over negative bed elevation. It
       // never replaces signed seafloor bed relief or infers ice thickness.
       const modernIceSurface = mature && mode === "surface" && climateGroup === "frost";
       const land = sourceLand || modernIceSurface;
+      landMask[y * width + x] = land ? 255 : 0;
 
       let color: [number, number, number];
       let reliefMetres: number;
@@ -768,18 +791,19 @@ export function generateSurface(
       writePixel(relief, offset, [encodedRelief, encodedRelief, encodedRelief]);
       writePixel(roughness, offset, [roughnessValue, roughnessValue, roughnessValue]);
 
-      const front = sphericalNoise(
-        longitude,
-        latitude,
-        2.35,
-        3,
-      );
-      const wisps = sphericalNoise(
-        longitude,
-        latitude,
-        7.2,
-        2,
-      );
+    }
+  }
+
+  // Clouds are a global shell and do not gain useful information from the
+  // regional terrain raster. Keeping their synthesis independently bounded
+  // avoids five noise octaves per high-detail surface texel.
+  for (let y = 0; y < cloudHeight; y += 1) {
+    const latitude = 90 - ((y + 0.5) / cloudHeight) * 180;
+    for (let x = 0; x < cloudWidth; x += 1) {
+      const longitude = ((x + 0.5) / cloudWidth) * 360 - 180;
+      const offset = (y * cloudWidth + x) * 4;
+      const front = sphericalNoise(longitude, latitude, 2.35, 3);
+      const wisps = sphericalNoise(longitude, latitude, 7.2, 2);
       const band = Math.cos((latitude * Math.PI) / 90) * 0.075;
       const cloudNoise = front * 0.82 + wisps * 0.18;
       const cloudThreshold = 0.655 - cloudCover * 0.12 - band;
@@ -798,7 +822,10 @@ export function generateSurface(
     reliefRangeMetres,
     reliefBiasMetres,
     roughness,
+    landMask,
     clouds,
+    cloudWidth,
+    cloudHeight,
     rivers,
     generationMs: ended - started,
     byteLength:
@@ -806,6 +833,7 @@ export function generateSurface(
       relief.byteLength +
       reliefMetresField.byteLength +
       roughness.byteLength +
+      landMask.byteLength +
       clouds.byteLength +
       rivers.length * 4 * Float64Array.BYTES_PER_ELEMENT,
   };

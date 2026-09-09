@@ -16,6 +16,7 @@ import { createPerceptualDetailSampler } from "./perceptualDetail";
 import {
   EARTH_RADIUS_METRES,
   sampleModernClimateGroup,
+  sampleSurfaceLand,
   sampleSurfaceReliefMetres,
   type SurfaceDetail,
   type SurfaceFields,
@@ -231,13 +232,36 @@ function patchFeatherWeight(
 ): number {
   const [west, south, east, north] = patch.bounds;
   if (longitude < west || longitude > east || latitude < south || latitude > north) return 0;
-  const edgeFraction = Math.min(
-    (longitude - west) / (east - west),
-    (east - longitude) / (east - west),
-    (latitude - south) / (north - south),
-    (north - latitude) / (north - south),
+  const edgeCells = Math.min(
+    (longitude - west) / patch.longitudeStep,
+    (east - longitude) / patch.longitudeStep,
+    (latitude - south) / patch.latitudeStep,
+    (north - latitude) / patch.latitudeStep,
   );
-  return smoothstep(0, 0.08, edgeFraction);
+  return smoothstep(0, patch.edgeTransitionCells, edgeCells);
+}
+
+function samplePatchLandCoverage(
+  patch: ModernReliefPatch,
+  longitude: number,
+  latitude: number,
+): number {
+  if (patch.landCoverage === undefined) {
+    return samplePatchElevation(patch, longitude, latitude) > 0 ? 1 : 0;
+  }
+  const [westCenter, , , northCenter] = patch.cellCenterBounds;
+  const fx = clamp((longitude - westCenter) / patch.longitudeStep, 0, patch.width - 1);
+  const fy = clamp((northCenter - latitude) / patch.latitudeStep, 0, patch.height - 1);
+  const x0 = Math.floor(fx);
+  const x1 = Math.min(patch.width - 1, x0 + 1);
+  const y0 = Math.floor(fy);
+  const y1 = Math.min(patch.height - 1, y0 + 1);
+  const tx = fx - x0;
+  const ty = fy - y0;
+  const at = (x: number, y: number) => patch.landCoverage![y * patch.width + x] / 255;
+  const north = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
+  const south = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
+  return north * (1 - ty) + south * ty;
 }
 
 function buildTectonicInfluence(snapshot: WorldSnapshot): Uint8Array {
@@ -360,11 +384,15 @@ export function createCubeTileFieldGenerator(
     poleChannelAverage(context.surface.relief, context.surface, false, 0) / 255 *
       context.surface.reliefRangeMetres + context.surface.reliefBiasMetres,
   ]);
+  const requestedAge = context.snapshot.requestedAgeMa ?? context.snapshot.ageMa;
   const validModernRelief = (context.modernRelief ?? []).filter((patch) =>
     patch.surfaceMode === context.mode &&
-    (context.snapshot.requestedAgeMa ?? context.snapshot.ageMa) === 0 &&
-    patch.validRequestedAgeMa[0] === 0 &&
-    patch.validRequestedAgeMa[1] === 0,
+    patch.referenceFrameId === "present-day-geographic" && requestedAge === 0 &&
+    requestedAge <= patch.validRequestedAgeMa[0] &&
+    requestedAge >= patch.validRequestedAgeMa[1]
+  ).sort((left, right) =>
+    right.priority - left.priority || right.level - left.level ||
+    left.longitudeStep - right.longitudeStep || left.id.localeCompare(right.id)
   );
   const stage: SurfaceStage = context.snapshot.environment.stage ?? "modern-biomes";
   const sampleState: SampleState = {
@@ -381,12 +409,13 @@ export function createCubeTileFieldGenerator(
   const contextRetainedBytes =
     context.surface.albedo.byteLength + context.surface.relief.byteLength +
     context.surface.reliefMetres.byteLength + context.surface.roughness.byteLength +
+    context.surface.landMask.byteLength +
     context.surface.clouds.byteLength +
     (context.snapshot.controls?.elevation.byteLength ?? 0) +
     (context.snapshot.controls?.potentialIce?.byteLength ?? 0) +
     (context.snapshot.controls?.vegetationPotential?.byteLength ?? 0) +
     (context.snapshot.modernClimate?.classes.byteLength ?? 0) +
-    (context.modernRelief ?? []).reduce((sum, patch) => sum + patch.elevation.byteLength, 0);
+    (context.modernRelief ?? []).reduce((sum, patch) => sum + patch.byteLength, 0);
 
   const evaluate = (
     x: number,
@@ -399,6 +428,10 @@ export function createCubeTileFieldGenerator(
     const u = (longitude + 180) / 360;
     const v = (latitude + 90) / 180;
     let baseHeight = sampleSurfaceReliefMetres(context.surface, u, v);
+    const globalLand = sampleSurfaceLand(context.surface, longitude, latitude);
+    let refinementWeight = 0;
+    let refinementLand = globalLand;
+    let refinementHeight = baseHeight;
     // Complete only the unsampled half-pixel of generated render relief.
     const poleCenterLatitude = 90 - 90 / context.surface.height;
     if (latitude > poleCenterLatitude) {
@@ -411,10 +444,15 @@ export function createCubeTileFieldGenerator(
     for (const patch of validModernRelief) {
       const weight = patchFeatherWeight(patch, longitude, latitude);
       if (weight <= 0) continue;
-      let patchHeight = samplePatchElevation(patch, longitude, latitude);
-      if (context.mode === "surface") patchHeight = Math.max(0, patchHeight);
-      baseHeight += (patchHeight - baseHeight) * weight;
+      refinementHeight = samplePatchElevation(patch, longitude, latitude);
+      refinementLand = samplePatchLandCoverage(patch, longitude, latitude) >= 0.5;
+      const displayedPatchHeight = context.mode === "surface"
+        ? Math.max(0, refinementHeight)
+        : refinementHeight;
+      baseHeight += (displayedPatchHeight - baseHeight) * weight;
+      refinementWeight = weight;
       sourcePatchIds?.add(patch.id);
+      break;
     }
 
     const baseRoughness = sampleRgbaChannel(
@@ -445,7 +483,7 @@ export function createCubeTileFieldGenerator(
       latitude,
       elevationMetres: baseHeight,
       slope,
-      land: baseHeight > 0,
+      land: refinementWeight >= 0.5 ? refinementLand : globalLand,
       ice,
       climateGroup,
       stage,
@@ -460,33 +498,21 @@ export function createCubeTileFieldGenerator(
     sampleState.height = baseHeight + detail.heightDeltaMetres;
     sampleState.roughness = clamp(baseRoughness + detail.roughnessDelta * 255, 0, 255);
     if (includeMaterial) {
-      sampleState.albedoRed = clamp(
-        sampleRgbaChannel(
+      let albedoRed = sampleRgbaChannel(
           context.surface.albedo, context.surface, longitude, latitude, 0,
           albedoPoleValues[0], albedoPoleValues[3],
-        ) *
-          detail.albedoMultiplier[0],
-        0,
-        255,
       );
-      sampleState.albedoGreen = clamp(
-        sampleRgbaChannel(
+      let albedoGreen = sampleRgbaChannel(
           context.surface.albedo, context.surface, longitude, latitude, 1,
           albedoPoleValues[1], albedoPoleValues[4],
-        ) *
-          detail.albedoMultiplier[1],
-        0,
-        255,
       );
-      sampleState.albedoBlue = clamp(
-        sampleRgbaChannel(
+      let albedoBlue = sampleRgbaChannel(
           context.surface.albedo, context.surface, longitude, latitude, 2,
           albedoPoleValues[2], albedoPoleValues[5],
-        ) *
-          detail.albedoMultiplier[2],
-        0,
-        255,
       );
+      sampleState.albedoRed = clamp(albedoRed * detail.albedoMultiplier[0], 0, 255);
+      sampleState.albedoGreen = clamp(albedoGreen * detail.albedoMultiplier[1], 0, 255);
+      sampleState.albedoBlue = clamp(albedoBlue * detail.albedoMultiplier[2], 0, 255);
     }
     return sampleState;
   };

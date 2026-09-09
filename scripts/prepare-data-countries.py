@@ -13,6 +13,8 @@ import hashlib
 import json
 import math
 import pathlib
+import struct
+import tempfile
 import urllib.request
 import zipfile
 
@@ -22,6 +24,10 @@ DEFAULT_CACHE = ROOT / "dev-docs" / "temp" / "earthhistory-data"
 OUTPUT = ROOT / "public" / "data"
 MAX_CACHE_BYTES = 50 * 1024 * 1024
 AGES = (20, 35, 55, 65, 95, 130, 185, 220, 250, 300, 320, 360, 400, 430, 470, 520, 540)
+TRACKING_SCHEMA_VERSION = 1
+TRACKING_MAGIC = b"EHTR"
+TRACKING_COORDINATE_SCALE_DEGREES = 180 / 32767
+TRACKING_CATALOG_ID = "paleomap-country-tracking-v1"
 POI_EVIDENCE_POINTS = {
     "chengjiang-biota": (24.7, 102.9),
     "cairo-fossil-forest": (42.3, -74.0),
@@ -111,6 +117,112 @@ def geometry_points(geometry) -> list:
     return []
 
 
+def feature_country(feature) -> tuple[str, str]:
+    name = attribute(feature, "NAME") or attribute(feature, "ABBREVNAME") or "Unnamed reference"
+    country_id = (attribute(feature, "ISO3") or attribute(feature, "WB_CNTRY") or name).lower().replace(" ", "-")
+    return country_id, name
+
+
+def finite_time(value: float) -> float | None:
+    return value if math.isfinite(value) else None
+
+
+def prepare_tracking_catalog(features) -> tuple[dict, list[dict]]:
+    feature_records = []
+    part_records = []
+    source_parts = []
+    for feature in features:
+        country_id, name = feature_country(feature)
+        valid_oldest, valid_youngest = feature.get_valid_time()
+        feature_index = len(feature_records)
+        feature_records.append(
+            {
+                "id": str(feature.get_feature_id()),
+                "countryId": country_id,
+                "name": name,
+                "plateId": feature.get_reconstruction_plate_id(None),
+                "validTimeMa": [finite_time(valid_oldest), finite_time(valid_youngest)],
+            }
+        )
+        for geometry_index, geometry in enumerate(feature.get_all_geometries()):
+            points = geometry_points(geometry)
+            source_coordinates = [[point.to_lat_lon()[1], point.to_lat_lon()[0]] for point in points]
+            if hasattr(geometry, "get_exterior_ring_points") and source_coordinates:
+                source_coordinates.append(source_coordinates[0])
+            line = simplify(source_coordinates)
+            if len(line) < 2:
+                continue
+            part_id = len(part_records)
+            part_records.append(
+                {"id": part_id, "feature": feature_index, "geometryIndex": geometry_index}
+            )
+            source_parts.append(
+                {
+                    "id": part_id,
+                    "feature": feature,
+                    "plateId": feature.get_reconstruction_plate_id(None),
+                    "coordinates": line,
+                }
+            )
+    catalog = {
+        "schemaVersion": TRACKING_SCHEMA_VERSION,
+        "id": TRACKING_CATALOG_ID,
+        "plateModelId": "paleomap-global-plate-model-v3",
+        "referenceFrameId": "anchor-plate-0",
+        "coordinateEncoding": "int16-le-longitude-latitude",
+        "coordinateScaleDegrees": TRACKING_COORDINATE_SCALE_DEGREES,
+        "measure": "normalized-geodesic-arclength",
+        "sourceSimplificationToleranceDegrees": 0.18,
+        "sourceIds": ["paleomap-political-boundaries-v3", "paleomap-global-plate-model-v3"],
+        "features": feature_records,
+        "parts": part_records,
+    }
+    return catalog, source_parts
+
+
+def normalized_longitude(longitude: float) -> float:
+    return ((longitude + 180) % 360) - 180
+
+
+def encode_tracking_age(age: int, source_parts: list[dict], rotation_model, pygplates) -> bytes:
+    records = []
+    coordinate_codes = []
+    for part in source_parts:
+        feature = part["feature"]
+        plate_id = part["plateId"]
+        if plate_id is None or not feature.is_valid_at_time(float(age)):
+            continue
+        rotation = rotation_model.get_rotation(float(age), plate_id, anchor_plate_id=0)
+        offset = len(coordinate_codes) // 2
+        for longitude, latitude in part["coordinates"]:
+            reconstructed = rotation * pygplates.PointOnSphere((latitude, longitude))
+            reconstructed_latitude, reconstructed_longitude = reconstructed.to_lat_lon()
+            longitude_code = round(
+                normalized_longitude(reconstructed_longitude) / TRACKING_COORDINATE_SCALE_DEGREES
+            )
+            latitude_code = round(reconstructed_latitude / TRACKING_COORDINATE_SCALE_DEGREES)
+            coordinate_codes.extend(
+                [
+                    max(-32767, min(32767, longitude_code)),
+                    max(-32767, min(32767, latitude_code)),
+                ]
+            )
+        records.append((part["id"], offset))
+
+    header = struct.pack(
+        "<4sHHHHI",
+        TRACKING_MAGIC,
+        TRACKING_SCHEMA_VERSION,
+        age,
+        len(records),
+        0,
+        len(coordinate_codes) // 2,
+    )
+    record_bytes = b"".join(struct.pack("<HHI", part_id, 0, offset) for part_id, offset in records)
+    coordinate_bytes = struct.pack(f"<{len(coordinate_codes)}h", *coordinate_codes)
+    return header + record_bytes + coordinate_bytes
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache-dir", type=pathlib.Path, default=DEFAULT_CACHE)
@@ -122,8 +234,8 @@ def main() -> None:
         raise SystemExit("pyGPlates >= 1.0 is required for country reconstruction") from error
 
     args.cache_dir.mkdir(parents=True, exist_ok=True)
-    source_dir = args.cache_dir / "paleomap-country-source"
-    source_dir.mkdir(exist_ok=True)
+    source_temporary = tempfile.TemporaryDirectory(prefix="earthhistory-country-source-")
+    source_dir = pathlib.Path(source_temporary.name)
     archives = {name: fetch(name, *details, args.cache_dir) for name, details in FILES.items()}
     gpml = extract_member(archives["political"], ".gpml", source_dir / "political-boundaries-v3.gpml")
     rotations = extract_member(archives["model"], ".rot", source_dir / "plate-model-v3.rot")
@@ -136,6 +248,9 @@ def main() -> None:
     partition_features = pygplates.FeatureCollection(str(partition_gpml))
     rotation_model = pygplates.RotationModel(str(rotations))
     partitioner = pygplates.PlatePartitioner(partition_features, rotation_model, 0.0)
+    tracking_catalog, tracking_source_parts = prepare_tracking_catalog(features)
+    tracking_catalog_path = OUTPUT / "country-tracking-catalog.json"
+    tracking_catalog_path.write_text(json.dumps(tracking_catalog, separators=(",", ":")) + "\n")
     poi_plate_ids = {}
     for poi_id, (latitude, longitude) in POI_EVIDENCE_POINTS.items():
         point = pygplates.PointOnSphere((latitude, longitude))
@@ -157,8 +272,7 @@ def main() -> None:
         grouped: dict[str, dict] = {}
         for item in reconstructed:
             feature = item.get_feature()
-            name = attribute(feature, "NAME") or attribute(feature, "ABBREVNAME") or "Unnamed reference"
-            country_id = (attribute(feature, "ISO3") or attribute(feature, "WB_CNTRY") or name).lower().replace(" ", "-")
+            country_id, name = feature_country(feature)
             record = grouped.setdefault(
                 country_id,
                 {"id": country_id, "name": name, "lines": [], "sourceIds": ["paleomap-political-boundaries-v3", "paleomap-global-plate-model-v3"], "evidence": "model-output"},
@@ -179,6 +293,22 @@ def main() -> None:
         destination.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
         outputs.append({"ageMa": age, "path": f"public/data/{destination.name}", "sha256": hashlib.sha256(destination.read_bytes()).hexdigest(), "bytes": destination.stat().st_size})
 
+    tracking_outputs = []
+    tracking_ages = tuple(dict.fromkeys((0, *(tuple(args.age) if args.age else AGES))))
+    for age in tracking_ages:
+        tracking_destination = OUTPUT / f"country-tracking-{age}ma.bin"
+        tracking_destination.write_bytes(
+            encode_tracking_age(age, tracking_source_parts, rotation_model, pygplates)
+        )
+        tracking_outputs.append(
+            {
+                "ageMa": age,
+                "path": f"public/data/{tracking_destination.name}",
+                "sha256": hashlib.sha256(tracking_destination.read_bytes()).hexdigest(),
+                "bytes": tracking_destination.stat().st_size,
+            }
+        )
+
     manifest_path = OUTPUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["inputs"]["paleomap-country-reference-v3"] = {
@@ -186,11 +316,30 @@ def main() -> None:
         "license": "CC BY 4.0",
         "politicalArchiveSha256": FILES["political"][1],
         "rotationArchiveSha256": FILES["model"][1],
-        "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; line simplification tolerance 0.18 degrees",
+        "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; display lines are simplified after reconstruction; line simplification tolerance 0.18 degrees",
         "outputs": outputs,
+    }
+    manifest["inputs"]["paleomap-area-tracking-v1"] = {
+        "record": "https://doi.org/10.5281/zenodo.7994000",
+        "license": "CC BY 4.0",
+        "politicalArchiveSha256": FILES["political"][1],
+        "rotationArchiveSha256": FILES["model"][1],
+        "processing": "Stable GPML feature identity plus source geometry-part index; source geometry is simplified once before rigid plate rotation so normalized geodesic measure remains stable; signed local offsets are resolved by the frontend; int16 longitude/latitude uses the catalog scale",
+        "outputs": [
+            {
+                "role": "catalog",
+                "path": "public/data/country-tracking-catalog.json",
+                "sha256": hashlib.sha256(tracking_catalog_path.read_bytes()).hexdigest(),
+                "bytes": tracking_catalog_path.stat().st_size,
+                "features": len(tracking_catalog["features"]),
+                "parts": len(tracking_catalog["parts"]),
+            },
+            *tracking_outputs,
+        ],
     }
     manifest["scratchCacheBytes"] = cache_bytes
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    source_temporary.cleanup()
 
 
 if __name__ == "__main__":

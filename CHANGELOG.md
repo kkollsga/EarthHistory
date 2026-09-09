@@ -2,6 +2,37 @@
 
 All notable changes to EarthHistory will be recorded here.
 
+## [0.1.1] - 2026-09-09
+
+### Added
+
+- Sparse, age-aware regional surface refinements with a two-level EMODnet DTM
+  2024 bathymetry example for the central North Sea.
+- Subtle terrain-anchored poles, Hadley boundaries, east/west references and
+  dominant-wind guides, available from the layers menu.
+- Temporal area anchors that retain exact reconstructed feature identity
+  through movement, disappearance and reappearance between periods.
+
+### Changed
+
+- Restyled modern-country locator outlines as subdued, batched ribbons inlaid
+  into the displayed terrain and anchored through relief exaggeration.
+- Made Natural Earth geometry authoritative for present-day land masking while
+  retaining signed PaleoDEM controls for historical snapshots.
+- Filtered Field Notes to the currently selected period and refined globe-click
+  focus toggling.
+- Reduced refresh work with bounded cloud resolution, shared geometry buffers,
+  deferred overlay rebuilding and debounced camera refinement requests.
+
+### Fixed
+
+- Removed the local material override that exposed the North Sea refinement as
+  a dark rectangular footprint.
+- Eliminated the polar inspection-light jump and strengthened pole-safe surface
+  sampling.
+- Corrected land/sea material classification around coastlines and prevented
+  country references from floating above exaggerated relief.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added
