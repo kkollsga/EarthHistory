@@ -242,3 +242,25 @@ test("resolves a cited reference for every chapter", async ({ page }) => {
     await expect(page.locator(".chapter-reference a")).toHaveAttribute("href", /^https?:\/\//);
   }
 });
+
+test("does not blank the Cao foundation when scrubbing to today", async ({ page }) => {
+  await page.goto("./");
+  await waitForCao(page);
+  await page.locator("#source-age-jump").selectOption("100");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "100");
+  const verticesAt100 = Number(await globe(page).getAttribute("data-cao-foundation-vertices"));
+  expect(verticesAt100).toBeGreaterThan(100_000);
+
+  await page.locator("#source-age-jump").selectOption("0");
+  await expect.poll(() => globe(page).getAttribute("data-cao-foundation-requested-age-ma")).toBe("0");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "native-cao-foundation");
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-vertices")))
+    .toBe(verticesAt100);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-draw-count")))
+    .toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
+  await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);
+});
+

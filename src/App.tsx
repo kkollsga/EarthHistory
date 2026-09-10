@@ -357,6 +357,9 @@ export default function App() {
 
     const applyPrepared = (prepared: PreparedCaoRevision) => {
       setCaoLoadError(null);
+      const previous = caoRevisionRef.current;
+      // Drop the prior lease only once the next revision is ready to publish.
+      if (previous !== null && previous !== prepared) previous.release();
       caoRevisionRef.current = prepared;
       setCaoRevision(prepared);
       // Continuous motion/anchors come from evaluateMotion, not the released lease.
@@ -376,19 +379,17 @@ export default function App() {
 
       const serial = ++pumpState.serial;
       pumpState.inFlight = true;
-      caoRevisionRef.current?.release();
-      caoRevisionRef.current = null;
-      // Keep React `caoRevision` until the next prepare lands (no blank).
+      // Do not release the last revision before the next prepare lands — the
+      // runtime allows one in-flight lease alongside the visible one (< 2).
+      // Releasing early made age→0 republish races blank the globe.
 
       let request: ReturnType<CaoReconstructionRuntime["request"]>;
       try {
         request = runtime.request(targetAge);
       } catch (error) {
         if (serial === pumpState.serial) pumpState.inFlight = false;
-        if (caoRevisionRef.current === null) {
-          setCaoRevision(null);
-          setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
-        }
+        // Keep the last visible foundation; do not clear on request failure.
+        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
         return;
       }
 
@@ -419,9 +420,8 @@ export default function App() {
           if (requestedAgeRef.current !== targetAge) pump();
           return;
         }
-        setCaoRevision(null);
-        setCaoMotionFrame(null);
-        caoMotionFrameRef.current = null;
+        // Keep the last published foundation visible (especially at 0 Ma) instead
+        // of clearing continents while the scrubber sits on a failed exact knot.
         setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
       });
     };

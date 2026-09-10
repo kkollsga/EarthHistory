@@ -283,7 +283,55 @@ describe("Cao foundation renderer boundary", () => {
     resource.dispose();
   });
 
-  it("blocks another publication while the bounded retirement fence is stalled", async () => {
+  it("retargets motion to 0 Ma without clearing the published foundation", () => {
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => undefined }, 2, 1_000_000);
+    const surface = new CaoFoundationSurfaceRenderer(new Group(), retirement, limits);
+    const first = fixture();
+    surface.publish(first, 1);
+    const before = surface.diagnostics();
+    expect(before.drawCount).toBeGreaterThan(0);
+    expect(before.requestedAgeMa).toBe(0);
+
+    const entryCount = first.motionPalette.entryCount;
+    const chartCount = first.charts.length;
+    const paletteValues = new Float32Array(entryCount * 11);
+    for (let entry = 0; entry < entryCount; entry += 1) {
+      paletteValues.set([1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1], entry * 11);
+    }
+    const chartPoses = new Float32Array(chartCount * 8);
+    const chartActive = new Uint8Array(chartCount).fill(1);
+    for (let chart = 0; chart < chartCount; chart += 1) {
+      chartPoses.set([1, 0, 0, 0, 1, 0, 0, 0], chart * 8);
+    }
+    const after = surface.retargetMotion(paletteValues, entryCount, 0, chartPoses, chartActive, 0);
+    expect(after.drawCount).toBe(before.drawCount);
+    expect(after.vertices).toBe(before.vertices);
+    expect(after.requestedAgeMa).toBe(0);
+    expect(surface.diagnostics().drawCount).toBeGreaterThan(0);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("swaps a 0 Ma publication over a prior age without an empty clear gap", () => {
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => undefined }, 4, 4_000_000);
+    const surface = new CaoFoundationSurfaceRenderer(new Group(), retirement, limits);
+    const older = { ...fixture(), identity: "cao@r1:100", requestId: 100, requestedAgeMa: 100,
+      display: { youngerAgeMa: 100, olderAgeMa: 100, fraction: 0 } };
+    surface.publish(older, 1);
+    expect(surface.diagnostics().requestedAgeMa).toBe(100);
+    expect(surface.diagnostics().drawCount).toBeGreaterThan(0);
+
+    const today = { ...fixture(), identity: "cao@r1:0", requestId: 0, requestedAgeMa: 0,
+      display: { youngerAgeMa: 0, olderAgeMa: 0, fraction: 0 } };
+    // Publish replaces in place — clear() must not be required for age→0.
+    surface.publish(today, 1);
+    const diagnostics = surface.diagnostics();
+    expect(diagnostics.requestedAgeMa).toBe(0);
+    expect(diagnostics.drawCount).toBeGreaterThan(0);
+    expect(diagnostics.vertices).toBeGreaterThan(0);
+    surface.disposeForRendererTeardown();
+  });
+
+    it("blocks another publication while the bounded retirement fence is stalled", async () => {
     const completions: Array<() => void> = [];
     const retirement = new GpuRetirementOwner({ waitForSubmittedWork: () => (
       new Promise<void>((resolve) => completions.push(resolve))

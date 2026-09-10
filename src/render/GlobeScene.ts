@@ -1128,8 +1128,9 @@ export class GlobeScene {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Cao foundation render failed";
       this.pendingCaoDiagnostics = null;
-      this.caoFoundationRenderer.clear();
-      this.hasNativePublication = false;
+      // Keep the last published foundation visible. Clearing here permanently
+      // blanks the globe when App still holds a revision (no automatic republish),
+      // which showed up when scrubbing to today (0 Ma).
       this.renderer.domElement.dataset.caoFoundationStatus = "error";
       this.renderer.domElement.dataset.surfaceStatus = "error";
       this.onCaoFoundationState?.({ status: "error", error: message });

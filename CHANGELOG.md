@@ -26,6 +26,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Keep continents visible when scrubbing to today (0 Ma): retain the last
+  prepared foundation until the next exact-knot prepare is ready, do not clear
+  React state on prepare/request failure, and do not tear down the published
+  surface on a transient render error.
 - Precambrian timeline range again spans deep time through today (0 Ma): the
   scrubber is no longer clamped to ages older than ICS 538.8 Ma, and switching
   into Precambrian mode keeps the current age instead of jumping to the Cambrian
