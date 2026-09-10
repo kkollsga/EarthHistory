@@ -17,6 +17,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Load both authored Cao rotation files, including younger-age parent ties in
+  the older-named file, to retain native US and Amazon geometry and its motion.
 - Keep tagged material and supported POIs on the same coordinate authority as
   the globe, preserving camera distance through motion and support gaps.
 - Bind integer motion-palette attributes correctly on WebGL2.

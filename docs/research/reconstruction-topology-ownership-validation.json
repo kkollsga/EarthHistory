@@ -282,7 +282,13 @@
     "referenceImplementation": "pyGPlates 1.0",
     "model": "Cao et al. 2024 v2.4",
     "sourceUrl": "https://doi.org/10.5281/zenodo.13628813",
-    "packageManifestSha256": "7611a27b912e96f0c1a052a87f6b836a52bbb855da0095d7da37816b37b92cdc",
+    "packageManifestSha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9",
+    "rotationAggregateSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "nativeOwnershipBinarySha256": {
+      "0Ma": "ea3e1823dc8086ba3565964454552a9708fe84a3fa3238e248ad8c59384e5f63",
+      "450Ma": "b85b00f6ca7e61fb842696ce9f24f344206bdda3981bb8b89ee422dbd48eb466"
+    },
+    "completeRotationRefresh": "The 0 and 450 Ma ownership payload hashes are unchanged; only their frame identity now names the complete ordered Cao rotation collection, so the existing 24 native containment results remain byte-for-byte applicable.",
     "queryImplementationSha256": "ff73e21a61ac369b744fa37c137b38b2281242e1a61f51926cee1960e828bf3d",
     "queryCount": 24,
     "exactPlateAndTopologyMatches": 24,

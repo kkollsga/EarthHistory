@@ -1,0 +1,74 @@
+{
+  "rotationMembers": [
+    "1000_0_rotfile.rot",
+    "1800_1000_rotfile.rot"
+  ],
+  "rotationAggregateSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+  "witnesses": [
+    {
+      "sourceFeatureId": "GPlates-518d0234-75b2-4513-b197-5ce75635be8a",
+      "plateId": 10103,
+      "chartIds": [
+        "cao-coast:GPlates-518d0234-75b2-4513-b197-5ce75635be8a:1980:0",
+        "cao-coast:GPlates-518d0234-75b2-4513-b197-5ce75635be8a:397:0"
+      ],
+      "referenceDirection": [
+        -0.04927993807260704,
+        -0.7327061040275049,
+        0.6787586116023834
+      ],
+      "targetAgeMa": 100,
+      "expectedDirection": [
+        0.5054580270836808,
+        -0.5008451751009404,
+        0.7026139006842824
+      ],
+      "toleranceRadians": 1e-06
+    },
+    {
+      "sourceFeatureId": "GPlates-1ef97d95-3313-4151-bd31-2923b19bc454",
+      "plateId": 10104,
+      "chartIds": [
+        "cao-coast:GPlates-1ef97d95-3313-4151-bd31-2923b19bc454:391:0"
+      ],
+      "referenceDirection": [
+        0.056740946907283,
+        -0.7041930892056413,
+        0.7077376336320407
+      ],
+      "targetAgeMa": 100,
+      "expectedDirection": [
+        0.5745530350614346,
+        -0.4108916958506479,
+        0.7078536742736268
+      ],
+      "toleranceRadians": 1e-06
+    },
+    {
+      "sourceFeatureId": "GPlates-625dff9b-cc71-4917-8d5a-28dc95b5598f",
+      "plateId": 20101,
+      "chartIds": [
+        "cao-coast:GPlates-625dff9b-cc71-4917-8d5a-28dc95b5598f:540:0"
+      ],
+      "referenceDirection": [
+        0.555021997704296,
+        -0.8118348116508087,
+        -0.18131414907896246
+      ],
+      "targetAgeMa": 100,
+      "expectedDirection": [
+        0.9140057205453659,
+        -0.3484900800870446,
+        -0.2077214646859642
+      ],
+      "toleranceRadians": 1e-06
+    }
+  ],
+  "sourceId": "doi:10.5281/zenodo.13628813",
+  "modelVersion": "Cao et al. (2024) v2.4",
+  "sourceRetrieved": "2026-09-09",
+  "license": "CC-BY-4.0",
+  "method": "pyGPlates 1.0 strict total rotations, anchor plate 0, both authored project rotation files; stored reference direction reconstructed to 100 Ma",
+  "epistemicStatus": "model-output",
+  "axisConvention": "gplates-x0e-y90e-znorth"
+}

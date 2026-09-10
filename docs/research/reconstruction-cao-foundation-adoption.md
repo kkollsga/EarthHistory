@@ -1,6 +1,10 @@
 # Cao foundation adoption
 
-Status: foundation implementation and local acceptance complete, 2026-09-10.
+Status: corrected foundation implementation and local acceptance complete, 2026-09-10.
+The initial candidate omitted native land patches in North America and Amazonia;
+its deployment was canceled before publication. The corrected candidate loads
+both authored Cao rotation files, including younger-age parent ties in the file
+named `1800_1000_rotfile.rot`.
 Release candidate: 0.1.3. Remote publication is verified separately by the release
 workflow; this record is not evidence of a deployment.
 
@@ -43,14 +47,17 @@ geometry share the motion authority; country geometry is stored once.
 ## Accepted implementation
 
 The full package is the application's sole source producer. Its 552 assets total
-27,849,813 bytes and pass production validators, packed decoders and checksum
-checks, including deliberate corruption cases. It has 2,772 model-geography
-charts, 139,152 vertices and 198,110 triangles. Native boundary/ownership layers
-exist at all 109 checkpoints. Countries contribute 9,602 supported segments;
-2,443 segments (20.28%) are omitted after requiring endpoint and midpoint
-ownership agreement and native fragment validity. Seven coordinate POIs have
-native bindings. Cairo fossil forest has no strict motion on its assigned plate
-and remains unlocated. All 3,749 chart identities are unique.
+28,848,507 bytes and pass production validators, packed decoders and checksum
+checks, including deliberate corruption cases. It has 2,921 model-geography
+charts, 149,492 vertices and 213,117 triangles. Native boundary/ownership layers
+exist at all 109 checkpoints. Countries contribute 10,018 supported segments;
+2,027 segments (16.83%) are omitted after requiring endpoint and midpoint
+ownership agreement and native fragment validity. All eight coordinate POIs now have native bindings, including Cairo fossil
+forest. All 3,949 chart identities are unique. The complete rotation collection
+restores all 149 triangulatable source patches previously omitted for missing
+circuits, including the US Yavapai/Mazatzal and Amazon Rio Negro Juruena regions.
+Seventeen source parts still fail the existing triangulation qualification; none
+caused these large inland holes.
 
 One shared motion palette and static land/country buffers replace per-period
 geometry copies. A preparation owner supplies both GPU rendering and sparse
@@ -69,14 +76,22 @@ globe uniforms and published event context, without positional POI fallback.
 
 ## Verification
 
-The final deterministic gate passes 83 tests in 20 files, TypeScript, adapter
-checks, the production build and all 552 asset hashes. The final browser union
-passes 12 cases against the same application bundle: 11 passed in the complete
-run and the corrected land-click test passed in a focused rerun. That test now
-uses Amazon land rather than a centered Andean POI marker. No application code
-changed between those runs. An earlier occupied test port was bypassed with an
-isolated port. These are actual command results, not a claim that the initially
-failing `make gate-full` invocation exited successfully.
+The corrected candidate passes `make gate`: 84 tests in 20 files, TypeScript,
+adapter checks, production build and all 552 asset hashes. Five directly affected
+browser cases pass: local loading, WebGL2 fallback, exact/fractional checkpoints,
+POI zoom and material-tag disappearance/reacquisition. The earlier complete
+12-case browser union remains applicable to the unchanged application code;
+11 passed together and the corrected land-click test passed separately.
+
+The new complete-rotation regression checks source-chart presence, triangle
+coverage, plate bindings and material-coordinate poses against strict native
+pyGPlates witnesses. Temporarily omitting Yavapai from its coverage input makes
+the test command fail; restoring it passes. Independent actual-renderer rays
+hit the previously missing US and Amazon regions at 0 Ma and their native poses
+at 100 and 450 Ma. Corrected headed WebGPU captures show continuous land at the
+reported locations, with no console errors, warnings or failed requests.
+See the [complete-rotation witnesses](reconstruction-cao-complete-rotation-witnesses.json)
+and [independent land-coverage verification](reconstruction-cao-land-coverage-validation.json).
 
 Browser coverage includes exact/fractional source state, failed-checkpoint
 withholding and recovery, out-of-domain states, native POI zoom, a material tag
@@ -95,7 +110,9 @@ The first joined slice exposed binary-header/copy-ledger and backend-material
 integration errors. Subsequent checks caught missing integer GPU bindings,
 duplicate exported country charts, incomplete transitive-load accounting,
 released-state access, failed-renderer lease retention and stale map/POI fallbacks.
-All were fixed before acceptance. A spherical containment test also caught
+These were fixed before the first acceptance pass. The subsequent user visual
+review caught the incomplete rotation collection; it is now corrected and covered
+by the explicit land/motion witnesses above. A spherical containment test also caught
 antipodal complement selection. The corrected authored-side calculation passes
 synthetic pole/date-line/hole controls and [24 exact native pyGPlates ownership
 comparisons](reconstruction-topology-ownership-validation.json) at 0 and 450 Ma.
@@ -105,24 +122,27 @@ These spot checks do not establish exhaustive global topology correctness.
 
 The [measurement record](reconstruction-cao-foundation-performance.json) contains
 three fresh-context runs per age, the stop rule, build hashes, Chrome version and
-machine-state metadata. Both series use the local production preview, forced
+machine-state metadata. The historical and corrected series use the local production preview, forced
 WebGL2 and a 1440 × 900 viewport. WebGPU functional observations made during other
-tests are excluded from this performance comparison.
+tests are excluded from this performance comparison. The table below uses the
+corrected two-file candidate, identified by nested manifest SHA
+`305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9`;
+the earlier incomplete candidate remains in the record only as a historical control.
 
 | Measure | Previous 0 Ma | Cao 0 Ma | Previous 450 Ma | Cao 450 Ma |
 | --- | ---: | ---: | ---: | ---: |
-| Median readiness, ms | 797 | 405 | 1,115 | 408 |
+| Median readiness, ms | 797 | 408 | 1,115 | 402 |
 | Frame p95, ms | 16.7–16.8 | 16.7–16.8 | 16.7–16.8 | 16.8 |
-| Observed JS heap, MB | 60.24–60.44 | 48.24–48.49 | 56.23–68.80 | 44.14–44.34 |
+| Observed JS heap, MB | 60.24–60.44 | 49.95–50.87 | 56.23–68.80 | 46.39–46.55 |
 | Renderer geometries | 113 | 16 | 113 | 16 |
 | Renderer textures | 118 | 12 | 16 | 11 |
-| Initial decoded data, MB | 1.53 | 17.52 | 1.08 | 17.36 |
-| Initial transferred data, MB | 0.63 | 7.35 | 0.41 | 7.29 |
+| Initial decoded data, MB | 1.53 | 18.51 | 1.08 | 18.36 |
+| Initial transferred data, MB | 0.63 | 7.73 | 0.41 | 7.67 |
 
-The complete site is 27.92 MiB versus 47.20 MiB previously. The foundation retains
-10,326,240 bytes in its combined static CPU/GPU buffer ledger. Active source
-assets are approximately 17.50 MB at 0 Ma and 17.34 MB at 450 Ma; publication
-resources are 467,339 and 342,678 bytes respectively. Retired publication bytes
+The complete site is 28.88 MiB versus 47.20 MiB previously. The foundation retains
+11,075,544 bytes in its combined static CPU/GPU buffer ledger. Active source
+assets are approximately 18.50 MB at 0 Ma and 18.34 MB at 450 Ma; publication
+resources are 486,227 and 361,566 bytes respectively. Retired publication bytes
 settle to zero. The old workers and caches are absent.
 
 These local results show lower observed heap and readiness latency, while initial
@@ -135,6 +155,6 @@ frame cadence near display refresh is not a GPU execution-time measurement.
 
 Calibrated relief and biome fields, published exposure/shallow-sea masks, persistent
 ocean cohorts and seafloor ages, continuous boundary correspondence, adaptive
-spatial LOD and native ages older than 540 Ma remain future work. Neutral surfaces
-and visible source-coverage gaps are intentional for this accepted foundation;
-it does not yet reproduce the earlier satellite-style visual target.
+spatial LOD and native ages older than 540 Ma remain future work. Neutral surfaces are intentional; omitted geometry caused by incomplete source
+ingestion is a defect, not a scientific coverage limitation. This foundation
+does not yet reproduce the earlier satellite-style visual target.

@@ -6,6 +6,41 @@ import type { StaticAssetFetcher } from "./assetLoader";
 import type { ReconstructionPackageManifestV2 } from "./packageV2";
 import { createCaoFoundationGeometryResource } from "../render/reconstruction/caoFoundation";
 
+// Independent strict pyGPlates totals are tracked in
+// docs/research/reconstruction-cao-complete-rotation-witnesses.json.
+const completeRotationWitnesses = [
+  { plateId: 10103, chartIds: [
+    "cao-coast:GPlates-518d0234-75b2-4513-b197-5ce75635be8a:1980:0",
+    "cao-coast:GPlates-518d0234-75b2-4513-b197-5ce75635be8a:397:0",
+  ], referenceDirection: [-0.04927993807260704, -0.7327061040275049, 0.6787586116023834],
+  expectedDirection: [0.5054580270836808, -0.5008451751009404, 0.7026139006842824] },
+  { plateId: 10104, chartIds: [
+    "cao-coast:GPlates-1ef97d95-3313-4151-bd31-2923b19bc454:391:0",
+  ], referenceDirection: [0.056740946907283, -0.7041930892056413, 0.7077376336320407],
+  expectedDirection: [0.5745530350614346, -0.4108916958506479, 0.7078536742736268] },
+  { plateId: 20101, chartIds: [
+    "cao-coast:GPlates-625dff9b-cc71-4917-8d5a-28dc95b5598f:540:0",
+  ], referenceDirection: [0.555021997704296, -0.8118348116508087, -0.18131414907896246],
+  expectedDirection: [0.9140057205453659, -0.3484900800870446, -0.2077214646859642] },
+] as const;
+
+function angularDistance(left: readonly number[], right: readonly number[]) {
+  return 2 * Math.asin(Math.min(1, Math.hypot(
+    left[0]! - right[0]!, left[1]! - right[1]!, left[2]! - right[2]!,
+  ) / 2));
+}
+
+function assertWitnessChartCoverage(
+  charts: readonly { chartId: string }[],
+  witnesses: readonly { plateId: number; chartIds: readonly string[] }[],
+) {
+  for (const witness of witnesses) {
+    if (!charts.some((chart) => witness.chartIds.includes(chart.chartId))) {
+      throw new Error(`complete rotation witness chart missing for plate ${witness.plateId}`);
+    }
+  }
+}
+
 const root = resolve("public/data/reconstruction/cao-v2.4");
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
@@ -22,17 +57,21 @@ describe("native Cao package v2", () => {
     expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_500);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.motionPalette.entryCount * 11);
     expect(prepared.batches).toHaveLength(1);
-    expect(prepared.batches[0]!.vertexCount).toBe(139_152);
+    // Complete authored rotation collection recovers the previously omitted
+    // North American and Amazonian source geometry.
+    expect(prepared.batches[0]!.vertexCount).toBe(149_492);
     const geometry = prepared.batches[0]!.createStaticGeometryCopy();
-    expect(geometry.referenceDirections).toHaveLength(139_152 * 3);
+    expect(geometry.referenceDirections).toHaveLength(prepared.batches[0]!.vertexCount * 3);
     expect(Object.values(geometry).reduce((sum, array) => sum + array.byteLength, 0))
       .toBe(prepared.batches[0]!.staticGeometryBytes);
     const resource = createCaoFoundationGeometryResource(prepared, {
-      maxBatches: 4, maxVertices: 160_000, maxTriangles: 250_000,
+      // The renderer reservation includes 20,036 country-line vertices in
+      // addition to the 149,492 land vertices.
+      maxBatches: 4, maxVertices: 170_000, maxTriangles: 250_000,
       maxRetainedSourceBytes: 32_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
-    expect(resource.batches[0]!.vertexCount).toBe(139_152);
+    expect(resource.batches[0]!.vertexCount).toBe(prepared.batches[0]!.vertexCount);
     resource.dispose();
     expect(prepared.batches[0]!.createDisplayControlsCopy().displayHeightStart).toEqual({ kind: "uniform", value: 0 });
     expect(prepared.charts.some((chart) => chart.support.kind === "supported")).toBe(true);
@@ -75,6 +114,57 @@ describe("native Cao package v2", () => {
     expect(Math.hypot(...andes!.pose.direction!)).toBeCloseTo(1, 6);
     expect(modern.resolveAnchor("cairo")).toBeNull();
     modern.release();
+    const devonian = await runtime.request(385).prepared;
+    expect(devonian.resolveAnchor("cairo-fossil-forest")?.pose.support.kind).toBe("supported");
+    expect(devonian.charts.some((chart) => chart.role === "country-reference"
+      && chart.support.kind === "supported")).toBe(true);
+    devonian.release();
     runtime.dispose();
+  });
+
+  it("retains the complete authored rotation collection for present-day craton witnesses", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
+    expect(manifest.frame.rotationSha256)
+      .toBe("80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f");
+    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as {
+      charts: Array<{ chartId: string; motionBindings: Array<{ entryId: string }> }>;
+    };
+    const palette = JSON.parse(await readFile(resolve(root, manifest.motionPalette.catalog.url), "utf8")) as {
+      entries: Array<{ entryId: string; plateId: number }>;
+    };
+    const runtime = new CaoReconstructionRuntime(manifest, fetcher);
+    const modern = await runtime.request(0).prepared;
+    assertWitnessChartCoverage(modern.charts, completeRotationWitnesses);
+    const addresses = completeRotationWitnesses.map((witness) => {
+      const chartIndex = modern.charts.findIndex((chart) => witness.chartIds.includes(chart.chartId as never));
+      if (chartIndex < 0) throw new Error(`complete rotation witness chart missing for plate ${witness.plateId}`);
+      expect(modern.charts[chartIndex]!.support.kind).toBe("supported");
+      expect(modern.batches.some((batch) => batch.chartTriangleRanges.some(
+        (range) => range.chartIndex === chartIndex && range.triangleCount > 0,
+      ))).toBe(true);
+      const sourceChart = core.charts.find((chart) => chart.chartId === modern.charts[chartIndex]!.chartId)!;
+      expect(sourceChart).toBeDefined();
+      expect(sourceChart.motionBindings.some((binding) =>
+        palette.entries.some((entry) => entry.entryId === binding.entryId && entry.plateId === witness.plateId),
+      )).toBe(true);
+      return modern.addressForChartDirection(chartIndex, witness.referenceDirection);
+    });
+    modern.release();
+
+    const past = await runtime.request(100).prepared;
+    completeRotationWitnesses.forEach((witness, index) => {
+      const pose = past.resolveAddress(addresses[index]!);
+      expect(pose.support.kind).toBe("supported");
+      expect(angularDistance(pose.direction!, witness.expectedDirection)).toBeLessThanOrEqual(1e-6);
+    });
+    past.release();
+    runtime.dispose();
+
+    // R1: omission of one source witness must make the support check fail.
+    const omittedChartIds = new Set<string>(completeRotationWitnesses[0].chartIds);
+    expect(() => assertWitnessChartCoverage(
+      core.charts.filter((chart) => !omittedChartIds.has(chart.chartId)),
+      completeRotationWitnesses,
+    )).toThrow(/witness chart missing for plate 10103/);
   });
 });

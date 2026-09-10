@@ -12,7 +12,7 @@ OUT = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstructi
 PACKAGE = "cao-v2.4-foundation-v1"
 REVISION = "cao-foundation-v1"
 AGES = tuple(range(0, 541, 5))
-ROT = "1000_0_rotfile.rot"
+ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 FILES = ("250-0_plate_boundaries.gpml", "410-250_plate_boundaries.gpml", "1000-410_plate_boundaries.gpml", "TopologyBuildingBlocks.gpml")
 
 
@@ -25,7 +25,7 @@ def frame():
         "modelId": "cao-et-al-2024", "modelVersion": "2.4",
         "absoluteFrameId": "palaeomagnetic", "anchorPlateId": 0,
         "axisConvention": "gplates-x0e-y90e-znorth",
-        "rotationSha256": sha(MODEL / ROT),
+        "rotationSha256": hashlib.sha256("".join(sha(MODEL / name) for name in ROTATION_FILES).encode()).hexdigest(),
         "topologySha256": hashlib.sha256("".join(sha(MODEL / x) for x in FILES).encode()).hexdigest(),
     }
 
@@ -152,7 +152,7 @@ def emit_ownership(age, features, rotations):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     features = [feature for name in FILES for feature in pygplates.FeatureCollection(str(MODEL / name))]
-    rotations = pygplates.RotationModel(str(MODEL / ROT), default_anchor_plate_id=0)
+    rotations = pygplates.RotationModel([str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0)
     result = {"boundary": {}, "ownership": {}}
     for age in AGES:
         result["boundary"][str(age)] = emit_boundaries({"ageMa": age, "segments": boundary_records(age, features, rotations)})

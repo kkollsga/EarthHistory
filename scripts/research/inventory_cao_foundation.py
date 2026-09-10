@@ -27,11 +27,13 @@ MEMBERS = {
     "1000-410_plate_boundaries.gpml": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1",
     "TopologyBuildingBlocks.gpml": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297",
     "1000_0_rotfile.rot": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "1800_1000_rotfile.rot": "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
     "shapes_continents.gpmlz": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616",
     "shapes_coasts.gpmlz": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
     "static_polygons.gpmlz": "9b30d231157f99f9a7942d073efcb85649b0a6e10e49332637df2386f1b1350f",
 }
-GEOMETRY_MEMBERS = [name for name in MEMBERS if name != "1000_0_rotfile.rot"]
+ROTATION_MEMBERS = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
+GEOMETRY_MEMBERS = [name for name in MEMBERS if name not in ROTATION_MEMBERS]
 DISPLAY_AGES = list(range(0, 541, 5))
 
 
@@ -116,7 +118,8 @@ def main() -> None:
     rotation_lines = []
     rotation_times = set()
     moving_plate_ids = set()
-    with (MODEL / "1000_0_rotfile.rot").open(errors="replace") as source:
+    for rotation_name in ROTATION_MEMBERS:
+      with (MODEL / rotation_name).open(errors="replace") as source:
         for line in source:
             values = line.split("!")[0].split()
             if len(values) < 6:
@@ -145,7 +148,7 @@ def main() -> None:
     witness_plate = witness.get_reconstruction_plate_id(None)
     stored_point = witness.get_all_geometries()[0].get_points()[0]
     rotations = pygplates.RotationModel(
-        str(MODEL / "1000_0_rotfile.rot"), default_anchor_plate_id=0
+        [str(MODEL / name) for name in ROTATION_MEMBERS], default_anchor_plate_id=0
     )
     total_rotation = rotations.get_rotation(
         witness_age,
