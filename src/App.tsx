@@ -197,9 +197,12 @@ export default function App() {
     () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
     [],
   );
-  const snapshotRequestController = useRef<AbortController | null>(null);
-  const caoRequestController = useRef<AbortController | null>(null);
-  const previousRequestedAge = useRef(ageMa);
+  const caoPumpRef = useRef<{
+    disposed: boolean;
+    inFlight: boolean;
+    serial: number;
+    pump: () => void;
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -231,10 +234,130 @@ export default function App() {
     };
   }, []);
 
+  // Own one Cao prepare pump for the runtime lifetime. Age scrubbing only
+  // kicks the pump; it must not dispose/abort an in-flight prepare or the
+  // globe blanks / freezes while play advances every animation frame.
+  useEffect(() => {
+    if (!caoRuntimeReady) return;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return;
+
+    const pumpState = {
+      disposed: false,
+      inFlight: false,
+      serial: 0,
+      pump: () => {},
+    };
+
+    const applyPrepared = (prepared: PreparedCaoRevision) => {
+      setCaoAnchorCoordinates(Object.fromEntries(prepared.anchorIds.flatMap((id) => {
+        const resolved = prepared.resolveAnchor(id);
+        return resolved?.pose.direction ? [[id, gplatesDirectionToLonLat(resolved.pose.direction)]] : [];
+      })));
+      const focusAddress = materialFocusAddressRef.current;
+      if (focusAddress) {
+        const pose = prepared.resolveAddress(focusAddress);
+        if (pose.direction) {
+          const coordinates = gplatesDirectionToLonLat(pose.direction);
+          setAreaFocusStatus("resolved");
+          setAutoRotateEnabled(false);
+          setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
+            // Age-driven material retargeting preserves the current camera radius,
+            // including reacquisition after an unsupported lifetime interval.
+            distance: undefined }));
+        } else {
+          setAreaFocusStatus("unresolved");
+          setSpatialFocus((current) => current?.kind === "area" ? null : current);
+        }
+      }
+      setCaoLoadError(null);
+      caoRevisionRef.current = prepared;
+      setCaoRevision(prepared);
+    };
+
+    const pump = () => {
+      if (pumpState.disposed || pumpState.inFlight) return;
+      const targetAge = requestedAgeRef.current;
+      if (targetAge < runtime.manifest.ageDomainMa.youngest || targetAge > runtime.manifest.ageDomainMa.oldest) {
+        return;
+      }
+      if (caoRevisionRef.current?.requestedAgeMa === targetAge) return;
+
+      const serial = ++pumpState.serial;
+      pumpState.inFlight = true;
+      // Free the prior lease before opening another (limit 2). Publish already
+      // released most revisions; release() remains safe to call again.
+      caoRevisionRef.current?.release();
+      caoRevisionRef.current = null;
+      // Intentionally keep React `caoRevision` until the next prepare lands so
+      // GlobeView does not clear the foundation mid-transition.
+
+      let request: ReturnType<CaoReconstructionRuntime["request"]>;
+      try {
+        request = runtime.request(targetAge);
+      } catch (error) {
+        if (serial === pumpState.serial) pumpState.inFlight = false;
+        setCaoRevision(null);
+        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
+        return;
+      }
+
+      void request.prepared.then((prepared) => {
+        if (serial !== pumpState.serial || pumpState.disposed) {
+          prepared.release();
+          return;
+        }
+        const latest = requestedAgeRef.current;
+        if (latest < runtime.manifest.ageDomainMa.youngest || latest > runtime.manifest.ageDomainMa.oldest) {
+          prepared.release();
+          pumpState.inFlight = false;
+          return;
+        }
+        if (latest !== targetAge) {
+          prepared.release();
+          pumpState.inFlight = false;
+          pump();
+          return;
+        }
+        applyPrepared(prepared);
+        pumpState.inFlight = false;
+        if (requestedAgeRef.current !== targetAge) pump();
+      }).catch((error: unknown) => {
+        if (serial !== pumpState.serial || pumpState.disposed) return;
+        pumpState.inFlight = false;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (requestedAgeRef.current !== targetAge) pump();
+          return;
+        }
+        // Failed ages must withhold the surface — do not keep stale continents.
+        setCaoRevision(null);
+        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
+      });
+    };
+
+    pumpState.pump = pump;
+    caoPumpRef.current = pumpState;
+    pump();
+
+    return () => {
+      pumpState.disposed = true;
+      if (caoPumpRef.current === pumpState) caoPumpRef.current = null;
+      runtime.cancelActive();
+      caoRevisionRef.current?.release();
+      caoRevisionRef.current = null;
+      setCaoRevision(null);
+    };
+  }, [caoRuntimeReady]);
+
   useEffect(() => {
     const runtime = caoRuntimeRef.current;
-    if (!runtime || ageMa < runtime.manifest.ageDomainMa.youngest || ageMa > runtime.manifest.ageDomainMa.oldest) {
-      runtime?.cancelActive();
+    if (!runtime || !caoRuntimeReady) return;
+    if (ageMa < runtime.manifest.ageDomainMa.youngest || ageMa > runtime.manifest.ageDomainMa.oldest) {
+      runtime.cancelActive();
+      if (caoPumpRef.current) {
+        caoPumpRef.current.serial += 1;
+        caoPumpRef.current.inFlight = false;
+      }
       caoRevisionRef.current?.release();
       caoRevisionRef.current = null;
       setCaoRevision(null);
@@ -245,52 +368,7 @@ export default function App() {
       }
       return;
     }
-    let request: ReturnType<CaoReconstructionRuntime["request"]>;
-    // Never label a prior age's publication as the requested reconstruction.
-    caoRevisionRef.current?.release();
-    caoRevisionRef.current = null;
-    setCaoRevision(null);
-    try {
-      request = runtime.request(ageMa);
-    } catch (error) {
-      setCaoRevision(null);
-      setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
-      return;
-    }
-    let active = true;
-    void request.prepared.then((prepared) => {
-      if (!active) prepared.release(); else {
-        setCaoAnchorCoordinates(Object.fromEntries(prepared.anchorIds.flatMap((id) => {
-          const resolved = prepared.resolveAnchor(id);
-          return resolved?.pose.direction ? [[id, gplatesDirectionToLonLat(resolved.pose.direction)]] : [];
-        })));
-        const focusAddress = materialFocusAddressRef.current;
-        if (focusAddress) {
-          const pose = prepared.resolveAddress(focusAddress);
-          if (pose.direction) {
-            const coordinates = gplatesDirectionToLonLat(pose.direction);
-            setAreaFocusStatus("resolved");
-            setAutoRotateEnabled(false);
-            setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
-              // Age-driven material retargeting preserves the current camera radius,
-              // including reacquisition after an unsupported lifetime interval.
-              distance: undefined }));
-          } else {
-            setAreaFocusStatus("unresolved");
-            setSpatialFocus((current) => current?.kind === "area" ? null : current);
-          }
-        }
-        setCaoLoadError(null);
-        caoRevisionRef.current = prepared;
-        setCaoRevision(prepared);
-      }
-    }).catch((error: unknown) => {
-      if (active && !(error instanceof DOMException && error.name === "AbortError")) {
-        setCaoRevision(null);
-        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
-      }
-    });
-    return () => { active = false; };
+    caoPumpRef.current?.pump();
   }, [ageMa, caoRuntimeReady]);
 
   const selectedPoiRecord = useMemo(
@@ -736,10 +814,11 @@ export default function App() {
           <span>Surface water</span>
           {layers.guides && <span>Schematic climate guides</span>}
           <span role="status">Cao native foundation · {ageMa > 540 ? "outside compiled domain"
-            : periodCoordinateState.status === "ready"
-            ? "rendered"
             : periodCoordinateState.status === "error" ? "render unavailable"
-              : caoRevision === null ? "preparing" : "updating"}</span>
+              : caoRevision === null ? "preparing"
+                : caoRevision.requestedAgeMa !== ageMa || periodCoordinateState.status === "updating"
+                  ? "updating"
+                  : periodCoordinateState.status === "ready" ? "rendered" : "updating"}</span>
           {caoLoadError !== null && (
             <span role="status">Cao reconstruction unavailable · surface withheld</span>
           )}

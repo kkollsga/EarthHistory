@@ -603,6 +603,9 @@ export class GlobeScene {
   }
 
   setPreparedCaoRevision(revision: PreparedCaoRevision | null): CaoFoundationDiagnostics | null {
+    // null clears the foundation (out-of-domain / prepare failure). App keeps the
+    // previous PreparedCaoRevision prop during in-domain age transitions so this
+    // path is not used for ordinary scrubbing — that avoids a blank globe.
     if (revision === null) {
       this.caoFoundationRenderer.clear();
       this.hasNativePublication = false;

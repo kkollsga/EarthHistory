@@ -17,6 +17,9 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Keep continents visible while scrubbing or playing through Cao ages: retain
+  the last published foundation until the next prepare lands, and coalesce
+  rapid age ticks so in-flight prepares are not aborted every animation frame.
 - Load both authored Cao rotation files, including younger-age parent ties in
   the older-named file, to retain native US and Amazon geometry and its motion.
 - Keep tagged material and supported POIs on the same coordinate authority as
