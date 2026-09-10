@@ -61,4 +61,37 @@ describe("continuous Cao motion frames", () => {
     runtime.dispose();
     expect(older.requestedAgeMa).toBe(105);
   });
+
+  it("keeps Fennoscandia charts supported across the 118–120 Ma motion gap", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
+      ReconstructionPackageManifestV2;
+    const foundation = await loadVerifiedCaoFoundation(manifest, fetcher);
+    const younger = evaluateCaoMotionFrame(manifest, foundation, 118);
+    const mid = evaluateCaoMotionFrame(manifest, foundation, 119.6);
+    const older = evaluateCaoMotionFrame(manifest, foundation, 120);
+    // Package bindings omit (118, 120) for Eurasian plates after adaptive dropout;
+    // runtime must bridge neighbouring compiled endpoints rather than blanking.
+    const fennoscandiaIds = new Set(foundation.core.charts.filter((chart) =>
+      (chart.motionBindings ?? []).some((binding) => /^plate-302(?:02|04)?-/.test(binding.entryId)
+        || /^plate-301-/.test(binding.entryId) || /^plate-311-/.test(binding.entryId)))
+      .map((chart) => chart.chartId));
+    // Only charts that are lifecycle-active at both gap endpoints must stay posed
+    // through the open binding hole (inactive lifecycle charts remain inactive).
+    const activeEndpoints = younger.charts.filter((chart) => fennoscandiaIds.has(chart.chartId)
+      && chart.support.kind === "supported"
+      && older.charts.find((candidate) => candidate.chartId === chart.chartId)?.support.kind === "supported");
+    expect(activeEndpoints.length).toBeGreaterThan(10);
+    for (const chart of activeEndpoints) {
+      const atGap = mid.charts.find((candidate) => candidate.chartId === chart.chartId)!;
+      expect(atGap.support.kind).toBe("supported");
+      expect(Math.hypot(...atGap.poseQuaternion)).toBeCloseTo(1, 5);
+    }
+    const countrySwe = mid.charts.filter((chart) => chart.materialId === "country:swe");
+    expect(countrySwe.length).toBeGreaterThan(0);
+    expect(countrySwe.every((chart) => chart.support.kind === "supported")).toBe(true);
+    const supportedAtGap = mid.charts.filter((chart) => chart.support.kind === "supported").length;
+    const supportedAt118 = younger.charts.filter((chart) => chart.support.kind === "supported").length;
+    expect(supportedAtGap).toBeGreaterThanOrEqual(supportedAt118 - 5);
+  });
+
 });

@@ -1,12 +1,80 @@
 import { evaluateLifecycleSupport } from "./motion";
-import { selectPaletteMotionSubsegment } from "./palette";
+import { selectPaletteMotionSubsegment, type PaletteMotionSubsegment, type PreparedPaletteEntry } from "./palette";
 import { PREPARED_MOTION_PALETTE_STRIDE } from "./facadeV2";
 import type { PreparedCaoChartIdentity } from "./facadeV2";
 import type { LoadedCaoFoundation } from "./loaderV2";
 import type { ReconstructionPackageManifestV2 } from "./packageV2";
-import type { MaterialAddress, MaterialPose, SupportState } from "./types";
+import type { MaterialAddress, MaterialPose, MotionSample, SupportState } from "./types";
 import { inverseQuaternion, numberScalarOps, rotateDirection, slerpQuaternion,
   type UnitDirection } from "./arithmetic";
+
+type ChartMotionBinding = {
+  readonly paletteId: string;
+  readonly entryId: string;
+  readonly validTimeMa: { readonly youngest: number; readonly oldest: number };
+};
+
+function endpointSample(segment: PaletteMotionSubsegment): MotionSample {
+  return segment.fraction === 0 ? segment.younger : segment.older;
+}
+
+/**
+ * Resolves a chart's motion row at a continuous age. Exact compiled bindings win.
+ * Open gaps between adjacent same-chart bindings (compiler adaptive dropouts such
+ * as 118–120 Ma on Fennoscandia plates) are bridged from the neighbouring
+ * compiled endpoint samples so geometry stays posed instead of vanishing.
+ */
+export function resolveChartMotionSegment(
+  bindings: readonly ChartMotionBinding[],
+  paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
+  requestedAgeMa: number,
+): PaletteMotionSubsegment | null {
+  const matches = bindings.filter((binding) => requestedAgeMa >= binding.validTimeMa.youngest
+    && requestedAgeMa <= binding.validTimeMa.oldest);
+  if (matches.length > 0) {
+    const selected = [...matches].sort((left, right) => left.entryId.localeCompare(right.entryId))[0]!;
+    const entry = paletteEntries.get(selected.entryId);
+    return entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
+  }
+  let youngerSide: ChartMotionBinding | undefined;
+  let olderSide: ChartMotionBinding | undefined;
+  for (const binding of bindings) {
+    if (binding.validTimeMa.oldest < requestedAgeMa
+        && (!youngerSide || binding.validTimeMa.oldest > youngerSide.validTimeMa.oldest)) {
+      youngerSide = binding;
+    }
+    if (binding.validTimeMa.youngest > requestedAgeMa
+        && (!olderSide || binding.validTimeMa.youngest < olderSide.validTimeMa.youngest)) {
+      olderSide = binding;
+    }
+  }
+  if (youngerSide && olderSide) {
+    const youngerEntry = paletteEntries.get(youngerSide.entryId);
+    const olderEntry = paletteEntries.get(olderSide.entryId);
+    const youngerSeg = youngerEntry
+      ? selectPaletteMotionSubsegment(youngerEntry, youngerSide.validTimeMa.oldest) : null;
+    const olderSeg = olderEntry
+      ? selectPaletteMotionSubsegment(olderEntry, olderSide.validTimeMa.youngest) : null;
+    if (!youngerSeg || !olderSeg) return null;
+    const lo = youngerSide.validTimeMa.oldest;
+    const hi = olderSide.validTimeMa.youngest;
+    if (!(hi > lo)) return null;
+    return {
+      younger: endpointSample(youngerSeg),
+      older: endpointSample(olderSeg),
+      fraction: (requestedAgeMa - lo) / (hi - lo),
+    };
+  }
+  const hold = youngerSide ?? olderSide;
+  if (!hold) return null;
+  const entry = paletteEntries.get(hold.entryId);
+  if (!entry) return null;
+  const holdAge = youngerSide ? hold.validTimeMa.oldest : hold.validTimeMa.youngest;
+  const holdSeg = selectPaletteMotionSubsegment(entry, holdAge);
+  if (!holdSeg) return null;
+  const sample = endpointSample(holdSeg);
+  return { younger: sample, older: sample, fraction: 0 };
+}
 
 export interface CaoDisplayBracket {
   readonly youngerAgeMa: number;
@@ -73,17 +141,10 @@ export function evaluateCaoMotionFrame(
 ): CaoMotionFrame {
   const display = resolveCaoDisplayBracket(manifest, requestedAgeMa);
   const values = new Float32Array(foundation.core.charts.length * PREPARED_MOTION_PALETTE_STRIDE);
-  const segments = new Map([...foundation.paletteEntries].map(([entryId, entry]) =>
-    [entryId, selectPaletteMotionSubsegment(entry, requestedAgeMa)] as const));
   const charts = foundation.core.charts.map((chart, chartIndex) => {
     const bindings = chart.motionBindings ?? (chart.motionBinding ? [{ ...chart.motionBinding,
       validTimeMa: chart.lifecycle.validTimeMa }] : []);
-    const matches = bindings.filter((binding) => requestedAgeMa >= binding.validTimeMa.youngest
-      && requestedAgeMa <= binding.validTimeMa.oldest);
-    const selected = matches.length === 0 ? undefined
-      : [...matches].sort((left, right) => left.entryId.localeCompare(right.entryId))[0];
-    const entry = selected && foundation.paletteEntries.get(selected.entryId);
-    const segment = entry && segments.get(selected!.entryId);
+    const segment = resolveChartMotionSegment(bindings, foundation.paletteEntries, requestedAgeMa);
     const lifecycle = evaluateLifecycleSupport(chart.lifecycle, requestedAgeMa);
     const support: SupportState = lifecycle ?? (segment
       ? { kind: "supported", method: "compiled-rigid" }

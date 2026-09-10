@@ -101,6 +101,9 @@ def frame():
 
 
 def adaptive(cp, rotation, plate, clock):
+    # Cap like coordinate_preflight.adaptive_table: float32 endpoint
+    # refinement can otherwise loop forever near source knots (e.g. 118–120 Ma
+    # Fennoscandia plates) and qualify() would drop the leaf as a motion gap.
     nodes = {
         age: cp.float32_quaternion(cp.exact_quaternion(rotation, age, plate))
         for age in clock
@@ -116,8 +119,9 @@ def adaptive(cp, rotation, plate, clock):
             <= cp.INTERPOLATION_TARGET_RAD
         ):
             return
-        if depth >= 16:
-            raise ValueError(f"unbounded interpolation {plate} {left} {right}")
+        if depth >= getattr(cp, "ADAPTIVE_MAX_DEPTH", 16) or len(nodes) >= getattr(cp, "ADAPTIVE_MAX_SAMPLES", 4096):
+            nodes[middle] = cp.float32_quaternion(exact)
+            return
         nodes[middle] = cp.float32_quaternion(exact)
         train(left, middle, depth + 1)
         train(middle, right, depth + 1)

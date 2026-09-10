@@ -26,6 +26,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Keep Fennoscandia (and other Eurasian plates) visible while scrubbing through
+  the open 118–120 Ma Cao motion-binding gap: bridge adjacent compiled palette
+  endpoints instead of treating the compiler adaptive dropout as missing motion.
+  Future package rebuilds cap adaptive refinement instead of dropping those leaves.
 - Keep continents visible when scrubbing to today (0 Ma): retain the last
   prepared foundation until the next exact-knot prepare is ready, do not clear
   React state on prepare/request failure, and do not tear down the published
