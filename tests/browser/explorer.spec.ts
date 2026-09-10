@@ -78,12 +78,15 @@ test("withholds a failed checkpoint and recovers without stale land", async ({ p
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "450");
 });
 
-test("withholds native geography outside 0–540 Ma", async ({ page }) => {
+test("labels editorial geography outside the live Cao package domain", async ({ page }) => {
   await page.goto("./#age=720");
   await expect(globe(page)).toBeVisible();
+  // Direct deep-time entry has no in-domain publish yet, so native geography is withheld.
   await expect.poll(() => globe(page).getAttribute("data-cao-foundation-status")).toBe("unsupported");
   await expect(page.locator(".geography-age").first()).toContainText("Outside compiled domain");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "unsupported-editorial-uniform");
+  await expect(page.locator("#timeline-scale")).toContainText("Precambrian");
+  await expect(page.locator("#timeline-scale option[value='recent']")).toHaveCount(0);
 });
 
 test("keeps layers usable and labels unavailable seafloor data", async ({ page }) => {

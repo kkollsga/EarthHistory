@@ -5,6 +5,7 @@ export * from "./engineV2";
 export * from "./facadeV2";
 export * from "./loaderV2";
 export * from "./motion";
+export * from "./motionFrameV2";
 export * from "./nativeLayersV2";
 export * from "./palette";
 export * from "./identity";

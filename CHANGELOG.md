@@ -6,6 +6,15 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Changed
 
+- Scrubbing continuously interpolates Cao plate motion from the resident shared
+  palette between display knots, retargeting the published foundation in place
+  instead of waiting for discrete prepare snaps. Adjacent checkpoints are
+  prefetched only as a bounded aid on top of that interpolation.
+- Timeline ranges are Phanerozoic (ICS 538.8–0 Ma) and Precambrian (older than
+  538.8 Ma through authored deep-time chapters and the live Cao package domain);
+  the Recent Earth range is removed.
+- Age-domain gating and continuous play follow the live package `ageDomainMa`
+  (cao-v2.4 currently declares 0–540 Ma) rather than hard-coded ceilings.
 - Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 109 native
   checkpoints from 0–540 Ma and a shared, source-qualified motion clock.
 - Store geometry once and use one GPU rendering path for present-day and
@@ -18,8 +27,10 @@ All notable changes to EarthHistory will be recorded here.
 ### Fixed
 
 - Keep continents visible while scrubbing or playing through Cao ages: retain
-  the last published foundation until the next prepare lands, and coalesce
-  rapid age ticks so in-flight prepares are not aborted every animation frame.
+  the last published foundation until the next prepare lands, coalesce rapid
+  age ticks, and continuously retarget motion so plates interpolate between
+  prepares. Outside the live package domain, keep the last foundation rather
+  than blanking when entering editorial Precambrian chapters from an in-domain age.
 - Load both authored Cao rotation files, including younger-age parent ties in
   the older-named file, to retain native US and Amazon geometry and its motion.
 - Keep tagged material and supported POIs on the same coordinate authority as
@@ -38,6 +49,10 @@ All notable changes to EarthHistory will be recorded here.
   exposed-land outlines. Unsupported country fragments and POIs are omitted.
 - Continental motion interpolates on its qualified source clock. Native
   boundary and ownership geometry is available only at exact checkpoints.
+- The live cao-v2.4 package still declares ageDomainMa 0–540 Ma. Cao source
+  rotations extend to 1.8 Ga, but compiled checkpoints/motion older than 540 Ma
+  are not in the public package yet; Precambrian scrubbing uses authored
+  chapters with editorial globe state beyond that domain.
 - The initial package covers 0–540 Ma; the model's older domain is not yet
   compiled into the application.
 

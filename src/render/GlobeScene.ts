@@ -602,6 +602,36 @@ export class GlobeScene {
     this.onCaoFoundationState = callback;
   }
 
+  retargetCaoMotion(
+    paletteValues: Float32Array,
+    entryCount: number,
+    displayFraction: number,
+    chartPoses: Float32Array,
+    chartActive: Uint8Array,
+    requestedAgeMa: number,
+  ): CaoFoundationDiagnostics | null {
+    if (!this.hasNativePublication) return null;
+    try {
+      const diagnostics = this.caoFoundationRenderer.retargetMotion(
+        paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa);
+      this.pendingCaoDiagnostics = diagnostics;
+      const dataset = this.renderer.domElement.dataset;
+      dataset.caoFoundationStatus = "ready";
+      dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
+      dataset.surfaceStatus = "ready";
+      this.onCaoFoundationState?.({ status: "ready",
+        requestedAgeMa: diagnostics.requestedAgeMa ?? undefined,
+        displayedAgeMa: diagnostics.requestedAgeMa ?? undefined,
+        resolvedVertices: diagnostics.vertices });
+      // Refresh prepared anchor markers from the continuous poses when App supplies them.
+      return diagnostics;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Cao motion retarget failed";
+      this.onCaoFoundationState?.({ status: "error", error: message });
+      throw error;
+    }
+  }
+
   setPreparedCaoRevision(revision: PreparedCaoRevision | null): CaoFoundationDiagnostics | null {
     // null clears the foundation (out-of-domain / prepare failure). App keeps the
     // previous PreparedCaoRevision prop during in-domain age transitions so this

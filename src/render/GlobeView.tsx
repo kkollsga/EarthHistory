@@ -6,7 +6,8 @@ import type {
   WorldSnapshot,
 } from "../data";
 import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
-import type { MaterialAddress, PreparedCaoRevision } from "../reconstruction";
+import type { CaoMotionFrame, MaterialAddress, PreparedCaoRevision } from "../reconstruction";
+import { chartPickStateFromMotionFrame } from "../reconstruction";
 
 export interface FocusTarget {
   kind: SpatialFocusKind;
@@ -26,6 +27,7 @@ export interface PeriodCoordinateRenderState {
 
 export interface GlobeViewProps {
   caoRevision?: PreparedCaoRevision | null;
+  caoMotionFrame?: CaoMotionFrame | null;
   snapshot: WorldSnapshot | null;
   layers: LayerVisibility;
   selectedPoiId: string | null;
@@ -42,6 +44,7 @@ export interface GlobeViewProps {
 
 export function GlobeView({
   caoRevision = null,
+  caoMotionFrame = null,
   snapshot,
   layers,
   selectedPoiId,
@@ -60,6 +63,7 @@ export function GlobeView({
   const [renderError, setRenderError] = useState<string | null>(null);
   const latestProps = useRef({
     caoRevision,
+    caoMotionFrame,
     snapshot,
     layers,
     selectedPoiId,
@@ -75,6 +79,7 @@ export function GlobeView({
   });
   latestProps.current = {
     caoRevision,
+    caoMotionFrame,
     snapshot,
     layers,
     selectedPoiId,
@@ -166,6 +171,20 @@ export function GlobeView({
     scene.setPreparedCaoRevision(caoRevision);
     return undefined;
   }, [caoRevision]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (scene === null || caoMotionFrame === null || caoRevision === null) return;
+    const pick = chartPickStateFromMotionFrame(caoMotionFrame);
+    scene.retargetCaoMotion(
+      caoMotionFrame.paletteValues,
+      caoMotionFrame.entryCount,
+      caoMotionFrame.display.fraction,
+      pick.chartPoses,
+      pick.chartActive,
+      caoMotionFrame.requestedAgeMa,
+    );
+  }, [caoMotionFrame, caoRevision]);
 
   useEffect(() => {
     sceneRef.current?.setEditorialSnapshot(snapshot);

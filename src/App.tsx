@@ -33,14 +33,14 @@ import {
 } from "./data";
 import { EvidenceBadge } from "./components/EvidenceBadge";
 import { Modal } from "./components/Modal";
-import { formatAge, Timeline } from "./components/Timeline";
+import { formatAge, PHANEROZOIC_MAX_MA, Timeline } from "./components/Timeline";
 import {
   parseMaterialAddress,
   parseFocusCoordinates,
   serializeMaterialAddress,
   serializeFocusCoordinates,
 } from "./focusState";
-import { CaoReconstructionRuntime, type PreparedCaoRevision,
+import { CaoReconstructionRuntime, type CaoMotionFrame, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -178,12 +178,16 @@ export default function App() {
   const [periodCoordinateState, setPeriodCoordinateState] = useState<PeriodCoordinateRenderState>({ status: null });
   const [caoRevision, setCaoRevision] = useState<PreparedCaoRevision | null>(null);
   const caoRevisionRef = useRef<PreparedCaoRevision | null>(null);
+  const [caoMotionFrame, setCaoMotionFrame] = useState<CaoMotionFrame | null>(null);
+  const caoMotionFrameRef = useRef<CaoMotionFrame | null>(null);
+  const caoScrubPumpRef = useRef<{ disposed: boolean; inFlight: boolean; serial: number; pump: () => void } | null>(null);
   const [materialFocusAddress, setMaterialFocusAddress] = useState<MaterialAddress | null>(initial.nativeMaterialFocus);
   const materialFocusAddressRef = useRef<MaterialAddress | null>(null);
   materialFocusAddressRef.current = materialFocusAddress;
   const [caoAnchorCoordinates, setCaoAnchorCoordinates] = useState<Readonly<Record<string, LonLat>>>({});
   const [caoRuntimeReady, setCaoRuntimeReady] = useState(0);
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
+  const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -219,6 +223,7 @@ export default function App() {
       if (!active) return;
       caoRuntimeRef.current = new CaoReconstructionRuntime(manifest, fetcher);
       setCaoSourceAges(Object.freeze(manifest.checkpoints.map((checkpoint) => checkpoint.ageMa)));
+      setCaoAgeDomainMa(Object.freeze([manifest.ageDomainMa.youngest, manifest.ageDomainMa.oldest]));
       setCaoRuntimeReady((value) => value + 1);
     }).catch((error: unknown) => {
       if (active && !(error instanceof DOMException && error.name === "AbortError")) {
@@ -231,12 +236,100 @@ export default function App() {
       caoRuntimeRef.current?.dispose();
       caoRuntimeRef.current = null;
       setCaoSourceAges([]);
+      setCaoAgeDomainMa(null);
     };
   }, []);
 
-  // Own one Cao prepare pump for the runtime lifetime. Age scrubbing only
-  // kicks the pump; it must not dispose/abort an in-flight prepare or the
-  // globe blanks / freezes while play advances every animation frame.
+  const applyMotionFrame = (frame: CaoMotionFrame) => {
+    setCaoAnchorCoordinates(Object.fromEntries(frame.anchorIds.flatMap((id) => {
+      const resolved = frame.resolveAnchor(id);
+      return resolved?.pose.direction ? [[id, gplatesDirectionToLonLat(resolved.pose.direction)]] : [];
+    })));
+    const focusAddress = materialFocusAddressRef.current;
+    if (focusAddress) {
+      const pose = frame.resolveAddress(focusAddress);
+      if (pose.direction) {
+        const coordinates = gplatesDirectionToLonLat(pose.direction);
+        setAreaFocusStatus("resolved");
+        setAutoRotateEnabled(false);
+        setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
+          distance: undefined }));
+      } else {
+        setAreaFocusStatus("unresolved");
+        setSpatialFocus((current) => current?.kind === "area" ? null : current);
+      }
+    }
+    setCaoLoadError(null);
+    caoMotionFrameRef.current = frame;
+    setCaoMotionFrame(frame);
+  };
+
+  // Continuous scrub: evaluate resident motion at the live ageMa and retarget the
+  // published foundation in place (interpolation). Coalesce rapid play ticks.
+  useEffect(() => {
+    if (!caoRuntimeReady) return;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return;
+
+    const scrub = {
+      disposed: false,
+      inFlight: false,
+      serial: 0,
+      pump: () => {},
+    };
+
+    const pump = () => {
+      if (scrub.disposed || scrub.inFlight) return;
+      const targetAge = requestedAgeRef.current;
+      const domain = runtime.manifest.ageDomainMa;
+      if (targetAge < domain.youngest || targetAge > domain.oldest) return;
+      if (caoMotionFrameRef.current?.requestedAgeMa === targetAge) return;
+      const serial = ++scrub.serial;
+      scrub.inFlight = true;
+      void runtime.evaluateMotion(targetAge).then((frame) => {
+        if (serial !== scrub.serial || scrub.disposed) return;
+        const latest = requestedAgeRef.current;
+        if (latest < domain.youngest || latest > domain.oldest) {
+          scrub.inFlight = false;
+          return;
+        }
+        if (latest !== targetAge) {
+          scrub.inFlight = false;
+          pump();
+          return;
+        }
+        applyMotionFrame(frame);
+        scrub.inFlight = false;
+        if (requestedAgeRef.current !== targetAge) pump();
+        // Prefetch adjacent display knots along play/scrub direction (bounded).
+        const ages = runtime.manifest.checkpoints.map((checkpoint) => checkpoint.ageMa);
+        const upper = ages.findIndex((age) => age >= targetAge);
+        const lookahead = [ages[Math.max(0, upper - 1)], ages[upper], ages[Math.min(ages.length - 1, upper + 1)]]
+          .filter((age): age is number => age !== undefined);
+        void runtime.prefetchCheckpoints(lookahead);
+      }).catch((error: unknown) => {
+        if (serial !== scrub.serial || scrub.disposed) return;
+        scrub.inFlight = false;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (requestedAgeRef.current !== targetAge) pump();
+          return;
+        }
+        setCaoLoadError(error instanceof Error ? error.message : "Cao motion could not be evaluated");
+      });
+    };
+
+    scrub.pump = pump;
+    caoScrubPumpRef.current = scrub;
+    pump();
+    return () => {
+      scrub.disposed = true;
+      if (caoScrubPumpRef.current === scrub) caoScrubPumpRef.current = null;
+    };
+  }, [caoRuntimeReady]);
+
+  // Discrete prepare establishes static geometry / exact-knot overlays once the
+  // foundation is empty, or when landing on a new exact checkpoint for native
+  // boundary layers. Continuous ages never tear down the visible foundation.
   useEffect(() => {
     if (!caoRuntimeReady) return;
     const runtime = caoRuntimeRef.current;
@@ -250,55 +343,39 @@ export default function App() {
     };
 
     const applyPrepared = (prepared: PreparedCaoRevision) => {
-      setCaoAnchorCoordinates(Object.fromEntries(prepared.anchorIds.flatMap((id) => {
-        const resolved = prepared.resolveAnchor(id);
-        return resolved?.pose.direction ? [[id, gplatesDirectionToLonLat(resolved.pose.direction)]] : [];
-      })));
-      const focusAddress = materialFocusAddressRef.current;
-      if (focusAddress) {
-        const pose = prepared.resolveAddress(focusAddress);
-        if (pose.direction) {
-          const coordinates = gplatesDirectionToLonLat(pose.direction);
-          setAreaFocusStatus("resolved");
-          setAutoRotateEnabled(false);
-          setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
-            // Age-driven material retargeting preserves the current camera radius,
-            // including reacquisition after an unsupported lifetime interval.
-            distance: undefined }));
-        } else {
-          setAreaFocusStatus("unresolved");
-          setSpatialFocus((current) => current?.kind === "area" ? null : current);
-        }
-      }
       setCaoLoadError(null);
       caoRevisionRef.current = prepared;
       setCaoRevision(prepared);
+      // Continuous motion/anchors come from evaluateMotion, not the released lease.
+      caoScrubPumpRef.current?.pump();
     };
 
     const pump = () => {
       if (pumpState.disposed || pumpState.inFlight) return;
       const targetAge = requestedAgeRef.current;
-      if (targetAge < runtime.manifest.ageDomainMa.youngest || targetAge > runtime.manifest.ageDomainMa.oldest) {
-        return;
-      }
+      const domain = runtime.manifest.ageDomainMa;
+      if (targetAge < domain.youngest || targetAge > domain.oldest) return;
+      const exact = runtime.manifest.checkpoints.some((checkpoint) => checkpoint.ageMa === targetAge);
+      // After the first publish, only re-prepare at exact display knots so native
+      // overlays can refresh; fractional ages rely on continuous motion scrub.
+      if (caoRevisionRef.current !== null && !exact) return;
       if (caoRevisionRef.current?.requestedAgeMa === targetAge) return;
 
       const serial = ++pumpState.serial;
       pumpState.inFlight = true;
-      // Free the prior lease before opening another (limit 2). Publish already
-      // released most revisions; release() remains safe to call again.
       caoRevisionRef.current?.release();
       caoRevisionRef.current = null;
-      // Intentionally keep React `caoRevision` until the next prepare lands so
-      // GlobeView does not clear the foundation mid-transition.
+      // Keep React `caoRevision` until the next prepare lands (no blank).
 
       let request: ReturnType<CaoReconstructionRuntime["request"]>;
       try {
         request = runtime.request(targetAge);
       } catch (error) {
         if (serial === pumpState.serial) pumpState.inFlight = false;
-        setCaoRevision(null);
-        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
+        if (caoRevisionRef.current === null) {
+          setCaoRevision(null);
+          setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
+        }
         return;
       }
 
@@ -308,7 +385,7 @@ export default function App() {
           return;
         }
         const latest = requestedAgeRef.current;
-        if (latest < runtime.manifest.ageDomainMa.youngest || latest > runtime.manifest.ageDomainMa.oldest) {
+        if (latest < domain.youngest || latest > domain.oldest) {
           prepared.release();
           pumpState.inFlight = false;
           return;
@@ -329,8 +406,9 @@ export default function App() {
           if (requestedAgeRef.current !== targetAge) pump();
           return;
         }
-        // Failed ages must withhold the surface — do not keep stale continents.
         setCaoRevision(null);
+        setCaoMotionFrame(null);
+        caoMotionFrameRef.current = null;
         setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
       });
     };
@@ -346,28 +424,25 @@ export default function App() {
       caoRevisionRef.current?.release();
       caoRevisionRef.current = null;
       setCaoRevision(null);
+      setCaoMotionFrame(null);
+      caoMotionFrameRef.current = null;
     };
   }, [caoRuntimeReady]);
 
   useEffect(() => {
     const runtime = caoRuntimeRef.current;
     if (!runtime || !caoRuntimeReady) return;
-    if (ageMa < runtime.manifest.ageDomainMa.youngest || ageMa > runtime.manifest.ageDomainMa.oldest) {
-      runtime.cancelActive();
-      if (caoPumpRef.current) {
-        caoPumpRef.current.serial += 1;
-        caoPumpRef.current.inFlight = false;
-      }
-      caoRevisionRef.current?.release();
-      caoRevisionRef.current = null;
-      setCaoRevision(null);
-      setCaoAnchorCoordinates({});
-      if (materialFocusAddressRef.current !== null) {
-        setAreaFocusStatus("unresolved");
-        setSpatialFocus((current) => current?.kind === "area" ? null : current);
+    const domain = runtime.manifest.ageDomainMa;
+    if (ageMa < domain.youngest || ageMa > domain.oldest) {
+      // Outside the live Cao package domain: keep the last foundation visible
+      // (editorial deep-time chapters) instead of blanking continents.
+      if (caoScrubPumpRef.current) {
+        caoScrubPumpRef.current.serial += 1;
+        caoScrubPumpRef.current.inFlight = false;
       }
       return;
     }
+    caoScrubPumpRef.current?.pump();
     caoPumpRef.current?.pump();
   }, [ageMa, caoRuntimeReady]);
 
@@ -395,9 +470,12 @@ export default function App() {
   const retimedSnapshot = snapshot;
   const displayedSnapshot = retimedSnapshot;
   const temporalPoiCoordinates = useMemo<Readonly<Record<string, LonLat>> | undefined>(() => {
-    if (ageMa > 540) return undefined;
+    if (caoAgeDomainMa && (ageMa < caoAgeDomainMa[0] || ageMa > caoAgeDomainMa[1])) {
+      // Keep last Cao anchors while showing editorial deep-time chapters.
+      return caoRevision === null ? undefined : caoAnchorCoordinates;
+    }
     return caoRevision === null ? undefined : caoAnchorCoordinates;
-  }, [ageMa, caoAnchorCoordinates, caoRevision]);
+  }, [ageMa, caoAgeDomainMa, caoAnchorCoordinates, caoRevision]);
   const contextSnapshot = displayedSnapshot;
   const renderedEvidence = caoRevision === null ? "unknown" as const
     : caoRevision.display.fraction === 0 || caoRevision.display.fraction === 1 ? "model-output" as const
@@ -446,7 +524,9 @@ export default function App() {
 
   useEffect(() => {
     if (!playing || orderedSlices.length === 0) return;
-    if (ageMa <= 540) {
+    // Continuous play within the Cao package domain; chapter stepping beyond it.
+    const caoOldest = caoAgeDomainMa?.[1] ?? 540;
+    if (ageMa <= caoOldest) {
       let previous = performance.now();
       let frame = 0;
       const advance = (now: number) => {
@@ -473,7 +553,7 @@ export default function App() {
       });
     }, 1800);
     return () => window.clearInterval(timer);
-  }, [ageMa > 540, playing, orderedSlices]);
+  }, [ageMa <= (caoAgeDomainMa?.[1] ?? 540), playing, orderedSlices, caoAgeDomainMa]);
 
   useEffect(() => {
     if (selectedPoiId === null || selectedPoiRecord === null || selectedPoi !== null) return;
@@ -718,12 +798,12 @@ export default function App() {
     }
   };
 
-  const activeSourceIds = new Set(ageMa <= 540
+  const activeSourceIds = new Set(caoAgeDomainMa && ageMa <= caoAgeDomainMa[1]
     ? ["cao-plate-model-2024-v2-4"]
     : contextSnapshot?.sourceIds ?? []);
   const snapshotSources = sources.filter((source) => activeSourceIds.has(source.id));
   const poiSources = sources.filter((source) => selectedPoi?.sourceIds.includes(source.id));
-  const scenarioLike = chapter.ageMa > 540;
+  const scenarioLike = caoAgeDomainMa ? chapter.ageMa > caoAgeDomainMa[1] : chapter.ageMa > PHANEROZOIC_MAX_MA;
 
   return (
     <main className="atlas-shell">
@@ -788,6 +868,7 @@ export default function App() {
       <section className="globe-stage" aria-label="Interactive Earth reconstruction">
         <GlobeView
           caoRevision={caoRevision}
+          caoMotionFrame={caoMotionFrame}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
@@ -813,10 +894,11 @@ export default function App() {
         <div className="surface-legend" aria-label={`Surface-water view, ${layers.guides ? "schematic climatological reference guides, " : ""}Cao reconstruction with unknown elevation`}>
           <span>Surface water</span>
           {layers.guides && <span>Schematic climate guides</span>}
-          <span role="status">Cao native foundation · {ageMa > 540 ? "outside compiled domain"
+          <span role="status">Cao native foundation · {caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "outside compiled domain"
             : periodCoordinateState.status === "error" ? "render unavailable"
               : caoRevision === null ? "preparing"
-                : caoRevision.requestedAgeMa !== ageMa || periodCoordinateState.status === "updating"
+                : (caoMotionFrame?.requestedAgeMa ?? caoRevision.requestedAgeMa) !== ageMa
+                  || periodCoordinateState.status === "updating"
                   ? "updating"
                   : periodCoordinateState.status === "ready" ? "rendered" : "updating"}</span>
           {caoLoadError !== null && (
@@ -849,11 +931,11 @@ export default function App() {
         </div>
         <div id="chapter-context-details" className="context-details">
           <p className="geography-age">
-            Geography source <strong>{ageMa > 540 ? "Outside compiled domain · editorial scene" :
+            Geography source <strong>{caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "Outside compiled domain · editorial scene" :
               caoRevision === null ? "Awaiting native Cao package" :
-              caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
-                ? `${caoRevision.display.youngerAgeMa} Ma native Cao checkpoint`
-                : `${caoRevision.display.youngerAgeMa}–${caoRevision.display.olderAgeMa} Ma native Cao controls`}</strong>
+              (caoMotionFrame ?? caoRevision).display.youngerAgeMa === (caoMotionFrame ?? caoRevision).display.olderAgeMa
+                ? `${(caoMotionFrame ?? caoRevision).display.youngerAgeMa} Ma native Cao checkpoint`
+                : `${(caoMotionFrame ?? caoRevision).display.youngerAgeMa}–${(caoMotionFrame ?? caoRevision).display.olderAgeMa} Ma native Cao controls`}</strong>
           </p>
           <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · source-qualified coverage</strong></p>
           <p className="chapter-copy">{chapter.description}</p>
@@ -889,14 +971,14 @@ export default function App() {
               ))}
             </select>
           </div>
-          {ageMa <= 540 && (
+          {caoAgeDomainMa && ageMa >= caoAgeDomainMa[0] && ageMa <= caoAgeDomainMa[1] && (
             <div className="jump-row source-age-jump">
               <label htmlFor="source-age-jump">Jump to reconstruction</label>
               <select
                 id="source-age-jump"
                 value={caoRevision === null ? ""
-                  : caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
-                    ? String(caoRevision.display.youngerAgeMa)
+                  : (caoMotionFrame ?? caoRevision).display.youngerAgeMa === (caoMotionFrame ?? caoRevision).display.olderAgeMa
+                    ? String((caoMotionFrame ?? caoRevision).display.youngerAgeMa)
                     : "interpolated"}
                 onChange={(event) => changeAge(Number(event.target.value))}
               >
@@ -947,10 +1029,14 @@ export default function App() {
 
       <Timeline
         ageMa={ageMa}
-        geographicSourceAgeMa={caoRevision !== null && caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
-          ? caoRevision.display.youngerAgeMa : undefined}
-        geographicSourceAgeBracketMa={caoRevision === null ? undefined
-          : [caoRevision.display.youngerAgeMa, caoRevision.display.olderAgeMa]}
+        caoAgeDomainMa={caoAgeDomainMa ?? undefined}
+        geographicSourceAgeMa={(caoMotionFrame ?? caoRevision) !== null
+          && (caoMotionFrame ?? caoRevision)!.display.youngerAgeMa
+            === (caoMotionFrame ?? caoRevision)!.display.olderAgeMa
+          ? (caoMotionFrame ?? caoRevision)!.display.youngerAgeMa : undefined}
+        geographicSourceAgeBracketMa={(caoMotionFrame ?? caoRevision) === null ? undefined
+          : [(caoMotionFrame ?? caoRevision)!.display.youngerAgeMa,
+            (caoMotionFrame ?? caoRevision)!.display.olderAgeMa]}
         slices={timeSlices}
         playing={playing}
         onPlayingChange={handlePlayingChange}
