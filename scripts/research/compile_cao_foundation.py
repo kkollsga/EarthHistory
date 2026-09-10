@@ -23,7 +23,12 @@ OUT = (
 )
 SOURCE = "shapes_coasts.gpmlz"
 SOURCE_SHA = "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
-ROTATION_SHA = "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c"
+ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
+ROTATION_SHAS = (
+    "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
+)
+ROTATION_SHA = "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f"
 
 
 def sha(path):
@@ -61,7 +66,7 @@ def main():
     policy = json.loads((OUT / "policy.json").read_text())
     if (
         sha(MODEL / SOURCE) != SOURCE_SHA
-        or sha(MODEL / "1000_0_rotfile.rot") != ROTATION_SHA
+        or tuple(sha(MODEL / name) for name in ROTATION_FILES) != ROTATION_SHAS
     ):
         raise SystemExit("pinned source changed")
     directions = []

@@ -21,14 +21,18 @@ LIMIT = math.radians(1)
 PACKAGE = "cao-v2.4-two-age-integration-v1"
 REVISION = "cao-foundation-v1"
 PALETTE = "cao-v2.4-shared-motion-v1"
-ROT = "1000_0_rotfile.rot"
+ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 TOPO = [
     "250-0_plate_boundaries.gpml",
     "410-250_plate_boundaries.gpml",
     "1000-410_plate_boundaries.gpml",
     "TopologyBuildingBlocks.gpml",
 ]
-ROT_SHA = "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c"
+ROT_SHAS = (
+    "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
+)
+ROT_SHA = "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f"
 
 
 def sha(path):
@@ -181,16 +185,17 @@ def write_geometry(path, directions, seams, charts, triangles):
 def main():
     policy = json.loads((STAGE / "policy.json").read_text())
     OUT.mkdir(parents=True, exist_ok=True)
-    assert sha(MODEL / ROT) == ROT_SHA
+    assert tuple(sha(MODEL / name) for name in ROTATION_FILES) == ROT_SHAS
     meta = json.loads((STAGE / "coast-patches.json").read_text())
     raw = (STAGE / "coast-reference-directions.f32").read_bytes()
     values = struct.unpack(f"<{len(raw) // 4}f", raw)
     source = [values[i : i + 3] for i in range(0, len(values), 3)]
     iraw = (STAGE / "coast-indices.u32").read_bytes()
     indices = struct.unpack(f"<{len(iraw) // 4}I", iraw)
-    rotation = pygplates.RotationModel(str(MODEL / ROT), default_anchor_plate_id=0)
+    rotation = pygplates.RotationModel([str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0)
     cp = load_coordinate()
-    clock = cp.all_source_rotation_times(MODEL / ROT, 0, 450)
+    clock = sorted({age for name in ROTATION_FILES
+                    for age in cp.all_source_rotation_times(MODEL / name, 0, 450)})
     eligible = []
     palette_nodes = {}
     for patch in meta["patches"]:

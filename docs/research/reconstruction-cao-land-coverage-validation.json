@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "validatedAt": "2026-09-10",
+  "defect": {
+    "symptom": "The 0 Ma Cao foundation rendered large false water-like holes through the central and eastern United States and the northwestern Amazon region.",
+    "classification": "incomplete authored rotation-model configuration during offline package compilation",
+    "notRendererFailures": [
+      "back-face culling",
+      "400 m render-shell separation",
+      "palette activation",
+      "source polygon triangulation"
+    ]
+  },
+  "source": {
+    "model": "Cao et al. 2024 v2.4",
+    "record": "https://doi.org/10.5281/zenodo.13628813",
+    "pyGPlatesVersion": "1.0.0",
+    "project": {
+      "path": "1.8Ga_model_GSF/1.8_Ga_reconstruction.gproj",
+      "sha256": "db561a01749dba1a57bdece88abfbffcc4b7583b7e6693b8dabf4160d90255b5",
+      "readmeSha256": "e730537d441b4265101ec8fd29e3e85866cea4515099088efa70f2e66d45ed91",
+      "orderedRotationMembers": [
+        {
+          "path": "1000_0_rotfile.rot",
+          "sha256": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c"
+        },
+        {
+          "path": "1800_1000_rotfile.rot",
+          "sha256": "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785"
+        }
+      ],
+      "rotationAggregateSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "aggregateMethod": "SHA-256 of the concatenated lowercase member SHA-256 strings in project order"
+    }
+  },
+  "strictRotationProbe": {
+    "method": "pygplates.RotationModel with anchor plate 0; get_rotation(age, plateId, anchor_plate_id=0, use_identity_for_missing_plate_ids=False)",
+    "agesMa": [
+      0,
+      2.5,
+      5,
+      250,
+      450,
+      540
+    ],
+    "witnesses": [
+      {
+        "sourceFeatureId": "GPlates-518d0234-75b2-4513-b197-5ce75635be8a",
+        "name": "Yavapai",
+        "plateId": 10103,
+        "strictResultWith1000To0Only": [false, false, false, false, false, false],
+        "strictResultWithCompleteProjectRotations": [true, true, true, true, true, true]
+      },
+      {
+        "sourceFeatureId": "GPlates-1ef97d95-3313-4151-bd31-2923b19bc454",
+        "name": "Mazatzal Central",
+        "plateId": 10104,
+        "strictResultWith1000To0Only": [false, false, false, false, false, false],
+        "strictResultWithCompleteProjectRotations": [true, true, true, true, true, true]
+      },
+      {
+        "sourceFeatureId": "GPlates-625dff9b-cc71-4917-8d5a-28dc95b5598f",
+        "name": "Rio Negro Juruena Province",
+        "plateId": 20101,
+        "strictResultWith1000To0Only": [false, false, false, false, false, false],
+        "strictResultWithCompleteProjectRotations": [true, true, true, true, true, true]
+      }
+    ],
+    "interpretation": "The younger rotation file supplies the parent plate circuits. The older rotation file supplies authored child-to-parent records, including identity relations at 0 Ma. Loading only the younger file made valid source polygons look unsupported."
+  },
+  "coverageCorrection": {
+    "previousPublicManifestSha256": "7611a27b912e96f0c1a052a87f6b836a52bbb855da0095d7da37816b37b92cdc",
+    "correctedPublicManifestSha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9",
+    "triangulatedSourceParts": 2921,
+    "motionSupportedPartsBefore": 2772,
+    "motionSupportedPartsAfter": 2921,
+    "recoveredParts": 149,
+    "remainingTriangulationRejects": 17,
+    "remainingStrictMotionOmissions": 0,
+    "correctedPublicPackageFiles": 552,
+    "correctedPublicPackageBytes": 28848507,
+    "policy": "Use the complete ordered Cao project rotation collection. No identity fallback, plate-parent guess, or renderer land fill was introduced."
+  },
+  "joinedRuntimeRendererProof": {
+    "permanentRegression": {
+      "path": "src/reconstruction/caoV2.test.ts",
+      "command": "npm test -- --run src/reconstruction/caoV2.test.ts",
+      "checks": "The public manifest names the complete rotation collection; all three source charts have triangles and correct plate-qualified palette bindings; continuous material addresses match independent 100 Ma pyGPlates directions within 1e-6 radians; removing the plate 10103 source chart makes the R1 support guard fail."
+    },
+    "temporaryIndependentRendererTestRemovedAfterRun": true,
+    "temporaryIndependentRendererResult": "1 file, 1 test passed",
+    "agesMa": [0, 100, 450],
+    "presentDayRays": [
+      {
+        "longitude": -105,
+        "latitude": 40,
+        "expectedFeatureId": "GPlates-518d0234-75b2-4513-b197-5ce75635be8a",
+        "landHit": true
+      },
+      {
+        "longitude": -90,
+        "latitude": 40,
+        "expectedFeatureId": "GPlates-1ef97d95-3313-4151-bd31-2923b19bc454",
+        "landHit": true
+      },
+      {
+        "longitude": -65,
+        "latitude": -10,
+        "expectedFeatureId": "GPlates-625dff9b-cc71-4917-8d5a-28dc95b5598f",
+        "landHit": true
+      }
+    ],
+    "ancientRayMethod": "Each raw source polygon interior centroid was posed at 100 and 450 Ma by direct strict pyGPlates total rotation, converted once from GPlates axes to renderer axes, and intersected against the published renderer triangles.",
+    "ancientLandHits": 6,
+    "ancientLandMisses": 0
+  },
+  "visualProof": {
+    "buildIndexSha256": "e6f57132d1dbb0ccf473c1e828d7ac2acd690455db14adf289345aed82b60a07",
+    "backend": "three.js r185 webgpu",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "cameraDistanceEarthRadii": 3.6808,
+    "errors": 0,
+    "warnings": 0,
+    "failedRequests": 0,
+    "captures": [
+      {
+        "ageMa": 0,
+        "path": "../EarthHistory-data/releases/v0.1.3/land-coverage-fix/cao-corrected-0ma-webgpu-305c237a-20260910T155139Z.jpg",
+        "sha256": "f54f3b59c7fea97e50d5eabf18ed0cd88ca4a3c803caf6d0e94f6dae0aa3b86a",
+        "bytes": 98259,
+        "readyMs": 452,
+        "frameCallP95Ms": 18.4,
+        "inspection": "The previously open central/eastern United States and northwestern Amazon voids are covered by the recovered source polygons."
+      },
+      {
+        "ageMa": 450,
+        "path": "../EarthHistory-data/releases/v0.1.3/land-coverage-fix/cao-corrected-450ma-webgpu-305c237a-20260910T155139Z.jpg",
+        "sha256": "0a918e2b31fce33d62c24e6e617dce8dba1c10cea1996e99beed4d2dcb93504b",
+        "bytes": 95235,
+        "readyMs": 370,
+        "frameCallP95Ms": 18.6,
+        "inspection": "The corrected complete rotation collection preserves visibly reconstructed Cao source fragments at the Ordovician control."
+      }
+    ],
+    "report": {
+      "path": "../EarthHistory-data/releases/v0.1.3/land-coverage-fix/cao-corrected-webgpu-305c237a-20260910T155139Z.json",
+      "sha256": "ddb613c1720b2d525b520d2c8f970a92223ee6790d07b8a46ae92d2993b653ae",
+      "bytes": 8593
+    },
+    "timingScope": "Functional headed-browser captures under ordinary machine load; the coordinator's isolated production comparison is the performance authority."
+  },
+  "ownershipOracle": {
+    "report": "docs/research/reconstruction-topology-ownership-validation.json",
+    "queryCount": 24,
+    "exactPlateAndTopologyMatches": 24,
+    "mismatches": 0,
+    "correctedPackageManifestSha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9",
+    "note": "The 0 and 450 Ma ownership binary hashes are unchanged from the prior package; their frame metadata now names the complete rotation collection. The existing 24 native containment results therefore remain byte-for-byte applicable."
+  },
+  "limitations": [
+    "Cao coastline-class polygons remain model geography with unknown exposed-land, relief, bathymetry, and flooding evidence.",
+    "The 17 triangulation rejects remain explicit line-only/unsupported geometry; this correction does not fabricate replacements.",
+    "The joined ray proof samples the three reported omissions and representative 100/450 Ma poses; it is not exhaustive pixel coverage validation.",
+    "Frame-call timing in the capture is not GPU execution timing."
+  ]
+}

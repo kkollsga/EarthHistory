@@ -1,7 +1,7 @@
 {
   "date": "2026-09-10",
-  "scope": "Production static build, fresh contexts at 0 and 450 Ma; local server, not a WAN benchmark. JS heap excludes driver/GPU and worker memory. Serialized source-byte ledgers are not heap measurements.",
-  "distMiB": 27.92,
+  "scope": "Production static build, fresh contexts at 0 and 450 Ma; local server, not a WAN benchmark. JS heap excludes driver/GPU and worker memory. Serialized source-byte ledgers are not heap measurements. CompleteRotationCollection is the corrected release candidate; the earlier Cao series omitted parent ties and is retained only as a historical performance control.",
+  "distMiB": 28.88,
   "previousDistMiB": 47.2,
   "browser": "152.0.7977.83",
   "series": {
@@ -366,6 +366,215 @@
           }
         }
       ]
+    },
+    "completeRotationCollection": {
+      "policy": {
+        "purpose": "Complete two-file Cao rotation collection correction; compare prior candidate and recorded old-app controls",
+        "agesMa": [
+          0,
+          450
+        ],
+        "repeats": 3,
+        "backend": "webgl2",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "settleMs": 2500,
+        "stopRule": "Report readiness failure after30s; no indefinite retries. No performance claim from submission timing alone. Compare retained byte ledgers separately from JS heap and GPU estimates.",
+        "limitBytes": 2097152,
+        "owner": "coordinator",
+        "buildIndexSha256": "e6f57132d1dbb0ccf473c1e828d7ac2acd690455db14adf289345aed82b60a07",
+        "machine": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "cpus": 10,
+          "loadBefore": [
+            2.05419921875,
+            2.5302734375,
+            2.3251953125
+          ],
+          "freeMemoryBefore": 775913472
+        },
+        "writtenBeforeMeasurement": "2026-09-10T15:52:09.895Z",
+        "dataManifestSha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9"
+      },
+      "rows": [
+        {
+          "ageMa": 0,
+          "repeat": 0,
+          "readyMs": 477,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.7,
+            "samples": 110
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 50457837,
+            "totalJSHeapSize": 77584529
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 18514080,
+          "dataTransferBytes": 7734175,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18495708,
+            "caoFoundationPublicationBytes": 486227,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        },
+        {
+          "ageMa": 0,
+          "repeat": 1,
+          "readyMs": 408,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 112
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 50865292,
+            "totalJSHeapSize": 77584604
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 18514080,
+          "dataTransferBytes": 7734175,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18495708,
+            "caoFoundationPublicationBytes": 486227,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        },
+        {
+          "ageMa": 0,
+          "repeat": 2,
+          "readyMs": 403,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 112
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 49953543,
+            "totalJSHeapSize": 78108815
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 18514080,
+          "dataTransferBytes": 7734175,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18495708,
+            "caoFoundationPublicationBytes": 486227,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        },
+        {
+          "ageMa": 450,
+          "repeat": 0,
+          "readyMs": 404,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 112
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 46545468,
+            "totalJSHeapSize": 77220600
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 18361294,
+          "dataTransferBytes": 7674101,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18342922,
+            "caoFoundationPublicationBytes": 361566,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        },
+        {
+          "ageMa": 450,
+          "repeat": 1,
+          "readyMs": 402,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 111
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 46467318,
+            "totalJSHeapSize": 77482734
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 18361294,
+          "dataTransferBytes": 7674101,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18342922,
+            "caoFoundationPublicationBytes": 361566,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        },
+        {
+          "ageMa": 450,
+          "repeat": 2,
+          "readyMs": 397,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 112
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 46385690,
+            "totalJSHeapSize": 77220598
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 18361294,
+          "dataTransferBytes": 7674101,
+          "byteLedger": {
+            "caoFoundationStaticBytes": 11075544,
+            "caoFoundationSourceBytes": 18342922,
+            "caoFoundationPublicationBytes": 361566,
+            "caoFoundationPendingRetirementBytes": 0
+          },
+          "errors": [],
+          "failure": null
+        }
+      ],
+      "loadAfter": [
+        2.0263671875,
+        2.494140625,
+        2.3173828125
+      ],
+      "freeMemoryAfter": 152928256
     }
   },
   "appJavascriptSha256": "91bf5bd9beaab2507b3d66e047b823860f77a256ec727c9590a89a8f5fae6763"

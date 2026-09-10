@@ -22,7 +22,7 @@ FILES = [
     "1000-410_plate_boundaries.gpml",
     "TopologyBuildingBlocks.gpml",
 ]
-ROT = "1000_0_rotfile.rot"
+ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 CONT = "shapes_continents.gpmlz"
 EARTH = 6371.0088
 PIN = {
@@ -31,6 +31,7 @@ PIN = {
     "1000-410_plate_boundaries.gpml": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1",
     "TopologyBuildingBlocks.gpml": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297",
     "1000_0_rotfile.rot": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "1800_1000_rotfile.rot": "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
     "shapes_continents.gpmlz": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616",
 }
 
@@ -223,7 +224,9 @@ def main():
     features = []
     for name in FILES:
         features.extend(pygplates.FeatureCollection(str(MODEL / name)))
-    rotations = pygplates.RotationModel(str(MODEL / ROT), default_anchor_plate_id=0)
+    rotations = pygplates.RotationModel(
+        [str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0
+    )
     continents = list(pygplates.FeatureCollection(str(MODEL / CONT)))
     expected = {}
     age_results = []
