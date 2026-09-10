@@ -4,6 +4,7 @@
 from __future__ import annotations
 import hashlib, json, math
 from pathlib import Path
+from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -43,7 +44,7 @@ def main():
    unsupported.append({"anchorId":anchor_id,"candidatePlateIds":plates,"reason":"missing-unique-supported-Cao-static-fragment"})
    continue
   plate=plates[0];feature=sorted((f for f in matches if f.get_reconstruction_plate_id(None)==plate),key=lambda f:str(f.get_feature_id()))[0]
-  oldest,youngest=feature.get_valid_time();validity=(max(0,youngest if math.isfinite(youngest) else 0),min(540,oldest if math.isfinite(oldest) else 540))
+  oldest,youngest=feature.get_valid_time();validity=(max(0,youngest if math.isfinite(youngest) else 0),min(CAO_SOURCE_OLDEST_MA,oldest if math.isfinite(oldest) else CAO_SOURCE_OLDEST_MA))
   bindings=[{"paletteId":palette["id"],"entryId":entry["entryId"],"validTimeMa":{
               "youngest":max(validity[0],entry["youngestAgeMa"]),"oldest":min(validity[1],entry["oldestAgeMa"])}}
             for entry in entries[plate] if max(validity[0],entry["youngestAgeMa"])<=min(validity[1],entry["oldestAgeMa"])]

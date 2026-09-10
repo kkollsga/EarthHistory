@@ -22,7 +22,7 @@ function windAt(latitude: number, bands: readonly WindBand[]): WindBand {
 
 function validate(input: ClimateGeographyInput, controls: ClimatePotentialControls): number {
   if (!input.revisionIdentity || !Number.isFinite(input.requestedAgeMa) || input.requestedAgeMa < 0 ||
-      input.requestedAgeMa > 540 || !Number.isInteger(input.width) || !Number.isInteger(input.height) ||
+      input.requestedAgeMa > 1_800 || !Number.isInteger(input.width) || !Number.isInteger(input.height) ||
       input.width < 2 || input.height < 2 || input.width > 360 || input.height > 181) {
     throw new Error("invalid climate geography identity or dimensions");
   }

@@ -20,6 +20,7 @@ import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
 } from "./reconstruction/caoFoundation";
+import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
   WebGl2SubmissionFence,
@@ -687,7 +688,7 @@ export class GlobeScene {
         0.12 + (environment.cloudCover ?? 0.5) * 0.34, 0.12, 0.42,
       );
       const age = snapshot.requestedAgeMa ?? snapshot.ageMa;
-      if (!this.hasNativePublication && age > 540) {
+      if (!this.hasNativePublication && age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
         this.renderer.domElement.dataset.caoFoundationStatus = "unsupported";
         this.renderer.domElement.dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
         this.renderer.domElement.dataset.surfaceStatus = "ready";
@@ -876,7 +877,7 @@ export class GlobeScene {
     if (this.preparedAnchors.length > 0) {
       for (const anchor of this.preparedAnchors) add(anchor.id, anchor.direction, anchor.address);
     } else if (!this.hasNativePublication && this.snapshot !== null
-        && (this.snapshot.requestedAgeMa ?? this.snapshot.ageMa) > 540) {
+        && (this.snapshot.requestedAgeMa ?? this.snapshot.ageMa) > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
       for (const id of this.snapshot.poiIds) {
         const coordinates = this.snapshot.poiCoordinates?.[id];
         if (coordinates !== undefined) add(id, lonLatToVector3(coordinates).normalize());

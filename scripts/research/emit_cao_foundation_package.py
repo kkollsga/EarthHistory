@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Emit the bounded native-Cao 0-540 Ma foundation package."""
+"""Emit the native-Cao foundation package over the configured source domain."""
 
 from __future__ import annotations
 import hashlib, importlib.util, json, math, struct
 from pathlib import Path
+from cao_domain import (
+    CAO_SOURCE_OLDEST_MA,
+    CAO_SOURCE_YOUNGEST_MA,
+    display_checkpoint_ages_ma,
+)
 import pygplates
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +21,7 @@ OUT = (
     / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
 )
 STAGE = OUT.parent
-AGES = [float(age) for age in range(0, 541, 5)]
+AGES = display_checkpoint_ages_ma(CAO_SOURCE_OLDEST_MA)
 LIMIT = math.radians(1)
 PACKAGE = "cao-v2.4-foundation-v1"
 REVISION = "cao-foundation-v1"
@@ -26,6 +31,7 @@ TOPO = [
     "250-0_plate_boundaries.gpml",
     "410-250_plate_boundaries.gpml",
     "1000-410_plate_boundaries.gpml",
+    "1800-1000_plate_boundaries.gpml",
     "TopologyBuildingBlocks.gpml",
 ]
 ROT_SHAS = (
@@ -141,7 +147,7 @@ def clipped_lifecycle(patch):
     youngest = patch["lifecycle"]["youngestAgeMa"]
     oldest = patch["lifecycle"]["oldestAgeMa"]
     return max(0.0, 0.0 if youngest is None else youngest), min(
-        540.0, 540.0 if oldest is None else oldest
+        CAO_SOURCE_OLDEST_MA, CAO_SOURCE_OLDEST_MA if oldest is None else oldest
     )
 
 
@@ -207,7 +213,7 @@ def main():
     rotation = pygplates.RotationModel([str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0)
     cp = load_coordinate()
     global_clock = sorted({age for name in ROTATION_FILES
-                           for age in cp.all_source_rotation_times(MODEL / name, 0, 540)})
+                           for age in cp.all_source_rotation_times(MODEL / name, CAO_SOURCE_YOUNGEST_MA, CAO_SOURCE_OLDEST_MA)})
     clock_by_plate = {}
 
     def plate_clock(plate, youngest, oldest):
@@ -428,7 +434,7 @@ def main():
         "packageId": PACKAGE,
         "revision": REVISION,
         "frame": frame(),
-        "ageDomainMa": {"youngest": 0, "oldest": 540},
+        "ageDomainMa": {"youngest": CAO_SOURCE_YOUNGEST_MA, "oldest": CAO_SOURCE_OLDEST_MA},
         "core": asset(core_path),
         "motionPalette": {
             "id": PALETTE,
@@ -436,7 +442,7 @@ def main():
             "binary": asset(palette_path),
         },
         "checkpoints": checkpoints,
-        "scope": "native Cao continental-outline model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
+        "scope": "native Cao continental-outline model geometry over strict 0-1800 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
     }
     manifest_path = OUT / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")) + "\n")
@@ -467,7 +473,7 @@ def main():
                 "exportedCharts": len(charts), "omittedParts": omissions, "activeChartCounts": active_counts,
                 "maximumActiveCharts": max(active_counts.values()),
                 "limitations": ["continental-outline geometry is not exposed-land evidence",
-                                "strict motion is complete for every triangulated source part in the 0-540 Ma domain", "17 source rings remain line-only"]}
+                                "strict motion is complete for every triangulated source part in the 0-1800 Ma domain", "17 source rings remain line-only"]}
     (OUT / "compiler-coverage.json").write_text(json.dumps(coverage, separators=(",", ":")) + "\n")
     stage = sum(p.stat().st_size for p in STAGE.rglob("*") if p.is_file())
     assert stage < policy["stageMaximumBytes"]

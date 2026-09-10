@@ -4,6 +4,7 @@
 from __future__ import annotations
 import hashlib, json, math, struct
 from pathlib import Path
+from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,7 +47,7 @@ def main():
         if plate is None:continue
         oldest, youngest = feature.get_valid_time()
         validity = (max(0.0, youngest if math.isfinite(youngest) else 0.0),
-                    min(540.0, oldest if math.isfinite(oldest) else 540.0))
+                    min(CAO_SOURCE_OLDEST_MA, oldest if math.isfinite(oldest) else CAO_SOURCE_OLDEST_MA))
         for geometry in feature.get_all_geometries():
             if isinstance(geometry,pygplates.PolygonOnSphere):polygons.append((plate,str(feature.get_feature_id()),validity,geometry))
     entry_by_plate={}

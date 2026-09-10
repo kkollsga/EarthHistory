@@ -6,6 +6,12 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Changed
 
+- Prepare the Cao foundation pipeline for the full 0–1800 Ma source domain:
+  shared domain helpers, budget-aware display checkpoints (5 Ma to 540 Ma,
+  then 10 Ma), runtime age caps to 1.8 Ga, and inclusion of
+  `1800-1000_plate_boundaries.gpml`. The live public package still declares
+  `ageDomainMa` 0–540 Ma until a rebuilt candidate is promoted under the
+  50 MB Pages budget.
 - Scrubbing continuously interpolates Cao plate motion from the resident shared
   palette between display knots, retargeting the published foundation in place
   instead of waiting for discrete prepare snaps. Adjacent checkpoints are
