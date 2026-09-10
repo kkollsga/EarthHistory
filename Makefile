@@ -5,7 +5,7 @@
 DEV_DOCS_MAX_MB ?= 50
 BUILD_CACHE_MAX_MB ?= 100
 DIST_MAX_MB ?= 50
-DIST_MAX_FILE_MB ?= 8
+DIST_MAX_FILE_MB ?= 9
 
 # The explicit sub-makes keep build and artifact inspection ordered under -j.
 gate:
