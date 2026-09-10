@@ -16,6 +16,7 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 
 | Memo | What it resolves |
 | --- | --- |
+| [Cao Caribbean / Panama / Cuba](cao-caribbean-panama-cuba.md) | 0 Ma diagnosis: Cuba layers correct; oversized Cao Jamacia shelf and missing Panama 229/230 coasts explain the isthmus look |
 | [Cao foundation adoption](reconstruction-cao-foundation-adoption.md) | Current native Cao scope, source semantics, actual-app integration evidence and remaining acceptance work |
 | [Palaeomap accuracy study](palaeomap-accuracy-study.md) | Integrated source assessment, native time slices, plate/frame compatibility, 3D relief, climate, memory budgets and phased migration |
 | [Continuous-coordinate validation](palaeomap-continuous-validation.json) | Implemented shared coordinates and natural materials, final full-gate results, repeated production measurements, preserved rejected probes and scientific/readiness limitations |

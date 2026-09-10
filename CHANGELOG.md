@@ -74,6 +74,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Known limitations
 
+- Cao Caribbean / Panama at 0 Ma: Cuba land, shelf and `country:cub` are
+  correctly placed; the oversized Cao `Jamacia` continental outline and missing
+  Central/Eastern Panama (plates 230/229) coast/continent rings make the isthmus
+  look broken or “crossed”. See `docs/research/cao-caribbean-panama-cuba.md`.
 - This foundation deliberately uses neutral surfaces. Calibrated mountains,
   bathymetry, shallow-sea masks, global seafloor ages and historical biome
   detail are deferred; previous modern-only detail is no longer rendered.
