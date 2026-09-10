@@ -93,7 +93,7 @@ describe("native Cao package v2", () => {
     expect(() => prepared.motionPalette.createValuesCopy()).toThrow(/released/);
     expect(() => prepared.resolveAddress(address)).toThrow(/released/);
     expect(() => prepared.resolveAnchor("chicxulub")).toThrow(/released/);
-    expect(() => runtime.request(541)).toThrow(/domain/);
+    expect(() => runtime.request(1801)).toThrow(/domain/);
     runtime.dispose();
   });
 

@@ -16,11 +16,11 @@ MODEL = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
 )
-OUT = (
+DEFAULT_OUT = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
 )
-STAGE = OUT.parent
+DEFAULT_STAGE = DEFAULT_OUT.parent
 AGES = display_checkpoint_ages_ma(CAO_SOURCE_OLDEST_MA)
 LIMIT = math.radians(1)
 PACKAGE = "cao-v2.4-foundation-v1"
@@ -200,7 +200,12 @@ def write_geometry(path, directions, seams, charts, triangles):
     path.write_bytes(data)
 
 
-def main():
+def main(out: Path | None = None, stage: Path | None = None):
+    OUT = Path(out) if out else DEFAULT_OUT
+    STAGE = Path(stage) if stage else (OUT.parent if out is None else DEFAULT_STAGE)
+    if stage is None and out is not None:
+        # Layer emits keep triangulation inputs in the shared verification stage.
+        STAGE = DEFAULT_STAGE
     policy = json.loads((STAGE / "policy.json").read_text())
     OUT.mkdir(parents=True, exist_ok=True)
     assert tuple(sha(MODEL / name) for name in ROTATION_FILES) == ROT_SHAS
@@ -475,8 +480,22 @@ def main():
                 "limitations": ["continental-outline geometry is not exposed-land evidence",
                                 "strict motion is complete for every triangulated source part in the 0-1800 Ma domain", "17 source rings remain line-only"]}
     (OUT / "compiler-coverage.json").write_text(json.dumps(coverage, separators=(",", ":")) + "\n")
-    stage = sum(p.stat().st_size for p in STAGE.rglob("*") if p.is_file())
-    assert stage < policy["stageMaximumBytes"]
+    # Count only triangulation inputs + the active package output. Backups and
+    # sibling layer emits live under the same verification root but are not part
+    # of the working stage budget for this emit.
+    stage_files = [
+        *(STAGE / name for name in (
+            "coast-patches.json",
+            "coast-rings.json",
+            "coast-indices.u32",
+            "coast-indices.u32.json",
+            "coast-reference-directions.f32",
+            "policy.json",
+        ) if (STAGE / name).is_file()),
+        *OUT.rglob("*"),
+    ]
+    stage = sum(p.stat().st_size for p in stage_files if p.is_file())
+    assert stage < policy["stageMaximumBytes"], f"stage {stage} exceeds {policy['stageMaximumBytes']}"
     print(
         json.dumps(
             {
@@ -485,12 +504,17 @@ def main():
                 "vertices": len(directions),
                 "triangles": len(triangles),
                 "paletteRecords": len(records),
-                "packageBytes": sum(p.stat().st_size for p in OUT.iterdir()),
+                "packageBytes": sum(p.stat().st_size for p in OUT.iterdir() if p.is_file()),
                 "stageBytes": stage,
+                "out": str(OUT),
             }
         )
     )
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=None, help="package output directory")
+    parser.add_argument("--stage", type=Path, default=None, help="triangulation stage directory")
+    main(**vars(parser.parse_args()))

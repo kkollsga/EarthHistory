@@ -1,7 +1,7 @@
 # Cao full-domain extension (0–1800 Ma)
 
 **Date:** 2026-09-10  
-**Status:** pipeline parameterized; live public package still declares `ageDomainMa` 0–540 Ma until a rebuilt candidate is promoted under the Pages budget.
+**Status:** live public package promoted for `ageDomainMa` 0–1800 Ma (235 checkpoints; layered shelf/land) under the Pages budget on 2026-09-10.
 
 ## Intent
 
@@ -10,9 +10,9 @@ Compile every Cao 2024 v2.4 source timestep the application can host: motion ove
 ## Budget
 
 - Pages / policy public foundation cap: **50 MB** (`DIST_MAX_MB`, `policy.json`).
-- Current live cao-v2.4 tree: **~37 MB** (109 checkpoints at 5 Ma, 0–540).
-- Naïve 5 Ma through 1800 (361 checkpoints) projects **~61 MB** before palette growth — over budget.
-- Chosen display schedule (`cao_domain.py` / `caoDisplayCheckpointAgesMa`): **5 Ma to 540 Ma, then 10 Ma to 1800 Ma** → **235 checkpoints**, rough projection **~49 MB** excluding palette growth. Motion still samples every qualified source rotation knot (565 knots in 0–1800).
+- Shipped live cao-v2.4 tree: **~40 MB** / dist **~39.1 MiB** (235 checkpoints; layered shelf/land; no PaleoDEM bins).
+- Naïve 5 Ma through 1800 (361 checkpoints) projected **~61 MB** before palette growth — over budget.
+- Chosen display schedule (`cao_domain.py` / `caoDisplayCheckpointAgesMa`): **5 Ma to 540 Ma, then 10 Ma to 1800 Ma** → **235 checkpoints**. Motion still samples every qualified source rotation knot (565 knots in 0–1800). No coarse-step widening was required for this promotion.
 
 ## Pipeline changes (landed)
 
@@ -23,11 +23,9 @@ Compile every Cao 2024 v2.4 source timestep the application can host: motion ove
 
 ## Remaining rebuild work
 
-1. Re-run foundation emit against EarthHistory-data sources with the new domain (motion qualify 0–1800, lifecycles unclipped to 1800).
-2. Emit native boundary/ownership for all 235 display ages.
-3. Refresh country/anchor bindings against the extended palette.
-4. Measure transitive public bytes; if over 50 MB, lean encoding or widen the coarse step beyond 540 Ma before promotion.
-5. Promote into `public/data/reconstruction/cao-v2.4/`, update `ageDomainMa`, CHANGELOG known limitations, and App editorial gating (already package-domain driven once manifest loads).
+Promoted. Keep future rebuilds on the budget-aware display schedule; widen the
+coarse step beyond 540 Ma only if transitive public bytes again approach 50 MB.
+
 
 ## Note on Fennoscandia
 

@@ -9,7 +9,8 @@ import pygplates
 
 ROOT=Path(__file__).resolve().parents[2]
 MODEL=ROOT.parent/"EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
-OUT=ROOT.parent/"EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
+DEFAULT_OUT=ROOT.parent/"EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
+OUT=DEFAULT_OUT
 POIS={
  "chengjiang-biota":((102.9,24.7),(517.32,518.74),30,"yang-chengjiang-2018"),
  "cairo-fossil-forest":((-74,42.3),(383,388),25,"stein-cairo-forest-2020"),
@@ -26,7 +27,9 @@ def asset(path):return {"url":path.name,"bytes":path.stat().st_size,"sha256":sha
 def xyz(lon,lat):
  a,b=math.radians(lat),math.radians(lon);return [math.cos(a)*math.cos(b),math.cos(a)*math.sin(b),math.sin(a)]
 
-def main():
+def main(out=None):
+ global OUT
+ OUT=Path(out) if out else DEFAULT_OUT
  core_path=OUT/"core.json";core=json.loads(core_path.read_text());palette=json.loads((OUT/"motion-palette.json").read_text())
  core["charts"]=[chart for chart in core["charts"] if chart["role"] not in ("poi-anchor","focus-anchor")]
  entries={}
@@ -71,4 +74,8 @@ def main():
  (OUT/"anchor-compiler-report.json").write_text(json.dumps({"supported":len(anchors),"unsupported":unsupported},indent=2)+"\n")
  print(json.dumps({"supported":len(anchors),"unsupported":unsupported,"catalogSha256":sha(path)}))
 
-if __name__=="__main__":main()
+if __name__=="__main__":
+ import argparse
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument("--out", type=Path, default=None)
+ main(**vars(parser.parse_args()))

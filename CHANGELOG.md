@@ -6,12 +6,12 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Changed
 
-- Prepare the Cao foundation pipeline for the full 0–1800 Ma source domain:
-  shared domain helpers, budget-aware display checkpoints (5 Ma to 540 Ma,
-  then 10 Ma), runtime age caps to 1.8 Ga, and inclusion of
-  `1800-1000_plate_boundaries.gpml`. The live public package still declares
-  `ageDomainMa` 0–540 Ma until a rebuilt candidate is promoted under the
-  50 MB Pages budget.
+- Ship the live cao-v2.4 package over the full compiled Cao source domain
+  (`ageDomainMa` 0–1800 Ma): 235 display checkpoints (5 Ma to 540 Ma, then
+  10 Ma), layered coastline-class land over continental-outline shelf, native
+  boundaries/ownership including `1800-1000_plate_boundaries.gpml`, and a
+  shared motion palette sampled on every qualified source knot. Public
+  transitive size stays under the 50 MB Pages budget without PaleoDEM bins.
 - Scrubbing continuously interpolates Cao plate motion from the resident shared
   palette between display knots, retargeting the published foundation in place
   instead of waiting for discrete prepare snaps. Adjacent checkpoints are
@@ -20,9 +20,9 @@ All notable changes to EarthHistory will be recorded here.
   deep-time / live Cao oldest through today at 0 Ma), so Precambrian mode can
   still scrub forward through the Phanerozoic; the Recent Earth range is removed.
 - Age-domain gating and continuous play follow the live package `ageDomainMa`
-  (cao-v2.4 currently declares 0–540 Ma) rather than hard-coded ceilings.
-- Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 109 native
-  checkpoints from 0–540 Ma and a shared, source-qualified motion clock.
+  (cao-v2.4 declares 0–1800 Ma) rather than hard-coded ceilings.
+- Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 235 native
+  checkpoints from 0–1800 Ma and a shared, source-qualified motion clock.
 - Store geometry once and use one GPU rendering path for present-day and
   ancient continents, country references and native tectonic boundaries.
 - Replace the previous PALEOMAP conversion, modern-only relief inputs, terrain
@@ -77,12 +77,10 @@ All notable changes to EarthHistory will be recorded here.
   exposed-land outlines. Unsupported country fragments and POIs are omitted.
 - Continental motion interpolates on its qualified source clock. Native
   boundary and ownership geometry is available only at exact checkpoints.
-- The live cao-v2.4 package still declares ageDomainMa 0–540 Ma. Cao source
-  rotations extend to 1.8 Ga, but compiled checkpoints/motion older than 540 Ma
-  are not in the public package yet; Precambrian scrubbing uses authored
-  chapters with editorial globe state beyond that domain.
-- The initial package covers 0–540 Ma; the model's older domain is not yet
-  compiled into the application.
+- Display checkpoints coarsen to 10 Ma beyond 540 Ma so the Pages budget
+  remains reachable; continuous motion still follows the qualified source-knot
+  clock through 1800 Ma. Editorial chapter globe states may still apply where
+  authored narrative exceeds the compiled evidence for a scene.
 
 ## [0.1.2] - 2026-09-10
 

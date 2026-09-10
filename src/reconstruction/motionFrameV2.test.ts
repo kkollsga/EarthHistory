@@ -18,14 +18,17 @@ describe("continuous Cao motion frames", () => {
   it("resolves display brackets from the live package domain without inventing ages", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
-    expect(manifest.ageDomainMa).toEqual({ youngest: 0, oldest: 540 });
+    expect(manifest.ageDomainMa).toEqual({ youngest: 0, oldest: 1800 });
     expect(resolveCaoDisplayBracket(manifest, 227.5)).toEqual({
       youngerAgeMa: 225, olderAgeMa: 230, fraction: 0.5, exactCheckpoint: false,
     });
     expect(resolveCaoDisplayBracket(manifest, 450)).toMatchObject({
       youngerAgeMa: 450, olderAgeMa: 450, fraction: 0, exactCheckpoint: true,
     });
-    expect(() => resolveCaoDisplayBracket(manifest, 541)).toThrow(/domain/);
+    expect(resolveCaoDisplayBracket(manifest, 545)).toEqual({
+      youngerAgeMa: 540, olderAgeMa: 550, fraction: 0.5, exactCheckpoint: false,
+    });
+    expect(() => resolveCaoDisplayBracket(manifest, 1801)).toThrow(/domain/);
   });
 
   it("interpolates motion continuously between checkpoints and reuses evaluateMotion", async () => {
