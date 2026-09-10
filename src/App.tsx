@@ -40,6 +40,11 @@ import {
   serializeMaterialAddress,
   serializeFocusCoordinates,
 } from "./focusState";
+import {
+  buildExplorerHash,
+  createThrottledHistoryWriter,
+  serializeAge,
+} from "./explorerHash";
 import { CaoReconstructionRuntime, type CaoMotionFrame, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
@@ -97,11 +102,6 @@ function closestChapter(ageMa: number) {
   return timeSlices.reduce((closest, slice) =>
     Math.abs(slice.ageMa - ageMa) < Math.abs(closest.ageMa - ageMa) ? slice : closest,
   );
-}
-
-function serializeAge(ageMa: number) {
-  const precision = ageMa < 1 ? 3 : ageMa < 100 ? 2 : 1;
-  return String(Number(ageMa.toFixed(precision)));
 }
 
 function gplatesDirectionToLonLat(direction: readonly [number, number, number]): LonLat {
@@ -252,8 +252,21 @@ export default function App() {
         const coordinates = gplatesDirectionToLonLat(pose.direction);
         setAreaFocusStatus("resolved");
         setAutoRotateEnabled(false);
-        setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
-          distance: undefined }));
+        // Keep nonce stable while scrubbing so follow retargets aim without
+        // treating each age sample as a brand-new camera focus request.
+        setSpatialFocus((current) => {
+          if (current?.kind === "area"
+              && current.coordinates[0] === coordinates[0]
+              && current.coordinates[1] === coordinates[1]) {
+            return current;
+          }
+          return {
+            kind: "area",
+            coordinates,
+            nonce: current?.kind === "area" ? current.nonce : ++focusNonce.current,
+            distance: undefined,
+          };
+        });
       } else {
         setAreaFocusStatus("unresolved");
         setSpatialFocus((current) => current?.kind === "area" ? null : current);
@@ -440,6 +453,13 @@ export default function App() {
         caoScrubPumpRef.current.serial += 1;
         caoScrubPumpRef.current.inFlight = false;
       }
+      // Material lock stays tagged for reacquisition; follow pose is unavailable.
+      // Drop the cached motion frame so re-entering the domain re-applies follow.
+      caoMotionFrameRef.current = null;
+      if (materialFocusAddressRef.current !== null) {
+        setAreaFocusStatus("unresolved");
+        setSpatialFocus((current) => current?.kind === "area" ? null : current);
+      }
       return;
     }
     caoScrubPumpRef.current?.pump();
@@ -503,6 +523,19 @@ export default function App() {
     setStats(next);
   }, []);
 
+  // Continuous scrub/play updates ageMa every animation frame. Writing
+  // history.replaceState on each tick floods Chromium navigation IPC and can
+  // hang the tab (crbug.com/1038223). Keep React/globe state live; coalesce hash sync.
+  const hashWriterRef = useRef(createThrottledHistoryWriter());
+  useEffect(() => {
+    const writer = hashWriterRef.current;
+    return () => writer.dispose();
+  }, []);
+  // Do not depend on spatialFocus coordinates: locked follow updates them every
+  // scrub sample. Material/place/POI identities already capture shareable focus.
+  const focusPlaceId = spatialFocus?.kind === "place" ? spatialFocus.placeId : null;
+  const focusAt = materialFocusAddress === null && spatialFocus?.kind === "area"
+    ? serializeFocusCoordinates(spatialFocus.coordinates) : null;
   useEffect(() => {
     const params = new URLSearchParams();
     params.set("age", serializeAge(ageMa));
@@ -513,14 +546,15 @@ export default function App() {
     params.set("relief", String(verticalExaggeration));
     params.set("coordinates", "cao");
     if (selectedPoiId) params.set("focus", selectedPoiId);
-    else if (spatialFocus?.kind === "place") params.set("place", spatialFocus.placeId);
+    else if (focusPlaceId) params.set("place", focusPlaceId);
     else if (materialFocusAddress !== null) {
       params.set("material", serializeMaterialAddress(materialFocusAddress));
-    } else if (spatialFocus?.kind === "area") {
-      params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
+    } else if (focusAt !== null) {
+      params.set("at", focusAt);
     }
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${params}`);
-  }, [ageMa, layers, materialFocusAddress, selectedPoiId, spatialFocus, verticalExaggeration]);
+    const url = `${window.location.pathname}${window.location.search}${buildExplorerHash(params)}`;
+    hashWriterRef.current.schedule(url);
+  }, [ageMa, focusAt, focusPlaceId, layers, materialFocusAddress, selectedPoiId, verticalExaggeration]);
 
   useEffect(() => {
     if (!playing || orderedSlices.length === 0) return;
@@ -732,6 +766,14 @@ export default function App() {
     }
   };
 
+  const clearLocationLock = () => {
+    setMaterialFocusAddress(null);
+    setAreaFocusStatus(null);
+    poiFocusHasResolved.current = false;
+    if (spatialFocus?.kind === "area") setSpatialFocus(null);
+    setAutoRotateEnabled(false);
+  };
+
   const resetCamera = () => {
     setSelectedLandscapeId(null);
     setSelectedPoiId(null);
@@ -904,9 +946,18 @@ export default function App() {
           {caoLoadError !== null && (
             <span role="status">Cao reconstruction unavailable · surface withheld</span>
           )}
-          {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
           Height data unknown <strong>{verticalExaggeration}× reserved</strong>
         </div>
+        {materialFocusAddress !== null && (
+          <div className="location-lock" data-testid="location-lock" data-status={areaFocusStatus ?? "resolving"}>
+            <span role="status">
+              {areaFocusStatus === "unresolved"
+                ? "Location locked · unavailable at this age"
+                : "Location locked · following through time"}
+            </span>
+            <button type="button" onClick={clearLocationLock}>Unlock</button>
+          </div>
+        )}
       </section>
 
       <aside className="context-panel" aria-label="Current chapter" data-expanded={contextExpanded}>

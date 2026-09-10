@@ -26,6 +26,16 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Stop flooding `history.replaceState` on every continuous age tick while
+  scrubbing or playing; coalesce explorer hash sync (~4 Hz) so Chromium does
+  not throttle navigation IPC and hang the tab, while globe motion still
+  interpolates every frame.
+- Complete the material location-lock follow path: camera tracks the tagged
+  Cao material through continuous scrub and chapter changes, with a subtle
+  on-globe marker and an Unlock control while focus is active.
+- Draw reference-guide labels as curved surface ribbons fixed in geographic
+  space and replace upright pole sprites with flat polar sector ticks on the
+  globe (globus-style guides).
 - Keep continents visible while scrubbing or playing through Cao ages: retain
   the last published foundation until the next prepare lands, coalesce rapid
   age ticks, and continuously retarget motion so plates interpolate between

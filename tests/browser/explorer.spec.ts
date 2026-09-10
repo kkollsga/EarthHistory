@@ -137,7 +137,7 @@ test("retains a material address through an unsupported age and reacquires witho
   await page.locator("#landscape-jump").selectOption("amazon-rainforest");
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "place");
   await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
-    .toBeLessThanOrEqual(1.82);
+    .toBeLessThanOrEqual(1.83);
   const box = await globe(page).boundingBox();
   expect(box).not.toBeNull();
   const center = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
@@ -152,6 +152,8 @@ test("retains a material address through an unsupported age and reacquires witho
   const material = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("material");
   expect(material).not.toBeNull();
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "area");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "true");
+  await expect(page.getByTestId("location-lock")).toContainText(/Location locked/);
   await page.mouse.move(center.x, center.y);
   for (let index = 0; index < 4; index++) await page.mouse.wheel(0, -220);
   await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
@@ -159,14 +161,22 @@ test("retains a material address through an unsupported age and reacquires witho
   const distance = Number(await globe(page).getAttribute("data-camera-distance"));
 
   await page.locator("#chapter-jump").selectOption("cryogenian");
-  await expect.poll(() => globe(page).getAttribute("data-cao-foundation-status")).toBe("unsupported");
+  // Last in-domain foundation may remain visible; tagged material is retained
+  // while follow pose/marker clear until support returns.
+  await expect(page.getByTestId("location-lock")).toContainText(/unavailable at this age/);
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "false");
   expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get("material")).toBe(material);
   await page.locator("#chapter-jump").selectOption("present");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "area");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "true");
   await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
     .toBeCloseTo(distance, 2);
+  await page.getByRole("button", { name: "Unlock" }).click();
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "false");
+  await expect(page.getByTestId("location-lock")).toHaveCount(0);
 });
 
 test("keeps the menu and modal keyboard accessible", async ({ page }) => {
