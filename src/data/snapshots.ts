@@ -1,4 +1,7 @@
 import { pointsOfInterest, timeSlices } from "./catalog";
+import { nearestPaleodemAge, resolvePaleodemAgeBracket } from "./paleodem";
+import { BoundedPromiseCache } from "./promiseLru";
+import { interpolatePeriodScalar } from "./temporal";
 import { tectonicsAt } from "./tectonics";
 import type {
   AreaTrackingCatalog,
@@ -8,7 +11,9 @@ import type {
   LonLat,
   ModernClimateClass,
   ModernClimateControl,
+  ProceduralControls,
   SurfaceStage,
+  TemporalReferenceEndpoint,
   TimeSlice,
   WorldSnapshot,
 } from "./types";
@@ -24,7 +29,7 @@ interface ElevationAsset {
   ageMa: number;
   width: number;
   height: number;
-  elevation: number[];
+  elevation: Float32Array;
 }
 
 interface CountryAsset {
@@ -48,10 +53,11 @@ interface ModernClimateAsset {
   sourceIds: string[];
 }
 
-const PALEODEM_AGES = [0, 20, 35, 55, 65, 95, 130, 185, 220, 250, 300, 320, 360, 400, 430, 470, 520, 540] as const;
-const elevationAssets = new Map<number, Promise<ElevationAsset>>();
-const countryAssets = new Map<number, Promise<CountryAsset>>();
-const areaTrackingAssets = new Map<number, Promise<AreaTrackingLayer>>();
+const SOURCE_AGE_CACHE_ENTRIES = 3;
+const elevationAssets = new BoundedPromiseCache<number, ElevationAsset>(SOURCE_AGE_CACHE_ENTRIES);
+const countryAssets = new BoundedPromiseCache<number, CountryAsset>(SOURCE_AGE_CACHE_ENTRIES);
+const areaTrackingAssets = new BoundedPromiseCache<number, AreaTrackingLayer>(SOURCE_AGE_CACHE_ENTRIES);
+const endpointControlAssets = new BoundedPromiseCache<number, ProceduralControls>(SOURCE_AGE_CACHE_ENTRIES);
 let modernGeography: Promise<GeographyAsset> | undefined;
 let modernClimateAsset: Promise<ModernClimateAsset> | undefined;
 let areaTrackingCatalogAsset: Promise<AreaTrackingCatalog> | undefined;
@@ -67,8 +73,8 @@ function nearest<T>(values: readonly T[], distance: (value: T) => number): T {
   return values.reduce((best, value) => (distance(value) < distance(best) ? value : best));
 }
 
-function loadJson<T>(path: string, clear: () => void): Promise<T> {
-  return fetch(resolveDataAssetUrl(path))
+function loadJson<T>(path: string, clear: () => void, signal?: AbortSignal): Promise<T> {
+  return fetch(resolveDataAssetUrl(path), { signal })
     .then(async (response) => {
       if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);
       return (await response.json()) as T;
@@ -168,22 +174,13 @@ function decodeAreaTracking(
 }
 
 function loadAreaTracking(ageMa: number): Promise<AreaTrackingLayer> {
-  const cached = areaTrackingAssets.get(ageMa);
-  if (cached) return cached;
-  const pending = Promise.all([
+  return areaTrackingAssets.getOrCreate(ageMa, (signal) => Promise.all([
     loadAreaTrackingCatalog(),
-    fetch(resolveDataAssetUrl(`data/country-tracking-${ageMa}ma.bin`)).then(async (response) => {
+    fetch(resolveDataAssetUrl(`data/country-tracking-${ageMa}ma.bin`), { signal }).then(async (response) => {
       if (!response.ok) throw new Error(`Could not load country tracking at ${ageMa} Ma (${response.status})`);
       return response.arrayBuffer();
     }),
-  ])
-    .then(([catalog, buffer]) => decodeAreaTracking(ageMa, catalog, buffer))
-    .catch((error: unknown) => {
-      areaTrackingAssets.delete(ageMa);
-      throw error;
-    });
-  areaTrackingAssets.set(ageMa, pending);
-  return pending;
+  ]).then(([catalog, buffer]) => decodeAreaTracking(ageMa, catalog, buffer)));
 }
 
 function loadModernGeography(): Promise<GeographyAsset> {
@@ -229,31 +226,129 @@ function decodeModernClimate(asset: ModernClimateAsset): ModernClimateControl {
   };
 }
 
+const PALEODEM_HEADER_BYTES = 16;
+const PALEODEM_WIDTH = 360;
+const PALEODEM_HEIGHT = 181;
+const PALEOMAP_COORDINATE_VIEW = Object.freeze({
+  id: "paleomap-v3-v2d3",
+  frame: Object.freeze({
+    modelId: "paleomap-global-plate-model-v3",
+    modelVersion: "m15g60_v2d3 / ContOCeanPolyv10u_v2d3",
+    referenceFrameId: "anchor-plate-0",
+    anchorPlateId: 0,
+    directionConvention: "gplates-xyz-x0e-y90e-znorth" as const,
+  }),
+  motionUrl: "data/paleomap-motion-v1.json",
+  conversionEvidence: "same-model-motion" as const,
+  unsupportedPolicy: "nearest-native-discrete" as const,
+});
+
+export function decodePaleodemElevation(ageMa: number, buffer: ArrayBuffer): ElevationAsset {
+  const expectedBytes = PALEODEM_HEADER_BYTES + PALEODEM_WIDTH * PALEODEM_HEIGHT * 2;
+  if (buffer.byteLength !== expectedBytes) {
+    throw new Error(`PaleoDEM ${ageMa} Ma byte length is invalid`);
+  }
+  const view = new DataView(buffer);
+  if (
+    view.getUint8(0) !== 0x45 || view.getUint8(1) !== 0x48 ||
+    view.getUint8(2) !== 0x50 || view.getUint8(3) !== 0x44 ||
+    view.getUint16(4, true) !== 1 || view.getUint16(6, true) !== ageMa ||
+    view.getUint16(8, true) !== PALEODEM_WIDTH ||
+    view.getUint16(10, true) !== PALEODEM_HEIGHT || view.getUint32(12, true) !== 0
+  ) throw new Error(`PaleoDEM ${ageMa} Ma header is invalid`);
+  const elevation = new Float32Array(PALEODEM_WIDTH * PALEODEM_HEIGHT);
+  for (let index = 0; index < elevation.length; index += 1) {
+    elevation[index] = view.getInt16(PALEODEM_HEADER_BYTES + index * 2, true);
+  }
+  return { ageMa, width: PALEODEM_WIDTH, height: PALEODEM_HEIGHT, elevation };
+}
+
 function loadElevation(ageMa: number): Promise<ElevationAsset> {
-  const cached = elevationAssets.get(ageMa);
-  if (cached) return cached;
-  const pending = loadJson<ElevationAsset>(`data/paleodem-${ageMa}ma.json`, () => {
-    elevationAssets.delete(ageMa);
+  return elevationAssets.getOrCreate(ageMa, (signal) =>
+    fetch(resolveDataAssetUrl(`data/paleodem-${ageMa}ma.bin`), { signal }).then(async (response) => {
+      if (!response.ok) throw new Error(`Could not load PaleoDEM at ${ageMa} Ma (${response.status})`);
+      return decodePaleodemElevation(ageMa, await response.arrayBuffer());
+    }));
+}
+
+function loadEndpointControls(ageMa: number): Promise<ProceduralControls> {
+  return endpointControlAssets.getOrCreate(ageMa, async () => {
+    const asset = await loadElevation(ageMa);
+    const endpointEnvironment = environmentForAge(ageMa);
+    return Object.freeze({
+      width: asset.width,
+      height: asset.height,
+      elevation: asset.elevation,
+      potentialIce: potentialIce(asset.elevation, asset.width, asset.height, endpointEnvironment),
+      vegetationPotential: vegetationPotential(
+        asset.elevation,
+        asset.width,
+        asset.height,
+        endpointEnvironment,
+      ),
+    });
   });
-  elevationAssets.set(ageMa, pending);
-  return pending;
 }
 
 function loadCountries(ageMa: number): Promise<CountryAsset> {
-  const cached = countryAssets.get(ageMa);
-  if (cached) return cached;
-  const pending = loadJson<CountryAsset>(`data/countries-${ageMa}ma.json`, () => {
-    countryAssets.delete(ageMa);
+  return countryAssets.getOrCreate(ageMa, (signal) =>
+    loadJson<CountryAsset>(`data/countries-${ageMa}ma.json`, () => {}, signal));
+}
+
+async function loadReferenceEndpoint(ageMa: number): Promise<TemporalReferenceEndpoint> {
+  const [geography, countries, areaTracking] = await Promise.all([
+    ageMa === 0 ? loadModernGeography() : Promise.resolve(undefined),
+    ageMa === 0 ? Promise.resolve(undefined) : loadCountries(ageMa),
+    loadAreaTracking(ageMa),
+  ]);
+  const poiCoordinates: Record<string, LonLat> = ageMa === 0
+    ? pointsOfInterest.reduce<Record<string, LonLat>>((coordinates, poi) => {
+        if (poi.coordinates) coordinates[poi.id] = poi.coordinates;
+        return coordinates;
+      }, {})
+    : countries?.poiCoordinates ?? {};
+  return Object.freeze({
+    ageMa,
+    land: geography?.land ?? [],
+    countries: geography?.countries ?? countries?.countries ?? [],
+    poiCoordinates,
+    areaTracking,
   });
-  countryAssets.set(ageMa, pending);
-  return pending;
+}
+
+function waitForRequest<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (signal === undefined) return promise;
+  if (signal.aborted) return Promise.reject(new DOMException("The snapshot request was aborted", "AbortError"));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(new DOMException("The snapshot request was aborted", "AbortError"));
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", abort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", abort);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** Warm one source knot. Each source-class LRU remains the owning three-entry bound. */
+export async function prefetchPaleodemAge(ageMa: number): Promise<void> {
+  const age = nearestPaleodemAge(ageMa);
+  await Promise.all([
+    loadEndpointControls(age),
+    loadReferenceEndpoint(age).then(() => undefined),
+  ]);
 }
 
 function closestTimelineSlice(ageMa: number): TimeSlice {
   return nearest(timeSlices, (slice) => Math.abs(slice.ageMa - ageMa));
 }
 
-function environmentFor(ageMa: number): WorldSnapshot["environment"] {
+function authoredEnvironmentForAge(ageMa: number): WorldSnapshot["environment"] {
   let stage: SurfaceStage = "modern-biomes";
   let vegetation = 1;
   let biomeStage = 1;
@@ -296,6 +391,35 @@ function environmentFor(ageMa: number): WorldSnapshot["environment"] {
   }
 
   return { iceLatitude, vegetation, temperatureC, stage, oceanCoverage, cloudCover, atmosphereOpacity, haze, iceIntensity, biomeStage };
+}
+
+export function environmentForAge(ageMa: number): WorldSnapshot["environment"] {
+  const authored = authoredEnvironmentForAge(ageMa);
+  if (ageMa > 540 || (ageMa > 0 && ageMa < 0.03) || (ageMa >= 33 && ageMa <= 38)) {
+    return authored;
+  }
+  const bracket = resolvePaleodemAgeBracket(ageMa);
+  if (bracket.exact) return authored;
+  const younger = authoredEnvironmentForAge(bracket.youngerAgeMa);
+  const older = authoredEnvironmentForAge(bracket.olderAgeMa);
+  const blend = (key: keyof WorldSnapshot["environment"], fallback: number) =>
+    interpolatePeriodScalar(
+      typeof younger[key] === "number" ? younger[key] as number : fallback,
+      typeof older[key] === "number" ? older[key] as number : fallback,
+      bracket.fraction,
+    );
+  return {
+    stage: authored.stage,
+    iceLatitude: blend("iceLatitude", 90),
+    vegetation: authored.vegetation === 0 ? 0 : blend("vegetation", 0),
+    temperatureC: blend("temperatureC", 14),
+    oceanCoverage: blend("oceanCoverage", 0.71),
+    cloudCover: blend("cloudCover", 0.64),
+    atmosphereOpacity: blend("atmosphereOpacity", 1),
+    haze: blend("haze", 0.05),
+    iceIntensity: blend("iceIntensity", 0),
+    biomeStage: authored.biomeStage === 0 ? 0 : blend("biomeStage", 0),
+  };
 }
 
 function potentialIce(
@@ -384,73 +508,174 @@ function poisAt(ageMa: number, exactOnly = false): string[] {
       if (exactOnly) return false;
       const midpoint = (poi.ageStartMa + poi.ageEndMa) / 2;
       const closest = midpoint <= 540
-        ? nearest(PALEODEM_AGES, (candidate) => Math.abs(candidate - midpoint))
+        ? nearestPaleodemAge(midpoint)
         : closestTimelineSlice(midpoint).ageMa;
       return closest === ageMa;
     })
     .map((poi) => poi.id);
 }
 
-export async function getSnapshot(ageMa: number): Promise<WorldSnapshot> {
+function bracketIntervalId(youngerAgeMa: number, olderAgeMa: number): string {
+  return youngerAgeMa === olderAgeMa
+    ? `paleodem-${youngerAgeMa}ma`
+    : `paleodem-${youngerAgeMa}-${olderAgeMa}ma`;
+}
+
+function paleodemCaveat(
+  requestedAgeMa: number,
+  youngerAgeMa: number,
+  olderAgeMa: number,
+  actualAgeMa: number,
+  hasModernClimate: boolean,
+): string {
+  const sourceDescription = youngerAgeMa === olderAgeMa
+    ? ` Exact ${youngerAgeMa} Ma source frame.`
+    : ` Requested ${requestedAgeMa} Ma uses the ${youngerAgeMa} and ${olderAgeMa} Ma source frames; supported PALEOMAP continental material is interpolated in its plate-motion frame and unsupported cells remain on the nearest native frame.`;
+  const iceConstraint = caoIceAbsenceConstraintApplies(requestedAgeMa)
+    ? " Cao et al. (2017) supplies a qualitative absence constraint for mapped permanent ice in this interval; it is not proof of an ice-free Earth or a geometrical transfer between plate models. Sparse high-altitude snow remains an authored climate-potential inference."
+    : "";
+  return `PaleoDEM is an interpreted surface in its native PALEOMAP frame. Ice and vegetation controls are authored climate potential fields constrained by latitude, elevation, event state, and biological era; they are not mapped ancient boundaries or palaeoclimate simulation.${sourceDescription}${iceConstraint}${actualAgeMa === 0 ? ` Natural Earth supplies only the present-day reference outlines.${hasModernClimate ? " Beck et al. (2023) 1991–2020 Köppen–Geiger classes constrain modern climate potential, not mapped vegetation." : ""}` : " Country lines are an approximate present-day political reference reconstructed from the prepartitioned PALEOMAP v3 overlay with its matching rotation model; they are not historical borders."}`;
+}
+
+function caoIceAbsenceConstraintApplies(ageMa: number): boolean {
+  return ageMa > 81 && ageMa < 285.01;
+}
+
+function paleodemSourceIds(
+  actualAgeMa: number,
+  requestedAgeMa: number,
+  hasModernClimate: boolean,
+): string[] {
+  const ids = actualAgeMa === 0
+    ? ["scotese-wright-paleodem-v2", "natural-earth-land-110m", "natural-earth-countries-110m", ...(hasModernClimate ? ["beck-koppen-geiger-2023"] : [])]
+    : ["scotese-wright-paleodem-v2", "paleomap-political-boundaries-v3", "paleomap-global-plate-model-v3"];
+  if (caoIceAbsenceConstraintApplies(requestedAgeMa)) ids.push("cao-paleogeography-ice-2017");
+  return ids;
+}
+
+/** Update requested-age metadata without copying or regenerating source endpoint controls. */
+export function retimeSnapshot(snapshot: WorldSnapshot, ageMa: number): WorldSnapshot {
+  const temporal = snapshot.temporalSurface;
+  if (temporal === undefined || ageMa < 0 || ageMa > 540) return snapshot;
+  const bracket = resolvePaleodemAgeBracket(ageMa);
+  const intervalId = bracketIntervalId(bracket.youngerAgeMa, bracket.olderAgeMa);
+  if (intervalId !== temporal.intervalId) return snapshot;
+  const chapter = closestTimelineSlice(ageMa);
+  const actualAge = nearestPaleodemAge(ageMa);
+  const references = actualAge === temporal.younger.ageMa
+    ? snapshot.temporalReferences?.younger
+    : snapshot.temporalReferences?.older;
+  const poiIds = poisAt(ageMa, true);
+  const modernClimate = chapter.id === "present" ? snapshot.modernClimate : undefined;
+  return {
+    ...snapshot,
+    ...chapter,
+    id: `${chapter.id}__${intervalId}`,
+    ageMa,
+    requestedAgeMa: ageMa,
+    geographicSourceAgeMa: actualAge,
+    geographicSourceAgeBracketMa: [bracket.youngerAgeMa, bracket.olderAgeMa],
+    temporalSurface: {
+      ...temporal,
+      requestedAgeMa: ageMa,
+      fraction: bracket.fraction,
+      exactEndpoint: bracket.exact,
+      evidence: bracket.exact ? "model-output" : "interpolation",
+    },
+    evidence: bracket.exact ? "model-output" : "interpolation",
+    environment: environmentForAge(ageMa),
+    tectonics: tectonicsAt(ageMa),
+    poiIds,
+    sourceIds: paleodemSourceIds(actualAge, ageMa, modernClimate !== undefined),
+    land: references?.land ?? snapshot.land,
+    countries: references?.countries ?? snapshot.countries,
+    areaTracking: references?.areaTracking ?? snapshot.areaTracking,
+    poiCoordinates: references === undefined
+      ? snapshot.poiCoordinates
+      : Object.fromEntries(
+          poiIds.filter((id) => references.poiCoordinates[id])
+            .map((id) => [id, references.poiCoordinates[id]]),
+        ),
+    modernClimate,
+    caveat: paleodemCaveat(
+      ageMa,
+      bracket.youngerAgeMa,
+      bracket.olderAgeMa,
+      actualAge,
+      modernClimate !== undefined,
+    ),
+  };
+}
+
+export async function getSnapshot(ageMa: number, signal?: AbortSignal): Promise<WorldSnapshot> {
   if (!Number.isFinite(ageMa) || ageMa < 0) {
     throw new RangeError("ageMa must be a finite, non-negative number");
   }
 
   if (ageMa <= 540) {
-    const actualAge = nearest(PALEODEM_AGES, (candidate) => Math.abs(candidate - ageMa));
+    const bracket = resolvePaleodemAgeBracket(ageMa);
+    const actualAge = nearestPaleodemAge(ageMa);
     const chapter = closestTimelineSlice(ageMa);
-    const [elevationAsset, geography, reconstructedCountries, climateAsset, areaTracking] = await Promise.all([
-      loadElevation(actualAge),
-      actualAge === 0 ? loadModernGeography() : Promise.resolve(undefined),
-      actualAge === 0 ? Promise.resolve(undefined) : loadCountries(actualAge),
+    const [youngerControls, olderControls, youngerReferences, olderReferences, climateAsset] = await waitForRequest(Promise.all([
+      loadEndpointControls(bracket.youngerAgeMa),
+      bracket.exact ? loadEndpointControls(bracket.youngerAgeMa) : loadEndpointControls(bracket.olderAgeMa),
+      loadReferenceEndpoint(bracket.youngerAgeMa),
+      bracket.exact ? loadReferenceEndpoint(bracket.youngerAgeMa) : loadReferenceEndpoint(bracket.olderAgeMa),
       chapter.id === "present" ? loadModernClimate() : Promise.resolve(undefined),
-      loadAreaTracking(actualAge),
-    ]);
-    const environment = environmentFor(ageMa);
-    const elevation = Float32Array.from(elevationAsset.elevation);
-    const mismatch = ageMa === actualAge ? "" : ` Requested ${ageMa} Ma; the returned source age is ${actualAge} Ma.`;
-    const poiIds = poisAt(chapter.ageMa, chapter.id === "present");
-    const sourcePoiCoordinates: Record<string, LonLat> = actualAge === 0
-      ? pointsOfInterest.reduce<Record<string, LonLat>>((coordinates, poi) => {
-          if (poi.coordinates) coordinates[poi.id] = poi.coordinates;
-          return coordinates;
-        }, {})
-      : reconstructedCountries?.poiCoordinates ?? {};
+    ]), signal);
+    const environment = environmentForAge(ageMa);
+    const nearestControls = actualAge === bracket.youngerAgeMa ? youngerControls : olderControls;
+    const poiIds = poisAt(ageMa, true);
+    const nearestReferences = actualAge === bracket.youngerAgeMa ? youngerReferences : olderReferences;
+    const sourcePoiCoordinates = nearestReferences.poiCoordinates;
     const poiCoordinates = Object.fromEntries(
       poiIds.filter((id) => sourcePoiCoordinates[id]).map((id) => [id, sourcePoiCoordinates[id]]),
     );
     return {
       ...chapter,
-      id: `${chapter.id}__paleodem-${actualAge}ma`,
+      id: `${chapter.id}__${bracket.exact ? `paleodem-${bracket.youngerAgeMa}ma` : `paleodem-${bracket.youngerAgeMa}-${bracket.olderAgeMa}ma`}`,
       label: chapter.label,
-      ageMa: actualAge,
+      ageMa,
       requestedAgeMa: ageMa,
       geographicSourceAgeMa: actualAge,
-      evidence: actualAge === 0 ? "model-output" : "model-output",
-      sourceIds: actualAge === 0
-        ? ["scotese-wright-paleodem-v2", "natural-earth-land-110m", "natural-earth-countries-110m", ...(climateAsset ? ["beck-koppen-geiger-2023"] : [])]
-        : ["scotese-wright-paleodem-v2", "paleomap-political-boundaries-v3", "paleomap-global-plate-model-v3"],
-      land: geography?.land ?? [],
-      countries: geography?.countries ?? reconstructedCountries?.countries ?? [],
-      areaTracking,
-      tectonics: tectonicsAt(chapter.ageMa),
+      geographicSourceAgeBracketMa: [bracket.youngerAgeMa, bracket.olderAgeMa],
+      renderSeedId: "scotese-wright-paleodem-v2",
+      periodCoordinateView: PALEOMAP_COORDINATE_VIEW,
+      temporalSurface: {
+        intervalId: bracketIntervalId(bracket.youngerAgeMa, bracket.olderAgeMa),
+        seedId: "scotese-wright-paleodem-v2",
+        requestedAgeMa: ageMa,
+        younger: { ageMa: bracket.youngerAgeMa, controls: youngerControls },
+        older: { ageMa: bracket.olderAgeMa, controls: olderControls },
+        fraction: bracket.fraction,
+        exactEndpoint: bracket.exact,
+        evidence: bracket.exact ? "model-output" : "interpolation",
+        method: "material-registered-relative-elevation-with-discrete-fallback",
+      },
+      temporalReferences: { younger: youngerReferences, older: olderReferences },
+      evidence: bracket.exact ? "model-output" : "interpolation",
+      sourceIds: paleodemSourceIds(actualAge, ageMa, climateAsset !== undefined),
+      land: nearestReferences.land,
+      countries: nearestReferences.countries,
+      areaTracking: nearestReferences.areaTracking,
+      tectonics: tectonicsAt(ageMa),
       poiIds,
       poiCoordinates,
       environment,
-      controls: {
-        width: elevationAsset.width,
-        height: elevationAsset.height,
-        elevation,
-        potentialIce: potentialIce(elevation, elevationAsset.width, elevationAsset.height, environment),
-        vegetationPotential: vegetationPotential(elevation, elevationAsset.width, elevationAsset.height, environment),
-      },
+      controls: nearestControls,
       modernClimate: climateAsset ? decodeModernClimate(climateAsset) : undefined,
-      caveat: `PaleoDEM is an interpreted surface in its native PALEOMAP frame. Ice and vegetation controls are procedural potential fields constrained by latitude, elevation, event state, and biological era; they are not mapped ancient boundaries.${mismatch}${actualAge === 0 ? ` Natural Earth supplies only the present-day reference outlines.${climateAsset ? " Beck et al. (2023) 1991–2020 Köppen–Geiger classes constrain modern climate potential, not mapped vegetation." : ""}` : " Country lines are an approximate present-day political reference reconstructed from the prepartitioned PALEOMAP v3 overlay with its matching rotation model; they are not historical borders."}`,
+      caveat: paleodemCaveat(
+        ageMa,
+        bracket.youngerAgeMa,
+        bracket.olderAgeMa,
+        actualAge,
+        climateAsset !== undefined,
+      ),
     };
   }
 
   const scenario = closestTimelineSlice(ageMa);
-  const environment = environmentFor(scenario.ageMa);
+  const environment = environmentForAge(scenario.ageMa);
   return {
     ...scenario,
     id: `${scenario.id}__scenario`,

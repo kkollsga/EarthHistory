@@ -1,0 +1,2539 @@
+{
+  "schemaVersion": 1,
+  "status": "Functional validation complete for4b9554a7:224 unit/data tests,345 assets and24 browser cases pass. User explicitly continued with Sol; bounded visual refinement is active. Reuse completed evidence for unchanged behavior; release remains conditional on readiness.",
+  "date": "2026-09-10",
+  "scope": "Shared land/ocean period coordinates, registered surface interpolation, native age coverage and reference-driven terrain appearance",
+  "historicalControl": {
+    "kind": "Complete pre-continuous-time production build retained for later repeated comparison",
+    "bytes": 44283940,
+    "inventory": "continuous-time-baseline-manifest.json"
+  },
+  "initialProbe": {
+    "entrySha256": "699bb17fa1eeedbfc266f5d34def7b922dd38e5d3613253f87d4af0914f4aa96",
+    "browser": "152.0.7977.83",
+    "cpu": "Apple M4",
+    "platform": "darwin",
+    "loadAverage": [
+      2.419921875,
+      2.61767578125,
+      2.77978515625
+    ],
+    "backend": "webgpu",
+    "gpuModel": "not captured in initial diagnostic probe",
+    "viewport": [
+      1440,
+      900
+    ],
+    "deviceScaleFactor": 1,
+    "requestedAgeMa": 102.5,
+    "sourceAgesMa": [
+      100,
+      105
+    ],
+    "temporalVertices": 26136,
+    "updateMs": [
+      73.0,
+      74.5
+    ],
+    "decision": "Reject this update strategy/detail level: both update measurements exceed the existing 20 ms steady-frame budget before rendering overhead. Optimize before acceptance.",
+    "visualFindings": [
+      "Triangular coastline aliasing from coarse vertex colors",
+      "Loss of natural material detail after native texture maps were disabled"
+    ],
+    "limitations": [
+      "Initial diagnostic probes are not final controlled production benchmarks.",
+      "The repeated probe captured its initial state, then its scrub automation failed because the tool supplied a fractional value to a step=1 range input; this was a probe error, not an application failure.",
+      "No claim of final heap or GPU-memory acceptance.",
+      "Country-ribbon motion and global ocean topology are not complete in this build."
+    ]
+  },
+  "evidence": {
+    "continuous-initial-smoke.json": {
+      "storeRelativePath": "verification/continuous-initial-smoke.json",
+      "bytes": 6842,
+      "sha256": "c851920cda5fd432a08a2108b9c5c404a8515ff3b7cc0a2b9cd8bb89ec4ca1f3"
+    },
+    "continuous-initial-repeat.json": {
+      "storeRelativePath": "verification/continuous-initial-repeat.json",
+      "bytes": 3911,
+      "sha256": "af2570143a5796f43ff93f6612a2087eb458989a122547538d6878e745123182"
+    },
+    "continuous-initial-102_5ma.png": {
+      "storeRelativePath": "verification/continuous-initial-102_5ma.png",
+      "bytes": 549462,
+      "sha256": "be1d016c7650e13f430cadb5299b0a5b76d78a4f68dcea45c9779d11c0bd8000"
+    },
+    "continuous-time-baseline-manifest.json": {
+      "storeRelativePath": "verification/continuous-time-baseline-manifest.json",
+      "bytes": 36016,
+      "sha256": "7a3a516bef3254421f0dc13d8432e4a59e4315e05b42385afb2e0015dd5b0d67"
+    },
+    "continuous-initial-scrub.json": {
+      "storeRelativePath": "verification/continuous-initial-scrub.json",
+      "bytes": 12694,
+      "sha256": "6cf938b30d7880fac21c314c9273372e448f6306acecfd42fc416bd3088a8327"
+    },
+    "continuous-correction1-smoke.json": {
+      "storeRelativePath": "verification/continuous-correction1-smoke.json",
+      "bytes": 20210,
+      "sha256": "08664d994e5162d04268289d63cdd18b9bd265a3168ee0a4b0b7e9696ffbd911"
+    },
+    "continuous-correction1-102_5ma.png": {
+      "storeRelativePath": "verification/continuous-correction1-102_5ma.png",
+      "bytes": 529981,
+      "sha256": "3848aeb6bffadb17b4fbfb73f1ea2063757e0e42af25f968c65e3de0b4443cda"
+    },
+    "continuous-correction1-103_99ma.png": {
+      "storeRelativePath": "verification/continuous-correction1-103_99ma.png",
+      "bytes": 521099,
+      "sha256": "2104e769f0675f4c05518ae1b4a880106fbf5d45a8c2fcb5dbf29ef307056a24"
+    },
+    "continuous-baseline-102_5ma.png": {
+      "storeRelativePath": "verification/continuous-baseline-102_5ma.png",
+      "bytes": 531024,
+      "sha256": "72c71c86d94821b6c98704af6cdfa85c1101a0c5229ed890b23317bf4ec3342b"
+    },
+    "continuous-final-smoke.json": {
+      "storeRelativePath": "verification/continuous-final-smoke.json",
+      "bytes": 37096,
+      "sha256": "79a09e713411d941ebd82d4f63cf837e79c2e3ea3acbc5d363b643aa4795ef3f"
+    },
+    "continuous-final-baseline-102_5ma-surface.png": {
+      "storeRelativePath": "verification/continuous-final-baseline-102_5ma-surface.png",
+      "bytes": 490143,
+      "sha256": "5047a9e33d0a4dbea321ff07d801c4c9f87b75242b0f9f68b61136752f0e3563"
+    },
+    "continuous-final-candidate-102_5ma-surface.png": {
+      "storeRelativePath": "verification/continuous-final-candidate-102_5ma-surface.png",
+      "bytes": 487043,
+      "sha256": "034e190c405406cda5e3ccd2561870be559677745331fcff246c28e23cff4f4f"
+    },
+    "continuous-final-candidate-100ma-surface.png": {
+      "storeRelativePath": "verification/continuous-final-candidate-100ma-surface.png",
+      "bytes": 517234,
+      "sha256": "66fdba8be0e0801e5cdb72d1f2cd9a4455d2e564e268930d372964e7346b429d"
+    },
+    "continuous-final-candidate-102_5ma-seafloor.png": {
+      "storeRelativePath": "verification/continuous-final-candidate-102_5ma-seafloor.png",
+      "bytes": 534898,
+      "sha256": "98b186110f1608f42a380b18e5c712a5437d61477d71c9d32f77858fc83da1a4"
+    },
+    "continuous-final-candidate-102_5ma-regional.png": {
+      "storeRelativePath": "verification/continuous-final-candidate-102_5ma-regional.png",
+      "bytes": 545236,
+      "sha256": "f187048ec57e8e01762d8531a2773dedc2c67620e9c7f09c05e9366b0f7c549c"
+    }
+  },
+  "initialFunctionalScrub": {
+    "entrySha256": "699bb17fa1eeedbfc266f5d34def7b922dd38e5d3613253f87d4af0914f4aa96",
+    "requestedAgesMa": [
+      102.9108,
+      103.4496,
+      103.9884
+    ],
+    "surfaceRequestedAtUnchanged": true,
+    "updateMs": [
+      77.0,
+      74.2,
+      72.7
+    ],
+    "commandExitCode": 0
+  },
+  "correction1": {
+    "entrySha256": "237d2a4954f44c846fc184c3afc640bd422149e9ab35de722c7e323d02f12185",
+    "liveUpdateMs": [
+      23.4,
+      19.0,
+      19.0,
+      19.1
+    ],
+    "liveVertices": [
+      6534,
+      6534,
+      6534,
+      6534
+    ],
+    "settledUpdateMs": 73.1,
+    "settledVertices": 26136,
+    "javaScriptErrors": [],
+    "decision": "Live work reduced, but settled full update still too slow; further staging/publication correction required.",
+    "visualReview": "Restored material textures correct the initial flat vertex-color regression. Baseline comparison confirms some square coastline steps already exist in the source-controlled native view.",
+    "notYetInThisBuild": [
+      "Atomic staged terrain publication",
+      "Live country-preview geometry and truthful displayed-age diagnostics"
+    ]
+  },
+  "rotationOracleMutation": {
+    "guard": "pyGPlates equivalent rotation at a plate-circuit boundary",
+    "mutation": "In the generated catalog, change moving plate 109 / fixed plate 101 sequence endpointInclusion.oldest from false to true at 245 Ma, selecting the wrong younger circuit",
+    "observedFailure": "plate 109 at 245 Ma differs from pyGPlates",
+    "mutatedCommandExitCode": 1,
+    "restoredTargetedTest": "1 passed; unrelated cases intentionally skipped",
+    "scope": "Scientific rotation correctness; not a performance measurement",
+    "logSha256": "75f867828b8262de641e71b7c3cddfa55e653acdf0fdd107fe3b842256417bd0",
+    "restoration": "Original catalog restored byte-for-byte before targeted passing rerun"
+  },
+  "continuousBrowserIntegration": {
+    "entrySha256": "fed7ca71c964b280437e11b75939798c39edefd2e6bf5da8882fc0b4b20eb1e7",
+    "executedBy": "GPT-5.6 Sol runtime agent",
+    "cases": [
+      {
+        "name": "Continuous scrub with tagged focus",
+        "result": "passed",
+        "inputs": 9,
+        "inputSpacingMs": 35,
+        "finalAgeMa": 27.4788,
+        "checks": [
+          "requested terrain age",
+          "actually displayed country age",
+          "more than 100 reconstructed country parts",
+          "focus movement",
+          "zoom retained"
+        ]
+      },
+      {
+        "name": "Motion source fetch failure",
+        "result": "passed on targeted rerun",
+        "checks": [
+          "nearest native 25 Ma fallback",
+          "visible motion unavailable notice",
+          "model-output evidence without interpolation claim"
+        ]
+      }
+    ],
+    "initialCombinedCommand": "1 of 2 passed; fallback assertion expected wrong nearest age at the exact half interval, corrected to the existing tie rule",
+    "limitations": [
+      "This is targeted integration coverage, not the final full gate or production performance acceptance.",
+      "Subsequent atomic renderer and Cao ocean changes require fresh validation."
+    ]
+  },
+  "checkpointGate": {
+    "command": "make gate",
+    "exitCode": 2,
+    "passedTests": 167,
+    "failedTests": 1,
+    "failure": "Cao ownership at longitude -105\u00b0, latitude -75\u00b0, 250 Ma was unknown instead of the source-model resolved plate",
+    "sourceBoundaryDistanceRadians": 0.001402410483,
+    "decision": "Correct the ownership implementation; do not weaken the independent source tolerance",
+    "scope": "Gate stopped at unit/data tests before production build and artifact checks"
+  },
+  "finalRendererMeasurement": {
+    "entry": "assets/index-DNck_5bY.js",
+    "entrySha256": "aa2dc96dadf4be76cecd0294a2c9396bd6a68a5d2c99872c0b5d48ca4055a956",
+    "artifactBytes": 50125147,
+    "artifactMiB": 47.803,
+    "environment": {
+      "browser": "Headless Chrome 152.0.0.0",
+      "renderer": "three.js r185 WebGPU",
+      "cpu": "Apple M4",
+      "logicalCpus": 10,
+      "platform": "darwin",
+      "viewport": [
+        1440,
+        900
+      ],
+      "deviceScaleFactor": 1,
+      "loadAverageBefore": [
+        2.224609375,
+        2.416015625,
+        2.69482421875
+      ],
+      "loadAverageAfter": [
+        2.71240234375,
+        2.51171875,
+        2.7138671875
+      ]
+    },
+    "checks": {
+      "typecheck": "passed",
+      "focusedTests": "55 passed across temporal cube, cube mesh, surface, temporal reference, temporal bracket, and plate-motion files",
+      "javaScriptErrors": []
+    },
+    "scenarios": {
+      "historicalBaseline102.5MaSurface": {
+        "nativeDisplayedAgeMa": 105,
+        "visibleTiles": 72,
+        "repeatedRafMs": [
+          {
+            "p50": 16.7,
+            "p95": 16.8,
+            "max": 16.8,
+            "samples": 180
+          },
+          {
+            "p50": 16.7,
+            "p95": 16.7,
+            "max": 16.8,
+            "samples": 180
+          },
+          {
+            "p50": 16.7,
+            "p95": 16.8,
+            "max": 16.8,
+            "samples": 180
+          }
+        ]
+      },
+      "candidate102.5MaSurface": {
+        "sourceAgesMa": [
+          100,
+          105
+        ],
+        "requestedDisplayedTerrainCountryAgeMa": [
+          102.5,
+          102.5,
+          102.5
+        ],
+        "countryStatus": "terrain-draped",
+        "visibleTiles": 21,
+        "temporalVertices": 40293,
+        "resolvedVertices": 15101,
+        "fallbackVertices": 25192,
+        "maxChunkMs": 10.6,
+        "totalStagedUpdateMs": 164.2,
+        "stagingBytesAfterPublication": 0,
+        "repeatedRafMs": [
+          {
+            "p50": 16.7,
+            "p95": 16.7,
+            "max": 33.4,
+            "samples": 180
+          },
+          {
+            "p50": 16.7,
+            "p95": 16.7,
+            "max": 16.8,
+            "samples": 180
+          },
+          {
+            "p50": 16.7,
+            "p95": 16.7,
+            "max": 16.8,
+            "samples": 180
+          }
+        ]
+      },
+      "candidate100MaExactSurface": {
+        "status": "exact",
+        "requestedDisplayedTerrainCountryAgeMa": [
+          100,
+          100,
+          100
+        ],
+        "visibleTiles": 72,
+        "rafMs": {
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "samples": 180
+        }
+      },
+      "candidate102.5MaSeafloor": {
+        "requestedDisplayedTerrainCountryAgeMa": [
+          102.5,
+          102.5,
+          102.5
+        ],
+        "countryStatus": "terrain-draped",
+        "visibleTiles": 21,
+        "temporalVertices": 40293,
+        "maxChunkMs": 11.4,
+        "totalStagedUpdateMs": 181.0,
+        "rafMs": {
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "samples": 180
+        }
+      },
+      "candidate102.5MaRegional": {
+        "requestedDisplayedTerrainCountryAgeMa": [
+          102.5,
+          102.5,
+          102.5
+        ],
+        "countryStatus": "terrain-draped",
+        "visibleTiles": 15,
+        "temporalVertices": 47916,
+        "maxChunkMs": 8.3,
+        "totalStagedUpdateMs": 178.2,
+        "rafMs": {
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "samples": 180
+        }
+      }
+    },
+    "sustainedInput": {
+      "inputs": 60,
+      "inputDelayMs": 16,
+      "displayedAgePublicationCountDuringInput": 18,
+      "distinctDisplayedAgesDuringInput": 8,
+      "expectedFinalAgeMa": 102.372,
+      "displayedTerrainAgeMa": 102.372,
+      "displayedCountryAgeMa": 102.372,
+      "countryStatus": "moving-preview",
+      "temporalVertices": 6534,
+      "maxChunkMs": 5.2,
+      "totalStagedUpdateMs": 22.4,
+      "finding": "The latched in-flight update finishes while later input is coalesced, so sustained approximately 60 Hz input does not starve displayed-age publication."
+    },
+    "visualReview": [
+      "Native global material textures and material-frame UVs preserve fine surface detail; the rejected flat pale-green vertex-color appearance and triangular interpolation artifacts are absent.",
+      "Signed bathymetry is visible in seafloor mode, and regional terrain retains natural relief and printed guides.",
+      "Square one-degree coastline steps are also present in the exact native control and reflect source-grid resolution.",
+      "Settled country ribbons remain the existing crisp, approximately three-to-four-pixel style; a thinner LineSegments representation appears only as the transient moving preview during scrubbing."
+    ],
+    "scopeLimits": [
+      "PALEOMAP v2d3 material ownership is partial at ancient ages; unsupported vertices use one coherent declared native endpoint for height and material instead of fabricated motion.",
+      "The measurement establishes frame timing and bounded staging on the tested Apple M4 / Chrome WebGPU scenes; it does not establish GPU-memory acceptance on other devices.",
+      "Cao v2.4 ocean topology and boundary motion belongs to a different palaeomagnetic frame and remains outside this accepted PALEOMAP renderer measurement until its separate conversion and ownership gate pass."
+    ],
+    "decision": "Accept the staged, atomically published PALEOMAP-family continuous renderer for this measured partial-coverage scope. Its per-chunk work remains below the 20 ms steady-frame budget in the recorded whole-globe, seafloor, and regional scenes, exact knots recover native endpoints, and sustained input progresses. Retain the native fallback disclosure and continue Cao ocean work as a separately gated model/frame integration."
+  },
+  "correctedCheckpointGate": {
+    "command": "make gate",
+    "exitCode": 0,
+    "dataFilesVerified": 339,
+    "artifactMiB": 47.93,
+    "artifactLimitMiB": 50,
+    "fix": "Known-interior great-circle crossing parity for large non-convex spherical topology; source tolerance unchanged",
+    "independentCaoProbes": {
+      "spatial": 320,
+      "rotations": 380
+    },
+    "logSha256": "2c4b4451b7f12455fb2ee615d56c4779ec8d44629a639e8d45c9d35ca4161b62",
+    "scope": "Checkpoint before Cao view/lifetime integration; final program gate remains pending"
+  },
+  "caoBackendIndependentReview": {
+    "status": "ownership oracle corrected and passing; renderer integration blocked by resolver cost and incomplete boundary lifecycle API",
+    "checks": {
+      "typecheck": "passed",
+      "focusedTests": "8 passed across Cao ocean ownership and explicit PALEOMAP-to-Cao continental crosswalk",
+      "independentOracle": "320 pyGPlates spatial ownership probes and 380 rotations pass after preserving the original source tolerance"
+    },
+    "correctedFailure": {
+      "probe": {
+        "longitude": -105,
+        "latitude": -75,
+        "ageMa": 250,
+        "expectedPlateId": 701
+      },
+      "boundaryDistanceRadians": 0.001402410483,
+      "cause": "The non-convex source polygon contains both the probe and its antipode, so tangent-plane winding is zero at a valid interior point.",
+      "fix": "When winding is inconclusive, count unique great-circle crossings from the query to a known source interior point. No tolerance was relaxed."
+    },
+    "diagnosticResolverSweep": {
+      "scope": "Direct CPU diagnostic, not an R11 production-render acceptance measurement",
+      "machine": "Apple M4",
+      "directions": 6534,
+      "shape": "six cube faces, each 33 by 33 including duplicated seams",
+      "warmupSweeps": 1,
+      "repetitions": 3,
+      "timesMsByRequestedAge": {
+        "2.5": [
+          2288.854,
+          2286.298,
+          2302.545
+        ],
+        "102.5": [
+          956.908,
+          954.217,
+          954.7
+        ],
+        "247.5": [
+          797.756,
+          739.492,
+          732.811
+        ],
+        "402.5": [
+          509.069,
+          510.381,
+          508.201
+        ],
+        "537.5": [
+          491.513,
+          493.027,
+          496.555
+        ]
+      },
+      "finding": "The current resolver is not suitable for a per-frame renderer. Each plate candidate performs its own endpoint-ring checks and then repeats two global ownership scans, producing quadratic topology work.",
+      "requiredCorrection": "Reuse the unique per-plate endpoint matches and let the outer match count detect cross-plate ambiguity; retain exact packed-ring containment and add a production-shaped stop bound.",
+      "prefilterRevisionTimesMsByRequestedAge": {
+        "2.5": [
+          640.821,
+          641.19,
+          641.799
+        ],
+        "102.5": [
+          183.123,
+          183.209,
+          182.708
+        ],
+        "247.5": [
+          452.172,
+          452.632,
+          453.689
+        ],
+        "402.5": [
+          264.078,
+          264.096,
+          263.211
+        ],
+        "537.5": [
+          147.464,
+          150.24,
+          147.434
+        ]
+      },
+      "prefilterDecision": "Requested-age cap prefiltering materially reduces work but remains far above the renderer frame budget; do not enable it yet."
+    },
+    "contractFindings": [
+      "Resolved materialId includes the five-million-year bracket and topology IDs. Treat it as lifecycle/cache identity; procedural material needs a separate model-family-stable seed across brackets.",
+      "The data includes native boundary sections, feature type, adjacency, and subduction polarity, but the runtime API does not yet return requested-age boundary geometry or explicit matched/unmatched lifecycle status.",
+      "Cao ocean coordinates cannot sample PALEOMAP relief directly. Continental relief may cross frames only through the explicit present-material crosswalk and remains model-conversion inference; unsupported target regions must not expose stationary PALEOMAP terrain.",
+      "The compact two-degree continent bitset is a classification control rather than palaeoelevation. Ridge, trench, rift, mountain, and bathymetric amplitudes still require separately documented controls or explicitly labeled synthesis."
+    ],
+    "boundaryLifecycleInventory": {
+      "duplicateFeatureAdjacencyCompositeSegments": 90,
+      "agesWithDuplicateCompositeSegments": 46,
+      "maximumCompositeMultiplicity": 2,
+      "crossoverBracketMa": [
+        250,
+        255
+      ],
+      "sharedSourceFeatureIdsAcrossCrossover": 0,
+      "decision": "Generate and validate stable section correspondences offline. Feature identity and adjacency alone cannot pair every polyline; omit or mark unmatched/crossover geometry unsupported rather than inventing continuous boundary motion."
+    }
+  },
+  "caoScientificControlCheckpoint": {
+    "date": "2026-09-09",
+    "status": "source controls validated; integrated browser acceptance pending",
+    "model": {
+      "anchorPlateId": 0,
+      "id": "cao-et-al-2024",
+      "license": "CC-BY-4.0",
+      "referenceFrame": "palaeomagnetic",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "version": "2.4"
+    },
+    "grid": {
+      "height": 91,
+      "latitudes": "90..-90 every 2 degrees",
+      "longitudes": "-180..178 every 2 degrees",
+      "maximumNearestCellRegistrationUncertaintyKm": 158,
+      "width": 180
+    },
+    "time": {
+      "boundUncertaintyMa": 5,
+      "displayAgesMa": [
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100,
+        105,
+        110,
+        115,
+        120,
+        125,
+        130,
+        135,
+        140,
+        145,
+        150,
+        155,
+        160,
+        165,
+        170,
+        175,
+        180,
+        185,
+        190,
+        195,
+        200,
+        205,
+        210,
+        215,
+        220,
+        225,
+        230,
+        235,
+        240,
+        245,
+        250,
+        255,
+        260,
+        265,
+        270,
+        275,
+        280,
+        285,
+        290,
+        295,
+        300,
+        305,
+        310,
+        315,
+        320,
+        325,
+        330,
+        335,
+        340,
+        345,
+        350,
+        355,
+        360,
+        365,
+        370,
+        375,
+        380,
+        385,
+        390,
+        395,
+        400,
+        405,
+        410,
+        415,
+        420,
+        425,
+        430,
+        435,
+        440,
+        445,
+        450,
+        455,
+        460,
+        465,
+        470,
+        475,
+        480,
+        485,
+        490,
+        495,
+        500,
+        505,
+        510,
+        515,
+        520,
+        525,
+        530,
+        535,
+        540
+      ],
+      "stepMa": 5,
+      "traceRangeMa": [
+        0,
+        1000
+      ]
+    },
+    "coverage": {
+      "birthCensored": 28322,
+      "birthUnattributed": 312701,
+      "lossCensored": 202767,
+      "lossUnattributed": 360691,
+      "oceanSamples": 1110007,
+      "ridgeConfirmedBirth": 768984,
+      "subductionConfirmedLoss": 546549
+    },
+    "epistemicStatus": "model-derived coarse lifecycle control; not an observed or measured seafloor-age grid",
+    "assets": [
+      {
+        "path": "public/data/cao-ocean-motion-v1.json",
+        "bytes": 2462978,
+        "sha256": "256e357e961ec3e6bb68fde2c7ff4be0ffaa2885e4ee4275bba9e881b76e6057"
+      },
+      {
+        "path": "public/data/cao-ocean-motion-v1.bin",
+        "bytes": 3146951,
+        "sha256": "c9d2486b8b24a08686091ad0e3f53f2a715e1d4644bac05456819902e909a78a"
+      },
+      {
+        "path": "public/data/cao-continental-motion-v1.json",
+        "bytes": 320201,
+        "sha256": "15d39ac7563e5a46844d8c36c7863ae3ce8a3a5d503302ff7732939ecdc13342"
+      },
+      {
+        "path": "public/data/cao-continental-motion-v1.bin",
+        "bytes": 299600,
+        "sha256": "5b8b9ede36040f5755c88921ed05e7e8bd3c6b14f9f4d0abfdc95823f0ef64c4"
+      },
+      {
+        "path": "public/data/cao-ocean-lifecycle-v1.json",
+        "bytes": 10605,
+        "sha256": "2ff4d594610a0a698ceda295e46d127bcdd89f898b94e333be31fc51c7c1f1bc"
+      },
+      {
+        "path": "public/data/cao-ocean-lifecycle-v1.bin",
+        "bytes": 5356284,
+        "sha256": "22008f37a23c9308ebadaf5919378c76a14057289ef121b9a5ca4435835d1c05"
+      }
+    ],
+    "mutation": {
+      "change": "first birth byte changed to reserved code 201",
+      "mutatedCommandExitCode": 1,
+      "restoredCommandExitCode": 0,
+      "storeRelativePath": "verification/cao-ocean-lifecycle-r1-mutation.log",
+      "sha256": "58cc111245b637c148bf00fada17c74fd260cdac66b18fd46e2a5bda456a9ece"
+    }
+  },
+  "caoInitialIntegrationProbe": {
+    "decision": "Rejected: excessive refinement and chunk duration; checkerboard unsupported-region presentation requires correction.",
+    "entrySha256": "b59ba24e505477459af808874f7f52792847c2138e899b825b5d22eaa16f35b7",
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "backend": "webgl2",
+    "updatedVertices": 107811,
+    "maxChunkMs": 245.6,
+    "totalUpdateMs": 3845.5,
+    "visibleTiles": 96,
+    "limitations": [
+      "Diagnostic first integration, not a controlled repeated benchmark.",
+      "Chrome 153 fallback differs from retained Chrome 152 Metal control; do not infer comparative frame regression from this capture alone.",
+      "No final memory acceptance."
+    ],
+    "evidence": [
+      {
+        "storeRelativePath": "verification/cao-initial-100ma-seafloor.json",
+        "bytes": 4576,
+        "sha256": "485c612c1d8d840b5d0408302416d861928ad240c2c2b29066f04c32caf8320c"
+      },
+      {
+        "storeRelativePath": "verification/cao-initial-100ma-seafloor.png",
+        "bytes": 734702,
+        "sha256": "ff710c7c49467e5276c5a2a39bbfb829df21b3613dd1e6c20972dc606a519e0b"
+      }
+    ]
+  },
+  "caoCrosswalkHelperProfile": {
+    "storeRelativePath": "verification/cao-continental-crosswalk-profile.json",
+    "bytes": 3507,
+    "sha256": "35970acb0179530bf38c9ad45902c12f5639747154af7029bede6e7ecd7cb930",
+    "results": {
+      "schemaVersion": 1,
+      "recordedUtc": "2026-09-09T17:51:30Z",
+      "environment": {
+        "cpu": "Apple M4",
+        "node": "22.16.0",
+        "runner": "Vitest 5.0.0 development transform",
+        "platform": "macOS arm64"
+      },
+      "workload": {
+        "directions": 6534,
+        "construction": "six root cube faces, 33 by 33 directions per face; duplicate seams retained like separate render tiles",
+        "agesMa": [
+          100,
+          102.5
+        ],
+        "sourceEndpointCallsPerContinentalDirection": 2,
+        "warmup": "one complete sweep per age and path",
+        "repeats": 3
+      },
+      "stopRule": "Preserve exact static-fragment ownership and unsupported results; reduce the helper path enough for a 1089-vertex staged tile to approach the 20 ms steady-frame budget. This isolated development-runner profile is not R11 production acceptance.",
+      "cause": "The three-entry continental age LRU thrashed across the requested age, two native endpoints, and the 0 Ma material reference. Each endpoint call also repeated the requested-age static-partition lookup and target lineage preparation already available to the renderer.",
+      "changes": [
+        "Retain four continental/source ages, covering requested age, both native endpoints, and 0 Ma reference.",
+        "Expose resolveTargetMaterialPoint for a previously resolved authoritative Cao static fragment.",
+        "Reuse one prepared target lineage across the paired younger/older source endpoint calls.",
+        "Collapse duplicate endpoint validation at exact knots."
+      ],
+      "measurementsMs": {
+        "preChange": {
+          "100MaTotals": [
+            239.37,
+            237.702,
+            232.298,
+            233.776,
+            234.774
+          ],
+          "102_5MaTotals": [
+            5083.189,
+            5021.224,
+            5020.571,
+            5060.986,
+            5044.127
+          ],
+          "note": "The fractional path rebuilt age candidate caps because four required ages cycled through a three-entry LRU."
+        },
+        "postChangeExistingCoordinateApi": {
+          "100MaTotals": [
+            186.269,
+            184.895,
+            186.206
+          ],
+          "102_5MaTotals": [
+            211.657,
+            212.404,
+            215.652
+          ]
+        },
+        "postChangeBoundMaterialApi": {
+          "100MaTotals": [
+            105.399,
+            105.188,
+            106.433
+          ],
+          "102_5MaTotals": [
+            120.229,
+            120.135,
+            120.569
+          ],
+          "mappedEndpointResults": {
+            "100Ma": 3726,
+            "102_5Ma": 3728
+          },
+          "continentalDirections": {
+            "100Ma": 2205,
+            "102_5Ma": 2206
+          }
+        }
+      },
+      "interpretation": "The bound-material path removes the pathological fractional cache rebuild and reduces the current helper work by about 43% versus the corrected coordinate API. Dividing the full 6534-direction result by six gives about 17.6 ms at 100 Ma and 20.1 ms at 102.5 Ma per 1089-vertex root tile before ocean, boundary, color, and geometry work; final acceptance therefore remains an integrated production-browser question.",
+      "retainedPoseCache": {
+        "limitAges": 4,
+        "reason": "one 0 Ma reference partition plus requested age plus younger and older native endpoints",
+        "activeFragmentsAtAges": {
+          "0": 867,
+          "100": 755,
+          "102.5": 753,
+          "105": 753
+        },
+        "incrementalFourthAgePayload": "at 102.5 Ma, 18,072 bytes for three Float64 cap-centre components plus about 6,024 bytes of fragment references; JavaScript array/object overhead is engine-dependent",
+        "upperBound": "869 candidate records for any one added age; cache remains fixed at four ages"
+      }
+    },
+    "acceptance": "Isolated helper diagnosis only; integrated production acceptance remains pending."
+  },
+  "caoTargetedBrowserCheckpoint": {
+    "status": "Targeted browser checkpoint passed; final union and subsequent renderer changes still require validation.",
+    "entrySha256": "dcf412d405966534857654c77faf975fcd3683f9afe66fbd8dd07bc9068359fb",
+    "distBytes": 49081336,
+    "cases": {
+      "Cao coherence and failure fallback": {
+        "passed": 2,
+        "seconds": 45.5
+      },
+      "PALEOMAP continuous interpolation": {
+        "passed": 1,
+        "seconds": 18.9
+      }
+    },
+    "typecheckExitCode": 0,
+    "focusedUnitTests": 20,
+    "logs": [
+      {
+        "storeRelativePath": "verification/continuous-runtime/cao-targeted-browser.log",
+        "bytes": 743,
+        "sha256": "85de7ef3ebdd278ae8dd6f6869f06f2bba79b4675f16356ee261588d16cd7d1a"
+      },
+      {
+        "storeRelativePath": "verification/continuous-runtime/paleomap-continuous-browser.log",
+        "bytes": 631,
+        "sha256": "53c2237ea59324f12af54fea5fbf2a6d9f0e6fd3247bf650ce75698080dbd8ee"
+      }
+    ]
+  },
+  "caoPreAtomicScrubCheckpoint": {
+    "decision": "Rejected as coherent continuous publication: frame responsiveness does not compensate for country/POI lag behind displayed terrain.",
+    "entrySha256": "5c98c6e1fee0e9ac6506e6a6075bef16d63b91451fe762b77a01a309e9c5b1bd",
+    "storeRelativePath": "verification/cao-correction4-pre-atomic-scrub.json",
+    "bytes": 49484,
+    "sha256": "3d9a89e143790219ed48e091786ebc57670d9369f017df2e6868d220b42e46b5",
+    "interactionFrameMs": {
+      "count": 115,
+      "p50": 16.699999999999818,
+      "p95": 18.699999999999818,
+      "max": 66.69999999999982
+    },
+    "publicationCountDuringInput": 16,
+    "distinctAgesMaDuringInput": [
+      "104.527200",
+      "102.372000",
+      "103.988400",
+      "101.833200"
+    ],
+    "failure": "During input, terrain publication advances while country and POI diagnostics retain the previous displayed age. Correctly reporting updating does not meet the common-frame publication contract.",
+    "correction": "Prepare references for an announced in-flight age and publish terrain, boundary relief, country preview and POIs together. Keep camera focus on the actual displayed age.",
+    "limitations": [
+      "These measurements belong to the pre-atomic checkpoint and cannot establish final performance acceptance.",
+      "Only four unique displayed ages occur because the input pattern repeats; there are sixteen age-changing publications."
+    ]
+  },
+  "caoFrameCoherenceNegativeControl": {
+    "purpose": "Prove the strengthened rendered-frame assertion detects the known pre-atomic country/POI publication defect.",
+    "commandExitCode": 1,
+    "passed": 0,
+    "failed": 1,
+    "observedFailure": "Six sampled visible frames had country age lagging terrain/boundary age during the 20\u201325 Ma seek.",
+    "artifact": "index-Cxf9d_z0.js (pre-atomic production build)",
+    "storeRelativePath": "verification/continuous-runtime/cao-frame-coherence-negative-control.log",
+    "bytes": 3877,
+    "sha256": "0a510b06d0d77392980fefd150ea0d1ec08182108227c70bfd8e70c4ed8a49a3",
+    "status": "Expected failing pre-atomic control followed by passing corrected artifact with the same assertion; evidence recorded separately."
+  },
+  "caoFrameCoherenceCorrectedCheckpoint": {
+    "entrySha256": "862a3a0d9b46a6b6f9275c3c710b49be140cdfd7e57273feff8bb90def344771",
+    "distBytes": 49086771,
+    "commandExitCode": 0,
+    "passed": 1,
+    "seconds": 35.9,
+    "checks": [
+      "Terrain, boundary, country and POI ages agree in sampled animation frames during same-interval scrubbing.",
+      "Actual installed POI position signature changes.",
+      "Tagged camera position changes while zoom is retained."
+    ],
+    "storeRelativePath": "verification/continuous-runtime/cao-frame-coherence-positive.log",
+    "bytes": 681,
+    "sha256": "1904c5963e5300c6c7e106f53d1f1309f0fa80dc766c85352d1152c6e06dd1bb",
+    "status": "Identical strengthened assertion passes corrected build after the known-bad control failed. Full union, cross-interval visibility and subsequent performance changes still require validation."
+  },
+  "caoContinentalSpatialIndex": {
+    "status": "accepted for source-equivalent runtime use; integrated production-browser acceptance remains separate",
+    "method": "Lazy 10 degree geographic cells retain reconstructed bounding-cap candidates in the source area/sourceOrder sequence. Exact spherical ring containment remains authoritative; a cell falls back to the complete exact sequence before its numeric per-age allowance can be exceeded.",
+    "cacheContract": {
+      "agePoseLimit": 4,
+      "cellsPerAge": 648,
+      "numericCandidateType": "Uint16Array indices into the ordered age pose",
+      "numericByteLimitPerAge": 196608,
+      "numericByteLimitAllCachedAges": 786432,
+      "fixedCellReferencesPerAge": 648,
+      "cleanupOwner": "four-entry age-pose LRU evicts the cell index with its reconstructed pose",
+      "note": "JavaScript array/reference/object overhead is engine-dependent and excluded from the numeric byte limit."
+    },
+    "wholeVsIndexValidation": {
+      "agesMa": [
+        0,
+        100,
+        102.5,
+        250,
+        400,
+        540
+      ],
+      "directions": "all 648 10 degree cell centres, dateline, both poles, and independent pyGPlates ownership probes",
+      "authority": "complete exact source-ordered fragment scan using the same decoded model geometry",
+      "result": "exact fragment/source-feature/plate equivalence; zero-byte configuration also recovered the full exact results"
+    },
+    "developmentCpuProfile": {
+      "storeRelativePath": "verification/cao-continental-spatial-index-profile.json",
+      "bytes": 4890,
+      "sha256": "bdbee903fe33e6628fbcb994cbe5b54a2abc3b72520c114330edcade8c7b7863",
+      "workload": "6,534 root-cube directions, five warmed repeats per age, Apple M4/Node 22.16.0/Vitest development transform",
+      "100Ma": {
+        "indexedPreparationSweepMs": 34.701,
+        "indexedWarmRangeMs": [
+          24.268,
+          24.762
+        ],
+        "indexedWarmMedianMs": 24.407,
+        "fullWarmRangeMs": [
+          45.974,
+          47.215
+        ],
+        "fullWarmMedianMs": 46.34,
+        "cachedCells": 600,
+        "numericBytes": 11492
+      },
+      "102_5Ma": {
+        "indexedPreparationSweepMs": 30.016,
+        "indexedWarmRangeMs": [
+          21.692,
+          24.472
+        ],
+        "indexedWarmMedianMs": 22.106,
+        "fullWarmRangeMs": [
+          42.969,
+          45.872
+        ],
+        "fullWarmMedianMs": 43.823,
+        "cachedCells": 600,
+        "numericBytes": 11546
+      },
+      "interpretation": "The source-equivalent index approximately halves this isolated ownership query time and stays far below its numeric bound. These development-runner measurements are not production renderer/GPU R11 acceptance."
+    },
+    "r1Mutation": {
+      "mutation": "Deliberately omit Cao child plate 501 from only the lazy cell candidate list.",
+      "expectedFailure": "Full-vs-index equivalence failed at 75E, 15N, 0 Ma: the exact scan returned the India source fragment while the incomplete index returned null.",
+      "mutatedExitCode": 1,
+      "restoredExitCode": 0,
+      "storeRelativePath": "verification/cao-continental-cell-index-r1-mutation.log",
+      "bytes": 1597,
+      "sha256": "82b0fdcf6ad86b715e903510aa3f55b726455ce089558d7e0fc2b81177f737a7"
+    }
+  },
+  "caoCrossKnotCheckpoint": {
+    "entrySha256": "c077d2c2e467b34b4f351fddaafecdfe8d9ec5eed6e719febbd8f98e81fea54f",
+    "distBytes": 49093730,
+    "scientificAssets": 343,
+    "commandExitCode": 0,
+    "passed": 1,
+    "seconds": 44.0,
+    "checks": [
+      "Cao20Ma through fractional scrub to exact25Ma under reduced motion.",
+      "Every sampled frame has a visible terrain mesh and matching terrain, boundary, country and POI ages.",
+      "Actual POI position signature and camera longitude change while zoom is preserved."
+    ],
+    "storeRelativePath": "verification/continuous-runtime/cao-cross-knot-positive.log",
+    "bytes": 683,
+    "sha256": "7d58721eba37d5ca879f1039ccdd62e6eff05fec491f2929b812c7ff9c11d253",
+    "status": "Functional checkpoint passed. User rejected earlier visual appearance; satellite-style terrain and restrained borders are active follow-up before final acceptance."
+  },
+  "caoSatelliteCrossKnotCheckpoint": {
+    "entry": "assets/index-orLLDpOG.js",
+    "entrySha256": "28df92a0b109556d1a1bb86e286e5fe16d5ba0b8b03174ec61841d5df998e358",
+    "commandExitCode": 0,
+    "passed": 1,
+    "seconds": 48.2,
+    "checks": [
+      "Every sampled animation frame retains visible terrain and a common terrain, boundary, country and POI age across a native source knot.",
+      "Installed POI position changes; tagged focus moves while zoom is retained."
+    ],
+    "storeRelativePath": "verification/continuous-runtime/cao-cross-knot-satellite-positive.log",
+    "bytes": 347,
+    "sha256": "237c0473348f1480365d1d672221241eda88634dd3425bc2cb47db9c7a31ed2a",
+    "status": "Functional checkpoint only. Further satellite material changes and final full gate remain outstanding.",
+    "probeCorrection": "Initial attempt targeted an incorrect preview base subpath and failed before canvas; rerun used the renderer preview root URL."
+  },
+  "satelliteVisualIteration4": {
+    "entrySha256": "e3e1f810fe2cc8b5bc8d0c6fdf01724521e6d9f7294ab475d5f33499d390e4d8",
+    "status": "Intermediate visual checkpoint, not final performance acceptance.",
+    "observations": [
+      "Default globe has visibly stronger material grain and subdued terrain-lit borders.",
+      "Regional source-scale relief and coarse coastlines remain apparent; this is satellite-style visual synthesis, not photographic data.",
+      "Optional Cao close view retains coarse partial conversion blocks and is not accepted as a complete default replacement.",
+      "Subsequent lighting and atmosphere corrections are under measurement."
+    ],
+    "evidence": [
+      {
+        "storeRelativePath": "verification/satellite-iteration4-captures.json",
+        "bytes": 23696,
+        "sha256": "6fe4b39bb7bbc7e5139c6127a2d24995617e5e7a12dce9f557467f94099bd3a6"
+      },
+      {
+        "storeRelativePath": "verification/satellite-iteration4-paleomap-100ma-surface.png",
+        "bytes": 528117,
+        "sha256": "c59a014332532549096b3771130f8a1b7c94477b38bb6dee4ee8b5ca438b603b"
+      },
+      {
+        "storeRelativePath": "verification/satellite-iteration4-paleomap-100ma-mountain-close.png",
+        "bytes": 665800,
+        "sha256": "a11bf4124f64ae32b77dddaada16fda5a0d190140c8577adda9bcbca6d97d751"
+      },
+      {
+        "storeRelativePath": "verification/satellite-iteration4-cao-100ma-ridge-close.png",
+        "bytes": 667971,
+        "sha256": "5d0b4e1d58291cb75efa00bea30d3851e9349c57d2d0071b79b234304f29eddb"
+      }
+    ]
+  },
+  "satelliteFinalVisualCheckpoint": {
+    "entrySha256": "f2bafd3c502e93375526b8f6eb354bafd5232f435ca1ba43539b610351be3b49",
+    "status": "Final bounded visual pass; integrated timing and full gate recorded separately when complete.",
+    "changes": [
+      "Material-attached multiscale albedo, bump and roughness detail, without altering native physical elevations.",
+      "More oblique inspection lighting and reduced fill preserve slope contrast.",
+      "Atmosphere update now retains thin subdued limb rather than overriding construction settings.",
+      "Exact triangle-draped, subdued country ribbons; source-validity gaps are not bridged."
+    ],
+    "limitations": [
+      "Procedural appearance is synthesis, not satellite photography or newly measured high-resolution palaeoterrain.",
+      "Optional Cao close view remains visibly coarse and partially unsupported."
+    ],
+    "evidence": [
+      {
+        "storeRelativePath": "verification/satellite-final-captures.json",
+        "bytes": 23677,
+        "sha256": "1101faf2ef6125d00719bcb38137c5c50b381842bfb40ca646aa4aa6f29e7627"
+      },
+      {
+        "storeRelativePath": "verification/satellite-final-paleomap-100ma-surface.png",
+        "bytes": 514403,
+        "sha256": "e3f8afd03902ebddf87bc6ab6329f8b45f980dced87619251fcd1accffe4b473"
+      },
+      {
+        "storeRelativePath": "verification/satellite-final-paleomap-100ma-mountain-close.png",
+        "bytes": 659108,
+        "sha256": "d05815d6016f7954c8eaabc8c4cdbca1fcbdb5e886f14fecd723ab40e5ea0979"
+      },
+      {
+        "storeRelativePath": "verification/satellite-final-cao-100ma-seafloor.png",
+        "bytes": 623881,
+        "sha256": "a51567df6871eafc9c40e9ad59073c24622028dc9f17629d039f81e9112de2b1"
+      },
+      {
+        "storeRelativePath": "verification/satellite-final-cao-100ma-ridge-close.png",
+        "bytes": 656274,
+        "sha256": "9631ee5686a098f0b080a8c8ed20fffda0da178519ea9c6dce0376f93721875e"
+      }
+    ],
+    "scope": "Pre-material-frequency predecessor evidence; not acceptance of the current frequency/material-coordinate candidate."
+  },
+  "satellitePerformanceDecision": {
+    "entrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+    "distBytes": 49097762,
+    "stopRules": {
+      "frameP95MaximumMs": 20,
+      "completeCaoCpuMaximumMs": 500
+    },
+    "correction": "The 24-leaf Cao full pass failed paired CPU measurements. Final detail uses 18 projected L0/L1 leaves and waits for the final visible leaf set before beginning a settled atomic pass; live preview remains bounded and separate.",
+    "exactCao": {
+      "completeCpuIncludingPreparationMs": [
+        454.8,
+        461.9
+      ],
+      "steadyFrameP95Ms": [
+        16.7,
+        16.7
+      ],
+      "largestWorkChunkMs": [
+        18.3,
+        18.6
+      ],
+      "navigationToReadyMs": [
+        1772.224667,
+        1907.647167
+      ],
+      "finalVertices": 19602
+    },
+    "rapidInputCheckpoint": {
+      "requestedTimerSpacingMs": 16,
+      "actualDispatchIntervalMedianMs": 30.5,
+      "actualDispatchIntervalP95Ms": 54.4,
+      "displayPublications": 37,
+      "distinctDisplayedAges": 9,
+      "medianPublicationGapMs": 50,
+      "maximumPublicationGapMs": 100.1,
+      "frameP95Ms": 16.8,
+      "maximumFrameMs": 33.3,
+      "finalCompleteCpuMs": 462,
+      "settleAfterLastInputMs": 1248.793958,
+      "status": "Paired valid in-page measurements pass the stated frame and complete-CPU limits. Actual dispatch cadence is reported; neither run achieved 60 Hz input."
+    },
+    "limits": [
+      "The previous slower tool-driven input sequence is not evidence of 60 Hz input.",
+      "The first density probe readyMs included an intentional 3.5 s sampling wait; corrected true readiness is recorded separately.",
+      "Navigation and full-detail settling remain slower than the original regional readiness target.",
+      "Browser heap samples and explicit typed-array/texture bounds do not establish a portable total GPU-memory ceiling."
+    ],
+    "evidence": [
+      {
+        "storeRelativePath": "verification/satellite-final-performance.json",
+        "bytes": 32125,
+        "sha256": "1cdd1a630254c6f8512321811dce570b4c186ff9dafd33bb5f16f9bc5aa454c7"
+      },
+      {
+        "storeRelativePath": "verification/cao-final-density-performance.json",
+        "bytes": 25132,
+        "sha256": "a0a8e69fc83ba647e3011ed1a2858fee25ceed1041f7c46fa3fd1f8e7b9c88db"
+      },
+      {
+        "storeRelativePath": "verification/cao-final-density18-performance.json",
+        "bytes": 25099,
+        "sha256": "cd3b1c4eb74dc50590a031cb3c85029efb2b2417408b9499daef57543e0acd48"
+      },
+      {
+        "storeRelativePath": "verification/cao-final-exact-production.json",
+        "bytes": 14086,
+        "sha256": "598ed49bac04c56dc71435f690432c248bd02ebd0528135485a4cea07ad9a637"
+      },
+      {
+        "storeRelativePath": "verification/cao-density18-true-60hz.json",
+        "bytes": 10702,
+        "sha256": "a35f6da5a76def7784a645ffaba46952b3273b801eedc6b6c312a64752034778"
+      },
+      {
+        "storeRelativePath": "verification/cao-density18-true-60hz-repeat.json",
+        "bytes": 10921,
+        "sha256": "986761221faadcc575a83658223d4fea4972f9cd83170feb8f9a929e186b32b1"
+      }
+    ],
+    "rapidInputRepeat": {
+      "requestedTimerSpacingMs": 16,
+      "actualDispatchIntervalMedianMs": 35.1,
+      "actualDispatchIntervalP95Ms": 51.7,
+      "displayPublications": 39,
+      "distinctDisplayedAges": 9,
+      "frameP95Ms": 16.8,
+      "maximumFrameMs": 33.4,
+      "finalCompleteCpuMs": 474.6,
+      "settleAfterLastInputMs": 1323.02175,
+      "vertices": 19602
+    }
+  },
+  "fullGatePreAssertionCorrection": {
+    "command": "EARTHHISTORY_TEST_PORT=4188 make gate-full",
+    "commandExitCode": 2,
+    "unitDataTestsPassed": 204,
+    "unitDataTestFiles": 34,
+    "scientificAssets": 343,
+    "distBytes": 49097762,
+    "browserPassed": 22,
+    "browserFailed": 2,
+    "browserMinutes": 9.8,
+    "failures": [
+      "Old overlay/source key equality assertion conflicts with the intentional exact published-mesh revision key.",
+      "Mapped-period crossfade assertion conflicts with coherent atomic continuous-coordinate publication; illustrative-scene crossfade coverage is retained separately."
+    ],
+    "status": "Failed full command; prepared contract-specific assertion corrections require failure proof and complete rerun. No passing full-gate claim.",
+    "storeRelativePath": "verification/continuous-final-gate-full.log",
+    "bytes": 14624,
+    "sha256": "69b96584500a3bd99372dff06ab0d64d5eba9ab5f2ba3338327081964f62590b"
+  },
+  "browserContractCorrection": {
+    "entrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+    "scope": "Test-only correction for intentional exact-mesh draping and atomic continuous publication; application artifact unchanged.",
+    "checks": [
+      "Overlay status ready, requested and applied sampler keys equal, exact current cube source-key prefix and valid positive mesh revision suffix.",
+      "Applied sampler revision changes after display exaggeration and regional LOD refinement.",
+      "Illustrative Cryogenian transition crossfades; mapped rapid Permian to K\u2013Pg change publishes without crossfade, preserves a visible terrain mesh and aligns terrain/country/POI displayed ages at66.04Ma."
+    ],
+    "r1": {
+      "mutation": "Temporary test-only stale data-overlay-drape-applied-surface-key injected before the new predicate.",
+      "expectedFailureObserved": true,
+      "mutatedExitCode": 1,
+      "restoredExitCode": 0,
+      "restoredFocusedCasesPassed": 2,
+      "restoredMinutes": 1.0
+    },
+    "evidence": [
+      {
+        "storeRelativePath": "verification/continuous-runtime/overlay-mesh-key-r1-negative.log",
+        "bytes": 2814,
+        "sha256": "e015ae99f571426cee52a6ebe85eae27ce4d33c61cf8ec9b2dd704fc200bc313"
+      },
+      {
+        "storeRelativePath": "verification/continuous-runtime/browser-contract-restored-positive.log",
+        "bytes": 669,
+        "sha256": "52992c8ceaea12f0d8c7f72f0ada48f689a57188b8990bead70cfa3895ca55c3"
+      }
+    ],
+    "status": "Focused cases passed; complete corrected gate still required."
+  },
+  "finalFullGate": {
+    "command": "EARTHHISTORY_TEST_PORT=4188 make gate-full",
+    "commandExitCode": 0,
+    "entry": "assets/index-CjGFyKi_.js",
+    "entrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+    "distBytes": 49097762,
+    "unitDataTestsPassed": 204,
+    "unitDataTestFiles": 34,
+    "browserTestsPassed": 24,
+    "browserTestsFailed": 0,
+    "browserMinutes": 10.1,
+    "scientificAssetsVerified": 343,
+    "checks": [
+      "Doctrine adapters, local output bounds and cache bounds",
+      "TypeScript, complete unit/data union and production build",
+      "Complete browser suite including WebGL2 fallback, mobile controls, actual mesh-draping revisions, native-knot visible publication, shared terrain/country/POI ages, focus and preserved zoom",
+      "Production asset inventory, hashes and 50 MiB artifact ceiling"
+    ],
+    "storeRelativePath": "verification/continuous-final-gate-full-corrected.log",
+    "bytes": 9839,
+    "sha256": "ef0cf929316a7d303e6a6906d756859b9957957bd6f038f3a47d140c64baf256",
+    "limitations": [
+      "Cao converted continental coverage is partial and its close-view mesh remains visibly coarse; PALEOMAP stays the complete default.",
+      "Fine visual detail is procedural synthesis, not new measured palaeotopography or satellite photography.",
+      "Repeated Cao full detail settles about1.25\u20131.32s after rapid input; actual requested16ms input timers arrive more slowly.",
+      "No portable total browser/GPU-memory ceiling or unrestricted full-range performance claim."
+    ],
+    "scope": "Pre-material-frequency predecessor evidence; not acceptance of the current frequency/material-coordinate candidate."
+  },
+  "materialFrequencyFollowup": {
+    "status": "Source implementation and all24 browser-case coverage complete across full and focused invocations; final synchronized performance and actual app captures pending.",
+    "controlEntrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+    "controlBytes": 49097762,
+    "controlFiles": 352,
+    "controlStoreRelativePath": "verification/frequency-control-605392",
+    "manifestStoreRelativePath": "verification/frequency-control-605392-manifest.json",
+    "manifestSha256": "65974b31c7c8cf9c50749560ddce5d726b4fbed7354b0e0c3f8ac7a630e85453",
+    "confirmedCauses": [
+      "Last noise octave is below texture/projected Nyquist and dominates roughness.",
+      "Coordinate warp spans roughly4.9 degrees, larger than the first material correlation band.",
+      "Flat land roughness baseline is decoded as terrain slope around0.49, spreading ridge-like bump across lowlands.",
+      "Synthetic bump and roughness evaluated at endpoint geographic coordinates change for the same moving material when the selected endpoint switches; a stable seed alone does not stabilize coordinates."
+    ],
+    "scope": "Band-limit material channels by footprint, reduce warp, and gate mountain detail on source ruggedness. Preserve native physical elevation, material coordinates, source semantics, storage and performance bounds.",
+    "materialCoordinateFailureProof": {
+      "status": "Original equality failed before correction; corrected material-coordinate tests and integration passed.",
+      "probe": "One resolver-tracked material moves from longitude 0 to 20 degrees, with identical seed, source elevation, source slope and climate inputs. Only endpoint geographic coordinates change.",
+      "bumpMetres": [
+        -10.1542,
+        38.3197
+      ],
+      "roughnessDelta": [
+        -0.005195,
+        0.027046
+      ],
+      "expectedNegativeExitCode": 1,
+      "storeRelativePath": "verification/continuous-runtime/material-coordinate-r1-negative.log",
+      "restoration": "Temporary negative probe removed; git diff --check passed."
+    },
+    "implementationReview": {
+      "status": "Independent source review and focused integration passed. Complete final gate pending.",
+      "method": "Pointwise reference-material detail conditioned by interpolated native source ruggedness. Temporary shading positions derive lighting normals; physical positions and height samplers remain source based. Exact and intermediate ages use the same atomic publication path.",
+      "sourceDetailMaps": "PALEOMAP temporal bump and roughness maps are removed; material scalar roughness remains 0.82 for surface and 0.91 for seafloor. This is a rendering convention, not measured palaeosurface roughness.",
+      "normalSeams": "Coincident and 2:1 tile edge normals harmonized before publication.",
+      "scratchBytesPerUpdatedTile": 13068,
+      "scratchLifetime": "One 32x32 tile update; released after normal derivation and not retained in pending publication. No extra render or texture.",
+      "reliefCorrection": "Retain published material-coordinate geometry until an atomic exaggeration update is ready instead of briefly replaying endpoint geometry.",
+      "reviewer": "GPT-5.6 Sol runtime agent"
+    },
+    "countryVisibilityFollowup": {
+      "from": {
+        "color": "#314b43",
+        "opacity": 0.52
+      },
+      "to": {
+        "color": "#3e6057",
+        "opacity": 0.6
+      },
+      "scope": "Slightly greater visibility at unchanged ribbon width, terrain drape and unsupported-fragment behavior. Requested by user during frequency refinement."
+    },
+    "rejectedExactAgeScheduling": {
+      "candidateSha256": "14f973bc806e289ed26b7bb9241774f42b14f87e0c880765d7747125e4734932",
+      "status": "Not accepted as final; repeated native-age preparation is a confirmed regression.",
+      "storeRelativePath": "verification/frequency-structured-final-performance.json",
+      "candidateReadyMs": [
+        2164.225791,
+        2115.048999999999
+      ],
+      "controlReadyMs": [
+        668.7397920000003,
+        650.9153750000005
+      ],
+      "candidateCumulativeVertices": [
+        115434,
+        113256
+      ],
+      "expectedFinal24TileVertices": 26136,
+      "candidateTotalCpuMs": [
+        473.7,
+        453.8
+      ],
+      "laterCaptureCpuMs": 501.5,
+      "cause": "Settled PALEOMAP temporal work starts during progressive LOD refinement, repeatedly invalidating coarse/intermediate/final tile work. Cao already waits for refinement readiness.",
+      "correction": "Apply the same settled refinement readiness guard to PALEOMAP, keeping its live preview path available; remeasure after correction."
+    },
+    "finalRepeatedPerformance": {
+      "candidateSha256": "261a38cfa8ed28a208a470d803d2629ec156a1d5de8380d981b11b663ac29c2a",
+      "status": "Measured scheduling correction passes these timing scenes, but entry261a38 is not final acceptance: review found an unintended settled PALEOMAP LOD reduction.",
+      "storeRelativePath": "verification/frequency-structured-guard-final-performance.json",
+      "sha256": "d7242c59a4ca1801b1684d83a8a06046b25e9b27b6e3cfb40150b868a412b38d",
+      "records": [
+        {
+          "scene": "candidate-paleomap-100-a",
+          "readyMs": 608.6390829999999,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 84.8,
+          "processedVertices": 26136
+        },
+        {
+          "scene": "candidate-paleomap-100-b",
+          "readyMs": 570.5835829999996,
+          "frameP95Ms": 16.8,
+          "terrainCpuMs": 85.3,
+          "processedVertices": 26136
+        },
+        {
+          "scene": "candidate-cao-100-a",
+          "readyMs": 1718.1799579999988,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 415.2,
+          "processedVertices": 19602
+        },
+        {
+          "scene": "candidate-cao-100-b",
+          "readyMs": 1745.4880830000002,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 411.6,
+          "processedVertices": 19602
+        },
+        {
+          "scene": "historical-paleomap-100-a",
+          "readyMs": 667.640374999999,
+          "frameP95Ms": 16.8,
+          "terrainCpuMs": null,
+          "processedVertices": null
+        },
+        {
+          "scene": "historical-paleomap-100-b",
+          "readyMs": 665.8448329999992,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": null,
+          "processedVertices": null
+        }
+      ],
+      "limits": "Measured Apple M4/Chrome production scenes only. Initial and full-detail readiness remain distinct from steady frame time; no portable total GPU memory ceiling."
+    },
+    "settledLodReview": {
+      "status": "Projected settled PALEOMAP L4/96 capability restored; final production comparison uses the same96-tile distribution as the preserved605392 control. Final full gate pending.",
+      "cause": "Routing exact PALEOMAP knots through the temporal path also applied the live/settled temporal L1/24-tile cap to high-quality native and regional views. Prior high-quality source views allowed projected refinement to L4/96 tiles.",
+      "evidence": "frequency-final-structured-guard-mountain.png metadata records18 visible L0/L1 tiles; orbital24 L1 tiles.",
+      "spacingLimit": "With32 segments perL1 cube tile, spacing near a face center is about1.79degrees, so this mesh is not everywhere finer than the1degree source.",
+      "correction": "Restore projected finer settled PALEOMAP refinement while retaining bounded6-tile live preview, Cao limits, stable material shading and deferral until LOD preparation is ready. Remeasure actual final quality path."
+    },
+    "interruptedFullGate": {
+      "entrySha256": "261a38cfa8ed28a208a470d803d2629ec156a1d5de8380d981b11b663ac29c2a",
+      "command": "EARTHHISTORY_TEST_PORT=4190 make gate-full",
+      "exitCode": 130,
+      "status": "Stopped after browser case6 failed an outdated exact-only sampler-key assertion for its newly fractional test age. Not a passing full gate.",
+      "unitTests": 210,
+      "testFiles": 35,
+      "verifiedScientificAssets": 343,
+      "storeRelativePath": "verification/continuous-runtime/final-gate-full-4190.log"
+    },
+    "restoredDetailPerformance": {
+      "candidateSha256": "2b444482ef51a391b6a3a37c0e5dd2311d04fbeff5c555b2f1b7edc310bb585c",
+      "storeRelativePath": "verification/frequency-settled-lod-restored-performance.json",
+      "sha256": "63eb7305652c2b5a1612e6c9631a83c40e78c97713437e3710af6afcda174e0e",
+      "status": "Historical numeric summary retained. The original evidence file was overwritten by a later measurement; its recorded hash no longer identifies the current file. Superseded, not current acceptance.",
+      "records": [
+        {
+          "scene": "candidate-paleomap-100-a",
+          "readyMs": 1115.0927080000001,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 304.2,
+          "processedVertices": 104544,
+          "visibleTilesByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          }
+        },
+        {
+          "scene": "candidate-paleomap-100-b",
+          "readyMs": 1076.1200840000001,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 302.5,
+          "processedVertices": 104544,
+          "visibleTilesByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          }
+        },
+        {
+          "scene": "candidate-cao-100-a",
+          "readyMs": 1732.1450830000013,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 427.1,
+          "processedVertices": 19602,
+          "visibleTilesByLod": {
+            "0": 2,
+            "1": 16,
+            "2": 0,
+            "3": 0,
+            "4": 0
+          }
+        },
+        {
+          "scene": "candidate-cao-100-b",
+          "readyMs": 1748.7151250000024,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": 416.1,
+          "processedVertices": 19602,
+          "visibleTilesByLod": {
+            "0": 2,
+            "1": 16,
+            "2": 0,
+            "3": 0,
+            "4": 0
+          }
+        },
+        {
+          "scene": "historical-paleomap-100-a",
+          "readyMs": 651.9979589999966,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": null,
+          "processedVertices": null,
+          "visibleTilesByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          }
+        },
+        {
+          "scene": "historical-paleomap-100-b",
+          "readyMs": 652.3363329999993,
+          "frameP95Ms": 16.7,
+          "terrainCpuMs": null,
+          "processedVertices": null,
+          "visibleTilesByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          }
+        }
+      ],
+      "supersededEvidence": "Original numeric summary and original hash retained for audit; use the uniquely named bec45bb8 evidence for the later renderer checkpoint. Neither is a final6319 performance measurement."
+    },
+    "caledonianTest": {
+      "report": "palaeomap-caledonian-test.md",
+      "validation": "palaeomap-caledonian-validation.json",
+      "verdict": "Partial: source-authored broad orogenic relief and modern inland elevations are present; extensional collapse and direct inheritance of modern heights are not independently resolved.",
+      "sampling": "All109native ages for16material-following corridor points, plus separate inland controls to avoid coastal sampling bias.",
+      "illustration": "The user-requested AI-generated mountain image is a separate illustrative visual target, not rendered app evidence or scientific data."
+    },
+    "regionalProfileCorrection": {
+      "status": "Focused source regression, integrated regional transition and deliberate wrong-profile failure control all passed after restoration on6319b833.",
+      "cause": "The new normal-detail path hardcoded the coarse sampler profile at regional zoom.",
+      "correction": "Latch the currentSurfaceDetail in each temporal job, include it in the job key, and pass it uniformly to everytile. Regional lighting positions differ while physicalpositions remain byte-identical.",
+      "candidateSha256": "bec45bb8398577117f3ad40124764a4efcd3253165de4ab700c120711085e0a2",
+      "performanceStoreRelativePath": "verification/frequency-final-bec45bb8-performance.json",
+      "captureStoreRelativePath": "verification/caledonian-final-420ma-bec45bb8.png",
+      "visualLimit": "Even with the regionalprofile connected, the source1degree morphology remains a broad authored high ratherthan a diagnostic branching mountainchain.",
+      "performanceEvidence": {
+        "storeRelativePath": "verification/frequency-final-bec45bb8-performance.json",
+        "bytes": 37121,
+        "sha256": "9a6fbb778d0269313f0211ba17f2f40f5e5c164b7cbbb1b1e03d6c29b8c8dddb"
+      },
+      "performanceProvenanceCorrection": {
+        "storeRelativePath": "verification/frequency-final-bec45bb8-performance-provenance-correction.json",
+        "bytes": 1554,
+        "sha256": "fa792f12eebc51b0df8534b2b3c770dc9444b6f48c5126bbd8a3df9d0ac8042a"
+      },
+      "performanceLimit": "Recorded readyMs predates the overlay fix and did not require the applied overlay sampler to match current terrain; not full synchronized readiness. The raw historicalEntrySha256 literal was stale; the sidecar verifies actual retained605392 control. Final6319 repeated measurement remains pending."
+    },
+    "modernEndpointPreservation": {
+      "status": "Source tests and real0Ma browser integration passed on6319b833; final union pending.",
+      "candidateSha256": "9a4c91ed4e959bf352ccf829b453aa9b900a17917b87545df7de1b70cf62152f",
+      "distBytes": 49104431,
+      "confirmedRegression": "Exact temporal publication overwrote registered modernphysicalpatch heights and source-qualified modernclimate albedo with native1degree relief and genericenvironmental material.",
+      "correction": "At exact0Ma, registeredpatch tiles retain generatedphysicalheights; all0Ma tiles retain native localUV/albedo while stablematerial normals remain.",
+      "validityBoundary": "ETOPO/EMODnet modernrefinements and modernclimate remain validat0Ma only. The open0\u20135Ma interval uses canonicalregisteredPALEOMAP controls; localdetail/color can change at this source-validityboundary. Modern observations are not silently extended into ancientframes.",
+      "failureControl": {
+        "storeRelativePath": "verification/continuous-runtime/exact-modern-preservation-r1-negative.log",
+        "bytes": 2063,
+        "sha256": "bda7b394d5f78376c5dd5757e38de676a13d7e9b14d67bf6a62801e803b3989c"
+      },
+      "browser": {
+        "passed": 1,
+        "durationSeconds": 32.8,
+        "exitCode": 0,
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/exact-modern-source-focused.log",
+          "bytes": 647,
+          "sha256": "bc6c1fefdbf2345b258e70d553db1f72e8e8fe7481456eaa08a4f421ad0b7e1a"
+        }
+      }
+    },
+    "focusedOverlayCoherenceFailure": {
+      "status": "Confirmed regression corrected in6319b833; unchanged focused integration passed, followed by restored R1 passing rerun.",
+      "entrySha256": "9a4c91ed4e959bf352ccf829b453aa9b900a17917b87545df7de1b70cf62152f",
+      "trigger": "Fractional regional view with relief30, then exact25Ma.",
+      "displayedSurfaceKey": "paleodem-25ma:25.000000:surface:30.000:regional:published:r9",
+      "staleAppliedOverlayKey": "paleodem-20-25ma:23.707200:surface:30.000:regional:published:r6",
+      "symptom": "Overlay reportsready for morethan10seconds while still using the preceding terrain sampler.",
+      "proof": "Focused browser predicate and trace compare exact desired/applied sampler identities, not only statusready.",
+      "evidence": {
+        "storeRelativePath": "verification/continuous-runtime/final-profile-integration-stale-overlay-negative.log",
+        "bytes": 3118,
+        "sha256": "17cc2717bff52466dd8e485243cc144a6a5e77e79f03b8915e3a2e3aeb35c98a"
+      }
+    },
+    "overlayCoherenceCorrection": {
+      "entrySha256": "6319b833502176c9bfb172d5dd66929a198221cfe13cc9d7e723f083c4c2b0b6",
+      "entry": "assets/index-CiPbDJYi.js",
+      "distBytes": 49104371,
+      "correction": "Installing each temporal PALEOMAP terrain sampler schedules overlay replacement and marks its state updating. The previous visible overlay remains until replacement; ready requires the current applied sampler.",
+      "focusedBrowser": {
+        "passed": 1,
+        "durationSeconds": 57.0,
+        "exitCode": 0,
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/final-profile-integration-focused.log",
+          "bytes": 624,
+          "sha256": "2ba52224fb8ada426de85314f70fd944df6cce485adbba8971940d66b6713503"
+        }
+      },
+      "profileMutation": {
+        "exitCode": 1,
+        "reason": "Deliberately mismatched material profile rejected by the sampler-key predicate.",
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/profile-key-detail-r1-negative.log",
+          "bytes": 3158,
+          "sha256": "24a4f733e542423f5eb864bdca54f1f9932e0cecda1ebf48e342995c81efa4bb"
+        }
+      },
+      "restoredBrowser": {
+        "passed": 1,
+        "durationSeconds": 58.2,
+        "exitCode": 0,
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/profile-key-detail-r1-restored-positive.log",
+          "bytes": 625,
+          "sha256": "0eb6b9f520e514fe300840176e63f820149760a6d4ddc183996e28bcfb3fbd26"
+        }
+      },
+      "checks": [
+        "fractional coarse publication",
+        "observed live L0/6 preview",
+        "explicit high-quality settled L4/96 policy",
+        "relief restage and current sampler",
+        "regional material profile and realized mesh above L1",
+        "exact25Ma regional publication",
+        "reset to coarse"
+      ],
+      "scope": "Focused correctness evidence; not full-suite or final performance acceptance."
+    },
+    "finalFullCommand": {
+      "command": "EARTHHISTORY_TEST_PORT=4190 make gate-full",
+      "entrySha256": "6319b833502176c9bfb172d5dd66929a198221cfe13cc9d7e723f083c4c2b0b6",
+      "exitCode": 2,
+      "unitTests": 215,
+      "testFiles": 35,
+      "verifiedScientificAssets": 343,
+      "distBytes": 49104371,
+      "browserPassed": 23,
+      "browserFailed": 1,
+      "browserDurationMinutes": 10.0,
+      "failure": "Guide toggle assertion captured resource counts before temporal/high-LOD refinement settled; asynchronous refinement and adaptive quality legitimately changed hidden geometry. Production source remains unchanged.",
+      "correction": "Test-only setup correction established stable high-detail terrain and current applied sampler before exact guide off/on reuse checks. Focused pass and restored failure control complete; production entry unchanged.",
+      "evidence": {
+        "storeRelativePath": "verification/continuous-runtime/final-gate-full-6319b833-4190.log",
+        "bytes": 20167,
+        "sha256": "20e1d4fe0c95894a93777fe3e01dcb80cacc082fde14a8cb862b89623576d8c9"
+      },
+      "scope": "This full invocation failed and must not be described as a passing full gate. Final browser coverage requires the corrected focused case."
+    },
+    "guideToggleCorrection": {
+      "productionSourceChanged": false,
+      "entrySha256": "6319b833502176c9bfb172d5dd66929a198221cfe13cc9d7e723f083c4c2b0b6",
+      "correction": "Establish explicit High detail, refined cube, temporal ready and applied=current terrain sampler before capturing resource counts. Stable off/on retains exact bytes/vertices, with positive restored resources bounded to2MiB.",
+      "focusedPass": {
+        "casesPassed": 1,
+        "durationSeconds": 17.4,
+        "exitCode": 0,
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/guide-stable-toggle-focused.log",
+          "bytes": 649,
+          "sha256": "f4edaf3d10c2e3497d2669fa5cd872c3f6ce35df81d0621332e5c438bdf83cf0"
+        }
+      },
+      "failureControl": {
+        "mutation": "Report zero restored guide bytes",
+        "exitCode": 1,
+        "observedFailure": "Positive recreated-resource assertion rejects zero bytes",
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/guide-restored-resource-r1-negative.log",
+          "bytes": 2835,
+          "sha256": "47fe96a6e927f592d938a507451ff812193c3a338be9a2dc9b5b51730bc25b81"
+        }
+      },
+      "restoredPass": {
+        "casesPassed": 1,
+        "durationSeconds": 17.3,
+        "exitCode": 0,
+        "evidence": {
+          "storeRelativePath": "verification/continuous-runtime/guide-restored-resource-r1-positive.log",
+          "bytes": 644,
+          "sha256": "d74ba7fd74ce0eeb7fc6a45d38e4748711fe8a5c52f6e35c5ce78bf70ddbca9e"
+        }
+      },
+      "typecheck": "passed",
+      "diffCheck": "passed"
+    },
+    "browserCoverage": {
+      "passedDistinctCases": 24,
+      "totalCases": 24,
+      "method": "23 passed in the full run, plus corrected guide case passed in focused and restored-positive runs.",
+      "fullCommandExitCode": 2,
+      "literalFullGatePassed": false,
+      "decision": "Complete successful coverage across full and targeted invocations; no claim that the full invocation passed. No application source changed after the full run."
+    }
+  },
+  "currentDeterministicGate": {
+    "entrySha256": "6319b833502176c9bfb172d5dd66929a198221cfe13cc9d7e723f083c4c2b0b6",
+    "unitTests": 215,
+    "testFiles": 35,
+    "verifiedScientificAssets": 343,
+    "distBytes": 49104371,
+    "status": "Passed:215 tests/35 files and343 assets. Full command exit2 due guide-test setup; corrected focused rerun completes all24 browser-case coverage on unchanged application artifact."
+  },
+  "mountainTextureFollowup": {
+    "status": "Authorized active implementation,2026-09-10 local",
+    "userRequirement": "Darker mountains with multiple peaks and valleys using mountain-area texture; show actual app screenshots.",
+    "controlEntrySha256": "6319b833502176c9bfb172d5dd66929a198221cfe13cc9d7e723f083c4c2b0b6",
+    "methodBoundary": "Material-attached source-conditioned albedo and apparent relief; source physical heights remain unchanged.",
+    "evidenceBoundary": "Generated illustrative reference images are not app screenshots or scientific terrain data.",
+    "heightStyleRequirement": "Continuous physical elevation and local-relief controls set ridge hierarchy, contrast and rock exposure. Visual exaggeration does not change style inputs; snow remains climate-qualified.",
+    "initialVisualCandidate": {
+      "entryPrefix": "7de1e2b2",
+      "focusedTestsPassed": 29,
+      "typecheck": "passed",
+      "matchedControl": "verification/app-caledonian-420-6319b833.jpg",
+      "caledonianCapture": "verification/mountain-after-caledonian-420-7de1e2b2.jpg",
+      "modernHimalayaCapture": "verification/mountain-after-himalayas-modern-7de1e2b2.jpg",
+      "verdict": "Modern Himalaya belt shows darker connected relief; Caledonian high terrain remains too subdued for acceptance. One stronger mountain-only rock-tone correction authorized, with unchanged frequency hierarchy and physical source elevations.",
+      "comparisonLimit": "Modern6319 before-capture was not completed before rebuild; modern candidate is a new view, not a matched before/after comparison."
+    },
+    "independentReview": "No current source-height, material-coordinate, water/ice or profile violation found. Modern native field.albedo already incorporates the sampler, so exact0 neutral temporal vertex color correctly avoids double application.",
+    "userVisualReferences": {
+      "receivedLocalDate": "2026-09-10",
+      "scenes": [
+        "Japan trench/island arc",
+        "Andes subduction/mountains",
+        "Atlantic spreading ridge",
+        "Alps",
+        "Ethiopian rift"
+      ],
+      "role": "Private visual-design references, not scientific data or runtime texture assets.",
+      "manifestStoreRelativePath": "verification/user-terrain-references-2026-09-10/manifest.json",
+      "referenceBytes": 1026698,
+      "status": "Five-scene appearance acceptance active; brighter palette, meaningful regional ridge/valley scale, and ocean morphology remain under validation."
+    },
+    "modernReferencePatches": {
+      "status": "Integrated assets/catalog and focused data tests passed; renderer consumers implemented, production source-patch diagnostics pending.",
+      "validRequestedAgeMa": [
+        0,
+        0
+      ],
+      "sourceProduct": "ETOPO_2022_v1_60s_surface",
+      "horizontalCrs": "EPSG:4326",
+      "verticalDatum": "EGM2008",
+      "appPayloadBytes": 350529,
+      "assets": [
+        {
+          "path": "public/data/etopo-alps.json",
+          "bytes": 175257,
+          "sha256": "92ff25335079564442a3f78eb0ef46906b32e44a92e53c73df5449c634293290"
+        },
+        {
+          "path": "public/data/etopo-japan-trench.json",
+          "bytes": 175272,
+          "sha256": "d64121b5e21ef52bb22df349b86f7158e9fa1c4f0763b6ea5bb40878207d0e0d"
+        }
+      ],
+      "scope": "Source-native modern controls, not reconstructed through ancient periods.",
+      "sourceManifestStoreRelativePath": "geography/etopo-reference-crops/candidate-manifest.json"
+    },
+    "modernCrossModeApplicability": {
+      "status": "Implemented and independently reviewed; five-scene production capture and final union pending.",
+      "dualModeEtopo": [
+        "mid-atlantic-ridge",
+        "andes",
+        "east-african-rift",
+        "japan-trench"
+      ],
+      "surfaceOnly": [
+        "alps",
+        "himalayas",
+        "greenland"
+      ],
+      "seafloorOnly": "EMODnet LAT North Sea tiles",
+      "cacheBudgetBytes": 4194304,
+      "payloadDuplication": false,
+      "heightSemantics": "Surface mode keeps the water shell at sea level and uses signed source depth for restrained bathymetric appearance; exposed seafloor uses signed physical depth.",
+      "focusedTestsPassed": 26,
+      "typecheck": "passed",
+      "failureControl": "Ignoring explicit applicability fails the two dual-mode consumer tests; restored positive passes."
+    },
+    "heightStyleConsumerValidation": {
+      "testsPassed": 27,
+      "testFiles": 2,
+      "sourceHeightContract": "High versus low physical source elevation changes baked mountain material while every source height is preserved. Exact modern rendering retains neutral vertex color and applies native albedo once.",
+      "failureControl": "Setting style elevation to zero makes high and low material luminance equal and fails the consumer check; mutation restored.",
+      "negativeLogSha256": "2b820534c3685326a7683ecdf31c26589737b7798ebccfb6d27c00c1b4de3ae7",
+      "positiveLogSha256": "e619b23e741e12d8171e866d3f7aa0102aef95bfccab61069f98189c9153e1ba"
+    },
+    "surfaceWaterConsumerValidation": {
+      "testFiles": 5,
+      "testsPassed": 58,
+      "typecheck": "passed",
+      "diffCheck": "passed",
+      "failureControl": "Replacing the physical sea-level shell with signed source bathymetry fails both cube and regional consumers (-4000/-4500 metres instead of0); restored union passes.",
+      "negativeLog": "verification/surface-refinement-modes/surface-water-shell-r1-negative.log",
+      "negativeLogSha256": "b537d97cee905d6d9140c836c3ca3d5ed4228897acf19a1632bceafd0343503e",
+      "positiveLog": "verification/surface-refinement-modes/surface-water-consumers-r1-positive.log",
+      "positiveLogSha256": "b0b2b76e0457530564e833a0bef4646855c0496063289b740318c430aef58ecd"
+    },
+    "fiveSceneCheckpoint": {
+      "entrySha256": "7bdada0f5e46572288015141b09f5c792fcf0abbe889f953cba0d865c8f44626",
+      "distBytes": 49477445,
+      "scenes": [
+        {
+          "id": "alps",
+          "image": "verification/app-reference-alps-showcase-7bdada0f.jpg",
+          "patchIds": "alps",
+          "signedSourceRangeMetres": "-2556.7,5670.0",
+          "displayedHeightRangeMetres": "0.0,5670.0",
+          "surfaceMode": "surface",
+          "errors": []
+        },
+        {
+          "id": "andes",
+          "image": "verification/app-reference-andes-showcase-7bdada0f.jpg",
+          "patchIds": "andes",
+          "signedSourceRangeMetres": "-7496.9,5507.3",
+          "displayedHeightRangeMetres": "0.0,5507.3",
+          "surfaceMode": "surface",
+          "errors": []
+        },
+        {
+          "id": "east-african-rift",
+          "image": "verification/app-reference-east-african-rift-showcase-7bdada0f.jpg",
+          "patchIds": "east-african-rift",
+          "signedSourceRangeMetres": "-3781.0,5670.0",
+          "displayedHeightRangeMetres": "0.0,5670.0",
+          "surfaceMode": "surface",
+          "errors": []
+        },
+        {
+          "id": "japan-trench",
+          "image": "verification/app-reference-japan-trench-showcase-7bdada0f.jpg",
+          "patchIds": "japan-trench",
+          "signedSourceRangeMetres": "-9080.3,5670.0",
+          "displayedHeightRangeMetres": "0.0,5670.0",
+          "surfaceMode": "surface",
+          "errors": []
+        },
+        {
+          "id": "mid-atlantic-ridge-surface",
+          "image": "verification/app-reference-mid-atlantic-ridge-surface-showcase-7bdada0f.jpg",
+          "patchIds": "mid-atlantic-ridge",
+          "signedSourceRangeMetres": "-6271.1,5507.3",
+          "displayedHeightRangeMetres": "0.0,5507.3",
+          "surfaceMode": "surface",
+          "errors": []
+        }
+      ],
+      "verdict": "Not visually accepted. All five patches active and broad mountain/trench/ridge forms visible, but land remains excessively smooth, coastlines coarse and palette dim relative to user references. Alps/Ethiopia framing also differs materially from references. Bounded visible-detail/texture/framing diagnosis active before final gate.",
+      "captureExclusion": "Earlier app-reference-alps-7bdada0f.jpg has a visible quality dialog and is rejected capture evidence; closed-UI showcase supersedes it."
+    },
+    "cubeNativeDetailCheckpoint": {
+      "entrySha256": "16170ee58ca475160f37c2e850b73e2d54e235c0362b3dad09625c9dd6cf1924",
+      "distBytes": 49478057,
+      "alpsCapture": "verification/app-reference-alps-maxzoom-16170ee5.jpg",
+      "cameraDistance": 1.38,
+      "sourceTiles": 4,
+      "sourceMaterialTextureBytes": 823728,
+      "cubeCacheApproxMB": 11.8,
+      "visibleTextureApproxMB": 3.98,
+      "strategy": "One cube surface with locally sourced gradients and128 textures only on active-patch regional tiles; legacy depth-disabled regional overlay is not installed.",
+      "focusedReview": "3 files/38 tests passed; existing48MiB/160-entry LRU counts exact field bytes.",
+      "verdict": "Not visually accepted: closer Alps view still too dim and soft. Fine source-derived directional material shading and lowland color-chain diagnosis are the next bounded correction.",
+      "comparisonLimit": "7bdada full artifact was overwritten before retention; broad screenshots survive but no same-camera predecessor performance/visual control is claimed."
+    },
+    "regionalLodBudgetFix": {
+      "method": "Prioritize projected screen error before tree level; same96 leaf cap, full balanced partition and deterministic ordering.",
+      "camera": {
+        "longitude": 10.5,
+        "latitude": 46.5,
+        "distance": 1.15
+      },
+      "before": {
+        "leaves": 63,
+        "level4Tiles": 0,
+        "medianSelectionMs": 1.407
+      },
+      "after": {
+        "leaves": 69,
+        "level4Tiles": 20,
+        "medianSelectionMs": 1.579
+      },
+      "measurementScope": "Apple M4, matched-process CPU selection,10 repeated batches of100 calls; not whole-renderer performance.",
+      "focusedTestsPassed": 26,
+      "testFiles": 4,
+      "failureControl": "Restoring old level-first priority fails central-level regression: expected4, received3; restored pass.",
+      "evidence": [
+        {
+          "path": "verification/cube-lod-regional-budget/cube-lod-alps-selection-before-after.log",
+          "sha256": "6153801a30b7e9683195c9c862c58aca5189c61a9be71c4c826e6b7794cdb938",
+          "bytes": 935
+        },
+        {
+          "path": "verification/cube-lod-regional-budget/cube-lod-alps-r1-mutation.log",
+          "sha256": "fef918b72ad9fdd08a387c0b6e4faefa6fb6224e72b141b30028b12b9b5a88c2",
+          "bytes": 1409
+        }
+      ],
+      "status": "Initial Alps-only checkpoint; superseded by general neighbor-reservation correction below."
+    },
+    "generalRegionalLodBudgetFix": {
+      "method": "Prioritize projected error, reserve refinement-only neighbor closure before accepting a split, and try another candidate when the first does not fit; never coarsen accepted useful detail to fit a later split.",
+      "leafLimit": 96,
+      "maxNeighborLevelDelta": 1,
+      "anchors": [
+        "Alps",
+        "Andes",
+        "Ethiopia",
+        "Japan",
+        "Mid-Atlantic",
+        "Himalayas",
+        "Greenland"
+      ],
+      "result": "All seven matched close-view anchors have96 leaves and centerL4, with20\u201340 L4 tiles; deterministic full six-face partition preserved.",
+      "selectorMedianMsRange": [
+        2.91281045,
+        4.6584229
+      ],
+      "selectorStopMs": 16,
+      "scope": "Matched-process Apple M4 CPU selection only; whole-renderer performance is recorded separately.",
+      "focusedTests": {
+        "files": 4,
+        "passed": 26
+      },
+      "failureControl": "Trying only the first unaffordable split underfills90 versus96; restored candidate passes.",
+      "evidence": [
+        {
+          "path": "verification/cube-lod-regional-budget/modern-anchors-before-after.log",
+          "sha256": "e805c710544fb4b120a5010632841033518e21227c6ab4da3f54e585faf9a9fe",
+          "bytes": 3300
+        },
+        {
+          "path": "verification/cube-lod-regional-budget/try-next-candidate-r1-mutation.log",
+          "sha256": "5cede4f02307ecdfed8bbd3f4ac5364992f7331352e96e4886952f8c6f2062c4",
+          "bytes": 1603
+        }
+      ]
+    },
+    "fractionalWorkingSetFix": {
+      "rejectedEntrySha256": "7012b02fb905a61a27c6b76093d4b7d5d0802a174a0b2a03deae59a73a63dbfc",
+      "failure": "At102.5Ma, close view remained waiting-refinement with0 visible current tiles and347590 cache evictions after60 seconds.",
+      "cause": "Repeated reinsertion of old mesh-owned fields competes with target ancestry under160-entry cache. Target ancestry126 fits; prior-plus-target ancestry206 does not. Independent selector probe found96 unique balanced stable leaves, not duplicate selection.",
+      "fix": "Render plan recognizes mesh-owned fields directly without reinserting evicted arrays; stale fields are not touched, obsolete hidden temporal replacements are disposed, visible prior terrain stays until atomic publication.",
+      "cacheBoundsUnchanged": {
+        "entries": 160,
+        "bytes": 50331648
+      },
+      "focusedTests": {
+        "files": 3,
+        "passed": 21
+      },
+      "failureControl": "Omitting mesh-owned residency fails complete render-plan regression; restoration passes.",
+      "evidence": [
+        {
+          "path": "verification/continuous-runtime/fractional-cache-working-set-r1-negative.log",
+          "sha256": "6c7f75878ccf4df9f447e2fb3cda5f57775447034b72366b952f3d70faf253da",
+          "bytes": 1240
+        },
+        {
+          "path": "verification/continuous-runtime/fractional-cache-working-set-r1-positive.log",
+          "sha256": "0123f1ab826b094f16b0e68d75da50941d808c70f691ef3092991e6a4c8d3366",
+          "bytes": 301
+        },
+        {
+          "path": "verification/paleomap-fractional-102p5ma-aerial-18x-b034ee94-20260910T001815Z.json",
+          "sha256": "5781862bdefbfab8182737c6f5472f82a4547c456b80866334b636cfc160738f",
+          "bytes": 6996
+        }
+      ],
+      "candidateEntrySha256": "b034ee9432b5e06c31c8adc99593dcb6df2a75bf0ad7a39d75004e20522d4f6e",
+      "artifactBytes": 49480159,
+      "sameCameraResult": {
+        "readyMs": 3081.7766659999998,
+        "visibleTiles": 96,
+        "cacheEvictions": 2,
+        "queuedJobs": 0,
+        "matchingTerrainAndOverlay": true,
+        "errors": []
+      },
+      "status": "Exact failed production view now completes; final repeated measurements and completion gate pending."
+    },
+    "finalMeasurementExclusions": [
+      {
+        "recordedUtc": "2026-09-10T00:23:00Z",
+        "description": "First candidate PAL run excluded before output publication: orphan repository Vitest worker PID44728, PPID1, consumed100%CPU for about23minutes. Coordinator terminated it and verified process absent. Probe also corrected to record refinement status transitions rather than repeated values on unrelated attribute mutations. Repeated measurements restarted afterward."
+      }
+    ],
+    "independentFinalContractReview": {
+      "model": "GPT-5.6 Sol",
+      "scope": "Read-only scientific/coordinate consumer audit after b034 fix",
+      "result": "No reproducible regression found in requested paths; no code edit warranted.",
+      "checked": [
+        "Modern patch sampling requires exact0Ma and present-day frame; open0\u20135 interval retains PALEOMAP validity",
+        "Style receives physical elevation, residual detail affects shading only, exaggeration has one physical display path",
+        "Surface water clamps physical negative depth at datum while retaining signed source bathymetric appearance; seafloor retains signed displacement",
+        "Legacy regional mesh inactive; staged cube publication owns one coherent visible surface and disposes hidden obsolete staging",
+        "Cache residency correction does not change scientific source/coordinate contracts"
+      ],
+      "limitation": "Source review is not a substitute for final browser/performance command outcomes or visual acceptance."
+    },
+    "latestVisualEvidence": {
+      "captures": [
+        {
+          "id": "app-reference-alps-aerial-6x-7012b02f-20260910T000403Z",
+          "files": [
+            {
+              "path": "verification/app-reference-alps-aerial-6x-7012b02f-20260910T000403Z.jpg",
+              "bytes": 29514,
+              "sha256": "79e94b6e62304b2c0c5fcd58e2f36835a964ccaca243de58d133e5ae935cc39e"
+            },
+            {
+              "path": "verification/app-reference-alps-aerial-6x-7012b02f-20260910T000403Z.json",
+              "bytes": 7360,
+              "sha256": "ce1ce2765707905fb2e6d4f65ed9fc78e6a59749ba1ada4f3d3dbea43648dd48"
+            }
+          ]
+        },
+        {
+          "id": "app-reference-andes-aerial-18x-7012b02f-20260910T000435Z",
+          "files": [
+            {
+              "path": "verification/app-reference-andes-aerial-18x-7012b02f-20260910T000435Z.jpg",
+              "bytes": 32357,
+              "sha256": "1dfa3ec55070b0e942ed7d11c6126f0dab088e24a6f4fe9ffaea07d9fb7f4801"
+            },
+            {
+              "path": "verification/app-reference-andes-aerial-18x-7012b02f-20260910T000435Z.json",
+              "bytes": 7551,
+              "sha256": "04359ac82a49d5c4ba82e86cd8143fc165d197a67dac6fdeb3946f5c1cf81037"
+            }
+          ]
+        },
+        {
+          "id": "app-reference-east-african-rift-aerial-18x-7012b02f-20260910T000435Z",
+          "files": [
+            {
+              "path": "verification/app-reference-east-african-rift-aerial-18x-7012b02f-20260910T000435Z.jpg",
+              "bytes": 30113,
+              "sha256": "4ab74306ed634d68e6b780694b445733faac5da9a219d3c3664c867a48949aff"
+            },
+            {
+              "path": "verification/app-reference-east-african-rift-aerial-18x-7012b02f-20260910T000435Z.json",
+              "bytes": 7486,
+              "sha256": "3758aac5adfac2a752d351a7f28b955f83ff0f95a32741998d197c92d61969e1"
+            }
+          ]
+        },
+        {
+          "id": "app-reference-japan-trench-aerial-18x-7012b02f-20260910T000435Z",
+          "files": [
+            {
+              "path": "verification/app-reference-japan-trench-aerial-18x-7012b02f-20260910T000435Z.jpg",
+              "bytes": 23169,
+              "sha256": "dca2ecaddd661ee3b036c7d556a7627b0d0963d7ebee558868c281d77b72bc74"
+            },
+            {
+              "path": "verification/app-reference-japan-trench-aerial-18x-7012b02f-20260910T000435Z.json",
+              "bytes": 7438,
+              "sha256": "82e4c2d1a727e768a9da559fc217bbfc002c2ced2d1542cbfdf55072b645edce"
+            }
+          ]
+        },
+        {
+          "id": "app-reference-mid-atlantic-ridge-surface-aerial-18x-7012b02f-20260910T000435Z",
+          "files": [
+            {
+              "path": "verification/app-reference-mid-atlantic-ridge-surface-aerial-18x-7012b02f-20260910T000435Z.jpg",
+              "bytes": 18833,
+              "sha256": "cae1e709a013fe030bbf2c59c4d80f47d1b72552c7e26b9b4986207de9409b21"
+            },
+            {
+              "path": "verification/app-reference-mid-atlantic-ridge-surface-aerial-18x-7012b02f-20260910T000435Z.json",
+              "bytes": 7499,
+              "sha256": "8efaf262b78538221ec867059fbe3c01c22db03c404640069df14c5feaf1f320"
+            }
+          ]
+        },
+        {
+          "id": "caledonian-420ma-aerial-18x-7012b02f-20260910T000831Z",
+          "files": [
+            {
+              "path": "verification/caledonian-420ma-aerial-18x-7012b02f-20260910T000831Z.jpg",
+              "bytes": 18678,
+              "sha256": "b8968e347f5cfd36f446f6a6c6b27c5502792991aa796de9dd21713087e17361"
+            },
+            {
+              "path": "verification/caledonian-420ma-aerial-18x-7012b02f-20260910T000831Z.json",
+              "bytes": 7080,
+              "sha256": "eb96a88c5bf1a9803185cc3b2c3308414b05ee0af628c2cd4b0518dc79159362"
+            }
+          ]
+        },
+        {
+          "id": "paleomap-fractional-102p5ma-aerial-18x-b034ee94-20260910T001815Z",
+          "files": [
+            {
+              "path": "verification/paleomap-fractional-102p5ma-aerial-18x-b034ee94-20260910T001815Z.jpg",
+              "bytes": 18901,
+              "sha256": "ee11ffcf77f1f6f24d1dbf5150069695e4d18d8450e075dddce6772bce3820f1"
+            },
+            {
+              "path": "verification/paleomap-fractional-102p5ma-aerial-18x-b034ee94-20260910T001815Z.json",
+              "bytes": 6996,
+              "sha256": "5781862bdefbfab8182737c6f5472f82a4547c456b80866334b636cfc160738f"
+            }
+          ]
+        }
+      ],
+      "interpretation": "Actual production application captures, not generated illustrations.7012 modern and420Ma captures precede b034 cache-residency-only fix; b034 fractional view verifies the corrected failed camera. Shared appearance improves regional relief, blue bathymetry and restrained overlays, but remains below supplied satellite-map target in fine terrain, land-cover variation and shorelines.",
+      "status": "Visual target remains unmet; no photographic equivalence claimed."
+    },
+    "b034PerformanceCheckpoint": {
+      "evidence": {
+        "path": "verification/frequency-mountain-final-b034ee94-performance.json",
+        "sha256": "ea9c6b94c1f05bf9d71398d6fe72df41e7993e2a84f34b3c098fdc5918d1e12c",
+        "bytes": 80153
+      },
+      "candidateEntrySha256": "b034ee9432b5e06c31c8adc99593dcb6df2a75bf0ad7a39d75004e20522d4f6e",
+      "artifactBytes": 49480159,
+      "PAL100": {
+        "readyMs": [
+          1195,
+          1175
+        ],
+        "frameP95Ms": [
+          16.8,
+          16.7
+        ],
+        "totalTemporalMs": [
+          310.4,
+          304.7
+        ]
+      },
+      "Cao100": {
+        "readyMs": [
+          1574,
+          1588
+        ],
+        "frameP95Ms": [
+          16.7,
+          16.7
+        ],
+        "temporalPlusPreparationMs": [
+          450.7,
+          446.4
+        ]
+      },
+      "modernAlps": {
+        "readyMs": [
+          2284,
+          2267
+        ],
+        "frameP95Ms": [
+          16.7,
+          16.7
+        ],
+        "totalTemporalMs": [
+          620.8,
+          622.7
+        ],
+        "visibleTiles": 96,
+        "level4Tiles": 24
+      },
+      "correctness": "All ready/current applied sampler identities match, zero browser errors/evictions.",
+      "verdict": "FAIL500ms complete optional preparation stop at Alps in both runs; steady frame target passes. Investigate one narrow exact0 redundant-work path before fullgate.",
+      "comparisonLimits": "605392 is older historical renderer;16170 Alps control has57tiles/noL4 and older minimum zoom. Its retained directory total includes71,800B manifest; original served application payload49,478,057B. Do not claim equal-detail comparison."
+    },
+    "nativePublicationFollowup": {
+      "status": "Paired final Alps production preparation passes; final historical recheck/browser union pending.",
+      "scope": "Non-Cao exactEndpoint at0Ma only, after desired refinement is ready. Restore current-exaggeration/stitched positions, normals and localUV from immutable native fields, restore native material and source-patch residual bump, then atomically publish visible group and current triangle sampler/country/POI/overlay identities. Historical exact and fractional ages retain temporal solve.",
+      "why": "Prior path unnecessarily resolved ownership and sampled both endpoints/material before overwriting native colors, UV and patch heights. Only temporal normal perturbation survived, contrary to exact-modern source-native preservation.",
+      "caughtDraftFailure": "Independent review rejected merely relabeling mutable meshes: returning2.5\u21920 or changing exaggeration could retain stale geometry. Draft was corrected before production measurement.",
+      "normalContract": "Source-native normals deliberately replace discarded/recomputed temporal normals at0Ma; image equivalence is not assumed.",
+      "focusedChecks": {
+        "ownerFiles": 5,
+        "ownerTestsPassed": 55,
+        "independentFiles": 2,
+        "independentTestsPassed": 23
+      },
+      "focusWorkSuppression": "Automatic950ms focus move generated~11 obsolete refinement rounds. Per-frame camera refinement waits for focus completion; existing final refresh remains. User control start cancels automatic animation so drag/zoom takes ownership. Coarse-to-regional source loading remains."
+    },
+    "nativePublicationPerformance": {
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "artifactBytes": 49483584,
+      "evidence": {
+        "path": "verification/exact-modern-native-final-4b9554a7-performance-20260910T004522Z.json",
+        "sha256": "a3569eb33edce0657afdb185527798f827b448dd58185d513981da27ec244504",
+        "bytes": 40298
+      },
+      "accounting": "completeGenerationTotalMs is the sum of new source-root critical-path generation, sequential refinement critical-path generations, and synchronous native publication after the Alps preset request; observer seeds prior diagnostic values so initialization is excluded",
+      "runs": [
+        {
+          "id": "candidate-alps-0-a",
+          "readyMs": 1374.9399580000002,
+          "baseGenerationTotalMs": 50.1,
+          "refinementGenerationTotalMs": 290,
+          "nativePublicationMs": 6.7,
+          "completeGenerationTotalMs": 346.8
+        },
+        {
+          "id": "candidate-alps-0-b",
+          "readyMs": 1414.0860420000008,
+          "baseGenerationTotalMs": 57.1,
+          "refinementGenerationTotalMs": 328.7,
+          "nativePublicationMs": 6,
+          "completeGenerationTotalMs": 391.8
+        }
+      ],
+      "preparationThresholdMs": 500,
+      "verdict": "Both paired Alps transitions pass346.8/391.8ms complete preparation. Full ready time1.375/1.414s remains above older regional latency goal.",
+      "visualAssessment": "Native normals are stronger and more source-faithful than prior recomputed temporal normals; final close image still coarse/faceted with generalized lowland/shoreline appearance. Full reference target remains unmet."
+    },
+    "finalHistoricalPerformance": {
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "artifactBytes": 49483584,
+      "evidence": {
+        "path": "verification/frequency-mountain-final-4b9554a7-core-performance.json",
+        "sha256": "c350c4e42ab215c2e3e608b2b7e0b93fd8e950d903a6d82f0d8b8e0bee03a3d2",
+        "bytes": 35501
+      },
+      "PAL100": {
+        "readyMs": [
+          1209.7,
+          1186.1
+        ],
+        "frameP95Ms": [
+          16.8,
+          16.8
+        ],
+        "materialUpdateMs": [
+          305.1,
+          300.3
+        ],
+        "rootsMs": [
+          47,
+          42
+        ],
+        "refinementMs": [
+          172.8,
+          170.4
+        ],
+        "expandedAllStageMs": [
+          524.9,
+          512.7
+        ],
+        "visibleTiles": 96
+      },
+      "Cao100": {
+        "readyMs": [
+          1605.6,
+          1573
+        ],
+        "frameP95Ms": [
+          16.7,
+          16.8
+        ],
+        "materialAndCaoPreparationMs": [
+          451.4,
+          445.6
+        ],
+        "fallbackRootsMs": [
+          44.3,
+          40.5
+        ],
+        "refinementMs": [
+          33,
+          31.1
+        ],
+        "expandedAllStageMs": [
+          528.7,
+          517.2
+        ],
+        "visibleTiles": 18
+      },
+      "correctness": "Published/current terrain and overlay identities match, zero browser errors and cache evictions in final repeats.",
+      "verdict": "Original500ms material/Cao preparation scope passes. Additional conservative arithmetic including roots and all refinement exceeds500ms in both repeats for both historical views; remains an unmet aggregate target. Ready times remain1.2\u20131.6s. Do not claim every performance or readiness target passes.",
+      "scopeDecision": "Expanded all-stage accounting was requested by coordinator after original component comparisons. Keep both definitions visible rather than retroactively redefining pre-measurement gate. Functional fullgate proceeds; aggregate cost and visual quality remain durable follow-ups."
+    },
+    "finalNativeStressCaptureEvidence": {
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "metadata": [
+        {
+          "path": "verification/app-reference-alps-final-4b9554a7-20260910T004522Z.json",
+          "bytes": 24029,
+          "sha256": "197d52241bc6e76443c39afcb5e9a55a4a8901285af5ea529fad36dcc4c4df5c"
+        },
+        {
+          "path": "verification/app-reference-andes-aerial-18x-4b9554a7-20260910T004852Z.json",
+          "bytes": 7541,
+          "sha256": "1c56cc1ad062c3cbc0691be1539d1de588cf1522700fbb2b0c60bfeaff7da4fa"
+        },
+        {
+          "path": "verification/app-reference-east-african-rift-aerial-18x-4b9554a7-20260910T004852Z.json",
+          "bytes": 7467,
+          "sha256": "dcabd2a0a6290ba78721bda7c9a5e347d26bce9d69a9b34af4033f87b96d9aa6"
+        },
+        {
+          "path": "verification/app-reference-japan-trench-aerial-18x-4b9554a7-20260910T004852Z.json",
+          "bytes": 7425,
+          "sha256": "4ef9b79ff19230c49396cc49b7110258339b3c286aad440ab823a44470af1dfc"
+        },
+        {
+          "path": "verification/app-reference-mid-atlantic-ridge-surface-aerial-18x-4b9554a7-20260910T004852Z.json",
+          "bytes": 7501,
+          "sha256": "78ab8c64d18288c7d8a80bcfd1d054ce520616d5b15ef59bb2a3571b5cf03ad4"
+        }
+      ],
+      "interpretation": "Final native source-normal path.18\u00d7 relief is a close stress/inspection view and visibly amplifies coarse facets; default8\u00d7 showcase captures follow separately. Metadata records actual source, displayed water-height ranges and current sampler identity. Source remains frozen.",
+      "roundTripProof": "Alps metadata includes0\u21922.50002\u21920: fractional solve104544vertices; exact0 native restoration104544vertices, new samplerrevisionr5 and matching overlay,96tiles and sourcepatch preserved."
+    },
+    "finalNativeBrowserFocused": {
+      "passedCases": 1,
+      "restoredCommandExit": 0,
+      "failureControl": "Test-only mutation of exact-modern native method fails the intended publication predicate; restoration passes.",
+      "evidence": [
+        {
+          "path": "verification/continuous-runtime/exact-modern-native-publication-r1-negative-4b9554a7.log",
+          "bytes": 6405,
+          "sha256": "d5c82faa16ef6f46f5561aac27263813877302f41e5237393ccc01a8434c8ea2",
+          "exitCode": 1
+        },
+        {
+          "path": "verification/continuous-runtime/exact-modern-native-publication-positive-4b9554a7.log",
+          "bytes": 526,
+          "sha256": "5771d7a9ee5ea7b72b6659df20dd27663b7149d3d4de7cca9c61daa28bb8f8b8",
+          "exitCode": 0
+        }
+      ],
+      "excludedPreflights": [
+        "Stale menu option count: 13 presets plus placeholder means 14 options.",
+        "Invalid test assumption that fractional and exact-native snapshot keys remain identical. Correct check requires matching displayed/requested age and sampler within each state."
+      ],
+      "sourceEntryUnchanged": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "completionGate": "Literal make gate-full is running separately; this focused pass is not the full command."
+    },
+    "finalGateFirstAttempt": {
+      "command": "EARTHHISTORY_TEST_PORT=4190 make gate-full",
+      "exitCode": 2,
+      "unitDataTestsPassed": 224,
+      "testFilesPassed": 35,
+      "dataFilesVerified": 345,
+      "browserPassed": 23,
+      "browserTotal": 24,
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "evidence": {
+        "path": "verification/continuous-runtime/gate-full-final-4b9554a7.log",
+        "sha256": "eb727f9238c15f239d657a2b029a7708074e32a8335b03c06c35a96bd71ef4d9",
+        "bytes": 12238
+      },
+      "failure": "Guide readiness test requires obsolete :surface:coarse:procedural suffix. Actual supported dual-mode ETOPO Mid-Atlantic source is current and ready at initial camera.",
+      "traceState": {
+        "requestedAndDisplayedKey": "present__paleodem-0ma:surface:coarse:ETOPO_2022_v1_60s_surface:mid-atlantic-ridge",
+        "cubeStatus": "ready",
+        "refinementStatus": "ready",
+        "visibleLeaves": 96,
+        "neighborLevelDelta": 1,
+        "requestedAt": 4222,
+        "completedAt": 4614.4
+      },
+      "decision": "Correct test source expectation while preserving readiness/current identity/resource predicates. Focused failure-control and literal full rerun follow. This first full command is not a pass."
+    },
+    "finalDefaultCaptureEvidence": {
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "reliefExaggeration": 8,
+      "settingsMeaning": "Actual application default relief, close aerial source-region presets.18\u00d7 captures remain separate stress/inspection evidence.",
+      "captures": [
+        {
+          "scene": "alps",
+          "files": [
+            {
+              "path": "verification/app-reference-alps-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+              "bytes": 42180,
+              "sha256": "22913fcb50af1f868283cf4ff77711dcef4770326f0aae34ccf30fbf7227d5a3"
+            },
+            {
+              "path": "verification/app-reference-alps-aerial-8x-4b9554a7-20260910T011037Z.json",
+              "bytes": 7358,
+              "sha256": "4ff74a23c4d5394c052eeebf9e6096cb3358d2019c531d381437aa60a9238888"
+            }
+          ]
+        },
+        {
+          "scene": "andes",
+          "files": [
+            {
+              "path": "verification/app-reference-andes-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+              "bytes": 39345,
+              "sha256": "f88a629306d13fe1410faee66711336c57d872c4c4988a6a468411dfeaa54bb4"
+            },
+            {
+              "path": "verification/app-reference-andes-aerial-8x-4b9554a7-20260910T011037Z.json",
+              "bytes": 7537,
+              "sha256": "265c0b764c7061f1ff40a1c7abe57999727151c41faf5973e8c92663489e7f68"
+            }
+          ]
+        },
+        {
+          "scene": "east-african-rift",
+          "files": [
+            {
+              "path": "verification/app-reference-east-african-rift-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+              "bytes": 31712,
+              "sha256": "bffe2ef81d29ceab3bfa9c467a4f51d63fdd1bd4b6f8c74c264eb56f3514c553"
+            },
+            {
+              "path": "verification/app-reference-east-african-rift-aerial-8x-4b9554a7-20260910T011037Z.json",
+              "bytes": 7465,
+              "sha256": "cf0f0916d7dfed59e81bad846cb6dad6585625b9bca2551972fe2dde927bbb0d"
+            }
+          ]
+        },
+        {
+          "scene": "japan-trench",
+          "files": [
+            {
+              "path": "verification/app-reference-japan-trench-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+              "bytes": 26703,
+              "sha256": "0cefb648b58dfeb18ed17412252ecbdaced3e3c5ac29b0b1c81e11c20a5cc9ab"
+            },
+            {
+              "path": "verification/app-reference-japan-trench-aerial-8x-4b9554a7-20260910T011037Z.json",
+              "bytes": 7421,
+              "sha256": "a1e7aa63e000e2154e67bb3b2b6daaa7d4073a4b1ca85076f0f817a9206849ad"
+            }
+          ]
+        },
+        {
+          "scene": "mid-atlantic-ridge-surface",
+          "files": [
+            {
+              "path": "verification/app-reference-mid-atlantic-ridge-surface-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+              "bytes": 36031,
+              "sha256": "49b035dfc8a58f2d9a4b00d63d1b452d6fe9877c7c6c5021576758dc756fcba9"
+            },
+            {
+              "path": "verification/app-reference-mid-atlantic-ridge-surface-aerial-8x-4b9554a7-20260910T011037Z.json",
+              "bytes": 7496,
+              "sha256": "7ad2d497ffda6776ae6eee088227b7dbcd57921e3f79473ffc607cdef7f71200"
+            }
+          ]
+        }
+      ],
+      "diagnostics": "All five have96tiles, active intended source patch, cube-native presentation, matching published sampler and overlays, positive clearance and zero browser errors.",
+      "visualVerdict": "Partial. Clearer source-shaped relief and blue bathymetric structure, but coarse/faceted geometry, smooth simple lowlands and sparse land-cover variation remain below supplied satellite-map references. No photographic or full satellite-equivalence acceptance."
+    },
+    "finalCompletionGate": {
+      "command": "EARTHHISTORY_TEST_PORT=4190 make gate-full",
+      "status": "passed",
+      "shellExitCode": null,
+      "completionEvidence": "The log records24 passed and the final Makefile target success marker. Coordinator read it after the Sol agent hit its usage limit; child exec session39239 is unavailable to root, so no separately observed numeric shell exit is asserted. No rerun required.",
+      "unitDataTestsPassed": 224,
+      "testFilesPassed": 35,
+      "dataFilesVerified": 345,
+      "browserPassed": 24,
+      "browserTotal": 24,
+      "browserMinutes": 12.2,
+      "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "artifactBytes": 49483584,
+      "evidence": {
+        "path": "verification/continuous-runtime/gate-full-final-4b9554a7-rerun.log",
+        "bytes": 9846,
+        "sha256": "ae5dd6fba776141082571bbdaf1dbce4e80c1707306eb3fcb6072847dd7a6d3a"
+      }
+    },
+    "releaseReadiness": {
+      "userAuthorization": "Once you are happy you are cleared to release; continue without redoing completed work.",
+      "latestPublishedVersion": "0.1.1",
+      "nextDefaultPatchVersion": "0.1.2",
+      "packageVersionUnchangedPendingReadiness": "0.1.1",
+      "pagesBuildType": "workflow",
+      "pagesUrl": "https://kkollsga.github.io/EarthHistory/",
+      "openPullRequests": 0,
+      "actionlintExitCode": 0,
+      "doctrineVersion": "0.1.12",
+      "publicationStatus": "Not attempted: visual refinement is active; release remains authorized once ready.",
+      "historyCorrection": "Move new work into Unreleased section; preserve published0.1.1 history unchanged.",
+      "currentModelStatus": "User explicitly chose continued Sol work. Existing renderer Sol agent resumed and confirmed normal execution; bounded visual diagnosis is active from4b955, without repeating completed research or validation."
+    }
+  },
+  "currentResearchStoreBudget": {
+    "totalGiB": 4,
+    "platesGiB": 1.275,
+    "geographyGiB": 1.5,
+    "northSeaGiB": 0.8,
+    "verificationGiB": 0.425,
+    "verificationMiB": 435.2,
+    "changedLocalDate": "2026-09-10",
+    "reason": "Reassign unused plate allowance to retain shared user/app images and one immutable <=50MiB renderer control for comparable views and performance; total remains4GiB.",
+    "cleanupOwner": "EarthHistory study coordinator",
+    "lastMeasuredKiB": {
+      "plates": 1231428,
+      "geography": 1108696,
+      "northSea": 524272,
+      "verification": 419516
+    },
+    "measurementScope": "Filesystem du after final default8x captures, completed fullgate and release-readiness inspection; verification409.684MiB remains below435.2MiB."
+  },
+  "errorOnlyReleaseCandidate": {
+    "date": "2026-09-10",
+    "version": "0.1.2",
+    "entrySha256": "7e1690fe4aab317ec8369557a7bbd6beaf0ec67da67acbdd452dce5c5daecc03",
+    "artifactBytes": 49484601,
+    "scope": "Previously implemented palaeomap work plus confirmed Atlantic shading and WebGPU texture lifetime errors only. Metadata expansion remains deferred pending a separately approved plan.",
+    "atlantic": {
+      "cause": "Differentiating absolute signed depth through the regional feather created a false coverage-window slope on surface water.",
+      "fix": "Feather source-local relief for virtual normals; preserve signed source diagnostics and color and sea-level physical water.",
+      "unitRegression": "Flat -4000m patch over physical water must not create a square normal wall; old delta0.001783 failed.",
+      "captures": [
+        "app-reference-mid-atlantic-ridge-surface-aerial-8x-7e1690fe-20260910T054412Z.jpg",
+        "app-reference-mid-atlantic-ridge-surface-aerial-8x-7e1690fe-20260910T054441Z.jpg"
+      ],
+      "frameP95Ms": [
+        18.4,
+        18.4
+      ],
+      "cacheBytes": 26354376,
+      "browserErrors": [
+        0,
+        0
+      ],
+      "visualReview": "Coordinator verified square removed and ridge retained."
+    },
+    "webgpu": {
+      "cause": "Surface replacement destroyed old global albedo while held temporal cube materials still referenced it.",
+      "fix": "Retire old sets after rebinding; release after live material references disappear at lifecycle events; drain on teardown.",
+      "failedBaseline": "silurian-430ma-caledonian-8x-4b9554a7-20260910T051927Z.json recorded52 invalid submits. Its regional screenshot is excluded from visual acceptance.",
+      "captures": [
+        "silurian-430ma-caledonian-webgpu-fixed-8x-7e1690fe-20260910T054751Z.jpg",
+        "silurian-420ma-caledonian-comparison-webgpu-fixed-8x-7e1690fe-20260910T054758Z.jpg"
+      ],
+      "actualBackend": "webgpu",
+      "displayedNativeAgesMa": [
+        430,
+        420
+      ],
+      "browserErrors": [
+        0,
+        0
+      ],
+      "visualReview": "Coordinator verified distinct current frames and intended material-following camera."
+    },
+    "evidenceRoot": "../EarthHistory-data/palaeomap-study/verification",
+    "releaseGate": {
+      "makeGateExitCode": 0,
+      "unitTests": 227,
+      "testFiles": 36,
+      "dataAssets": 345,
+      "focusedBrowserExitCode": 0,
+      "focusedBrowserTests": 3,
+      "focusedScope": [
+        "Pages-load smoke",
+        "WebGL2 fallback smoke",
+        "modern landscape source and surface modes"
+      ],
+      "webgpuSilurian": "Separate exact430/420 current-frame captures, zero errors",
+      "actionlintExitCode": 0,
+      "entrySha256": "7e1690fe4aab317ec8369557a7bbd6beaf0ec67da67acbdd452dce5c5daecc03",
+      "makeGateLogSha256": "e05455b597f31018f4aaeab88c9dc2aa587c0ef6c68dbe11538cfa1d1923ea62",
+      "focusedBrowserLogSha256": "be5ce11b773b9ef149b9b7e448ce63fe1ddaa24a113ab292d5431e6fc3230648",
+      "publication": "not yet performed"
+    },
+    "broadCoverageReuse": "Earlier4b955 full224-unit/24-browser/345-asset run retained for unaffected behavior; candidate requires its own deterministic and focused checks."
+  }
+}

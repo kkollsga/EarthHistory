@@ -8,13 +8,36 @@ below apply only to the identified third-party software and datasets.
 - **PALEOMAP Paleodigital Elevation Models of the Phanerozoic, v2** — Scotese
   and Wright (2018), [Zenodo record 5460860](https://doi.org/10.5281/zenodo.5460860),
   licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-  EarthHistory redistributes 2° nearest-sampled derivative grids and identifies
-  them as interpreted model output.
+  EarthHistory redistributes all 109 native 1° CSV grids as compact signed-metre
+  derivatives and identifies them as interpreted model output. The documented
+  duplicate-meridian repair and south-pole row closures are preparation changes.
 - **PALEOMAP Political Boundaries v3 and Global Plate Model v3** — Kocsis and
   Scotese (2023), [Zenodo record 7994000](https://doi.org/10.5281/zenodo.7994000),
   licensed under CC BY 4.0. EarthHistory reconstructs and simplifies these
   present-day political-reference features with pyGPlates; they do not represent
-  historical borders.
+  historical borders. A compact rotation and continental-partition derivative
+  also supports material-registered movement between elevation source ages.
+- **Earth's tectonic and plate boundary evolution over 1.8 billion years,
+  Cao et al. (2024), model v2.4** —
+  [Zenodo record 13628813](https://doi.org/10.5281/zenodo.13628813), licensed
+  under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  EarthHistory derives quantized continental fragments, rotations, resolved
+  topologies and typed boundaries from the paleomagnetic reconstruction,
+  anchored to plate 0. Coarse ocean lifecycle controls, continental conversion,
+  temporal curve interpolation and displayed boundary morphology are
+  EarthHistory processing or inference, with unsupported cases retained.
+  The model's data license is separate from GPlates/pyGPlates software licenses.
+- **Improving global paleogeography since the late Paleozoic using paleobiology** —
+  Cao et al. (2017), [Biogeosciences 14 (2017)](https://doi.org/10.5194/bg-14-5425-2017),
+  official EarthByte GPlates 2.3 Paleogeography package, licensed under
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). EarthHistory derives
+  a qualitative chronology constraint from the absence of mapped permanent-ice
+  polygons between 81 and 285.01 Ma. Polygon geometry is not transferred across
+  reconstruction frames; this absence is not proof of an ice-free Earth.
+- **GDH1 ocean lithosphere age–depth model** — Stein and Stein (1992),
+  [Nature 359, 123–129](https://doi.org/10.1038/359123a0). Citation and numerical
+  model only; no paper text, figures or third-party implementation is bundled.
+  Its application to ancient oceans is an explicitly identified inference.
 - **Natural Earth 1:110m land and Admin 0 countries** —
   [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
   domain. The 0 Ma overlay derives from the project GeoJSON distributions.
@@ -27,7 +50,7 @@ below apply only to the identified third-party software and datasets.
 - **ETOPO 2022 Global Relief Model** — NOAA National Centers for Environmental
   Information, [DOI 10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74),
   public-domain U.S. government data with attribution requested. EarthHistory
-  distributes five 256² bilinear service subsets of the v1 60 arc-second
+  distributes seven 256² bilinear service subsets of the v1 60 arc-second
   surface product, rounded to whole metres in the EGM2008 vertical datum.
 - **EMODnet Digital Bathymetry (DTM 2024)** — EMODnet Bathymetry Consortium,
   [DOI 10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1](https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1),

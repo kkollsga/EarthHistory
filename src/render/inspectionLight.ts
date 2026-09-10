@@ -18,6 +18,6 @@ export function setInspectionLightPosition(
   return target
     .copy(scratch.view)
     .multiplyScalar(4.2)
-    .addScaledVector(scratch.right, -2.2)
-    .addScaledVector(scratch.upward, 1.35);
+    .addScaledVector(scratch.right, -3.4)
+    .addScaledVector(scratch.upward, 1.8);
 }

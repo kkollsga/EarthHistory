@@ -215,6 +215,93 @@ describe("cube tile fields", () => {
     }
   });
 
+  it("keeps dual-mode ETOPO depth below surface water while using it for material color and normals", () => {
+    const bathymetry: ModernReliefPatch = {
+      ...patch(),
+      surfaceMode: "seafloor",
+      applicableSurfaceModes: ["surface", "seafloor"],
+      elevation: new Float32Array([
+        -1_000, -2_000, -3_000,
+        -3_000, -4_000, -5_000,
+        -5_000, -6_000, -7_000,
+      ]),
+    };
+    const request = {
+      key: { face: "px" as const, level: 0, x: 0, y: 0 },
+      meshSegments: 32 as const,
+      textureSize: 64 as const,
+    };
+    const surfaceGenerator = createCubeTileFieldGenerator({
+      snapshot: snapshot(), surface: surface(), mode: "surface", detail: "coarse",
+      modernRelief: [bathymetry],
+    });
+    const unrefined = createCubeTileFieldGenerator({
+      snapshot: snapshot(), surface: surface(), mode: "surface", detail: "coarse",
+    }).generate(request);
+    const water = surfaceGenerator.generate(request);
+    const floor = createCubeTileFieldGenerator({
+      snapshot: snapshot(), surface: surface(), mode: "seafloor", detail: "coarse",
+      modernRelief: [bathymetry],
+    }).generate(request);
+    const center = 16 * 33 + 16;
+    const centerOffset = center * 3;
+    expect(water.sourcePatchIds).toEqual(["fixture-relief"]);
+    expect(water.heightsMetres[center]).toBe(0);
+    expect(water.minHeightMetres).toBe(0);
+    expect(water.minSourceMaterialHeightMetres).toBeLessThan(-4_000);
+    expect(Math.hypot(...water.positions.subarray(centerOffset, centerOffset + 3))).toBeCloseTo(1, 6);
+    expect(floor.heightsMetres[center]).toBeCloseTo(-4_000, 3);
+    expect(Math.hypot(...floor.positions.subarray(centerOffset, centerOffset + 3))).toBeLessThan(1);
+    expect(Array.from(water.normals.subarray(centerOffset, centerOffset + 3))).not.toEqual(
+      Array.from(unrefined.normals.subarray(centerOffset, centerOffset + 3)),
+    );
+    const texel = ((water.textureStride >> 1) * water.textureStride +
+      (water.textureStride >> 1)) * 4;
+    expect(Array.from(water.albedo.subarray(texel, texel + 3))).not.toEqual(
+      Array.from(unrefined.albedo.subarray(texel, texel + 3)),
+    );
+    expect(surfaceGenerator.sampleHeightMetres([1, 0, 0])).toBe(0);
+  });
+
+  it("does not turn a flat bathymetry source window into a wall on the water shell", () => {
+    const flatSurface = surface();
+    flatSurface.relief.fill(0);
+    flatSurface.reliefMetres.fill(0);
+    flatSurface.landMask.fill(0);
+    const flatBathymetry: ModernReliefPatch = {
+      ...patch(),
+      surfaceMode: "seafloor",
+      applicableSurfaceModes: ["surface", "seafloor"],
+      elevation: new Float32Array(9).fill(-4_000),
+    };
+    const sourceSnapshot = {
+      ...snapshot(),
+      controls: { width: 1, height: 1, elevation: new Float32Array([0]) },
+    };
+    const request = {
+      key: { face: "px" as const, level: 0, x: 0, y: 0 },
+      meshSegments: 32 as const,
+      textureSize: 64 as const,
+    };
+    const baseline = createCubeTileFieldGenerator({
+      snapshot: sourceSnapshot, surface: flatSurface, mode: "surface", detail: "coarse",
+    }).generate(request);
+    const refined = createCubeTileFieldGenerator({
+      snapshot: sourceSnapshot, surface: flatSurface, mode: "surface", detail: "coarse",
+      modernRelief: [flatBathymetry],
+    }).generate(request);
+    let maximumNormalDelta = 0;
+    for (let index = 0; index < refined.normals.length; index += 1) {
+      maximumNormalDelta = Math.max(
+        maximumNormalDelta,
+        Math.abs(refined.normals[index] - baseline.normals[index]),
+      );
+    }
+    expect(Math.min(...refined.heightsMetres)).toBe(0);
+    expect(refined.minSourceMaterialHeightMetres).toBeLessThan(-3_900);
+    expect(maximumNormalDelta).toBeLessThan(2e-4);
+  });
+
   it("covers all six face centers with outward unit directions and normals", () => {
     const tiles = generateFaces();
     for (let faceIndex = 0; faceIndex < CUBE_FACES.length; faceIndex += 1) {
@@ -315,6 +402,26 @@ describe("cube tile fields", () => {
         );
       }
     }
+    // The child covers the parent's northwest quadrant. Because every detail
+    // mode uses one globally coherent spectrum, coincident material texels
+    // remain byte-identical across this mixed-LOD boundary.
+    for (let childRow = 1; childRow <= 129; childRow += 2) {
+      for (let childColumn = 1; childColumn <= 129; childColumn += 2) {
+        const parentRow = 1 + (childRow - 1) / 2;
+        const parentColumn = 1 + (childColumn - 1) / 2;
+        const childOffset = (childRow * child.textureStride + childColumn) * 4;
+        const parentOffset = (parentRow * parent.textureStride + parentColumn) * 4;
+        expect(Array.from(child.albedo.subarray(childOffset, childOffset + 4))).toEqual(
+          Array.from(parent.albedo.subarray(parentOffset, parentOffset + 4)),
+        );
+        expect(Array.from(child.roughness.subarray(childOffset, childOffset + 4))).toEqual(
+          Array.from(parent.roughness.subarray(parentOffset, parentOffset + 4)),
+        );
+        expect(Array.from(child.detailHeight.subarray(childOffset, childOffset + 4))).toEqual(
+          Array.from(parent.detailHeight.subarray(parentOffset, parentOffset + 4)),
+        );
+      }
+    }
   });
 
   it("is continuous at the antimeridian and stable at both poles", () => {
@@ -387,7 +494,34 @@ describe("cube tile fields", () => {
     }
   });
 
-  it("feathers refinement height without exposing the refinement footprint in albedo", () => {
+  it("keeps polar bathymetry below the physical surface-water shell", () => {
+    const fixtureSurface = surface();
+    fixtureSurface.relief.fill(0);
+    fixtureSurface.reliefMetres.fill(-5_000);
+    fixtureSurface.reliefBiasMetres = -5_000;
+    const sourceSnapshot = {
+      ...snapshot(),
+      controls: {
+        width: 1,
+        height: 1,
+        elevation: new Float32Array([-4_000]),
+      },
+    };
+    const generator = createCubeTileFieldGenerator({
+      snapshot: sourceSnapshot,
+      surface: fixtureSurface,
+      mode: "surface",
+      detail: "coarse",
+    });
+    for (const face of ["py", "ny"] as const) {
+      const tile = generator.generate({
+        key: { face, level: 0, x: 0, y: 0 }, meshSegments: 32, textureSize: 64,
+      });
+      expect(Math.min(...tile.heightsMetres)).toBe(0);
+    }
+  });
+
+  it("feathers refinement height and its height-conditioned material at the source edge", () => {
     const fixtureSurface = surface();
     const baseGenerator = createCubeTileFieldGenerator({
       snapshot: snapshot(), surface: fixtureSurface, mode: "surface", detail: "coarse",
@@ -410,7 +544,96 @@ describe("cube tile fields", () => {
     expect(base.heightsMetres[center]).toBeLessThan(4_000);
     const westEdgeCenter = 16 * 33;
     expect(enhanced.heightsMetres[westEdgeCenter]).toBe(base.heightsMetres[westEdgeCenter]);
-    expect(enhanced.albedo).toEqual(base.albedo);
+    expect(enhanced.albedo).not.toEqual(base.albedo);
+    for (let row = 0; row < enhanced.textureStride; row += 1) {
+      const westGutter = (row * enhanced.textureStride) * 4;
+      expect(enhanced.detailHeight[westGutter]).toBe(128);
+    }
+  });
+
+  it("uses source-local gradients and denser material only on regional patch tiles", () => {
+    const fixtureSurface = surface();
+    const flatPatch: ModernReliefPatch = {
+      ...patch(),
+      bounds: [-1, -1, 1, 1],
+      cellCenterBounds: [-0.5, -0.5, 0.5, 0.5],
+      longitudeStep: 0.5,
+      latitudeStep: 0.5,
+      edgeTransitionCells: 0.25,
+      elevation: new Float32Array(9).fill(500),
+    };
+    const ridgePatch: ModernReliefPatch = {
+      ...flatPatch,
+      elevation: new Float32Array([
+        500, 500, 500,
+        -8_000, 500, 9_000,
+        -3_000, -3_000, -3_000,
+      ]),
+    };
+    const request = {
+      key: { face: "px" as const, level: 0, x: 0, y: 0 },
+      meshSegments: 32 as const,
+      textureSize: 64 as const,
+    };
+    const generate = (modernRelief?: ModernReliefPatch[]) => createCubeTileFieldGenerator({
+      snapshot: snapshot(),
+      surface: fixtureSurface,
+      mode: "surface",
+      detail: "regional",
+      modernRelief,
+    }).generate(request);
+    const unrefined = generate();
+    const flat = generate([flatPatch]);
+    const ridge = generate([ridgePatch]);
+    expect(unrefined.textureSize).toBe(64);
+    expect(flat.textureSize).toBe(128);
+    expect(ridge.textureSize).toBe(128);
+    expect(flat.byteLength).toBeGreaterThan(unrefined.byteLength);
+    const center = Math.floor(ridge.textureStride / 2);
+    const centerOffset = (center * ridge.textureStride + center) * 4;
+    expect(Array.from(ridge.albedo.subarray(centerOffset, centerOffset + 3))).not.toEqual(
+      Array.from(flat.albedo.subarray(centerOffset, centerOffset + 3)),
+    );
+    expect(ridge.detailHeight[centerOffset]).not.toBe(flat.detailHeight[centerOffset]);
+    const vertexCenter = 16 * 33 + 16;
+    expect(ridge.heightsMetres[vertexCenter]).toBe(flat.heightsMetres[vertexCenter]);
+  });
+
+  it("bakes physical mountain height into native albedo without changing sourced height", () => {
+    const generateAtHeight = (heightMetres: number) => {
+      const sourceSnapshot = {
+        ...snapshot(),
+        renderSeedId: "height-conditioned-native-material",
+        controls: {
+          width: 1,
+          height: 1,
+          elevation: new Float32Array([heightMetres]),
+        },
+      };
+      return createCubeTileFieldGenerator({
+        snapshot: sourceSnapshot,
+        surface: surface(),
+        mode: "surface",
+        detail: "regional",
+      }).generate({
+        key: { face: "px", level: 0, x: 0, y: 0 },
+        meshSegments: 32,
+        textureSize: 64,
+      });
+    };
+    const low = generateAtHeight(350);
+    const high = generateAtHeight(4_200);
+    const meanLuminance = (albedo: Uint8Array) => {
+      let total = 0;
+      for (let offset = 0; offset < albedo.length; offset += 4) {
+        total += albedo[offset] * 0.2126 + albedo[offset + 1] * 0.7152 +
+          albedo[offset + 2] * 0.0722;
+      }
+      return total / (albedo.length / 4);
+    };
+    expect(meanLuminance(high.albedo)).toBeLessThan(meanLuminance(low.albedo));
+    expect([...low.heightsMetres].every((value) => Math.abs(value - 350) < 1e-5)).toBe(true);
+    expect([...high.heightsMetres].every((value) => Math.abs(value - 4_200) < 1e-5)).toBe(true);
   });
 
   it("keeps the requested level-zero 64/256 output under the memory target", () => {

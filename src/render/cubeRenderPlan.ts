@@ -11,6 +11,20 @@ export interface CubeRenderPlan {
   complete: boolean;
 }
 
+/**
+ * Meshes retain their field arrays independently of the LRU. Treat those
+ * fields as resident for render planning without re-inserting an obsolete
+ * temporal hierarchy into the bounded cache on every refinement pass.
+ */
+export function cubeRenderResidentIds(
+  cachedIds: Iterable<string>,
+  renderedKeys: Iterable<CubeTileKey>,
+): Set<string> {
+  const residentIds = new Set(cachedIds);
+  for (const key of renderedKeys) residentIds.add(cubeTileId(key));
+  return residentIds;
+}
+
 function compareKeys(left: CubeTileKey, right: CubeTileKey): number {
   return CUBE_FACES.indexOf(left.face) - CUBE_FACES.indexOf(right.face) ||
     left.level - right.level || left.y - right.y || left.x - right.x;

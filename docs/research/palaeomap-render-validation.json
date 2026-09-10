@@ -1,0 +1,895 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-09",
+  "scope": "Production same-scene performance comparison for the natural PaleoDEM terrain/material change",
+  "sourceRecord": {
+    "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/natural-render/palaeomap-natural-before-after.json",
+    "sha256": "f5da36b9ab2f190989697cae0d952fc5d448de65a19490618fbea7502e2af2bc",
+    "capturedAt": "2026-09-09T14:16:12.772Z",
+    "runsPerCase": 3,
+    "retention": "Bounded external verification evidence; cleanup owner is the palaeomap study coordinator."
+  },
+  "stopRuleWrittenBeforeMeasurement": {
+    "repeatRequirement": "Do not attribute a regression unless two repeated same-scene controls agree",
+    "frameP95MaximumMs": 20,
+    "surfaceGenerationMaximumMs": 500
+  },
+  "controls": {
+    "builds": "Vite production builds",
+    "browser": "headless Google Chrome 152.0.7977.83",
+    "renderer": "Apple M4 Metal backend; exact WEBGL_debug_renderer_info string was not preserved",
+    "viewport": "1440x900 at DPR 1",
+    "historicalAgeMa": 95,
+    "historicalOverlayState": "off",
+    "historicalRationale": "95 Ma has no authored tectonic story corridor, isolating source sampling and material cost",
+    "baselineCommit": "78fab84d38fa667d3d19b04803539175478bc385",
+    "baselineEntrySha256": "fb3ea5fd9f3de7e8700998b3e4db9bf545342a6ebe3642cea8eb480191360fc6",
+    "candidateEntrySha256": "dd83f8bdd3a8a3f59c587dbd9d07528960d8c041f0e383ac2f4ca9e4859f1f77",
+    "captureDirectory": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/natural-render/"
+  },
+  "summaries": [
+    {
+      "case": "baseline-head-95ma-no-overlay",
+      "navigationToReadyMs": {
+        "median": 637.87,
+        "minimum": 632.74,
+        "maximum": 668.64
+      },
+      "surfaceGenerationMs": {
+        "median": 73.0,
+        "minimum": 72.5,
+        "maximum": 74.0
+      },
+      "cubeGenerationMs": {
+        "median": 39.2,
+        "minimum": 38.9,
+        "maximum": 39.3
+      },
+      "frameP95Ms": {
+        "median": 16.8,
+        "minimum": 16.7,
+        "maximum": 33.2
+      }
+    },
+    {
+      "case": "candidate-95ma-no-overlay",
+      "navigationToReadyMs": {
+        "median": 630.61,
+        "minimum": 627.32,
+        "maximum": 654.27
+      },
+      "surfaceGenerationMs": {
+        "median": 116.3,
+        "minimum": 113.7,
+        "maximum": 116.5
+      },
+      "cubeGenerationMs": {
+        "median": 40.4,
+        "minimum": 39.9,
+        "maximum": 41.0
+      },
+      "frameP95Ms": {
+        "median": 16.8,
+        "minimum": 16.7,
+        "maximum": 16.8
+      }
+    },
+    {
+      "case": "baseline-head-modern",
+      "navigationToReadyMs": {
+        "median": 735.47,
+        "minimum": 721.29,
+        "maximum": 763.99
+      },
+      "surfaceGenerationMs": {
+        "median": 137.4,
+        "minimum": 135.1,
+        "maximum": 141.0
+      },
+      "cubeGenerationMs": {
+        "median": 43.0,
+        "minimum": 42.5,
+        "maximum": 43.2
+      },
+      "frameP95Ms": {
+        "median": 16.8,
+        "minimum": 16.8,
+        "maximum": 16.8
+      }
+    },
+    {
+      "case": "candidate-modern",
+      "navigationToReadyMs": {
+        "median": 727.03,
+        "minimum": 695.58,
+        "maximum": 740.45
+      },
+      "surfaceGenerationMs": {
+        "median": 150.7,
+        "minimum": 150.0,
+        "maximum": 181.0
+      },
+      "cubeGenerationMs": {
+        "median": 40.0,
+        "minimum": 39.1,
+        "maximum": 40.1
+      },
+      "frameP95Ms": {
+        "median": 16.8,
+        "minimum": 16.8,
+        "maximum": 16.8
+      }
+    }
+  ],
+  "comparison": {
+    "historicalSurfaceGenerationMedianDeltaMs": 43.3,
+    "historicalSurfaceGenerationMedianDeltaPercent": 59.3,
+    "historicalCubeGenerationMedianDeltaMs": 1.2,
+    "modernSurfaceGenerationMedianDeltaMs": 13.3,
+    "modernSurfaceGenerationMedianDeltaPercent": 9.7,
+    "modernCubeGenerationMedianDeltaMs": -3.0,
+    "candidateFrameP95MaximumMs": 16.8,
+    "stopRuleTriggered": false
+  },
+  "reviewConclusion": "The natural terrain path has a repeatable CPU generation cost at 95 Ma, but generation and steady frame p95 remain within the predeclared limits. The isolated baseline 95 Ma third-run p95 of 33.2 ms does not repeat and is not attributed to the candidate. Navigation-to-ready remains 628\u2013764 ms across these control scenes, retaining the existing readiness miss.",
+  "limitations": [
+    "The working-tree candidate had no commit identifier; the entry-script hash identifies the measured build.",
+    "The source record did not preserve the exact WEBGL_debug_renderer_info string or contemporaneous system-load sample; baseline and candidate servers ran sequentially without the final gate.",
+    "The comparison did not record JavaScript heap, GPU allocation, power or thermals; no memory or GPU-residency claim follows.",
+    "Modern before/after includes removal of the prior always-on schematic tectonic emboss and is a full behavior comparison rather than an isolated material-cost benchmark."
+  ],
+  "finalDefaultGuidesProductionCheck": {
+    "externalRecord": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/final-runtime/default-guides-production.json",
+    "externalRecordSha256": "53040936de76d2647b8481b4518d87cd0b05d4aba359b08694c98c6b628b2ead",
+    "measuredAt": "2026-09-09T14:38:47.052Z",
+    "entryScript": "index-DCQyXb6w.js",
+    "entryScriptSha256": "f318c9a32cb0d714275d3731d1963bc0877cb79103b9b487033ef1cdca0dc91e",
+    "browser": "Headless Chrome 153.0.8010.12",
+    "backend": "webgl2",
+    "runs": 3,
+    "generationMs": [
+      140.6,
+      153.4,
+      145.6
+    ],
+    "rendererCacheBytesRange": [
+      10330632,
+      19742184
+    ],
+    "cubeWorkerRetainedBytes": 12089344,
+    "staleJobs": 0,
+    "referenceGuides": {
+      "visibleInAllRuns": true,
+      "batches": 1,
+      "bytes": 1611004,
+      "vertices": 10845
+    },
+    "countries": {
+      "visibleInAllRuns": true,
+      "batches": 1,
+      "bytes": 1782344,
+      "vertices": 44732
+    },
+    "readyStates": "surface, cube, cube refinement, and overlay ready in all runs",
+    "frameTimingLimitation": "The custom RAF collector returned zero intervals in all three runs. This check makes no new frame-time claim; the valid repeated p95 evidence remains the comparison above.",
+    "machine": {
+      "platform": "darwin 25.6.0 arm64",
+      "logicalCpus": 10,
+      "totalMemoryBytes": 17179869184,
+      "loadAverageBeforeOrDuring": [
+        3.8134765625,
+        4.22802734375,
+        4.94091796875
+      ]
+    }
+  },
+  "continuousCoordinateSatelliteProductionCheck": {
+    "measuredAt": "2026-09-09T19:37:42.779Z",
+    "productionBuild": {
+      "entryScript": "index-CjGFyKi_.js",
+      "entryScriptSha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+      "distBytes": 49097762,
+      "distMiB": 46.82,
+      "artifactMaximumMiB": 50
+    },
+    "controls": {
+      "browser": "Google Chrome 152.0.7977.83",
+      "backend": "three.js r185 WebGPU",
+      "platform": "darwin 25.6.0 arm64",
+      "viewport": "1440x900 at DPR 1",
+      "freeMemoryBytesAtExactStart": 1060192256,
+      "loadAverageAtExactFinish": [
+        2.2734375,
+        2.06103515625,
+        2.02392578125
+      ],
+      "surfaceMode": "seafloor",
+      "verticalExaggeration": 12,
+      "coordinateView": "cao-2024-v2.4",
+      "countryOutlines": true,
+      "referenceGuides": false
+    },
+    "stopRules": {
+      "frameP95MaximumMs": 20,
+      "completeCaoCpuMaximumMs": 500,
+      "completeCaoCpuDefinition": "resolver preparation plus atomic terrain publication for the settled visible mesh"
+    },
+    "exact100MaRepeated": [
+      {
+        "readyMs": 1772.224667,
+        "resolverPreparationMs": 29.3,
+        "terrainPublicationMs": 425.5,
+        "completeCaoCpuMs": 454.8,
+        "maximumChunkMs": 18.3,
+        "frameP95Ms": 16.7,
+        "visibleTiles": 18,
+        "updatedVertices": 19602,
+        "resolvedVertices": 14983,
+        "unsupportedVertices": 4619,
+        "residentTiles": 22,
+        "jsHeapUsedBytes": 32704488
+      },
+      {
+        "readyMs": 1907.647167,
+        "resolverPreparationMs": 29.9,
+        "terrainPublicationMs": 432.0,
+        "completeCaoCpuMs": 461.9,
+        "maximumChunkMs": 18.6,
+        "frameP95Ms": 16.7,
+        "visibleTiles": 18,
+        "updatedVertices": 19602,
+        "resolvedVertices": 14983,
+        "unsupportedVertices": 4619,
+        "residentTiles": 22,
+        "jsHeapUsedBytes": 32705088
+      }
+    ],
+    "requested16MsTimerScrub": {
+      "requestedInputs": 60,
+      "actualDispatchDurationMs": 1882.3,
+      "actualDispatchIntervalMedianMs": 30.5,
+      "actualDispatchIntervalP95Ms": 54.4,
+      "actualDispatchIntervalMaximumMs": 59.8,
+      "frameSamples": 246,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 16.8,
+      "frameMaximumMs": 33.3,
+      "publishedFrames": 37,
+      "distinctPublishedAges": 9,
+      "publicationGapMedianMs": 50.0,
+      "publicationGapMaximumMs": 100.1,
+      "settleAfterLastInputMs": 1248.8,
+      "finalResolverPreparationMs": 9.7,
+      "finalTerrainPublicationMs": 452.3,
+      "finalCompleteCaoCpuMs": 462.0,
+      "finalMaximumChunkMs": 22.2,
+      "finalUpdatedVertices": 19602,
+      "finalVisibleTiles": 18,
+      "interpretation": "The browser requested 16 ms timers, but main-thread work delivered a 30.5 ms median and 54.4 ms p95 interval. This is sustained fractional-input evidence, not a claim of 60 Hz input handling."
+    },
+    "memoryAndResidency": {
+      "exactJsHeapUsedBytesRange": [
+        32704488,
+        32705088
+      ],
+      "exactCubeCacheBytes": 3788136,
+      "exactCubeGeometryCopyBytes": 1304856,
+      "exactCubeGpuTextureEstimateBytes": 1273752,
+      "exactCaoMaterialTextureBytes": 1048576,
+      "exactWorkerRetainedBytes": 11052544,
+      "preparedReferenceAgeLimit": 3
+    },
+    "externalEvidence": [
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/cao-final-exact-production.json",
+        "sha256": "598ed49bac04c56dc71435f690432c248bd02ebd0528135485a4cea07ad9a637"
+      },
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/cao-density18-true-60hz.json",
+        "sha256": "a35f6da5a76def7784a645ffaba46952b3273b801eedc6b6c312a64752034778"
+      },
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/satellite-final-performance.json",
+        "sha256": "1cdd1a630254c6f8512321811dce570b4c186ff9dafd33bb5f16f9bc5aa454c7"
+      },
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/cao-final-density-performance.json",
+        "sha256": "a0a8e69fc83ba647e3011ed1a2858fee25ceed1041f7c46fa3fd1f8e7b9c88db",
+        "status": "rejected predecessor: 24-tile publication exceeded the 500 ms CPU stop rule"
+      },
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/cao-final-density18-performance.json",
+        "sha256": "cd3b1c4eb74dc50590a031cb3c85029efb2b2417408b9499daef57543e0acd48",
+        "status": "superseded predecessor: refinement churn caused the fractional job to process nonfinal tile membership"
+      },
+      {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/cao-density18-true-60hz-repeat.json",
+        "sha256": "986761221faadcc575a83658223d4fea4972f9cd83170feb8f9a929e186b32b1"
+      }
+    ],
+    "verdict": {
+      "stopRuleTriggered": false,
+      "summary": "Both repeated exact reconstructions and both final settled targets after sustained fractional input remain below 500 ms complete Cao CPU, while every measured frame p95 remains below 20 ms.",
+      "visibleLimitations": [
+        "The requested 16 ms input timers were delivered at a 30.5 ms median under measured load; this is not verified 60 Hz scrubbing.",
+        "The final surface needed 1.249 s after the last input to settle, and exact 100 Ma readiness took 1.77-1.91 s.",
+        "An isolated scrub chunk reached 22.2 ms and one frame reached 33.3 ms even though the repeated p95 stop rule passed.",
+        "The optional Cao view deliberately caps settled geometry at 18 mixed level-0/level-1 tiles; converted data gaps and the coarse source coastline remain visible.",
+        "Procedural albedo, normal and roughness add visual detail; they do not add new measured topography or boundary evidence."
+      ]
+    },
+    "requested16MsTimerScrubRepeat": {
+      "requestedInputs": 60,
+      "actualDispatchDurationMs": 2045.6,
+      "actualDispatchIntervalMedianMs": 35.1,
+      "actualDispatchIntervalP95Ms": 51.7,
+      "actualDispatchIntervalMaximumMs": 64.6,
+      "frameSamples": 258,
+      "frameP95Ms": 16.8,
+      "frameMaximumMs": 33.4,
+      "publishedFrames": 39,
+      "distinctPublishedAges": 9,
+      "publicationGapMedianMs": 50.0,
+      "publicationGapMaximumMs": 100.0,
+      "settleAfterLastInputMs": 1323.0,
+      "finalResolverPreparationMs": 8.4,
+      "finalTerrainPublicationMs": 466.2,
+      "finalCompleteCaoCpuMs": 474.6,
+      "finalMaximumChunkMs": 21.3,
+      "finalUpdatedVertices": 19602,
+      "finalVisibleTiles": 18,
+      "interpretation": "A second unchanged-build run agrees that the stop rules pass, while requested 16 ms timers are delivered much more slowly under this workload."
+    },
+    "presentationCapture": {
+      "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/satellite-final-candidate-paleomap-100ma-clean.png",
+      "sha256": "016fde5c86441cf5cd8a10bc854c60c10e482b2458c99325d2af19e888043d45",
+      "metadataPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/satellite-final-candidate-paleomap-100ma-clean.json",
+      "metadataSha256": "1d8d238a177d9dad41be68bf4b02b28be6e046e936ddd192769eaafa52dae808",
+      "scene": "Default PALEOMAP 100 Ma surface, clouds and modern-country references enabled, reference guides disabled, 12x display exaggeration",
+      "note": "Procedural satellite-style detail is visual synthesis over the unchanged sourced elevation field."
+    }
+  },
+  "structuredMaterialFrequencyProductionCheck": {
+    "measuredAt": "2026-09-09",
+    "productionBuild": {
+      "entryScript": "dist/assets/index-DQL7y4fH.js",
+      "entryScriptSha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "distBytes": 49483584,
+      "artifactLimitBytes": 52428800,
+      "artifactFilesVerified": 354
+    },
+    "intentionalVisualContract": {
+      "spectrum": "Deterministic spherical synthesis uses shared 4.2, 9.1 and 18.5 frequency multipliers; regional detail additionally admits 36.5 and 144. Elevation and source local relief continuously gate the mountain terms, while every tile in one detail mode samples the same profile so mixed-LOD edges do not select different bands. These are visual frequencies, not additional measured landform resolution.",
+      "coordinateIdentity": "The procedural color and shading-normal signal uses each PALEOMAP fragment reference direction, so a tracked material does not switch synthetic bump or roughness patterns when its native endpoint texture coordinates change.",
+      "physicalHeight": "PALEOMAP signed-metre positions and displayed-height draping remain unchanged; a 13,068-byte one-tile scratch position array exists only while deriving normals and is released before temporal staging.",
+      "roughness": "PALEOMAP temporal materials use explicit scalar render conventions 0.82 for surface and 0.91 for seafloor. No measured palaeoroughness field is claimed and no source-independent roughness map is bound.",
+      "seams": "Coincident staged edge normals are averaged by canonical direction and 2:1 stitched edges use normalized even-vertex interpolation before atomic publication.",
+      "settledLod": "Live PALEOMAP temporal preview is bounded to 6 root tiles; after refinement settles, high quality returns to the projected 96-leaf, level-4-capable policy. The measured 100 Ma view selected 96 leaves across levels 1 to 3. Cao remains separately capped at 18 level-1 leaves.",
+      "detailProfile": "The temporal material job latches one SurfaceDetail for every tile. Orbital/coarse uses the restrained profile; regional uses the source-ruggedness-gated mountain profile. A focused regression proves the profile changes temporary shading positions while the sourced physical positions remain byte-identical.",
+      "exactModern": "At exact 0 Ma, the final settled cube publishes its already generated native fields atomically: current-exaggeration physical positions, source-local normals, stitched native UVs, climate-qualified albedo, and patch-only feathered ETOPO residual bump. It performs no endpoint resolver/material solve, installs the actual visible-triangle sampler, and reports the distinct reused vertex count. This exact-native path does not apply above 0 Ma.",
+      "overlayPublication": "Installing any new displayed-height sampler marks overlay drape updating and schedules a key-checked rebuild. The prior overlay remains visible until replacement; ready is emitted only with the current sampler key applied.",
+      "modernRefinement": "The adaptive cube is the sole visible and displayed-height-sampled terrain. The legacy regional overlay worker is inactive; source elevation, gradients and denser material texels live only in intersecting cube tiles under the existing 160-entry/48 MiB LRU. Dual-mode ETOPO negative depth colors and shades blue surface water while physical surface geometry remains at zero; exposed seafloor retains signed physical height. A post-pole surface clamp preserves this water-shell contract after raster pole completion.",
+      "presentation": "The bounded daylight convention uses a warm directional key at intensity 3.2, neutral hemisphere fill at 0.8, cool fill at 0.22, exposure 1.02 and a reduced stage vignette. At close aerial zoom, country ribbon half-width tapers continuously to 900 m; POI glows remain projection-bounded at 9 px (12 px selected). These are rendering conventions rather than data claims.",
+      "focusTransition": "Automatic 950 ms landscape flights retain the prior coherent terrain without generating successive intermediate 96-leaf plans; their existing completion callback requests one final view. Direct drag or wheel input cancels the flight and the normal debounced controls-end refresh resumes refinement."
+    },
+    "boundedDerivedControls": {
+      "ruggednessMethod": "Central elevation-grid grade, smoothstep 0.0015 to 0.025, quantized to Uint8 only for visual material conditioning.",
+      "cacheEntryLimit": 2,
+      "measured100MaBytes": 65160,
+      "maximumAtTwo360x181EndpointsBytes": 130320,
+      "key": "Immutable ProceduralControls object identity; least-recently-used eviction."
+    },
+    "stopRules": {
+      "frameP95MaximumMs": 20,
+      "completeMaterialPublicationMaximumMs": 500,
+      "repeatRequirement": 2
+    },
+    "repeatedProductionResults": {
+      "paleomap100Ma": [
+        {
+          "readyMs": 1085.9,
+          "materialPublicationMs": 303.2,
+          "maxChunkMs": 17.0,
+          "frameP95Ms": 16.7,
+          "vertices": 104544,
+          "visibleTiles": 96,
+          "visibleByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          },
+          "lodPolicy": {
+            "maxLevel": 4,
+            "maxLeaves": 96
+          },
+          "materialDetailProfile": "coarse",
+          "scratchPeakBytes": 13068,
+          "ruggednessCacheBytes": 65160
+        },
+        {
+          "readyMs": 1077.3,
+          "materialPublicationMs": 300.7,
+          "maxChunkMs": 12.2,
+          "frameP95Ms": 16.7,
+          "vertices": 104544,
+          "visibleTiles": 96,
+          "visibleByLod": {
+            "0": 0,
+            "1": 6,
+            "2": 66,
+            "3": 24,
+            "4": 0
+          },
+          "lodPolicy": {
+            "maxLevel": 4,
+            "maxLeaves": 96
+          },
+          "materialDetailProfile": "coarse",
+          "scratchPeakBytes": 13068,
+          "ruggednessCacheBytes": 65160
+        }
+      ],
+      "cao100Ma": [
+        {
+          "readyMs": 1734.3,
+          "terrainPublicationMs": 419.5,
+          "maxChunkMs": 17.9,
+          "frameP95Ms": 16.8,
+          "vertices": 19602,
+          "visibleTiles": 18,
+          "lodPolicy": {
+            "maxLevel": 1,
+            "maxLeaves": 18
+          }
+        },
+        {
+          "readyMs": 1745.7,
+          "terrainPublicationMs": 413.0,
+          "maxChunkMs": 17.6,
+          "frameP95Ms": 16.7,
+          "vertices": 19602,
+          "visibleTiles": 18,
+          "lodPolicy": {
+            "maxLevel": 1,
+            "maxLeaves": 18
+          }
+        }
+      ],
+      "historical605392Paleomap100Ma": [
+        {
+          "readyMs": 655.1,
+          "frameP95Ms": 16.7,
+          "visibleTiles": 96
+        },
+        {
+          "readyMs": 672.6,
+          "frameP95Ms": 16.7,
+          "visibleTiles": 96
+        }
+      ],
+      "verdict": "PASS with an explicit readiness cost. Repeated final PALEOMAP material publications (303.2/300.7 ms) and Cao publications (419.5/413.0 ms) remain below 500 ms; measured frame p95 is 16.7\u201316.8 ms. Restoring the same projected 96-tile quality as the 605392 control raises initial PALEOMAP readiness to 1.08\u20131.09 s versus 0.66\u20130.67 s in that control, a retained roughly 0.41\u20130.43 s stable-material preparation/publication cost.",
+      "predecessor261a38Paleomap100Ma": [
+        {
+          "readyMs": 608.6,
+          "materialPublicationMs": 84.8,
+          "maxChunkMs": 11.2,
+          "frameP95Ms": 16.7,
+          "vertices": 26136,
+          "visibleTiles": 24
+        },
+        {
+          "readyMs": 570.6,
+          "materialPublicationMs": 85.3,
+          "maxChunkMs": 11.5,
+          "frameP95Ms": 16.8,
+          "vertices": 26136,
+          "visibleTiles": 24
+        }
+      ],
+      "historical605392Paleomap100MaControlEntrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+      "readinessScope": "Candidate readyMs in the bec45bb8 performance record is terrain/material readiness. That pre-final artifact could retain a stale applied overlay key; do not interpret those values as full cross-layer synchronization latency. The final 6319b833 browser pass proves matched terrain and overlay keys separately."
+    },
+    "r1Evidence": {
+      "endpointCoordinateNegative": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/material-coordinate-r1-negative.log",
+        "sha256": "621731e9c615f4ebc670b1990df9c5fa6dd62602b93f0cf8392df8e2f649b218",
+        "result": "The pre-fix tracked material changed synthetic bump from -10.154 m to +38.320 m and roughness delta from -0.00519 to +0.02705 when only endpoint longitude changed 0 to 20 degrees."
+      },
+      "seamMutation": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/temporal-normal-seam-r1-negative.log",
+        "sha256": "116f6f4aca1ce433357e383403b0725e9dcb2fb1bfe5104071836f2798b775d7",
+        "exitCode": 1,
+        "mutation": "Bypass edge-normal averaging and 2:1 interpolation."
+      },
+      "restoredPositive": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/temporal-material-normal-r1-positive.log",
+        "sha256": "69b72829be8d25747c4e182c58009ddbf7bb890060d8e1b3fa5b83ccca600db9",
+        "result": "14 temporal material/coordinate tests and 2 seam tests passed after restoration."
+      },
+      "settledLodPolicyPositive": {
+        "result": "Focused cube LOD policy regression proves PALEOMAP live 6/L0, PALEOMAP settled high 96/L4-capable, low 24/L1, Cao live 6/L0 and Cao settled 18/L1; the restored focused union passed 37 tests across four render files."
+      },
+      "regionalProfilePositive": {
+        "result": "At the same rugged material coordinate and 18x display exaggeration, coarse and regional temporal updates produced byte-identical physical positions but distinct temporary shading positions. The production canvas independently reports the profile latched by the generator."
+      },
+      "exactModernPositive": {
+        "result": "Focused fixture preserves a 4,321 m registered modern patch, native local material UVs and unmodified native texture colour multiplier at exact 0 Ma. The five-file focused render union passed 60 tests."
+      },
+      "exactModernNegative": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/exact-modern-preservation-r1-negative.log",
+        "sha256": "bda7b394d5f78376c5dd5757e38de676a13d7e9b14d67bf6a62801e803b3989c",
+        "exitCode": 1,
+        "mutation": "Bypass exact-modern registered height and native material mapping.",
+        "result": "Both targeted guards failed: the 4,321 m patch fell back to 100 m and the native texture multiplier/UV contract was replaced by synthesized material."
+      },
+      "profileKeyDetailNegative": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/profile-key-detail-r1-negative.log",
+        "sha256": "24a4f733e542423f5eb864bdca54f1f9932e0cecda1ebf48e342995c81efa4bb",
+        "exitCode": 1
+      },
+      "profileKeyDetailRestored": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/profile-key-detail-r1-restored-positive.log",
+        "sha256": "0eb6b9f520e514fe300840176e63f820149760a6d4ddc183996e28bcfb3fbd26",
+        "exitCode": 0,
+        "result": "The strengthened relief/profile browser case passed after restoring the material profile key."
+      }
+    },
+    "externalEvidence": {
+      "performance": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-final-bec45bb8-performance.json",
+        "sha256": "9a6fbb778d0269313f0211ba17f2f40f5e5c164b7cbbb1b1e03d6c29b8c8dddb",
+        "artifactRelationship": "Measured on bec45bb8 before two narrow correctness fixes in final 6319b833: exact-0 native patch/material preservation and sampler-key overlay rebuild scheduling. The measured PALEOMAP 100 Ma and Cao 100 Ma surface-generation algorithms, leaf policies and material profiles are unchanged; final browser integration separately validates the corrected publication paths."
+      },
+      "captureMetadata": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-final-settled-lod.json",
+        "sha256": "ea0366c95da4d2c074688ce744e680e5e50f5459a987dc09172daca31f128893",
+        "status": "Earlier 2b444482 checkpoint retained; the final regional generator/profile proof is the uniquely named 420 Ma capture below."
+      },
+      "orbitalCapture": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-final-settled-lod-orbital.png",
+        "sha256": "afd48a45c7de73432fa094c9e3eb73a8957758c0b750bb2817976a1c2cf3ab09"
+      },
+      "mountainCapture": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-final-settled-lod-mountain.png",
+        "sha256": "0fe09daa1cc2b266103e3b7356d6330da7ae0be97a53fbc693a52a8e255264bb"
+      },
+      "predecessorPerformance": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-structured-guard-final-performance.json",
+        "sha256": "d7242c59a4ca1801b1684d83a8a06046b25e9b27b6e3cfb40150b868a412b38d",
+        "status": "superseded 24-tile quality checkpoint retained for comparison"
+      },
+      "performanceProvenanceCorrection": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-final-bec45bb8-performance-provenance-correction.json",
+        "sha256": "fa792f12eebc51b0df8534b2b3c770dc9444b6f48c5126bbd8a3df9d0ac8042a",
+        "actualControlEntrySha256": "6053926a326838fa42e2fbec98944d374218654b231bcb2312e46ec4e1638c0b",
+        "note": "Corrects the raw record stale historicalEntrySha256 literal and qualifies candidate readyMs."
+      }
+    },
+    "caledonianSourceCheck": {
+      "method": "Present western-Norway material anchor reconstructed at each native PALEOMAP age, equal camera distance 1.8200 to 1.8201 and 18x display exaggeration.",
+      "nativeCenterHeightMetres": {
+        "420": 2542,
+        "390": 2249,
+        "355": 2517,
+        "0": 290
+      },
+      "interpretation": "The source captures high Caledonian-belt relief at 420 Ma and much lower modern elevation at the same present anchor. The modern height cannot be attributed directly to Caledonian relief because later uplift, exhumation and glacial incision contribute. Persistent high values at 390 and 355 Ma mean this PaleoDEM sequence does not independently resolve or validate post-orogenic extensional collapse; extension and exhumation also need not imply monotonic corridor lowering.",
+      "metadata": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-source-sequence.json",
+        "sha256": "c20e6da4fe63cdc27a3851f89359a25ad5380196e7ed1d4cfaa0140554534cb2"
+      },
+      "captures": [
+        {
+          "ageMa": 420,
+          "sha256": "d3f8bd8b26dd5fbce055a9f340b8ba8b7e6de6557aaefba8106e6f827bb899a1"
+        },
+        {
+          "ageMa": 390,
+          "sha256": "4e8a55ec6ed4329937d7cf927d00cf2190bfb0af1f52195057ff6a6846d6a7f6"
+        },
+        {
+          "ageMa": 355,
+          "sha256": "5310695a8277c7830a7ba2d48eab4e8cb91d1d94621ef14ef653f0717ba9caea"
+        },
+        {
+          "ageMa": 0,
+          "sha256": "59586776ce92c937ad86c1b7d57564a798d8be029995d34d17446c462166ba80"
+        }
+      ],
+      "final420Capture": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-final-420ma-bec45bb8.png",
+        "sha256": "b9d9c227f55fc59b74de4a127aebccf95349bcb4e51862a443e72968f34875d6",
+        "productionEntrySha256": "bec45bb8398577117f3ad40124764a4efcd3253165de4ab700c120711085e0a2",
+        "visibleTiles": 90,
+        "visibleByLod": {
+          "0": 1,
+          "1": 8,
+          "2": 37,
+          "3": 44,
+          "4": 0
+        },
+        "cameraDistance": 1.82,
+        "reliefExaggeration": 18,
+        "metadataPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-final-420ma-bec45bb8.json",
+        "metadataSha256": "c2a91a1db4bdf4fd07f7b0d3f0199b5f4408e30862a99c404e92cd69910f500b",
+        "lodPolicy": {
+          "maxLevel": 4,
+          "maxLeaves": 96
+        },
+        "materialDetailProfile": "regional",
+        "materialPublicationMs": 275.9,
+        "maxChunkMs": 19.9,
+        "frameP95Ms": 16.7,
+        "artifactRelationship": "Captured on bec45bb8 before exact-0-only source preservation and sampler-key overlay scheduling. The 420 Ma terrain/material/LOD path is unchanged in final 6319b833."
+      }
+    },
+    "limitations": [
+      "The final material is structured visual synthesis over the 1 degree runtime DEM, not additional measured topography and not a claim of photographic realism.",
+      "The restored high-quality PALEOMAP view uses 96 projected leaves (levels 1 to 3 in the measured scene), preserving the prior settled geometry policy. It still cannot remove 1 degree source-grid coastline steps or broad diagonal relief forms, and the added stable-material publication increases initial readiness by roughly 0.43 to 0.46 seconds versus the 605392 control.",
+      "The equal-view Caledonian sequence shows a broad authored high, not the branching continental-scale mountain hierarchy in an illustrative reconstruction; the source does not independently resolve Devonian extensional collapse.",
+      "Optional Cao converted coast geometry and unsupported material remain visibly coarse/partial; this check does not reclassify those data gaps.",
+      "Registered ETOPO relief patches and source-qualified modern climate material are valid only at exact 0 Ma. The 0\u20135 Ma open interval intentionally returns to PALEOMAP registered relief and synthesized material rather than inventing motion for modern-only controls, so a local height/material transition can remain immediately above 0 Ma.",
+      "The final exact-modern app views improve source-driven relief and stable material structure but remain generalized and faceted relative to the supplied Apple Maps references. The final user-facing set uses the actual 8x default; 18x captures remain stress/inspection views, and no satellite-equivalence claim follows.",
+      "The established material/Cao CPU scopes pass, but the separately reported conservative sum of source roots, sequential refinement, preparation and publication is 512.7-528.7 ms for final PAL/Cao controls, above the 500 ms target. The pass is therefore not performance-complete under that expanded accounting."
+    ],
+    "browserIntegration": {
+      "profileReliefOverlay": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/final-profile-integration-focused.log",
+        "sha256": "2ba52224fb8ada426de85314f70fd944df6cce485adbba8971940d66b6713503",
+        "exitCode": 0,
+        "result": "Fractional regional relief through exact 25 Ma passed with matched terrain/overlay keys."
+      },
+      "exactModernSource": {
+        "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/continuous-runtime/exact-modern-source-focused.log",
+        "sha256": "bc6c1fefdbf2345b258e70d553db1f72e8e8fe7481456eaa08a4f421ad0b7e1a",
+        "exitCode": 0,
+        "result": "Modern landscape/seafloor browser case passed with exact native source preservation."
+      }
+    },
+    "finalMountainReferencePass": {
+      "measuredAt": "2026-09-10",
+      "entryScriptSha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+      "distBytes": 49483584,
+      "exactModernOptimization": {
+        "method": "Reuse final native cube fields at exact 0 Ma and restore current exaggeration, source normals and stitched local UVs before each atomic publication. No temporal resolver/material samples or shading scratch are allocated.",
+        "alpsTransition": [
+          {
+            "readyMs": 1374.9,
+            "rootGenerationMs": 50.1,
+            "refinementGenerationMs": 290.0,
+            "nativePublicationMs": 6.7,
+            "completeGenerationMs": 346.8,
+            "frameP95Ms": 16.8
+          },
+          {
+            "readyMs": 1414.1,
+            "rootGenerationMs": 57.1,
+            "refinementGenerationMs": 328.7,
+            "nativePublicationMs": 6.0,
+            "completeGenerationMs": 391.8,
+            "frameP95Ms": 16.7
+          }
+        ],
+        "visibleTiles": 96,
+        "visibleByLod": {
+          "0": 0,
+          "1": 15,
+          "2": 27,
+          "3": 30,
+          "4": 24
+        },
+        "sourceMaterialTiles": 9,
+        "sourceMaterialTextureBytes": 1853388,
+        "cacheBytes": 19967688,
+        "stopRuleTriggered": false,
+        "performanceRecord": {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/exact-modern-native-final-4b9554a7-performance-20260910T004522Z.json",
+          "sha256": "a3569eb33edce0657afdb185527798f827b448dd58185d513981da27ec244504"
+        }
+      },
+      "finalCorePairs": {
+        "paleomap100Ma": [
+          {
+            "readyMs": 1209.7,
+            "materialPublicationMs": 305.1,
+            "frameP95Ms": 16.8,
+            "strictAllStageSumMs": 524.9
+          },
+          {
+            "readyMs": 1186.1,
+            "materialPublicationMs": 300.3,
+            "frameP95Ms": 16.8,
+            "strictAllStageSumMs": 512.7
+          }
+        ],
+        "cao100Ma": [
+          {
+            "readyMs": 1605.6,
+            "terrainPublicationMs": 423.5,
+            "resolverPreparationMs": 27.9,
+            "establishedCompleteCaoMs": 451.4,
+            "frameP95Ms": 16.7,
+            "strictAllStageSumMs": 528.7
+          },
+          {
+            "readyMs": 1573.0,
+            "terrainPublicationMs": 420.5,
+            "resolverPreparationMs": 25.1,
+            "establishedCompleteCaoMs": 445.6,
+            "frameP95Ms": 16.8,
+            "strictAllStageSumMs": 517.2
+          }
+        ],
+        "establishedScopeVerdict": "PASS: PALEOMAP material publication and Cao resolver plus terrain publication remain below 500 ms in both repeats; steady frame p95 remains below 20 ms.",
+        "conservativeAllStageVerdict": "UNMET: adding source-root and sequential refinement worker critical paths produces 512.7-528.7 ms in all four PAL/Cao runs, 12.7-28.7 ms above 500. This expanded arithmetic is reported separately rather than retroactively changing the pre-existing material/Cao stop-rule scope.",
+        "performanceComplete": false,
+        "record": {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-mountain-final-4b9554a7-core-performance.json",
+          "sha256": "c350c4e42ab215c2e3e608b2b7e0b93fd8e950d903a6d82f0d8b8e0bee03a3d2"
+        }
+      },
+      "rejectedPredecessor": {
+        "entryScriptSha256": "b034ee9432b5e06c31c8adc99593dcb6df2a75bf0ad7a39d75004e20522d4f6e",
+        "reason": "Exact-modern per-vertex temporal publication repeated at 620.8/622.7 ms and exceeded the 500 ms established publication stop rule before the native-field reuse and focus-flight guard.",
+        "record": {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/frequency-mountain-final-b034ee94-performance.json",
+          "sha256": "ea9c6b94c1f05bf9d71398d6fe72df41e7993e2a84f34b3c098fdc5918d1e12c"
+        }
+      },
+      "fractionalReturn": {
+        "requestedAgeMa": 2.50002,
+        "fractionalSolvedVertices": 104544,
+        "restoredAgeMa": 0,
+        "restoredNativeReusedVertices": 104544,
+        "result": "The fractional frame published with the material-stable temporal solve; return to 0 Ma republished native Alps fields at the same 96-leaf distribution with a new actual-triangle sampler and matching applied overlay key.",
+        "metadata": {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-alps-final-4b9554a7-20260910T004522Z.json",
+          "sha256": "197d52241bc6e76443c39afcb5e9a55a4a8901285af5ea529fad36dcc4c4df5c"
+        }
+      },
+      "actualAppCaptures": [
+        {
+          "scene": "Alps, 18x inspection",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-alps-aerial-18x-4b9554a7-20260910T004522Z.jpg",
+          "sha256": "bcdacb447d47e1fd6a8068ca84b97111f5c697ae897b50f6156fb9bef6919e1a"
+        },
+        {
+          "scene": "Alps, 6x restrained relief",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-alps-aerial-6x-4b9554a7-20260910T004522Z.jpg",
+          "sha256": "3761cd4e0864d6644210c014d650e6786651cf2caecd94f54b75ca43332f31c2"
+        },
+        {
+          "scene": "Andes",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-andes-aerial-18x-4b9554a7-20260910T004852Z.jpg",
+          "sha256": "340e10b6f44d1f602d142f4f8034f92e9ba8d55433d69873ccc87fb5e513b23e"
+        },
+        {
+          "scene": "East African Rift",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-east-african-rift-aerial-18x-4b9554a7-20260910T004852Z.jpg",
+          "sha256": "f78556c91ab204a084c8030559282923ea0b1e6484676605c27143102e1e713a"
+        },
+        {
+          "scene": "Japan trench, blue-water surface",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-japan-trench-aerial-18x-4b9554a7-20260910T004852Z.jpg",
+          "sha256": "92abab918d4a8defaf242399124a08540d0f5634cfce9fdf54e2976179928e88"
+        },
+        {
+          "scene": "Mid-Atlantic ridge, blue-water surface",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-mid-atlantic-ridge-surface-aerial-18x-4b9554a7-20260910T004852Z.jpg",
+          "sha256": "0f614835067cb854afabd25fe89a3d0c35a96f4e2c9bd5a8c5ace7cbfc55e580"
+        }
+      ],
+      "visualVerdict": "Partial. The final app visibly exposes source-driven mountain/rift/bathymetric structure and avoids global random speckle, but the close scenes remain generalized and faceted relative to the Apple Maps references. The 18x images are inspection stress views, not claims of natural-scale relief or photographic/satellite equivalence.",
+      "default8xActualAppCaptures": [
+        {
+          "scene": "Alps",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-alps-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+          "sha256": "22913fcb50af1f868283cf4ff77711dcef4770326f0aae34ccf30fbf7227d5a3"
+        },
+        {
+          "scene": "Andes",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-andes-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+          "sha256": "f88a629306d13fe1410faee66711336c57d872c4c4988a6a468411dfeaa54bb4"
+        },
+        {
+          "scene": "East African Rift",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-east-african-rift-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+          "sha256": "bffe2ef81d29ceab3bfa9c467a4f51d63fdd1bd4b6f8c74c264eb56f3514c553"
+        },
+        {
+          "scene": "Japan trench, blue-water surface",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-japan-trench-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+          "sha256": "0cefb648b58dfeb18ed17412252ecbdaced3e3c5ac29b0b1c81e11c20a5cc9ab"
+        },
+        {
+          "scene": "Mid-Atlantic ridge, blue-water surface",
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-mid-atlantic-ridge-surface-aerial-8x-4b9554a7-20260910T011037Z.jpg",
+          "sha256": "49b035dfc8a58f2d9a4b00d63d1b452d6fe9877c7c6c5021576758dc756fcba9"
+        }
+      ],
+      "default8xCaptureContract": "Actual app default visual relief, close aerial camera, 96 balanced leaves, active registered source patch, cube-native single surface, matching displayed/applied sampler, and zero browser errors. These are the final user-facing examples; 18x remains inspection stress evidence."
+    }
+  },
+  "latestReviewedAt": "2026-09-10",
+  "finalFunctionalGate": {
+    "command": "EARTHHISTORY_TEST_PORT=4190 make gate-full",
+    "status": "passed",
+    "shellExitCode": null,
+    "completionEvidence": "The log records24 passed and the final Makefile target success marker. Coordinator read it after the Sol agent hit its usage limit; child exec session39239 is unavailable to root, so no separately observed numeric shell exit is asserted. No rerun required.",
+    "unitDataTestsPassed": 224,
+    "testFilesPassed": 35,
+    "dataFilesVerified": 345,
+    "browserPassed": 24,
+    "browserTotal": 24,
+    "browserMinutes": 12.2,
+    "entrySha256": "4b9554a7b985fa45452b7bfaa4726db2a2ad96127f8cfc27b8ac071e6d692737",
+    "artifactBytes": 49483584,
+    "evidence": {
+      "path": "verification/continuous-runtime/gate-full-final-4b9554a7-rerun.log",
+      "bytes": 9846,
+      "sha256": "ae5dd6fba776141082571bbdaf1dbce4e80c1707306eb3fcb6072847dd7a6d3a"
+    }
+  },
+  "atlanticSourceWindowNormalCorrection": {
+    "reviewedAt": "2026-09-10",
+    "cause": "Surface-water virtual normals differentiated feathered absolute ETOPO depth. The depth-times-feather-gradient term formed a rectangular wall at the finite Mid-Atlantic source window even though displayed water geometry remained at sea level.",
+    "correction": "Surface-water virtual normals now use the feathered source-local elevation residual. Raw signed depth remains available to bathymetric color and diagnostics, displayed surface geometry and height queries remain at zero, and exposed-seafloor geometry retains signed source height.",
+    "failureProof": {
+      "case": "A flat -4000 m dual-mode source window over a flat water shell must retain radial normals.",
+      "oldMaximumNormalComponentDelta": 0.0017833709716796875,
+      "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/atlantic-square-local-residual-r1-negative.log",
+      "sha256": "04f7be5d2ad44ff4784b0eedca56489ca5b604bbbe316fed2f103b1df7f800ea"
+    },
+    "restoredFocusedCheck": {
+      "command": "npx vitest run src/render/cubeTileFields.test.ts",
+      "testsPassed": 14,
+      "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/atlantic-square-local-residual-positive.log",
+      "sha256": "7e95681f56348e2cb2201a951c1f59ebea4f6abe21d178c6523150a4a6d6a900",
+      "coverage": "The flat-window wall is absent; patterned signed bathymetry still changes surface-water color and normals; physical water remains at zero; signed seafloor height remains exact."
+    },
+    "productionArtifact": {
+      "entrySha256": "7e1690fe4aab317ec8369557a7bbd6beaf0ec67da67acbdd452dce5c5daecc03",
+      "artifactBytes": 49484601,
+      "captures": [
+        {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-mid-atlantic-ridge-surface-aerial-8x-7e1690fe-20260910T054412Z.jpg",
+          "sha256": "eb8a813c0f1063acf4c7a785d46b14d81670aa947cae46005af3577dd4392010",
+          "readyMs": 3139.270917,
+          "frameP95Ms": 18.4,
+          "generationMs": 340.8,
+          "cubeRootGenerationMs": 52.4,
+          "refinementGenerationMs": 92.0,
+          "temporalPublicationMs": 6.4
+        },
+        {
+          "path": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/app-reference-mid-atlantic-ridge-surface-aerial-8x-7e1690fe-20260910T054441Z.jpg",
+          "sha256": "eb8a813c0f1063acf4c7a785d46b14d81670aa947cae46005af3577dd4392010",
+          "readyMs": 3128.562917,
+          "frameP95Ms": 18.4,
+          "generationMs": 311.0,
+          "cubeRootGenerationMs": 51.5,
+          "refinementGenerationMs": 95.0,
+          "temporalPublicationMs": 6.4
+        }
+      ],
+      "sceneContract": "Both same-camera production runs used surface water at 8x visual relief, 96 balanced leaves with 32 level-4 leaves, the active Mid-Atlantic ETOPO patch, signed source range -6442.3..5623.4 m, displayed minimum 0 m, matching displayed/applied sampler, zero cache evictions and zero browser errors.",
+      "visualVerdict": "The rectangular source-window wall is absent in both deterministic captures while the broad ridge remains visible. This correction addresses the square artifact only; prior generalized-resolution limitations remain."
+    }
+  },
+  "releaseReadiness": {
+    "userAuthorization": "Once you are happy you are cleared to release; continue without redoing completed work.",
+    "latestPublishedVersion": "0.1.1",
+    "nextDefaultPatchVersion": "0.1.2",
+    "packageVersionUnchangedPendingReadiness": "0.1.1",
+    "pagesBuildType": "workflow",
+    "pagesUrl": "https://kkollsga.github.io/EarthHistory/",
+    "openPullRequests": 0,
+    "actionlintExitCode": 0,
+    "doctrineVersion": "0.1.12",
+    "publicationStatus": "Not attempted: visual refinement is active; release remains authorized once ready.",
+    "historyCorrection": "Move new work into Unreleased section; preserve published0.1.1 history unchanged.",
+    "currentModelStatus": "User explicitly chose continued Sol work. Existing renderer Sol agent resumed and confirmed normal execution; bounded visual diagnosis is active from4b955, without repeating completed research or validation."
+  }
+}

@@ -29,6 +29,7 @@ export const formatGeographicSourceAge = (ageMa: number) =>
 interface TimelineProps {
   ageMa: number;
   geographicSourceAgeMa?: number;
+  geographicSourceAgeBracketMa?: readonly [number, number];
   slices: TimeSlice[];
   playing: boolean;
   onPlayingChange: (playing: boolean) => void;
@@ -120,6 +121,7 @@ export function selectVisibleChapters(
 export function Timeline({
   ageMa,
   geographicSourceAgeMa,
+  geographicSourceAgeBracketMa,
   slices,
   playing,
   onPlayingChange,
@@ -193,7 +195,9 @@ export function Timeline({
         </div>
         <div className="timeline-readout" aria-live="polite">
           <strong>{formatAge(ageMa)}</strong>
-          {ageDifference > 0.001 && geographicSourceAgeMa != null && (
+          {geographicSourceAgeBracketMa?.[0] !== geographicSourceAgeBracketMa?.[1] ? (
+            <span>Geography source: {formatAge(geographicSourceAgeBracketMa![0])}–{formatAge(geographicSourceAgeBracketMa![1])} · interpolated</span>
+          ) : ageDifference > 0.001 && geographicSourceAgeMa != null && (
             <span>Geography source: {formatGeographicSourceAge(geographicSourceAgeMa)}</span>
           )}
         </div>

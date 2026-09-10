@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { ModernClimateGroup, SurfaceStage } from "../data";
 import {
   createPerceptualDetailSampler,
+  perceptualMaterialChannel,
+  perceptualDetailFrequencyLimit,
   PERCEPTUAL_DETAIL_TABLE_BYTE_LIMIT,
+  satelliteMaterialLatitudeRadians,
   type PerceptualDetailInput,
   type PerceptualDetailSample,
 } from "./perceptualDetail";
@@ -24,6 +27,8 @@ function copy(sample: PerceptualDetailSample): PerceptualDetailSample {
   return {
     heightDeltaMetres: sample.heightDeltaMetres,
     albedoMultiplier: [...sample.albedoMultiplier],
+    mountainRockMix: sample.mountainRockMix,
+    mountainRockColor: [...sample.mountainRockColor],
     roughnessDelta: sample.roughnessDelta,
   };
 }
@@ -42,6 +47,14 @@ function meanAbsoluteHeight(overrides: Partial<PerceptualDetailInput>): number {
 }
 
 describe("perceptual detail", () => {
+  it("maps flipped texture storage rows from north to south", () => {
+    expect(satelliteMaterialLatitudeRadians(0, 256)).toBeCloseTo(Math.PI / 2, 12);
+    expect(satelliteMaterialLatitudeRadians(255, 256)).toBeCloseTo(-Math.PI / 2, 12);
+    expect(satelliteMaterialLatitudeRadians(64, 256)).not.toBe(
+      satelliteMaterialLatitudeRadians(191, 256),
+    );
+  });
+
   it("is deterministic by geographic coordinate and seed", () => {
     const first = createPerceptualDetailSampler("present__paleodem-0ma");
     const second = createPerceptualDetailSampler("present__paleodem-0ma");
@@ -73,7 +86,7 @@ describe("perceptual detail", () => {
 
     const nearWest = copy(sampler.sample({ ...base, longitude: -179.999 }));
     const nearEast = copy(sampler.sample({ ...base, longitude: 179.999 }));
-    expect(Math.abs(nearEast.heightDeltaMetres - nearWest.heightDeltaMetres)).toBeLessThan(2);
+    expect(Math.abs(nearEast.heightDeltaMetres - nearWest.heightDeltaMetres)).toBeLessThan(5);
   });
 
   it("honors height, color, roughness, and retained-state bounds", () => {
@@ -89,7 +102,7 @@ describe("perceptual detail", () => {
     ];
     for (let index = 0; index < 4000; index += 1) {
       const detail = index % 2 === 0 ? "coarse" : "regional";
-      const limit = detail === "coarse" ? 100 : 250;
+      const limit = detail === "coarse" ? 100 : 500;
       const sample = sampler.sample({
         longitude: (index * 137.508) % 360 - 180,
         latitude: ((index * 61.803) % 180) - 90,
@@ -105,9 +118,11 @@ describe("perceptual detail", () => {
       expect(sample.heightDeltaMetres).toBeGreaterThanOrEqual(-limit);
       expect(sample.heightDeltaMetres).toBeLessThanOrEqual(limit);
       sample.albedoMultiplier.forEach((value) => {
-        expect(value).toBeGreaterThanOrEqual(0.78);
+        expect(value).toBeGreaterThanOrEqual(0.72);
         expect(value).toBeLessThanOrEqual(1.18);
       });
+      expect(sample.mountainRockMix).toBeGreaterThanOrEqual(0);
+      expect(sample.mountainRockMix).toBeLessThanOrEqual(0.76);
       expect(sample.roughnessDelta).toBeGreaterThanOrEqual(-0.12);
       expect(sample.roughnessDelta).toBeLessThanOrEqual(0.12);
     }
@@ -126,5 +141,79 @@ describe("perceptual detail", () => {
     const coarse = meanAbsoluteHeight({ detail: "coarse" });
     const regional = meanAbsoluteHeight({ detail: "regional" });
     expect(regional).toBeGreaterThan(coarse * 1.8);
+  });
+
+  it("uses conservative shared frequency profiles for coarse and regional tiles", () => {
+    expect(perceptualDetailFrequencyLimit("coarse")).toBe(18.5);
+    expect(perceptualDetailFrequencyLimit("regional")).toBe(144);
+  });
+
+  it("keeps lowland bump subordinate to sourced rugged terrain", () => {
+    const lowland = meanAbsoluteHeight({
+      elevationMetres: 120,
+      slope: 0,
+      tectonicInfluence: 0,
+      detail: "coarse",
+    });
+    const mountain = meanAbsoluteHeight({
+      elevationMetres: 4_200,
+      slope: 0.82,
+      tectonicInfluence: 0,
+      detail: "coarse",
+    });
+    expect(lowland).toBeLessThan(mountain * 0.12);
+  });
+
+  it("uses physical mountain height for darker, sharper structure without a hard band", () => {
+    const sampler = createPerceptualDetailSampler("height-style-fixture");
+    const sampleGrid = (elevationMetres: number) => {
+      let height = 0;
+      let luminance = 0;
+      let count = 0;
+      for (let latitude = -24; latitude <= 24; latitude += 6) {
+        for (let longitude = -30; longitude <= 30; longitude += 6) {
+          const sample = sampler.sample({
+            ...base,
+            longitude,
+            latitude,
+            elevationMetres,
+            slope: 0.025,
+            tectonicInfluence: 0,
+            ice: 0,
+            detail: "regional",
+          });
+          height += Math.abs(sample.heightDeltaMetres);
+          luminance += sample.albedoMultiplier[0] * 0.2126 +
+            sample.albedoMultiplier[1] * 0.7152 + sample.albedoMultiplier[2] * 0.0722;
+          count++;
+        }
+      }
+      return { height: height / count, luminance: luminance / count };
+    };
+    const low = sampleGrid(350);
+    const foothill = sampleGrid(1_300);
+    const high = sampleGrid(4_200);
+    expect(low.height).toBeLessThan(foothill.height);
+    expect(foothill.height).toBeLessThan(high.height);
+    expect(high.height).toBeGreaterThan(low.height * 5);
+    expect(foothill.luminance).toBeLessThan(low.luminance);
+    expect(high.luminance).toBeLessThan(foothill.luminance);
+    const flatSample = copy(sampler.sample({
+      ...base,
+      elevationMetres: 100,
+      slope: 0,
+      tectonicInfluence: 0,
+      ice: 0,
+    }));
+    const highSample = copy(sampler.sample({
+      ...base,
+      elevationMetres: 4_200,
+      slope: 0.025,
+      tectonicInfluence: 0,
+      ice: 0,
+    }));
+    expect(flatSample.mountainRockMix).toBe(0);
+    expect(highSample.mountainRockMix).toBeGreaterThan(0.5);
+    expect(perceptualMaterialChannel(0.48, highSample, 1)).toBeLessThan(0.36);
   });
 });

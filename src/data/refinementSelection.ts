@@ -2,6 +2,7 @@ import type {
   LonLat,
   SurfaceRefinementTileMetadata,
 } from "./types";
+import { surfaceRefinementAppliesToMode } from "./modern-relief";
 
 export interface RefinementSelectionRequest {
   coordinates: LonLat;
@@ -31,7 +32,7 @@ export function selectSurfaceRefinementMetadata(
   request: RefinementSelectionRequest,
 ): SurfaceRefinementTileMetadata[] {
   const eligible = metadata.filter((tile) =>
-    tile.surfaceMode === request.surfaceMode &&
+    surfaceRefinementAppliesToMode(tile, request.surfaceMode) &&
     tile.referenceFrameId === request.referenceFrameId &&
     request.requestedAgeMa <= tile.validRequestedAgeMa[0] &&
     request.requestedAgeMa >= tile.validRequestedAgeMa[1] &&

@@ -1,2 +1,2 @@
-export { GlobeView, type GlobeViewProps } from "./GlobeView";
+export { GlobeView, type GlobeViewProps, type PeriodCoordinateRenderState } from "./GlobeView";
 export type { EarthHistoryDiagnostics } from "./GlobeScene";

@@ -36,6 +36,7 @@ self.onmessage = (event: MessageEvent<RegionalPatchRequest>) => {
       fields.directions.buffer,
       fields.heightsMetres.buffer,
       fields.sourceHeightsMetres.buffer,
+      fields.sourceMaterialHeightsMetres.buffer,
       fields.sourceBlendWeights.buffer,
       fields.syntheticDetailMetres.buffer,
       fields.blendWeights.buffer,

@@ -90,19 +90,18 @@ export function createCubeTileMesh(
 
   const positions = new Float32Array(fields.directions.length);
   const normals = new Float32Array(fields.normals.length);
-  const uvs = fields.localUvs.slice();
+  const uvs = new Float32Array(fields.localUvs.length);
   const indices = fields.indices.slice();
-  updateCubeTileMeshGeometry(fields, verticalExaggeration, coarseEdges, positions, normals);
+  updateCubeTileMeshGeometry(
+    fields,
+    verticalExaggeration,
+    coarseEdges,
+    positions,
+    normals,
+    uvs,
+  );
 
   const stitchedEdges = EDGES.filter((edge) => coarseEdges[edge]);
-  for (const edge of stitchedEdges) {
-    for (let along = 1; along < segments; along += 2) {
-      const destination = edgeVertex(segments, edge, along);
-      const before = edgeVertex(segments, edge, along - 1);
-      const after = edgeVertex(segments, edge, along + 1);
-      midpointUv(uvs, destination, before, after);
-    }
-  }
 
   return {
     key: { ...fields.key },
@@ -123,9 +122,13 @@ export function updateCubeTileMeshGeometry(
   coarseEdges: Readonly<Record<CubeEdge, boolean>>,
   positions: Float32Array,
   normals: Float32Array,
+  uvs?: Float32Array,
 ): void {
   if (positions.length !== fields.directions.length || normals.length !== fields.normals.length) {
     throw new RangeError("Cube display target dimensions do not match source fields");
+  }
+  if (uvs !== undefined && uvs.length !== fields.localUvs.length) {
+    throw new RangeError("Cube display UV target dimensions do not match source fields");
   }
   updateCubeDisplayGeometry(
     fields.directions,
@@ -135,6 +138,7 @@ export function updateCubeTileMeshGeometry(
     positions,
     normals,
   );
+  uvs?.set(fields.localUvs);
   for (const edge of EDGES) {
     if (!coarseEdges[edge]) continue;
     for (let along = 1; along < fields.meshSegments; along += 2) {
@@ -143,6 +147,31 @@ export function updateCubeTileMeshGeometry(
       const after = edgeVertex(fields.meshSegments, edge, along + 1);
       midpointVector3(positions, destination, before, after, false);
       midpointVector3(normals, destination, before, after, true);
+      if (uvs !== undefined) midpointUv(uvs, destination, before, after);
+    }
+  }
+}
+
+/** Apply the same 2:1 edge constraint to an already displaced position buffer. */
+export function stitchCubeTilePositionEdges(
+  meshSegments: number,
+  coarseEdges: Readonly<Record<CubeEdge, boolean>>,
+  positions: Float32Array,
+): void {
+  const expected = (meshSegments + 1) ** 2 * 3;
+  if (positions.length !== expected) {
+    throw new RangeError("Cube stitch target dimensions do not match meshSegments");
+  }
+  for (const edge of EDGES) {
+    if (!coarseEdges[edge]) continue;
+    for (let along = 1; along < meshSegments; along += 2) {
+      midpointVector3(
+        positions,
+        edgeVertex(meshSegments, edge, along),
+        edgeVertex(meshSegments, edge, along - 1),
+        edgeVertex(meshSegments, edge, along + 1),
+        false,
+      );
     }
   }
 }

@@ -11,6 +11,15 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 
 | Memo | What it resolves |
 | --- | --- |
+| [Palaeomap accuracy study](palaeomap-accuracy-study.md) | Integrated source assessment, native time slices, plate/frame compatibility, 3D relief, climate, memory budgets and phased migration |
+| [Continuous-coordinate validation](palaeomap-continuous-validation.json) | Implemented shared coordinates and natural materials, final full-gate results, repeated production measurements, preserved rejected probes and scientific/readiness limitations |
+| [Caledonian geological test](palaeomap-caledonian-test.md) | Material-following native elevation and equal-view captures: broad orogenic relief is present; collapse and direct modern-remnant attribution remain unresolved |
+| [Cross-model conversion probe](palaeomap-crosswalk-validation.json) | Rejected instantaneous-topology-container lineage method, classified support gaps and numerical round trips; the corrected static-continent method is assessed separately |
+| [Static-continent crosswalk validation](palaeomap-static-crosswalk-validation.json) | Corrected child-fragment conversion coverage, exact round trips, coast-mask disagreement and conservative default-view stop result |
+| [Plate foundation audit](palaeomap-plate-foundation.md) | Pinned GPlates model data, actual boundary feature types, polarity, reconstruction frames and acquisition evidence |
+| [Palaeogeography and relief](palaeomap-geography-relief.md) | Cao categories, quantitative PALEOMAP DEMs, actual source ages, NOAA limitations and palaeoclimate controls |
+| [Current palaeomap runtime audit](palaeomap-runtime-audit.md) | Existing source loss, renderer/camera behavior, cache ownership and implementation checks |
+| [North Sea regional controls](palaeomap-north-sea.md) | Acquired NSTA facies/structural packages, OGL evidence, CRS and regional-restoration limits |
 | [Tectonics and paleogeography](tectonics-and-paleogeography.md) | Plate models through 1.8 Ga, elevation reconstructions, reference-frame compatibility, country fragments, and regional structural datasets |
 | [Climate, biomes and points of interest](biomes-climate-and-points-of-interest.md) | Climate and environmental inputs, evolutionary constraints on vegetation, drainage limitations, and candidate cited event records |
 | [Basins, rifts and petroleum systems](basins-rifts-and-petroleum-systems.md) | Stratigraphy and thermal-history evidence, Norwegian data access, volcanic-margin studies, and proposed basin interactions |

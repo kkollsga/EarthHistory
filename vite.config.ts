@@ -7,7 +7,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: "es2022",
-    sourcemap: true,
+    // Keep the static artifact budget for scientific controls; Vite's local
+    // development server retains source-level debugging.
+    sourcemap: false,
   },
   test: {
     environment: "node",

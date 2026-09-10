@@ -145,6 +145,9 @@ export interface SurfaceRefinementTileMetadata {
   horizontalCrs: string;
   referenceFrameId: string;
   verticalDatum: string;
+  /** Display modes explicitly allowed to reuse this one decoded source tile. */
+  applicableSurfaceModes?: readonly ("surface" | "seafloor")[];
+  /** Primary representation recorded by the source asset. */
   surfaceMode: "surface" | "seafloor";
   domain: "land" | "bathymetry" | "topobathymetry";
   composition:
@@ -264,6 +267,53 @@ export interface ProceduralControls {
   vegetationPotential?: Uint8Array;
 }
 
+export interface TemporalSurfaceEndpoint {
+  readonly ageMa: number;
+  readonly controls: ProceduralControls;
+}
+
+export interface TemporalSurface {
+  readonly intervalId: string;
+  readonly seedId: string;
+  readonly requestedAgeMa: number;
+  readonly younger: TemporalSurfaceEndpoint;
+  readonly older: TemporalSurfaceEndpoint;
+  readonly fraction: number;
+  readonly exactEndpoint: boolean;
+  readonly evidence: "model-output" | "interpolation";
+  readonly method: "material-registered-relative-elevation-with-discrete-fallback";
+}
+
+export interface TemporalReferenceEndpoint {
+  readonly ageMa: number;
+  readonly land: LandPolygon[];
+  readonly countries: CountryOutline[];
+  readonly poiCoordinates: Readonly<Record<string, LonLat>>;
+  readonly areaTracking: AreaTrackingLayer;
+}
+
+export interface TemporalReferences {
+  readonly younger: TemporalReferenceEndpoint;
+  readonly older: TemporalReferenceEndpoint;
+}
+
+/** Serializable lifecycle descriptor; runtime resolver instances stay outside snapshots. */
+export interface PeriodCoordinateViewDescriptor {
+  readonly id: string;
+  readonly frame: {
+    readonly modelId: string;
+    readonly modelVersion: string;
+    readonly referenceFrameId: string;
+    readonly anchorPlateId: number;
+    readonly directionConvention: "gplates-xyz-x0e-y90e-znorth";
+  };
+  readonly motionUrl: string;
+  readonly continentalUrl?: string;
+  readonly lifecycleUrl?: string;
+  readonly conversionEvidence: "same-model-motion" | "model-conversion-inference";
+  readonly unsupportedPolicy: "nearest-native-discrete" | "masked-neutral";
+}
+
 export type SurfaceStage =
   | "accretion"
   | "giant-impact"
@@ -278,8 +328,13 @@ export type SurfaceStage =
   | "modern-biomes";
 
 export interface WorldSnapshot extends TimeSlice {
+  renderSeedId?: string;
+  periodCoordinateView?: PeriodCoordinateViewDescriptor;
   requestedAgeMa?: number;
   geographicSourceAgeMa?: number;
+  geographicSourceAgeBracketMa?: readonly [youngerAgeMa: number, olderAgeMa: number];
+  temporalSurface?: TemporalSurface;
+  temporalReferences?: TemporalReferences;
   land: LandPolygon[];
   countries: CountryOutline[];
   areaTracking?: AreaTrackingLayer;

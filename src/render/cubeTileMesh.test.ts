@@ -291,13 +291,17 @@ describe("cube tile adaptive mesh", () => {
     const coarseEdges = edgeFlags("south");
     const positions = new Float32Array(fields.directions.length);
     const normals = new Float32Array(fields.normals.length);
+    const uvs = new Float32Array(fields.localUvs.length).fill(0.375);
     const positionsIdentity = positions;
     const normalsIdentity = normals;
-    updateCubeTileMeshGeometry(fields, 18, coarseEdges, positions, normals);
+    const uvsIdentity = uvs;
+    updateCubeTileMeshGeometry(fields, 18, coarseEdges, positions, normals, uvs);
     const expected = createCubeTileMesh(fields, 18, coarseEdges);
     expect(positions).toBe(positionsIdentity);
     expect(normals).toBe(normalsIdentity);
+    expect(uvs).toBe(uvsIdentity);
     expect(positions).toEqual(expected.positions);
     expect(normals).toEqual(expected.normals);
+    expect(uvs).toEqual(expected.uvs);
   });
 });

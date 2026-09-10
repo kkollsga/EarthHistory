@@ -18,129 +18,851 @@
       "sha256": "c0c5cdac2a18123ca705e9103a1808b86b4076bc209c00799195a3c5b12b10b8",
       "bytes": 314682
     },
+    "paleomap-rigid-motion-v1": {
+      "path": "public/data/paleomap-motion-v1.json",
+      "sha256": "a4dee1ba1d9fe290c5aba98cb882d16e4663841957f0fe2b5ec1deee19e55075",
+      "bytes": 678894,
+      "generatedBy": "scripts/prepare-paleomap-motion.py",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.7994000",
+      "sourceArchiveSha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "underlyingModelVersion": "m15g60_v2d3 / ContOCeanPolyv10u_v2d3",
+      "referenceFrame": "PALEOMAP model frame",
+      "license": "CC-BY-4.0",
+      "coverage": "partial rigid material coverage at nonzero ages; unknown cells remain unsupported",
+      "validationFixture": {
+        "path": "src/data/fixtures/paleomap-motion-probes-v1.json",
+        "sha256": "491bc5325fa912db81aab0069fe0ac6c5b059722e91459ca601f158a4d41f3aa",
+        "oracle": "pyGPlates 1.0.0"
+      }
+    },
+    "cao-ocean-motion-v1-metadata": {
+      "path": "public/data/cao-ocean-motion-v1.json",
+      "sha256": "256e357e961ec3e6bb68fde2c7ff4be0ffaa2885e4ee4275bba9e881b76e6057",
+      "bytes": 2462978,
+      "generatedBy": "scripts/prepare-cao-ocean-motion.py",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic",
+      "license": "CC-BY-4.0",
+      "nativeAgesMa": "0..540 every 5 Ma",
+      "runtimeStatus": "enabled-in-optional-cao-target-native-coordinate-view",
+      "spatialContract": "packed resolved polygon rings are authoritative; the 2-degree grid is only a candidate accelerator and ambiguity diagnostic",
+      "segmentEncoding": "fixed tuple [ageIndex,sourceFeatureIndex,coordinateOffset,coordinateCount,leftPlateIds,rightPlateIds,overridingPlateId|null,subductingPlateId|null]",
+      "validationFixture": {
+        "path": "src/data/fixtures/cao-ocean-probes-v1.json",
+        "sha256": "6004eec127a27e519b439303e4328e140e574c806abcea4ff81c660e1fde62b4",
+        "bytes": 114140,
+        "oracle": "pyGPlates 1.0.0"
+      },
+      "boundaryCandidateAcceleration": "precomputed per-age sparse exact-ring candidate slots; great-circle edge sample <=0.5 degrees, cell-centre padding 2.25 degrees, pole-adjacent full scans",
+      "boundaryInterpolation": "7,027 strict one-to-one source/adjacency/orientation links; exact source at knots, labeled spherical-arclength interpolation within supported brackets; 250-255 and 410-415 Ma unsupported"
+    },
+    "cao-ocean-motion-v1-binary": {
+      "path": "public/data/cao-ocean-motion-v1.bin",
+      "sha256": "c9d2486b8b24a08686091ad0e3f53f2a715e1d4644bac05456819902e909a78a",
+      "bytes": 3146951,
+      "generatedBy": "scripts/prepare-cao-ocean-motion.py",
+      "schema": "EHCO little-endian v1; row-RLE uint8 topology grid, continent bitset, int16 resolved polygon/boundary coordinates, sparse conservative boundary-cell candidates",
+      "runtimeStatus": "enabled-in-optional-cao-target-native-coordinate-view"
+    },
+    "cao-continental-motion-v1-metadata": {
+      "path": "public/data/cao-continental-motion-v1.json",
+      "sha256": "15d39ac7563e5a46844d8c36c7863ae3ce8a3a5d503302ff7732939ecdc13342",
+      "bytes": 320201,
+      "generatedBy": "scripts/prepare-cao-continental-motion.py",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic",
+      "license": "CC-BY-4.0",
+      "runtimeStatus": "enabled-in-source-qualified-continental-crosswalk",
+      "coverage": "869 source static continental polygon parts with stable geometry keys; strict missing-rotation circuits remain unsupported",
+      "validationFixture": {
+        "path": "src/data/fixtures/cao-continental-probes-v1.json",
+        "sha256": "793577e3c48711e39f261982468fe70ce75327c91d235e39ed894836780c97d2",
+        "bytes": 54522,
+        "oracle": "pyGPlates 1.0.0"
+      }
+    },
+    "cao-continental-motion-v1-binary": {
+      "path": "public/data/cao-continental-motion-v1.bin",
+      "sha256": "5b8b9ede36040f5755c88921ed05e7e8bd3c6b14f9f4d0abfdc95823f0ef64c4",
+      "bytes": 299600,
+      "generatedBy": "scripts/prepare-cao-continental-motion.py",
+      "schema": "EHCN little-endian v1; int16 source-reference longitude/latitude rings",
+      "runtimeStatus": "enabled-in-source-qualified-continental-crosswalk"
+    },
+    "cao-ocean-lifecycle-v1-metadata": {
+      "path": "public/data/cao-ocean-lifecycle-v1.json",
+      "sha256": "2ff4d594610a0a698ceda295e46d127bcdd89f898b94e333be31fc51c7c1f1bc",
+      "bytes": 10605,
+      "generatedBy": "scripts/prepare-cao-ocean-lifecycle.py",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic",
+      "license": "CC-BY-4.0",
+      "runtimeStatus": "enabled-with-exact-topology-slot-registration-guard",
+      "coverage": "2-degree controls at 109 display ages; traced within model 0..1000 Ma; unattributed deactivations unavailable",
+      "epistemicStatus": "boundary-attributed model interval with 5 Ma temporal and up to 158 km nearest-cell registration uncertainty; not observed seafloor age",
+      "topologySlotBinding": "per-age SHA-256 identity checked against Cao motion asset before numeric slot sampling"
+    },
+    "cao-ocean-lifecycle-v1-binary": {
+      "path": "public/data/cao-ocean-lifecycle-v1.bin",
+      "sha256": "22008f37a23c9308ebadaf5919378c76a14057289ef121b9a5ca4435835d1c05",
+      "bytes": 5356284,
+      "generatedBy": "scripts/prepare-cao-ocean-lifecycle.py",
+      "schema": "EHCL little-endian v1; age-major uint8 ridge-attributed birth, subduction-attributed loss, and source topology slot",
+      "runtimeStatus": "enabled-with-exact-topology-slot-registration-guard"
+    },
     "scotese-wright-paleodem-v2": {
       "url": "https://zenodo.org/records/5460860/files/PaleoDEMS_long_lat_elev_csv_v2.zip?download=1",
       "sha256": "db43e6261411ff468c9030ca240778a73f224bf34bf8186c735477e41454c873",
       "bytes": 20302272,
+      "sourceAgeCatalog": {
+        "minimumAgeMa": 0,
+        "maximumAgeMa": 540,
+        "stepMa": 5,
+        "count": 109
+      },
+      "sourceCsvHeaderForms": [
+        "comment",
+        "longitude,latitude,elevation"
+      ],
+      "sourceGridLayouts": [
+        "360x180 ending at -89 latitude",
+        "361x181 with duplicate +180 endpoint"
+      ],
       "nativeGrid": "1 degree longitude/latitude/elevation CSV",
-      "derivedGrid": "180x91 grid points at lon -180..178 and lat 90..-90, 2 degree spacing; nearest source samples, with -90 nearest-row closure where older CSVs end at -89; int16-range metres serialized as JSON integers",
+      "derivedGrid": "360x181 grid points at lon -180..179 and lat 90..-90, 1 degree spacing; duplicate +180 endpoint omitted after the verified 0 Ma repair",
+      "binaryEncoding": {
+        "schemaVersion": 1,
+        "header": "16 bytes: EHPD magic; uint16-le schema, ageMa, width, height; uint32-le reserved zero",
+        "values": "row-major signed-int16-le metres relative to interpreted paleo sea level",
+        "expectedBytesPerFile": 130336
+      },
       "sourceAdapters": [
         {
           "ageMa": 0,
           "condition": "Verified -180 degree source duplicate is zero at every integer latitude -60 through -89 while the same physical +180 degree duplicate is populated",
-          "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before 2 degree sampling",
-          "affectedOutputCells": 15,
-          "notes": "15 sampled even-latitude cells (-60 through -88); the source-authored -90 row and raw archive bytes remain unchanged"
+          "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before endpoint collapse",
+          "affectedOutputCells": 30,
+          "notes": "30 one-degree cells (-60 through -89); the source-authored -90 row and raw archive bytes remain unchanged"
+        },
+        {
+          "agesMa": [
+            150,
+            155,
+            160,
+            165,
+            170,
+            175,
+            180,
+            185,
+            190,
+            195,
+            200,
+            205,
+            210,
+            215,
+            220,
+            225,
+            230,
+            235,
+            240,
+            245,
+            250,
+            255,
+            260,
+            265,
+            270,
+            275,
+            280,
+            285,
+            290,
+            295,
+            300,
+            305,
+            310,
+            315,
+            320,
+            325,
+            330,
+            335,
+            340,
+            345,
+            350,
+            355,
+            360,
+            365,
+            370,
+            375,
+            380,
+            385,
+            390,
+            395
+          ],
+          "condition": "Source CSV uses 360 longitudes (-180..179) and stops at -89 latitude",
+          "replacement": "Repeat the nearest available -89 latitude row at the -90 runtime pole",
+          "affectedOutputCells": 18000,
+          "notes": "The closure supplies a consistent 360x181 runtime registration without inventing sub-grid detail"
         }
       ],
       "outputs": [
         {
           "ageMa": 0,
-          "path": "public/data/paleodem-0ma.json",
-          "sha256": "12c61154f5a5671e55933fe171b2bce59f03f324da6398f6b7085b69aa6b9a25",
-          "bytes": 84744
+          "path": "public/data/paleodem-0ma.bin",
+          "sha256": "79372067f825e39d1998842ab89d48615e3dafb7f15f5231675d5c4579e91588",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 5,
+          "path": "public/data/paleodem-5ma.bin",
+          "sha256": "8536e934acf78fcd7547bac5b6e78f5c8f611bfb92f9b932e0297f00d524d8e1",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 10,
+          "path": "public/data/paleodem-10ma.bin",
+          "sha256": "39f693d51f6756f968687a13e6132dfd45d53e3905a5af29779af37299f49006",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 15,
+          "path": "public/data/paleodem-15ma.bin",
+          "sha256": "3648a5df9d8d6a314e3e02940b108f522fe259cd9c06506b82dea704cbff1a58",
+          "bytes": 130336
         },
         {
           "ageMa": 20,
-          "path": "public/data/paleodem-20ma.json",
-          "sha256": "d7d7703c7f7baaf4e9fb65885ceef1689351597dc5515a65d54a2b65f92f467d",
-          "bytes": 84743
+          "path": "public/data/paleodem-20ma.bin",
+          "sha256": "72608f7035bf2b2fcbf12c2d5a34868dc4556786c5f3a71a26467df11e9c33d0",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 25,
+          "path": "public/data/paleodem-25ma.bin",
+          "sha256": "e8b6f789969844672afa8389c0fbd370b624fb9e9bb3f9b58355d1ebf541197a",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 30,
+          "path": "public/data/paleodem-30ma.bin",
+          "sha256": "43e87509c9308ad09d77f625705aad0d1ffd6453ad0f4f249e87f11ec2cbdfeb",
+          "bytes": 130336
         },
         {
           "ageMa": 35,
-          "path": "public/data/paleodem-35ma.json",
-          "sha256": "da186ed6584bf6ec7e6fa01ff947265110cb8755a53dcd79922438ab0d67e8dc",
-          "bytes": 84150
+          "path": "public/data/paleodem-35ma.bin",
+          "sha256": "8c1aa2396dc66df2073cefcd6423a129d5b368c1c96e893cc759bcaf672b2dac",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 40,
+          "path": "public/data/paleodem-40ma.bin",
+          "sha256": "706e1ae8d91729f34b5727f86ea91214b67e6930784bdbbe6a49b16385bbad79",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 45,
+          "path": "public/data/paleodem-45ma.bin",
+          "sha256": "b6eb9d0183d1910fe89c81b990aa1e8b1418c1a7f00ef6e9d746a8a7d52fc7b5",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 50,
+          "path": "public/data/paleodem-50ma.bin",
+          "sha256": "c4d5a652b0c52f29582d002d45b66009706cf92d2bbebf36f490c41a397d66c4",
+          "bytes": 130336
         },
         {
           "ageMa": 55,
-          "path": "public/data/paleodem-55ma.json",
-          "sha256": "b340cc7c81ac7f374be3b282df5a45645108e11863d9b56c72429b068891f8dc",
-          "bytes": 84076
+          "path": "public/data/paleodem-55ma.bin",
+          "sha256": "1e6f9e767b3da53f2d5ffdacc801123cf109237e04a724d99c0a9f428bb6be40",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 60,
+          "path": "public/data/paleodem-60ma.bin",
+          "sha256": "e07b4950b6ad2baff0ee602637f00a012f3ddfeadf4f067a6700b28e77c62c76",
+          "bytes": 130336
         },
         {
           "ageMa": 65,
-          "path": "public/data/paleodem-65ma.json",
-          "sha256": "7e27d15a9867426a274084a4579455bd9dfabdbecca9dd2ab0bd1a9bb6c4a4e9",
-          "bytes": 82876
+          "path": "public/data/paleodem-65ma.bin",
+          "sha256": "190d1eb92d22d6b57eb35f6221d2a409f4dfc44ed638433fb10a1f8286c1f075",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 70,
+          "path": "public/data/paleodem-70ma.bin",
+          "sha256": "4ae1bc26874ec3e60a1d1a88c6a78df278f6b8b0c873cb957344264d5f2f2f50",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 75,
+          "path": "public/data/paleodem-75ma.bin",
+          "sha256": "5c7534c9a62337130a2d77a01d5485b09e803028e80f460cf936dfcd7fd0cbf6",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 80,
+          "path": "public/data/paleodem-80ma.bin",
+          "sha256": "58ab8c0e3c4e77b601bf8904254697438cd05072453f61db5c2b094a1c56a44e",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 85,
+          "path": "public/data/paleodem-85ma.bin",
+          "sha256": "d8f4f6e16fa58552112779856572c476f21db8f9047a0c1a5bb10aa2498549b7",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 90,
+          "path": "public/data/paleodem-90ma.bin",
+          "sha256": "2007770b7a21f06dc7785ed4334be32e10828a7cff3d2199663514fe608266cd",
+          "bytes": 130336
         },
         {
           "ageMa": 95,
-          "path": "public/data/paleodem-95ma.json",
-          "sha256": "1b540b970b5f6d49637d91484743bf8b28178148d01f7a1c6890174abeb3115a",
-          "bytes": 85177
+          "path": "public/data/paleodem-95ma.bin",
+          "sha256": "d51f3197e98a9d3bacab2d071f6c7f4e5b265d85656fc46527fc153342c2fcee",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 100,
+          "path": "public/data/paleodem-100ma.bin",
+          "sha256": "2a9f83a0e527fb82edeff730fc4206a4192a83700231fa24391adbe1f1160042",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 105,
+          "path": "public/data/paleodem-105ma.bin",
+          "sha256": "d9f6e31553c510abfc48a18858e7895d5f6773a64b86e2da0870963b1e12c69f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 110,
+          "path": "public/data/paleodem-110ma.bin",
+          "sha256": "0a46767974f5516548cd757e86beabd3ef8e3b5c59ce5a3b13618897fe66e852",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 115,
+          "path": "public/data/paleodem-115ma.bin",
+          "sha256": "9d479e0f6193be3b1ebbcbde4e8375ce253b53f140e2d0191e9c0d846899647b",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 120,
+          "path": "public/data/paleodem-120ma.bin",
+          "sha256": "1a3d3fff60dd5aada624cf27c1f7649840fb6a6712c572cc70be234a0087eab0",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 125,
+          "path": "public/data/paleodem-125ma.bin",
+          "sha256": "e0d4e9ed9af16964a33929a6da6b4d02fb6a7e0ba2548898cc4c1084c00b7b49",
+          "bytes": 130336
         },
         {
           "ageMa": 130,
-          "path": "public/data/paleodem-130ma.json",
-          "sha256": "7a4da27f684e8d5756a34945a4e8e0472905bd11a6175f7234f2c33947028636",
-          "bytes": 84069
+          "path": "public/data/paleodem-130ma.bin",
+          "sha256": "6e6358694b308b974263be30af98df3ed99f32c37aa9f27fe4de1b476ff5e5cc",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 135,
+          "path": "public/data/paleodem-135ma.bin",
+          "sha256": "780caedc426ee68fb0d2af81b6d0aad80c122c31df5959202c54d72a108fc879",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 140,
+          "path": "public/data/paleodem-140ma.bin",
+          "sha256": "5e5841cefdbb5ffa4786ab36db6597e68fb8ce583d64ff05ed34eff9d1aa8fb6",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 145,
+          "path": "public/data/paleodem-145ma.bin",
+          "sha256": "4a1548d4dc9c91487720f62e7ea82c572b7eb2e55a197b97868852055bc9d172",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 150,
+          "path": "public/data/paleodem-150ma.bin",
+          "sha256": "b1c78e51308477fbb2be0ee7afd7f23da66026bf6281f9b0af40a32315f1ea43",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 155,
+          "path": "public/data/paleodem-155ma.bin",
+          "sha256": "52290ad61681dcf35838bd3ec6eb01a32c3093638cf0d957f06c8da77a61513f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 160,
+          "path": "public/data/paleodem-160ma.bin",
+          "sha256": "290aa2f1cf4873f32430921b0df8d034d27c6cea545ae39d8b220d58d1728a06",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 165,
+          "path": "public/data/paleodem-165ma.bin",
+          "sha256": "bc88e10b492f83d20a3018bf57181ed5b69c752a4685fd644d6ca9542aeb7ac4",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 170,
+          "path": "public/data/paleodem-170ma.bin",
+          "sha256": "065a92d90603a244e5e115a9ccecee2dec230bed7df5ba77e5669821ac349d0b",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 175,
+          "path": "public/data/paleodem-175ma.bin",
+          "sha256": "fe0b5c08ee91c73e2204c65347917d930b62871f419e6ba7a94e1285a8bed89d",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 180,
+          "path": "public/data/paleodem-180ma.bin",
+          "sha256": "58876c87c6e65fc055ff1412bc847995c02db1e5c371747833fe20ec7ca57f46",
+          "bytes": 130336
         },
         {
           "ageMa": 185,
-          "path": "public/data/paleodem-185ma.json",
-          "sha256": "80856f179cc519e0451072972e60eacc95c9497601808c9de54a3e0dbfa32371",
-          "bytes": 86135
+          "path": "public/data/paleodem-185ma.bin",
+          "sha256": "5dd8c8de86a071e46ce0acc5818e6cc7435846ee106b439daffa98069d90e2b3",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 190,
+          "path": "public/data/paleodem-190ma.bin",
+          "sha256": "e6666597a2d1f8cd6bb15a1a082fc2bc2a22bdcce4e2f5297128ec6ce7d0446f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 195,
+          "path": "public/data/paleodem-195ma.bin",
+          "sha256": "40897bab3a79963bff4ac5f6f3aa6222a159948ef072ab2ce52b53206943f367",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 200,
+          "path": "public/data/paleodem-200ma.bin",
+          "sha256": "4aa514b2b0ba591e42f20364a957b64bf2b41d70c3296ff3f47ad6dbbe9b9820",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 205,
+          "path": "public/data/paleodem-205ma.bin",
+          "sha256": "9339e6d226b24758caa13fb541bbce20d9bf5a1b4e256d902ee0003c76d8373a",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 210,
+          "path": "public/data/paleodem-210ma.bin",
+          "sha256": "1e8b2e8ee46069da136cdf0a3d20e3a446c010af15e15e78920e87062109b580",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 215,
+          "path": "public/data/paleodem-215ma.bin",
+          "sha256": "abce838a5e60541318f5be536e082c92dc870eea4a9750ccb79c5735a2fcc429",
+          "bytes": 130336
         },
         {
           "ageMa": 220,
-          "path": "public/data/paleodem-220ma.json",
-          "sha256": "71df3a3524bd90002ce337befc66de7fc4d637b98e4af6e6112f354141771d0b",
-          "bytes": 83535
+          "path": "public/data/paleodem-220ma.bin",
+          "sha256": "8590c9359e7cac7dce1433a2f165f9b032e8c2a9e4ff12c9fe0ceb263df2cf00",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 225,
+          "path": "public/data/paleodem-225ma.bin",
+          "sha256": "5ee11268794963ac36a9d28cdfb1b8a6056153738226f5192737d09d6f8aa29f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 230,
+          "path": "public/data/paleodem-230ma.bin",
+          "sha256": "3d3fa4f85d893ec0bf9092e0f27fb3f4888e7bf194173eb19b09e4b7b25bbb34",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 235,
+          "path": "public/data/paleodem-235ma.bin",
+          "sha256": "cac11f34101c975fe75f712437cc6556295da7ca8d08606272e0cec4b1686ebe",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 240,
+          "path": "public/data/paleodem-240ma.bin",
+          "sha256": "2db5585b0eff9c7a234a40ce76349c0f78ba563a78805f41045be7a997d69c10",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 245,
+          "path": "public/data/paleodem-245ma.bin",
+          "sha256": "d6585cf9d6be399e55ddf4f7c968183152d3ac84c1d158ff7d8861d57de57fcf",
+          "bytes": 130336
         },
         {
           "ageMa": 250,
-          "path": "public/data/paleodem-250ma.json",
-          "sha256": "2f583404aaaf5b5fd2f52ddb09d119bb4d1715e5f539a129a434ee63810f7d57",
-          "bytes": 85234
+          "path": "public/data/paleodem-250ma.bin",
+          "sha256": "1facd8df6f00c1ca8a2709eee90446c7b140dd0158799ceb1525b8a9d77e840f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 255,
+          "path": "public/data/paleodem-255ma.bin",
+          "sha256": "4a6aba6f6d1be8543ac541f823583efcca40261460ee67e9d533e6f6665f0145",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 260,
+          "path": "public/data/paleodem-260ma.bin",
+          "sha256": "d475c48d8fc3fa8a0720ba00ea9ee70713169850fcab6972667c6e49affc6e70",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 265,
+          "path": "public/data/paleodem-265ma.bin",
+          "sha256": "9ef77e7b1e8bee21a7c8c1d094c93db7ed2c974ec1943b2e9839c91316195db9",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 270,
+          "path": "public/data/paleodem-270ma.bin",
+          "sha256": "18cda6cfae92dbc1beb8b6b1299d61f219c54d84d20ce820d3cb21bac30de201",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 275,
+          "path": "public/data/paleodem-275ma.bin",
+          "sha256": "a4252ba13fb618fbff8569e66d2bb1af1c73fab107fe01c7f61fb6a72373f337",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 280,
+          "path": "public/data/paleodem-280ma.bin",
+          "sha256": "235d71c01e5bb40aac72a28c4857c6d9dd9d338892b461e6d82f31d1cd9e6e32",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 285,
+          "path": "public/data/paleodem-285ma.bin",
+          "sha256": "884aae3980f09e02f0f492446ac76d1004641d5e1e3da7d6d79dfbbf52d723ee",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 290,
+          "path": "public/data/paleodem-290ma.bin",
+          "sha256": "033825917b59ffe5e4c4d73573c6f804349326be10a5848e9bce2e3b9f9af523",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 295,
+          "path": "public/data/paleodem-295ma.bin",
+          "sha256": "958b0c30d144dd9e97ad7595e6091374287b7ffa8e5cf5c5640f2814689067a0",
+          "bytes": 130336
         },
         {
           "ageMa": 300,
-          "path": "public/data/paleodem-300ma.json",
-          "sha256": "9ae1bb3fa17a1b6a0e3343483f47ea2481c245953a22dd6af2bda3cd24a212a3",
-          "bytes": 87921
+          "path": "public/data/paleodem-300ma.bin",
+          "sha256": "41b783df13502baaf5ac1383e3f27142afbe76c57d0a9adc3dab046fe9c7bb04",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 305,
+          "path": "public/data/paleodem-305ma.bin",
+          "sha256": "36298aabcbb871ad0d3daa1864dc895de7028aa42e54ab1820856229105933a0",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 310,
+          "path": "public/data/paleodem-310ma.bin",
+          "sha256": "43eff4b556368c2fd2a08177bc183d35a03fe964ae5246b0315988996c84dd60",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 315,
+          "path": "public/data/paleodem-315ma.bin",
+          "sha256": "f410515dca2401f465047de5ac487dd8e4d2cb83223e452ee4f4d51d1e7fd8e3",
+          "bytes": 130336
         },
         {
           "ageMa": 320,
-          "path": "public/data/paleodem-320ma.json",
-          "sha256": "713a42555b50c04f1475a36dccb3421e09e3b30edabf6b5f70ce16723055aa16",
-          "bytes": 87208
+          "path": "public/data/paleodem-320ma.bin",
+          "sha256": "eac492ed1c69e3f0fc0a8cc64d9896fa7c5ea12386e4ad635068d04638bfc600",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 325,
+          "path": "public/data/paleodem-325ma.bin",
+          "sha256": "6d02b0e6f2a627c69dfc859c703573cfeb0d664297306d30ec0fa6f9573dd59b",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 330,
+          "path": "public/data/paleodem-330ma.bin",
+          "sha256": "55785e1b596ddd4d99c8e01dbc79c0a2f4f1de6f3b3d039ca7c81defc1af85dd",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 335,
+          "path": "public/data/paleodem-335ma.bin",
+          "sha256": "45520ffdcb3fb3e6711b45b2345f4e5992c8842cc54c60ff3bf38481ff7b418f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 340,
+          "path": "public/data/paleodem-340ma.bin",
+          "sha256": "9025f1ec757b69ba1a987a352dfc949685c092745052d053e2e5c84b9f888f8a",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 345,
+          "path": "public/data/paleodem-345ma.bin",
+          "sha256": "34eaab329a5dd89096fad3da05e910a0f2ff8e234f7b04b859030b94d840da05",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 350,
+          "path": "public/data/paleodem-350ma.bin",
+          "sha256": "0a42f0a3027dd7e137f7a3fbabd3f94abb46dcc8dca1595e8cb73c2228adaa6d",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 355,
+          "path": "public/data/paleodem-355ma.bin",
+          "sha256": "447619b7d8c8b0a9a771964f1ed98b9d56f4b25445db22e2a400a91348ea8abd",
+          "bytes": 130336
         },
         {
           "ageMa": 360,
-          "path": "public/data/paleodem-360ma.json",
-          "sha256": "1452a4e1da37ecc61d96d45f2c24c4ec027c31434c719a2314debfcb73c03e9d",
-          "bytes": 88590
+          "path": "public/data/paleodem-360ma.bin",
+          "sha256": "23b29427495d1f577fb123acd6ac040abbd1e8dce873d39cfb0c63994e66a4cf",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 365,
+          "path": "public/data/paleodem-365ma.bin",
+          "sha256": "3e37164ab76141733d1d8b3bd14b6ae9fe9ffbc6c30f46a08e0994237f56a34a",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 370,
+          "path": "public/data/paleodem-370ma.bin",
+          "sha256": "837aa4111c374b487aeb020f2ff51c5069bf64f158a8b5d8e85b424b91b56bff",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 375,
+          "path": "public/data/paleodem-375ma.bin",
+          "sha256": "9e5eb109e8ae43f05f44998cd7a75dc19d1042bc35b9d0ebbd902c0282c4c003",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 380,
+          "path": "public/data/paleodem-380ma.bin",
+          "sha256": "f41d6237dffb475717c00f1555a4a7dc120b38bb75c3a11611ec0fbfb130bfbe",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 385,
+          "path": "public/data/paleodem-385ma.bin",
+          "sha256": "4f71df5ea9938b5309ce7b84a2a1ff0ce7b4eb1f3095b61c5c5567f2072d2395",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 390,
+          "path": "public/data/paleodem-390ma.bin",
+          "sha256": "081ad8be039a3168de8aa1764119b11b1df54d0dd41320b872373f9e18e18997",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 395,
+          "path": "public/data/paleodem-395ma.bin",
+          "sha256": "6a75ecb8484ac256f46448c722e84de377f238207aa8375f06965efca2eb893e",
+          "bytes": 130336
         },
         {
           "ageMa": 400,
-          "path": "public/data/paleodem-400ma.json",
-          "sha256": "49118d49a8248d07fc2e41366ddb2e59703ab1d0063f193689ded24be5812fc6",
-          "bytes": 88355
+          "path": "public/data/paleodem-400ma.bin",
+          "sha256": "48c333ef9df4e690d8cf85389176777131dddf61c408bd55cdf4ecc744514ef2",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 405,
+          "path": "public/data/paleodem-405ma.bin",
+          "sha256": "089e58b3dcf49a5cd348b5bc9b1317092c6526ad0946dcd7c41cfb55ef517ce1",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 410,
+          "path": "public/data/paleodem-410ma.bin",
+          "sha256": "95f18f11617c9264eddbf3b11b32b54de24e5225d9139d8534b6f4e5c43cdb86",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 415,
+          "path": "public/data/paleodem-415ma.bin",
+          "sha256": "cc222c876f2b487f85e57e57ba1a5cbc1a1902496efe5f0489302d3eaa94d7a7",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 420,
+          "path": "public/data/paleodem-420ma.bin",
+          "sha256": "f613f9660dde985a43de15263b493c5d5440fa7b65cd4fa5f9af9f0d15c2ea75",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 425,
+          "path": "public/data/paleodem-425ma.bin",
+          "sha256": "8de8593575e097deef14936cd6b74afe05c00775d72a11b3f3fb82495ebb9ce6",
+          "bytes": 130336
         },
         {
           "ageMa": 430,
-          "path": "public/data/paleodem-430ma.json",
-          "sha256": "cee86ebd6331796d2c771fb640d2853221411632247886a63cb2b52aceaeb4ad",
-          "bytes": 89348
+          "path": "public/data/paleodem-430ma.bin",
+          "sha256": "f4b7f21cae517f7d8900497af4d889740032ef9f37ba851d83942e0dc7d7ebc6",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 435,
+          "path": "public/data/paleodem-435ma.bin",
+          "sha256": "b092caeae1b7e564457cb6f3c8c8f8ead2792ded7792c70885b8aaa0576db16e",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 440,
+          "path": "public/data/paleodem-440ma.bin",
+          "sha256": "d56747c1820eefa88c883faf67f4c2903c0bfc21a8b95565a9085c76e31b2863",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 445,
+          "path": "public/data/paleodem-445ma.bin",
+          "sha256": "18f032f661bcab502e29ce2f482fe70dadd0bd30e21c1cfd54717c3b48964de9",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 450,
+          "path": "public/data/paleodem-450ma.bin",
+          "sha256": "d19a7d0fe5069498e2f06431c6d50d2cf997e125e697b8bc824e00d4ac6c58b7",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 455,
+          "path": "public/data/paleodem-455ma.bin",
+          "sha256": "52566ca59e1dfa3d6588c0c1dd21e6228146255ff4756273f28edbf7fe570d6b",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 460,
+          "path": "public/data/paleodem-460ma.bin",
+          "sha256": "0be60c9f7a21fe93e3817c31f75c3db50ea29be3e78ad63b79129d74fda3aa68",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 465,
+          "path": "public/data/paleodem-465ma.bin",
+          "sha256": "1278e78b3f27c1e73ddb1fd97c52768d9667fad068ba2ec9eb6aec207f4d2e11",
+          "bytes": 130336
         },
         {
           "ageMa": 470,
-          "path": "public/data/paleodem-470ma.json",
-          "sha256": "b1e616317699d7713556818f0725d652c1c6a02c6b67506cae0292ebeb640b71",
-          "bytes": 89168
+          "path": "public/data/paleodem-470ma.bin",
+          "sha256": "910d9b058b3c97cdd67e655bc0472bed9cfb888324f1f646d51f5c89af1d34a5",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 475,
+          "path": "public/data/paleodem-475ma.bin",
+          "sha256": "95ae2b4fe790aa3ed71fae7448f15801712fd17187223a37965f2a35e58a9cfd",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 480,
+          "path": "public/data/paleodem-480ma.bin",
+          "sha256": "2dd8be42c7394c3673d95f71d4de6330d1799df6cd26783fa16fb8055a8e37ed",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 485,
+          "path": "public/data/paleodem-485ma.bin",
+          "sha256": "5f80fd7a02fd1a300d0627dd8da9250fe03e43b347469dbd3cbc1c7b395ac768",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 490,
+          "path": "public/data/paleodem-490ma.bin",
+          "sha256": "b45625981c2fa23fa90aaf1894336fddde7a91bbd7b0b91c93ac7dec0388c036",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 495,
+          "path": "public/data/paleodem-495ma.bin",
+          "sha256": "e18fcb9c034a1bb3faf9c77a38bc13d49b9ec8623e98eb37ac7ec7f44c48bd51",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 500,
+          "path": "public/data/paleodem-500ma.bin",
+          "sha256": "57a894ef16157bdb2bbb3fc659452d7aa62e1ed5b64e78fac1b4dbf8d7b4e50f",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 505,
+          "path": "public/data/paleodem-505ma.bin",
+          "sha256": "2ed1bb164befa8311f2cbdcc8c624f2b7014eb182f4dd9748da902d7989b03a3",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 510,
+          "path": "public/data/paleodem-510ma.bin",
+          "sha256": "0e2fd89aba00cc0b01da447a6c827ec329d0d169ed3dfca6dd4f7984b80ba7ec",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 515,
+          "path": "public/data/paleodem-515ma.bin",
+          "sha256": "498ba70b45e3d4e724b38c3e55309d68bcde68864dc085194823b1b904d2de42",
+          "bytes": 130336
         },
         {
           "ageMa": 520,
-          "path": "public/data/paleodem-520ma.json",
-          "sha256": "9e91248b8930167b773e9cf98b587bc7c2bc4840bf1d1c8c6bc19bd328643a09",
-          "bytes": 89581
+          "path": "public/data/paleodem-520ma.bin",
+          "sha256": "c6c280dcd18174fc8a136398a5e8c00a7cbdaf1590a34fdbbda21254f9d193b9",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 525,
+          "path": "public/data/paleodem-525ma.bin",
+          "sha256": "e519f4f1083966c3055580f4ab8bbe69acd25998ea23c61e8cbaff9d62541c70",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 530,
+          "path": "public/data/paleodem-530ma.bin",
+          "sha256": "a3d57f59649133360e049f8e96a99d0fc8776656b981a6edebac7e57af293aa8",
+          "bytes": 130336
+        },
+        {
+          "ageMa": 535,
+          "path": "public/data/paleodem-535ma.bin",
+          "sha256": "eeef20a75afa8e7f7f59f421a885f79a4599b7263767d6433e37d2d8209c83fc",
+          "bytes": 130336
         },
         {
           "ageMa": 540,
-          "path": "public/data/paleodem-540ma.json",
-          "sha256": "1fa009594fcb51d61d4fb61fe166ce862f80aeb29bf9e9483a8fa0ea83fe98be",
-          "bytes": 88948
+          "path": "public/data/paleodem-540ma.bin",
+          "sha256": "4e899e21a466280191cf0bd974a67f250f06e731071b4bb7a480fe5724a2d7da",
+          "bytes": 130336
         }
       ]
     },
@@ -152,10 +874,40 @@
       "processing": "pyGPlates reconstruction with matching v3 feature plate IDs, v3 rotations, anchor plate 0; POI evidence sites are partitioned at 0 Ma then reconstructed; display lines are simplified after reconstruction; line simplification tolerance 0.18 degrees",
       "outputs": [
         {
+          "ageMa": 5,
+          "path": "public/data/countries-5ma.json",
+          "sha256": "a8f3c1b95f925adba76e76f2d28cb7065f6f13896615e7654efb025b88e58758",
+          "bytes": 163601
+        },
+        {
+          "ageMa": 10,
+          "path": "public/data/countries-10ma.json",
+          "sha256": "a27819074fa5f4afd1d1f772b8509a97685f3ee5618ef732d4069e907a2ca25a",
+          "bytes": 163865
+        },
+        {
+          "ageMa": 15,
+          "path": "public/data/countries-15ma.json",
+          "sha256": "13d8e78c5eaf33ba5f4273555abb08c7c091a3010868c4750b730ba01ed0fa22",
+          "bytes": 163962
+        },
+        {
           "ageMa": 20,
           "path": "public/data/countries-20ma.json",
           "sha256": "59c8b316c26f0171bb4f22fe71c6a143719c69ccadcf340d997966314d404492",
           "bytes": 163537
+        },
+        {
+          "ageMa": 25,
+          "path": "public/data/countries-25ma.json",
+          "sha256": "dd71111050e28bbfeae48bf4e66a21e67a297b513410d9e451d396311159fb9d",
+          "bytes": 163771
+        },
+        {
+          "ageMa": 30,
+          "path": "public/data/countries-30ma.json",
+          "sha256": "e6b9b3e7bdeb85f9599c0624c34c4ebf4417b2d4c73153e9e19d662b1a3ea958",
+          "bytes": 163861
         },
         {
           "ageMa": 35,
@@ -164,10 +916,34 @@
           "bytes": 163338
         },
         {
+          "ageMa": 40,
+          "path": "public/data/countries-40ma.json",
+          "sha256": "44840dae89ee2851ebbea0b2402cbf4d6fc32502850d19b08549264ad0b90c87",
+          "bytes": 162920
+        },
+        {
+          "ageMa": 45,
+          "path": "public/data/countries-45ma.json",
+          "sha256": "1bea337c74e47ea5cf506322182f8cbaa5c2853c494caa3f4cd8e5ffd21a669b",
+          "bytes": 162522
+        },
+        {
+          "ageMa": 50,
+          "path": "public/data/countries-50ma.json",
+          "sha256": "c847bb2af5b87e476624245ad03184262208d1b3e757ed14e4b1f94ed81ec207",
+          "bytes": 162134
+        },
+        {
           "ageMa": 55,
           "path": "public/data/countries-55ma.json",
           "sha256": "ed70cdd3c4abd31e0532311679186decce3b2c64063815ca759b690a057c8af1",
           "bytes": 160779
+        },
+        {
+          "ageMa": 60,
+          "path": "public/data/countries-60ma.json",
+          "sha256": "2cc334dec0018b3f998eaa02d88ab424e8722d573ca51be2fecc78925cd40472",
+          "bytes": 160746
         },
         {
           "ageMa": 65,
@@ -176,10 +952,76 @@
           "bytes": 160931
         },
         {
+          "ageMa": 70,
+          "path": "public/data/countries-70ma.json",
+          "sha256": "c6eb2b852c5eb431375a7df3700789631b04c398afaf80121f9b32a468e2bdbf",
+          "bytes": 156952
+        },
+        {
+          "ageMa": 75,
+          "path": "public/data/countries-75ma.json",
+          "sha256": "76ab1e627ab1919c6993efc048d90a3bc51d119b95438eadd8a099122d839c67",
+          "bytes": 157107
+        },
+        {
+          "ageMa": 80,
+          "path": "public/data/countries-80ma.json",
+          "sha256": "635e699b34f3d6c967854f2b86deb2d015409efd1c6865da2425f8f999a09163",
+          "bytes": 156657
+        },
+        {
+          "ageMa": 85,
+          "path": "public/data/countries-85ma.json",
+          "sha256": "0d0de2c24518a6b031a81c8a4eaa2ecb3dbe275a03f60eff4cc77e36fb4c18d1",
+          "bytes": 155892
+        },
+        {
+          "ageMa": 90,
+          "path": "public/data/countries-90ma.json",
+          "sha256": "1108bb4317a79185130e6d9b295be692488d3aeb8f20ac9d55d2533c5d5d9a9b",
+          "bytes": 156641
+        },
+        {
           "ageMa": 95,
           "path": "public/data/countries-95ma.json",
           "sha256": "7a7938d892fd6c3825921946e84525e0b136d696b0341a680c9fdd0a85885e8a",
           "bytes": 156700
+        },
+        {
+          "ageMa": 100,
+          "path": "public/data/countries-100ma.json",
+          "sha256": "f45fc602dbfda56e111c8def1cbd68c1f3200bd79e4a802949fbfb53a2a47e17",
+          "bytes": 156706
+        },
+        {
+          "ageMa": 105,
+          "path": "public/data/countries-105ma.json",
+          "sha256": "4009e865f43b0058e3d28df9e6a8023e893ce5db0f314386d8762a804de4adc3",
+          "bytes": 154956
+        },
+        {
+          "ageMa": 110,
+          "path": "public/data/countries-110ma.json",
+          "sha256": "92eedfc09ca3fdb2f7aa3e292bdf2fec255652803e62bc0a258c01e1431112a5",
+          "bytes": 155043
+        },
+        {
+          "ageMa": 115,
+          "path": "public/data/countries-115ma.json",
+          "sha256": "d9d67cad56c517d5ad5b2555ab5edc732c1b40cdbe25f6ef49c3d86ed400b959",
+          "bytes": 154841
+        },
+        {
+          "ageMa": 120,
+          "path": "public/data/countries-120ma.json",
+          "sha256": "2048265e176788a77662b30fa8a9bf76918934b333a16e38de1d219725d5ae13",
+          "bytes": 152841
+        },
+        {
+          "ageMa": 125,
+          "path": "public/data/countries-125ma.json",
+          "sha256": "56066f9756de156feee7349967f5169d6bde519aeba46759d8267f103a7e7642",
+          "bytes": 152374
         },
         {
           "ageMa": 130,
@@ -188,10 +1030,106 @@
           "bytes": 152463
         },
         {
+          "ageMa": 135,
+          "path": "public/data/countries-135ma.json",
+          "sha256": "05cca5d8c6dcfc20a72e4d2db15c290a4bcda69da3fa87e570db75ebf49b9dcf",
+          "bytes": 152258
+        },
+        {
+          "ageMa": 140,
+          "path": "public/data/countries-140ma.json",
+          "sha256": "469f6ffa25c976aa355d931eb7599fe6f5529f2c862ca1885c00c13a823193d1",
+          "bytes": 151693
+        },
+        {
+          "ageMa": 145,
+          "path": "public/data/countries-145ma.json",
+          "sha256": "9057e59471d70e1c5a34ba083eca917c410837e901ac9a68315982ed271de868",
+          "bytes": 151476
+        },
+        {
+          "ageMa": 150,
+          "path": "public/data/countries-150ma.json",
+          "sha256": "5dcb7b4d75cf968773eb126c1c810dffbdf1ec9b172b6a8b7aa8c85a1abe46ea",
+          "bytes": 148855
+        },
+        {
+          "ageMa": 155,
+          "path": "public/data/countries-155ma.json",
+          "sha256": "9a0f6d920dc528fd09bbd45236f1c2ab2bdf88d4807fea286f41fc3622bc08dc",
+          "bytes": 148552
+        },
+        {
+          "ageMa": 160,
+          "path": "public/data/countries-160ma.json",
+          "sha256": "cee3b8380c0a296ce2471d65bfb20aff71b59f828233f3c6261f051c956f222b",
+          "bytes": 148248
+        },
+        {
+          "ageMa": 165,
+          "path": "public/data/countries-165ma.json",
+          "sha256": "9a53ed9569217bc2559bda6a0f6e1c82569532fdff93ace673c44415974c4227",
+          "bytes": 147752
+        },
+        {
+          "ageMa": 170,
+          "path": "public/data/countries-170ma.json",
+          "sha256": "3dfcd73e2a1bdf252827ef6c8bc00d8c079cf0b2dd91e3fefad5f0c8b7cead52",
+          "bytes": 147385
+        },
+        {
+          "ageMa": 175,
+          "path": "public/data/countries-175ma.json",
+          "sha256": "b8da00270562276de9f20b91db7dfa6836da6ea6b48fb4eb6086f4a3463c5d82",
+          "bytes": 147480
+        },
+        {
+          "ageMa": 180,
+          "path": "public/data/countries-180ma.json",
+          "sha256": "f26406ded985d785351a743181446cff2b6d6b7376736589aa046e2bf519cf03",
+          "bytes": 147214
+        },
+        {
           "ageMa": 185,
           "path": "public/data/countries-185ma.json",
           "sha256": "0c3ea4cdffd83af81f250aca8420c120252c572c030dfa895376963e9b708205",
           "bytes": 146527
+        },
+        {
+          "ageMa": 190,
+          "path": "public/data/countries-190ma.json",
+          "sha256": "779618a9f1dbd4e7aad6964b5683e2e4a4570c82c2683199381d94a62413ccbe",
+          "bytes": 146421
+        },
+        {
+          "ageMa": 195,
+          "path": "public/data/countries-195ma.json",
+          "sha256": "bc9530304694ddc3f1cb7d1f5c7845119a469b3b3bd0c83af0cfa67515e80ff0",
+          "bytes": 146141
+        },
+        {
+          "ageMa": 200,
+          "path": "public/data/countries-200ma.json",
+          "sha256": "cb930c68b843f4f54a4ab52633055bf974edd1e4b23f472312d063c6c89e3216",
+          "bytes": 145628
+        },
+        {
+          "ageMa": 205,
+          "path": "public/data/countries-205ma.json",
+          "sha256": "13c7a2c580af7cf4cfc7805ab24b0fc043207eec7e39fdf32ccb982595633c21",
+          "bytes": 145963
+        },
+        {
+          "ageMa": 210,
+          "path": "public/data/countries-210ma.json",
+          "sha256": "44a6921d738a156caab60911a570d4e9ba1aba515c3c297a8cb672b4e8f2c8d2",
+          "bytes": 145787
+        },
+        {
+          "ageMa": 215,
+          "path": "public/data/countries-215ma.json",
+          "sha256": "a54984d79a3a2731d609b3ba3e7d87da07d2cba77f2eec024ebba55fb42ad898",
+          "bytes": 145704
         },
         {
           "ageMa": 220,
@@ -200,10 +1138,94 @@
           "bytes": 145402
         },
         {
+          "ageMa": 225,
+          "path": "public/data/countries-225ma.json",
+          "sha256": "700f1e501decde8a0bd778f786ed470bff10cee0ce09113e550bc71ab454f740",
+          "bytes": 143744
+        },
+        {
+          "ageMa": 230,
+          "path": "public/data/countries-230ma.json",
+          "sha256": "8f9d15d77a7c44a31b15431f5ee555a3702874a8a4ab0ac2782dd56ed9f8da02",
+          "bytes": 144465
+        },
+        {
+          "ageMa": 235,
+          "path": "public/data/countries-235ma.json",
+          "sha256": "1cd2407995f5b6f67f7e2a3905861170287c4166ba55e9a2f99491703ccff487",
+          "bytes": 144632
+        },
+        {
+          "ageMa": 240,
+          "path": "public/data/countries-240ma.json",
+          "sha256": "dd174f4bd6b79d5df1c5d678930d912c40f0515cc587220148fe5da0b37e3950",
+          "bytes": 144903
+        },
+        {
+          "ageMa": 245,
+          "path": "public/data/countries-245ma.json",
+          "sha256": "ed3593ff43566acfba3cf2fc810fc0db4950143c67a01379df31b6dd6689de2c",
+          "bytes": 144605
+        },
+        {
           "ageMa": 250,
           "path": "public/data/countries-250ma.json",
           "sha256": "34615086271699d707a0d72398dd77557215db1428fc1238dea8fa6dba1efd41",
           "bytes": 133840
+        },
+        {
+          "ageMa": 255,
+          "path": "public/data/countries-255ma.json",
+          "sha256": "12b3c51dda91595c0548e43e4bb2277600d0936ad758a986464ee4f0c2f7ec52",
+          "bytes": 133945
+        },
+        {
+          "ageMa": 260,
+          "path": "public/data/countries-260ma.json",
+          "sha256": "4a7287c9b5f005bf60320e4d30d05e537bfeaa14d0f9982cfae5054d6c4d6aa8",
+          "bytes": 133878
+        },
+        {
+          "ageMa": 265,
+          "path": "public/data/countries-265ma.json",
+          "sha256": "4455bf219e13c97e0c486bf5d58fe96e873e3a1ee67219ba485c1eb017f23d1f",
+          "bytes": 133881
+        },
+        {
+          "ageMa": 270,
+          "path": "public/data/countries-270ma.json",
+          "sha256": "9758e2239e1164631104a8301f8f547c11ca2d9697a42d3618dda19faa56a5ec",
+          "bytes": 134066
+        },
+        {
+          "ageMa": 275,
+          "path": "public/data/countries-275ma.json",
+          "sha256": "838351e76d1040491358389defc132c9a305ce64106f605495cc2f2af35ff774",
+          "bytes": 131401
+        },
+        {
+          "ageMa": 280,
+          "path": "public/data/countries-280ma.json",
+          "sha256": "28f2115b3b353b2086064e12d824ed0d8e1cbeb5b7da707a3de1669d4208f4da",
+          "bytes": 131334
+        },
+        {
+          "ageMa": 285,
+          "path": "public/data/countries-285ma.json",
+          "sha256": "5624352321f5595b1286518e9c3df1f9aa94f7cad5619054aceac9768fa0aaf7",
+          "bytes": 131320
+        },
+        {
+          "ageMa": 290,
+          "path": "public/data/countries-290ma.json",
+          "sha256": "375dbc90eb4d087bcd139d07f6fdcbfe8871b18d52b1ff19ffbfcde000166317",
+          "bytes": 131679
+        },
+        {
+          "ageMa": 295,
+          "path": "public/data/countries-295ma.json",
+          "sha256": "7bcb5b83876bd37aa9b2b63af1d7ac88de9cf94d39fad7340c6348d62524f2b5",
+          "bytes": 132029
         },
         {
           "ageMa": 300,
@@ -212,10 +1234,70 @@
           "bytes": 132176
         },
         {
+          "ageMa": 305,
+          "path": "public/data/countries-305ma.json",
+          "sha256": "d6c18d503efdbad306aa1d4ea46dd71745b84e084875071de210b902de7d5414",
+          "bytes": 132322
+        },
+        {
+          "ageMa": 310,
+          "path": "public/data/countries-310ma.json",
+          "sha256": "bf96d64a977ded784bbbbbe4b24617531c02944fe29806efa75e1676af261b3a",
+          "bytes": 132527
+        },
+        {
+          "ageMa": 315,
+          "path": "public/data/countries-315ma.json",
+          "sha256": "8c123ffb56cbcad89eb6502da3907e6a6646bfe797aed8d8e07c5fae7ba96d88",
+          "bytes": 132692
+        },
+        {
           "ageMa": 320,
           "path": "public/data/countries-320ma.json",
           "sha256": "31a1748879061670275b32ee4265ea463453e33ba39511c6eca20dcbbc196bc7",
           "bytes": 132894
+        },
+        {
+          "ageMa": 325,
+          "path": "public/data/countries-325ma.json",
+          "sha256": "107a2aca6d15f4e7b85514437be418a539a910037090010e795ea8890293ef95",
+          "bytes": 133019
+        },
+        {
+          "ageMa": 330,
+          "path": "public/data/countries-330ma.json",
+          "sha256": "b377fee078a66110eb57d3ec3fd024247a405e54a1fe7b67450ac27cb584b4a4",
+          "bytes": 133232
+        },
+        {
+          "ageMa": 335,
+          "path": "public/data/countries-335ma.json",
+          "sha256": "9a32dc77ff68a1221dd0bf79c1b29d712bfb0047acdcea1b43a1d59220d1b62a",
+          "bytes": 134120
+        },
+        {
+          "ageMa": 340,
+          "path": "public/data/countries-340ma.json",
+          "sha256": "6e5423a5df4f3b35d3b3b9ae185b30bdbcde311fcab4a508ecd0b0d389241189",
+          "bytes": 133887
+        },
+        {
+          "ageMa": 345,
+          "path": "public/data/countries-345ma.json",
+          "sha256": "ee52e58298daf5cd721d07e9bd79214eff31cd1479654a3111d397a0521af934",
+          "bytes": 133932
+        },
+        {
+          "ageMa": 350,
+          "path": "public/data/countries-350ma.json",
+          "sha256": "8cabf9570694bb84376916b2c5b99beedd3d50d5aa636f6fd9d48387af5ad537",
+          "bytes": 133883
+        },
+        {
+          "ageMa": 355,
+          "path": "public/data/countries-355ma.json",
+          "sha256": "04ca30b2ad7a4940c94fd518ddbbcf500363e02994bb814860c49596f6838a88",
+          "bytes": 133578
         },
         {
           "ageMa": 360,
@@ -224,10 +1306,82 @@
           "bytes": 133556
         },
         {
+          "ageMa": 365,
+          "path": "public/data/countries-365ma.json",
+          "sha256": "dbb9a459c3d71178899be071fb7ad423cf5bff30567071159b46594312bd0cca",
+          "bytes": 133773
+        },
+        {
+          "ageMa": 370,
+          "path": "public/data/countries-370ma.json",
+          "sha256": "4772a1d57945bd0a83b38853d6e61121c6326632ae9c95382d4005c10a8b370e",
+          "bytes": 134419
+        },
+        {
+          "ageMa": 375,
+          "path": "public/data/countries-375ma.json",
+          "sha256": "bd92db0af4aa3f93db2eede9178d917cf25a45497135dc65925f5c90fb49b6d3",
+          "bytes": 135436
+        },
+        {
+          "ageMa": 380,
+          "path": "public/data/countries-380ma.json",
+          "sha256": "6ac720a5f1a45c92802b154dc45242b4e231977b1eee256af1ddd86b62075586",
+          "bytes": 136321
+        },
+        {
+          "ageMa": 385,
+          "path": "public/data/countries-385ma.json",
+          "sha256": "5400eb6f30eb0fc0619bf9d08cb5c136d3158578be47766fedd16759b450936a",
+          "bytes": 136747
+        },
+        {
+          "ageMa": 390,
+          "path": "public/data/countries-390ma.json",
+          "sha256": "4884efa5b437fb76eb00e6a644b1041b57777d582ef6094054f64b507b832d29",
+          "bytes": 137173
+        },
+        {
+          "ageMa": 395,
+          "path": "public/data/countries-395ma.json",
+          "sha256": "392e97738d0cd9c7ac0534b996f59b8157678dceffd4a3aea5b674cbc20c461f",
+          "bytes": 137840
+        },
+        {
           "ageMa": 400,
           "path": "public/data/countries-400ma.json",
           "sha256": "fb81e9e3e7fde09e5de6b540f2044b96e003c5f7dfb1cd1d756c7dc2b6f47e5e",
           "bytes": 138175
+        },
+        {
+          "ageMa": 405,
+          "path": "public/data/countries-405ma.json",
+          "sha256": "5aeb81079eb65bb86be6f76c8b98562f0e101bcfb9033b08423a880ead4af0d2",
+          "bytes": 138400
+        },
+        {
+          "ageMa": 410,
+          "path": "public/data/countries-410ma.json",
+          "sha256": "f57ec3e906708ae8578a9179d3e68db70f66bf8bbe346b388d08215625ff21f8",
+          "bytes": 138659
+        },
+        {
+          "ageMa": 415,
+          "path": "public/data/countries-415ma.json",
+          "sha256": "9ce19e1bc470d38250fef76b005314a20f0c9a621e7c3eaf047a71d833f7d820",
+          "bytes": 139821
+        },
+        {
+          "ageMa": 420,
+          "path": "public/data/countries-420ma.json",
+          "sha256": "bbf57798d0eac1c6fa5204e5cd4180a72c1159916e96c430a9a59e0b0bbd26e7",
+          "bytes": 138849
+        },
+        {
+          "ageMa": 425,
+          "path": "public/data/countries-425ma.json",
+          "sha256": "599e2338155dc37d125aadc488ed2dc595cab8cfd5e1062bede13b4763402d40",
+          "bytes": 138161
         },
         {
           "ageMa": 430,
@@ -236,16 +1390,130 @@
           "bytes": 138398
         },
         {
+          "ageMa": 435,
+          "path": "public/data/countries-435ma.json",
+          "sha256": "e8986a6a80854f7d7e7aec12f1b0c9f5100a070cc2f4c75fc797b35d3d21604b",
+          "bytes": 137924
+        },
+        {
+          "ageMa": 440,
+          "path": "public/data/countries-440ma.json",
+          "sha256": "1f71e468e417d5dec083a594a0843c53eb9da63f6231e42a27d25bab4052741e",
+          "bytes": 137821
+        },
+        {
+          "ageMa": 445,
+          "path": "public/data/countries-445ma.json",
+          "sha256": "4f81b74ab09254ff0d41325d21875457df50a65762827599894596f0b065b5b7",
+          "bytes": 137643
+        },
+        {
+          "ageMa": 450,
+          "path": "public/data/countries-450ma.json",
+          "sha256": "d4254bcdede6a2e224e2dc6b3a2e7d16a85710a5d6b5836c228f2ae8deb466b1",
+          "bytes": 137881
+        },
+        {
+          "ageMa": 455,
+          "path": "public/data/countries-455ma.json",
+          "sha256": "814daf908c1a4873d669022dac495ef5190399e878cd96555da6c2829dea897b",
+          "bytes": 138205
+        },
+        {
+          "ageMa": 460,
+          "path": "public/data/countries-460ma.json",
+          "sha256": "edbc4dfaaecba5239546119cb875b19a6621afc8de129384c5d817c874f79021",
+          "bytes": 138534
+        },
+        {
+          "ageMa": 465,
+          "path": "public/data/countries-465ma.json",
+          "sha256": "d171ddcfbbe0473a2c421c4d194ce375d52b917160bdbc230aa2b6f60ceb758e",
+          "bytes": 138773
+        },
+        {
           "ageMa": 470,
           "path": "public/data/countries-470ma.json",
           "sha256": "2fb1566aabbe4cf922f7a24af20f2492a6f99091ffc35552e63fcc9ce63df842",
           "bytes": 139678
         },
         {
+          "ageMa": 475,
+          "path": "public/data/countries-475ma.json",
+          "sha256": "484e6bf6261d17372f9255bcbd04384e7861f9558f0cbaf208872171dd69c05b",
+          "bytes": 139983
+        },
+        {
+          "ageMa": 480,
+          "path": "public/data/countries-480ma.json",
+          "sha256": "fe38c302bd9872007f7e93a83c7d3bccb7bd49d1ba57186808a70869857d1ac2",
+          "bytes": 140374
+        },
+        {
+          "ageMa": 485,
+          "path": "public/data/countries-485ma.json",
+          "sha256": "47e5f99b6d0fc3bb3e75f2789db34e0243643b15dbfb8b1f499d931dd1f42e99",
+          "bytes": 140368
+        },
+        {
+          "ageMa": 490,
+          "path": "public/data/countries-490ma.json",
+          "sha256": "85be4e79b2704ba61e7d2873535c938b8361714002750e36f3b9f08223a486c7",
+          "bytes": 141284
+        },
+        {
+          "ageMa": 495,
+          "path": "public/data/countries-495ma.json",
+          "sha256": "46a770089ea02826d95cde67eb84acce896bab6991e3f551a75f18a8019529e3",
+          "bytes": 141431
+        },
+        {
+          "ageMa": 500,
+          "path": "public/data/countries-500ma.json",
+          "sha256": "587d2295ff23a93fa295a740793e4ea2d3329f8a4dcc7f891d38e9088909220e",
+          "bytes": 141330
+        },
+        {
+          "ageMa": 505,
+          "path": "public/data/countries-505ma.json",
+          "sha256": "0861670d92042cd9ad122c19d52f2c80cc955f8f2868653a2c4ef2d3f17cf2b2",
+          "bytes": 141094
+        },
+        {
+          "ageMa": 510,
+          "path": "public/data/countries-510ma.json",
+          "sha256": "454b767b0de79bfc003c1a880bdbecf14a00a28d7662a57ac773cc858d419366",
+          "bytes": 141105
+        },
+        {
+          "ageMa": 515,
+          "path": "public/data/countries-515ma.json",
+          "sha256": "2bda525cf107ce54dd142928306e3ff27e5464234ad22268d8eaa4e2d492352a",
+          "bytes": 140973
+        },
+        {
           "ageMa": 520,
           "path": "public/data/countries-520ma.json",
           "sha256": "c0070ec18a3184202afb0f2dd6f2cd0efa62a0dc36cd0f160d65d72c583115f7",
           "bytes": 141167
+        },
+        {
+          "ageMa": 525,
+          "path": "public/data/countries-525ma.json",
+          "sha256": "6ca91094faa846288e7bcf585d5f22c4dfe54f49c60674b2255fc811ab0cadc8",
+          "bytes": 141195
+        },
+        {
+          "ageMa": 530,
+          "path": "public/data/countries-530ma.json",
+          "sha256": "61f27f1f73b4796dd3e6f053cffc92cdb64cd0d0b661ff792bd601b3734f000f",
+          "bytes": 141552
+        },
+        {
+          "ageMa": 535,
+          "path": "public/data/countries-535ma.json",
+          "sha256": "4c4aeec3ef65a9c64b3cd2669c47ff4f367a4a268ee0f73117aa16a4cd9559c1",
+          "bytes": 141395
         },
         {
           "ageMa": 540,
@@ -356,6 +1624,38 @@
           "path": "public/data/etopo-greenland.json",
           "sha256": "6b4237f2099bc0b18f63bdc0afd2ed05d4dafedb72178acc83603265fd5ec46b",
           "bytes": 175259
+        },
+        {
+          "id": "alps",
+          "bbox": [
+            4.0,
+            43.0,
+            17.0,
+            49.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=4%2C43%2C17%2C49&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "retrievedUtc": "2026-09-09T22:34:10.119805+00:00",
+          "sourceTiffSha256": "10058f566e744213a12868081abb5153cdd8c0b2aeadfbd1eb96874ad36c965d",
+          "sourceTiffBytes": 303673,
+          "path": "public/data/etopo-alps.json",
+          "sha256": "92ff25335079564442a3f78eb0ef46906b32e44a92e53c73df5449c634293290",
+          "bytes": 175257
+        },
+        {
+          "id": "japan-trench",
+          "bbox": [
+            125.0,
+            18.0,
+            160.0,
+            52.0
+          ],
+          "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=125%2C18%2C160%2C52&bboxSR=4326&imageSR=4326&size=256%2C256&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+          "retrievedUtc": "2026-09-09T22:34:11.649745+00:00",
+          "sourceTiffSha256": "65d93c1f2e41e86bb5a88ae5159e6644efb973545452c8da3a877d2d60cd6ae9",
+          "sourceTiffBytes": 294069,
+          "path": "public/data/etopo-japan-trench.json",
+          "sha256": "d64121b5e21ef52bb22df349b86f7158e9fa1c4f0763b6ea5bb40878207d0e0d",
+          "bytes": 175272
         }
       ]
     },
@@ -426,9 +1726,39 @@
           "bytes": 42204
         },
         {
+          "ageMa": 5,
+          "path": "public/data/country-tracking-5ma.bin",
+          "sha256": "09c1b756ddae874ff17062009354ee4931c4bb45967597f7a8da04a96881f46f",
+          "bytes": 38916
+        },
+        {
+          "ageMa": 10,
+          "path": "public/data/country-tracking-10ma.bin",
+          "sha256": "134049ceb399a3247f5d1ca91fcddac0c9171d27389796c0ba05deea4a81373c",
+          "bytes": 38916
+        },
+        {
+          "ageMa": 15,
+          "path": "public/data/country-tracking-15ma.bin",
+          "sha256": "95dd1eccf7dd08603b72a8a2c0aa6aa6c5288927ee05f8dfe868a67bc5802932",
+          "bytes": 38916
+        },
+        {
           "ageMa": 20,
           "path": "public/data/country-tracking-20ma.bin",
           "sha256": "e8909beae29107ee80883d0714b08723747b1473612852923819bb04d533a82f",
+          "bytes": 38808
+        },
+        {
+          "ageMa": 25,
+          "path": "public/data/country-tracking-25ma.bin",
+          "sha256": "b5454febffdd164e7d3577433e3b5b3a00202d9c5ff70f116d55c71f713224c1",
+          "bytes": 38808
+        },
+        {
+          "ageMa": 30,
+          "path": "public/data/country-tracking-30ma.bin",
+          "sha256": "84bf925c456afd5a9a4a0e64be8d80d06944f70d48508e433851ed3f823bb57f",
           "bytes": 38808
         },
         {
@@ -438,9 +1768,33 @@
           "bytes": 38792
         },
         {
+          "ageMa": 40,
+          "path": "public/data/country-tracking-40ma.bin",
+          "sha256": "d6c9b8cbbfbbe9e2142b3f674ac5ca4f51c0cfef7b07b6d22458e472a7a2d784",
+          "bytes": 38792
+        },
+        {
+          "ageMa": 45,
+          "path": "public/data/country-tracking-45ma.bin",
+          "sha256": "cde33c79a2803eac525bf25e3610ff3540e83b44ba9b4419cc5249e1bb2bb99d",
+          "bytes": 38640
+        },
+        {
+          "ageMa": 50,
+          "path": "public/data/country-tracking-50ma.bin",
+          "sha256": "4a5b052a5cb13e5c2c90509e9c9449674bf17715f833b8fa75df3f29fa5d81e4",
+          "bytes": 38640
+        },
+        {
           "ageMa": 55,
           "path": "public/data/country-tracking-55ma.bin",
           "sha256": "6500d498c7fa6bb5217a41132c477e668316c589f5660704c577fbdec71e99c0",
+          "bytes": 38176
+        },
+        {
+          "ageMa": 60,
+          "path": "public/data/country-tracking-60ma.bin",
+          "sha256": "42378b8c0d24edd5543c253acd4825fd2c910b8ef4b635d1e7e394a8e609b15c",
           "bytes": 38176
         },
         {
@@ -450,10 +1804,76 @@
           "bytes": 38176
         },
         {
+          "ageMa": 70,
+          "path": "public/data/country-tracking-70ma.bin",
+          "sha256": "69c31033573c22074231dfe48a67ef211a2223cf76823b9be9e4f51033ffcbaf",
+          "bytes": 37080
+        },
+        {
+          "ageMa": 75,
+          "path": "public/data/country-tracking-75ma.bin",
+          "sha256": "c13cdf5f183073faf8e91781db889d314f10ab3b571a52f87823f111245e9ea0",
+          "bytes": 37080
+        },
+        {
+          "ageMa": 80,
+          "path": "public/data/country-tracking-80ma.bin",
+          "sha256": "ceaf41854f4256dd71e57654a355cc4ae38ebeb233e6615c4ff287d0779cf9bf",
+          "bytes": 37028
+        },
+        {
+          "ageMa": 85,
+          "path": "public/data/country-tracking-85ma.bin",
+          "sha256": "b6d4f9a6305b7bc84cadc5d4361f31fbed9e263e64139891ac4c67368bc8704b",
+          "bytes": 36764
+        },
+        {
+          "ageMa": 90,
+          "path": "public/data/country-tracking-90ma.bin",
+          "sha256": "4534ed23677b9c5fa77bf88cf536e43af38cd421a0a6be88b1a8b65b7b9e48a3",
+          "bytes": 36764
+        },
+        {
           "ageMa": 95,
           "path": "public/data/country-tracking-95ma.bin",
           "sha256": "b99ce6afc8aeabdb274bc24ecc830da0d1df0ac94d4a331508763a256b1d3359",
           "bytes": 36764
+        },
+        {
+          "ageMa": 100,
+          "path": "public/data/country-tracking-100ma.bin",
+          "sha256": "b00cf58a162c4d75418901abe3a06e8a8bb1a4aa49dcb92cbe6a2b8936f8a955",
+          "bytes": 36764
+        },
+        {
+          "ageMa": 105,
+          "path": "public/data/country-tracking-105ma.bin",
+          "sha256": "5cd853345bcb51749c3f08545a6a3bed6d96a90d07a0de6ff5265776bee69ae2",
+          "bytes": 36296
+        },
+        {
+          "ageMa": 110,
+          "path": "public/data/country-tracking-110ma.bin",
+          "sha256": "dd055b4244e8bea053567f344a352d396ab730fa117a8b7aaf436e3798ba178b",
+          "bytes": 36296
+        },
+        {
+          "ageMa": 115,
+          "path": "public/data/country-tracking-115ma.bin",
+          "sha256": "9b659246fa113ae6bdaff2bd73f3b36f65a886b47da5e9648edf3fb7aa2a3886",
+          "bytes": 36296
+        },
+        {
+          "ageMa": 120,
+          "path": "public/data/country-tracking-120ma.bin",
+          "sha256": "54c2910ab212a089160498edd0bb568304ea19871adf932fe7f611df267d18bf",
+          "bytes": 35776
+        },
+        {
+          "ageMa": 125,
+          "path": "public/data/country-tracking-125ma.bin",
+          "sha256": "fd6693c6f0078391f49d80fc03cbdc11869a9264452c82c7e25c714f1f47a7cc",
+          "bytes": 35776
         },
         {
           "ageMa": 130,
@@ -462,10 +1882,106 @@
           "bytes": 35776
         },
         {
+          "ageMa": 135,
+          "path": "public/data/country-tracking-135ma.bin",
+          "sha256": "e9d3682bc78ccdbfd3cda8aaa3e136c3ef1b8126cb64018e6182af98c8ad05a4",
+          "bytes": 35776
+        },
+        {
+          "ageMa": 140,
+          "path": "public/data/country-tracking-140ma.bin",
+          "sha256": "314f6a99f67a779e481f8783382a4e74feabd4a1c232ec971d42b648d576044c",
+          "bytes": 35660
+        },
+        {
+          "ageMa": 145,
+          "path": "public/data/country-tracking-145ma.bin",
+          "sha256": "4b1403f78863f9aaca654e525b5571b575f462467fadedddba7377ad75b6f8d2",
+          "bytes": 35660
+        },
+        {
+          "ageMa": 150,
+          "path": "public/data/country-tracking-150ma.bin",
+          "sha256": "9982861f35667fb5c07f739cc899630933cf6204484b66ac66e03939f6e33e5a",
+          "bytes": 35168
+        },
+        {
+          "ageMa": 155,
+          "path": "public/data/country-tracking-155ma.bin",
+          "sha256": "6b00e02103f3554e95ddc032e1ffd07ef3e34ec184dcd9adb77d1bba5e400238",
+          "bytes": 35168
+        },
+        {
+          "ageMa": 160,
+          "path": "public/data/country-tracking-160ma.bin",
+          "sha256": "f3df29f15eff7cecc63aace42cd0e9eeaf193c1e4e7c87b5821aa9c104622819",
+          "bytes": 35116
+        },
+        {
+          "ageMa": 165,
+          "path": "public/data/country-tracking-165ma.bin",
+          "sha256": "a9921ceb71a233c327f0774cb056aed5a8c5e0a22574624d4b55d14a4eb2e7c4",
+          "bytes": 35116
+        },
+        {
+          "ageMa": 170,
+          "path": "public/data/country-tracking-170ma.bin",
+          "sha256": "8c58cd7f4e0fc079113dacaf448d83472653683ab1223f7de8e8fbfde96615b9",
+          "bytes": 35116
+        },
+        {
+          "ageMa": 175,
+          "path": "public/data/country-tracking-175ma.bin",
+          "sha256": "0d3486b677bdc8c9e543fba873a7d134ff317883d5fdbd3d8f348d03a45bd6b8",
+          "bytes": 35116
+        },
+        {
+          "ageMa": 180,
+          "path": "public/data/country-tracking-180ma.bin",
+          "sha256": "451c0db1a691f8ac0c5f23b1810d094d3bc52b789482d44769d6123a9d6fd781",
+          "bytes": 35116
+        },
+        {
           "ageMa": 185,
           "path": "public/data/country-tracking-185ma.bin",
           "sha256": "cb499ba9ce457930f49d28a327873b4d471443fad714db12bf03b22fd940bed9",
           "bytes": 35008
+        },
+        {
+          "ageMa": 190,
+          "path": "public/data/country-tracking-190ma.bin",
+          "sha256": "c3343048f64a1fe91b823c46e9bdd125338eca1fd45895dc8d33158eb4a7cc06",
+          "bytes": 35008
+        },
+        {
+          "ageMa": 195,
+          "path": "public/data/country-tracking-195ma.bin",
+          "sha256": "7fe352fc7f2665863b2c8404d84aa09bdf61acb23b2ae2bd1f90a365518a6d49",
+          "bytes": 35008
+        },
+        {
+          "ageMa": 200,
+          "path": "public/data/country-tracking-200ma.bin",
+          "sha256": "6aa29b7d4734e67c318e7005ddc874686f0765b57772278637d4dbe1dd3f0ef3",
+          "bytes": 35008
+        },
+        {
+          "ageMa": 205,
+          "path": "public/data/country-tracking-205ma.bin",
+          "sha256": "4e10fb32370996509ebc5cfc152214fdb16967a8b6a09a34714411ae7ecd9fc7",
+          "bytes": 34992
+        },
+        {
+          "ageMa": 210,
+          "path": "public/data/country-tracking-210ma.bin",
+          "sha256": "be12e5697b66b0399657c1af5d4a287645474361a52486c56b6fb13e9251dc2c",
+          "bytes": 34992
+        },
+        {
+          "ageMa": 215,
+          "path": "public/data/country-tracking-215ma.bin",
+          "sha256": "d2f13bdc5e4d762f45afd05d8f9616e1c0d051a4fcaee6f9f7b18cc3a71be59a",
+          "bytes": 34992
         },
         {
           "ageMa": 220,
@@ -474,15 +1990,117 @@
           "bytes": 34992
         },
         {
+          "ageMa": 225,
+          "path": "public/data/country-tracking-225ma.bin",
+          "sha256": "db2699405c85463308c148226fc1b9b8b7ab0543f35afa91aa1d7f8a3266390e",
+          "bytes": 34512
+        },
+        {
+          "ageMa": 230,
+          "path": "public/data/country-tracking-230ma.bin",
+          "sha256": "ba9c58e962eebe2294b9b5f4a3ee46e65b5b5bd4ad6e2ef0538d3535da300bbd",
+          "bytes": 34512
+        },
+        {
+          "ageMa": 235,
+          "path": "public/data/country-tracking-235ma.bin",
+          "sha256": "8b0b85fcbc2272da8d7fe09e3e7b4d9242e6135ed6a7e956b848159eee69449a",
+          "bytes": 34512
+        },
+        {
+          "ageMa": 240,
+          "path": "public/data/country-tracking-240ma.bin",
+          "sha256": "453217bf7f1e0aa465ce287acc1242f3ffe1a7c7311ed22c9e2d10238cecc629",
+          "bytes": 34512
+        },
+        {
+          "ageMa": 245,
+          "path": "public/data/country-tracking-245ma.bin",
+          "sha256": "35d1ab065821e0c51ca41131cedaea85c0e70d0be4e1a340e39b3d6aa37ab41f",
+          "bytes": 34512
+        },
+        {
           "ageMa": 250,
           "path": "public/data/country-tracking-250ma.bin",
           "sha256": "d3ed3a4bdf15cba7fd9f5d6265258ec09e23286df46d07c1d36edea6ad2e6a80",
           "bytes": 31660
         },
         {
+          "ageMa": 255,
+          "path": "public/data/country-tracking-255ma.bin",
+          "sha256": "8c8c8f71cac9f69282611eac5f61eae8f352325349fcd9a5eab63365160e4f4d",
+          "bytes": 31660
+        },
+        {
+          "ageMa": 260,
+          "path": "public/data/country-tracking-260ma.bin",
+          "sha256": "2681182e4c8c3444e04d3d22ea476a29603aa4cdfb2ffa2bfb31b4f92cacbc8b",
+          "bytes": 31660
+        },
+        {
+          "ageMa": 265,
+          "path": "public/data/country-tracking-265ma.bin",
+          "sha256": "33da9032b81175c2c3db4748866c4cecaf221f8bae572761b259e893229ce8e5",
+          "bytes": 31660
+        },
+        {
+          "ageMa": 270,
+          "path": "public/data/country-tracking-270ma.bin",
+          "sha256": "c9173725ff770f6af3e4918fb0c7f90baea08421bcd5f78524d012aef6daace2",
+          "bytes": 31660
+        },
+        {
+          "ageMa": 275,
+          "path": "public/data/country-tracking-275ma.bin",
+          "sha256": "e5570cdb1dcfa361cb8c8f2db315ebb500c287165b55505ed83240421ab5dc90",
+          "bytes": 31016
+        },
+        {
+          "ageMa": 280,
+          "path": "public/data/country-tracking-280ma.bin",
+          "sha256": "1cb930e518df645e3b5c7e1e4c59a05aefcf3e9c34debc2273b0c1c2f6ca0ec4",
+          "bytes": 31016
+        },
+        {
+          "ageMa": 285,
+          "path": "public/data/country-tracking-285ma.bin",
+          "sha256": "4673688f6e3161ab5db2de5eccbd742b1d0c1ac22024b2db28ad41db9e23ec45",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 290,
+          "path": "public/data/country-tracking-290ma.bin",
+          "sha256": "e33a3ce5ac5fda3d216e14eeaefee37a4623c4be039ecce8558742cf577e4072",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 295,
+          "path": "public/data/country-tracking-295ma.bin",
+          "sha256": "f71910d3faf72331bd4c3941ed1e18b21e5003b43c05f1e40fa8bc933ee4ee7b",
+          "bytes": 30924
+        },
+        {
           "ageMa": 300,
           "path": "public/data/country-tracking-300ma.bin",
           "sha256": "732f82847571f4036a3c610cfb0008351e9cf930d78a7c7ca20dc163d2308e0f",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 305,
+          "path": "public/data/country-tracking-305ma.bin",
+          "sha256": "4db264fcfcdb71619b3ead996ce066c2f3ee8d8c26b863985cf2d9e0344c6f97",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 310,
+          "path": "public/data/country-tracking-310ma.bin",
+          "sha256": "f1e608d53a31d0aa887cec70a0224955e5028f82a7839bf00801781c9ea335a9",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 315,
+          "path": "public/data/country-tracking-315ma.bin",
+          "sha256": "0707a62b21538cb535698e3e9b1cf9753cd9dfc2dc6ad7bf66ae830dd8e359e1",
           "bytes": 30924
         },
         {
@@ -492,10 +2110,94 @@
           "bytes": 30924
         },
         {
+          "ageMa": 325,
+          "path": "public/data/country-tracking-325ma.bin",
+          "sha256": "f2ebb8b29af67b5531149658a772cbfbc8abf9a3132871a50755adb470cf9084",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 330,
+          "path": "public/data/country-tracking-330ma.bin",
+          "sha256": "e18ce1f1e001acd107c917d31f54d1a14a965ce1594ed0dcf5387b75f4daa06d",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 335,
+          "path": "public/data/country-tracking-335ma.bin",
+          "sha256": "f77b7665e860dfc7290836e9e3890ad1c8d284a6484841851571656515f57cec",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 340,
+          "path": "public/data/country-tracking-340ma.bin",
+          "sha256": "e873cf307c84b07b8289172b7be2aeaded6a8342a7c6e8e6c034d417aa508900",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 345,
+          "path": "public/data/country-tracking-345ma.bin",
+          "sha256": "f1264211606340900d4a353b80c524b1f762f6d3b03a6a780e2376bd56869646",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 350,
+          "path": "public/data/country-tracking-350ma.bin",
+          "sha256": "88666ab2e16cb4ed979284b1bf47e3e582cd8b041fb2aef15715d36ce53106cf",
+          "bytes": 30924
+        },
+        {
+          "ageMa": 355,
+          "path": "public/data/country-tracking-355ma.bin",
+          "sha256": "9d955d838d75631fc479a4a4b82a03555b015fa2637db98c0ee3c2fa303a942b",
+          "bytes": 30924
+        },
+        {
           "ageMa": 360,
           "path": "public/data/country-tracking-360ma.bin",
           "sha256": "faeab64bd75b12057e4253f95e8605e53aee792c9b718ad0cdd413bd48ee5900",
           "bytes": 30924
+        },
+        {
+          "ageMa": 365,
+          "path": "public/data/country-tracking-365ma.bin",
+          "sha256": "eadb83d495bf8a4b68a3a4897618e6228ee7e91c55d771be3b81becf5d108002",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 370,
+          "path": "public/data/country-tracking-370ma.bin",
+          "sha256": "2b263cd44058034e93056f1d28f27634169f16dbdf27dd940e3a4b4e2142242d",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 375,
+          "path": "public/data/country-tracking-375ma.bin",
+          "sha256": "20fb872dbdde07fc0b8e24c4d339f0ea9fce720f8cfff31ffd4fdffaa539ee91",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 380,
+          "path": "public/data/country-tracking-380ma.bin",
+          "sha256": "2efe472bd64f16c88e543e61710e3f5557584cf78623b5b63a6c44c0e2281920",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 385,
+          "path": "public/data/country-tracking-385ma.bin",
+          "sha256": "bf92fd581aa38d0e8221579bd62744f64c9c17f68abc77f6721c2a7188ead5e5",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 390,
+          "path": "public/data/country-tracking-390ma.bin",
+          "sha256": "016220d847a9c9d2e55e0fdb62f8f92b6e10af0c0e8543d7e11ed82ca5a8e108",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 395,
+          "path": "public/data/country-tracking-395ma.bin",
+          "sha256": "d1f1ae88423c4003abe54d8160f19f99aad3752285e9fd087472e0d79d9ea220",
+          "bytes": 30804
         },
         {
           "ageMa": 400,
@@ -504,10 +2206,82 @@
           "bytes": 30804
         },
         {
+          "ageMa": 405,
+          "path": "public/data/country-tracking-405ma.bin",
+          "sha256": "bc97abeb7e64b9ce85fdfebb1d9dd7178632a7d0b52954492a0beca39857e0ce",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 410,
+          "path": "public/data/country-tracking-410ma.bin",
+          "sha256": "921d3fad91f827e0ec17bfdcccff898b94648d4f0e883760f2c4c170245c290a",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 415,
+          "path": "public/data/country-tracking-415ma.bin",
+          "sha256": "6d07a36b4c896c2085754c0254144026885c8c4e8e31297e2aacde9bc2dcfd2d",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 420,
+          "path": "public/data/country-tracking-420ma.bin",
+          "sha256": "9fdf0aa5230e7ed2205b07ca6dbba98789ea82e771309aaf44a0bc14daabeabd",
+          "bytes": 30804
+        },
+        {
+          "ageMa": 425,
+          "path": "public/data/country-tracking-425ma.bin",
+          "sha256": "bb00edba3dc74f9a30d1a31ba1d5a5b55d214b8afa919048c782eebc0c0995f7",
+          "bytes": 30596
+        },
+        {
           "ageMa": 430,
           "path": "public/data/country-tracking-430ma.bin",
           "sha256": "e12a83e17b68542554814ceea2a3f8f90faeb5ec8d6e2d8cb3c5a2a57c06d0e3",
           "bytes": 30596
+        },
+        {
+          "ageMa": 435,
+          "path": "public/data/country-tracking-435ma.bin",
+          "sha256": "65c943f19fe7d96e7de7100450c874cfb58d87425509dc51f4fcf34f23edb67b",
+          "bytes": 30596
+        },
+        {
+          "ageMa": 440,
+          "path": "public/data/country-tracking-440ma.bin",
+          "sha256": "859b2abf656fdb0c3200eb1cab246487e14f75d2ec2e49a572435cb605d58ac9",
+          "bytes": 30596
+        },
+        {
+          "ageMa": 445,
+          "path": "public/data/country-tracking-445ma.bin",
+          "sha256": "e0c94e238ccbbf78dde1e6fd041d6c2ca2416947f0b66b3f989a77aba6713427",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 450,
+          "path": "public/data/country-tracking-450ma.bin",
+          "sha256": "af33fd4bf998f3fb72ca3c8ce16f68039fc95c7f3c70fcdd3907553cb24f901d",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 455,
+          "path": "public/data/country-tracking-455ma.bin",
+          "sha256": "88472fef9d1ca7249a7afc7a1164108253ac51d984aaed25785f9ef7acb266ff",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 460,
+          "path": "public/data/country-tracking-460ma.bin",
+          "sha256": "48846ab5229c016812c17dbe665b894aa6b22463991d72a6ce148a5e75bdc152",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 465,
+          "path": "public/data/country-tracking-465ma.bin",
+          "sha256": "b2ba2c6a4bf49b120b23e74193d15f99c94c681956a7b97af68d6d7ec0ad84c1",
+          "bytes": 30488
         },
         {
           "ageMa": 470,
@@ -516,9 +2290,81 @@
           "bytes": 30488
         },
         {
+          "ageMa": 475,
+          "path": "public/data/country-tracking-475ma.bin",
+          "sha256": "96be5d85af04c5ed79c519f4ee262162358824f68a4a235edc5b184feb521dc4",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 480,
+          "path": "public/data/country-tracking-480ma.bin",
+          "sha256": "c40c433249707a9db0d21234b04be18923de9bcd3251f9589b2ddc6b0b44aa77",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 485,
+          "path": "public/data/country-tracking-485ma.bin",
+          "sha256": "0cf10e71c1512ab1ab9a6c41451bbc7a5c8fd3ac904bfe278ba0406d96f3e27b",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 490,
+          "path": "public/data/country-tracking-490ma.bin",
+          "sha256": "fb710606084413498925ba4f8d9acbe2a6ed0366aa18e08119971105cb8b9a70",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 495,
+          "path": "public/data/country-tracking-495ma.bin",
+          "sha256": "f6f1ec4b0d4c3db52775b2b3bb1ec12958526e7aac2252a9ecbb9ccc3e3a9dea",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 500,
+          "path": "public/data/country-tracking-500ma.bin",
+          "sha256": "2ab38f5d3190e23bfb194a2adbe7e9e5c629f69bae7a2d16b2127ae80225b86e",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 505,
+          "path": "public/data/country-tracking-505ma.bin",
+          "sha256": "62a70add250f50da17210a24a45c5b17d17c626412642b2bc905e4a843bf75ac",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 510,
+          "path": "public/data/country-tracking-510ma.bin",
+          "sha256": "660a41a1ab08517f2ee5e51f917f98a30bb24eeaca2077242cbae9d0ff5ba756",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 515,
+          "path": "public/data/country-tracking-515ma.bin",
+          "sha256": "7b91f5a13af0529cc870dba95b7fa82414728f34dd10a5b81bbe9e55737dceda",
+          "bytes": 30488
+        },
+        {
           "ageMa": 520,
           "path": "public/data/country-tracking-520ma.bin",
           "sha256": "eeef47e1e1a59000ce266a72f76bb26fbbf083aa85358e4525e18410f45f2b19",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 525,
+          "path": "public/data/country-tracking-525ma.bin",
+          "sha256": "7a68fedd925e06de53a684a59b2f52549c6d543ea8bcb92514eeebbc4a9da8de",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 530,
+          "path": "public/data/country-tracking-530ma.bin",
+          "sha256": "79cb4f5dafe78d9f7ee349924293c2bd47fdd9082f2cb791b094fd16851ef01d",
+          "bytes": 30488
+        },
+        {
+          "ageMa": 535,
+          "path": "public/data/country-tracking-535ma.bin",
+          "sha256": "4ac442cac58f7265be8cb1d319821651c75ccd4f9b0940d2ad98c1eb5c56ba99",
           "bytes": 30488
         },
         {
@@ -530,5 +2376,5 @@
       ]
     }
   },
-  "scratchCacheBytes": 24272760
+  "scratchCacheBytes": 24193239
 }

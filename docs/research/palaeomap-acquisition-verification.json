@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-09T13:52:06.165280+00:00",
+  "method": "independent streaming SHA256 and exact byte comparison; git snapshots verified by git archive of pinned commit",
+  "sourceInventories": [
+    "palaeomap-plate-foundation-inventory.json",
+    "palaeomap-geography-relief.inventory.json",
+    "palaeomap-north-sea-inventory.json"
+  ],
+  "maximumStoreBytes": 4294967296,
+  "allocationBytes": {
+    "plates": 1503238553,
+    "geography": 1610612736,
+    "north-sea": 858993459,
+    "verification": 322122547
+  },
+  "observedStoreBytes": {
+    "plates": 1257176846,
+    "geography": 1130858005,
+    "north-sea": 536823378,
+    "verification": 219813595
+  },
+  "artifacts": [
+    {
+      "id": "cao2024-v2.4",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 20669287,
+      "sha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "verified": true
+    },
+    {
+      "id": "muller2025-v1.3",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 334794001,
+      "sha256": "248603d18dea10212b91034eb37800e1872babcac7d1c4b53e346a38c10338ef",
+      "verified": true
+    },
+    {
+      "id": "merdith2021-v1.2.4",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 8496217,
+      "sha256": "c08cd59f9fc26a99315a9a28c7a8da33ef7dc16e60c14eaec24e673cb6b78e6e",
+      "verified": true
+    },
+    {
+      "id": "muller2022-v1.2.4",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 11629841,
+      "sha256": "add1f4975360ecd259517b99860f4fb0d176170d909333387e8022c69255bbcd",
+      "verified": true
+    },
+    {
+      "id": "paleomap-global-v3-app-input",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 414657,
+      "sha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "verified": true
+    },
+    {
+      "id": "cao2024-gpml-inspection",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 72866,
+      "sha256": "d3699b69ac9d6f7630e6e1c0aaa44127d7579c7c29c36b56a105598937f9c065",
+      "verified": true
+    },
+    {
+      "id": "muller2025-grid-directory-index-age",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 260746,
+      "sha256": "3a059c55da07c06afd259427e4d01dca3466edc1656ae91d2cb618fc2cf7746d",
+      "verified": true
+    },
+    {
+      "id": "muller2025-grid-directory-index-spreading",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 278760,
+      "sha256": "4e08c3e3308a14fe1fcfddb91c071868129cd0aa65368a512ab9fa7744c108eb",
+      "verified": true
+    },
+    {
+      "id": "seafloor-age-0",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 1079875,
+      "sha256": "32f104a0f79ba9ac41125dd0d3d9ea54c5192531d1ad707d173c7b728d284e88",
+      "verified": true
+    },
+    {
+      "id": "seafloor-age-250",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 671150,
+      "sha256": "8e07633a5c269e7d1ae5126e3bf1639041ced15ae45ebc0612cd35a869f41221",
+      "verified": true
+    },
+    {
+      "id": "seafloor-age-410",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 672705,
+      "sha256": "8115a03a214a0b894d72c05910e039f9b40340ca3cf58351bc57df8389464ebd",
+      "verified": true
+    },
+    {
+      "id": "seafloor-age-1000",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 1150572,
+      "sha256": "a028837d72d9216450b300afdf1228a2bd04ccc278283b3c28d5e1a47c45c31b",
+      "verified": true
+    },
+    {
+      "id": "seafloor-age-1800",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 3239113,
+      "sha256": "a675ddfbe94f609b33b433aa117b8e8baddb92de250c064ec93b8009c568238f",
+      "verified": true
+    },
+    {
+      "id": "spreading-rate-0",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 8518766,
+      "sha256": "a24ab01af0b2ea29f209938f655b04c966d73716b94b97881b4febbaff2a9cb0",
+      "verified": true
+    },
+    {
+      "id": "spreading-rate-250",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 5644445,
+      "sha256": "ddbb2b8af502de433a13a17737a105602faaa88ef1e3e6baadf1e763d802707b",
+      "verified": true
+    },
+    {
+      "id": "spreading-rate-410",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 5215542,
+      "sha256": "e86e4d9db33caeee976a971278f5f1f8e1a9f6b2c6fe7a1f8ff4eeb8abc9c0d7",
+      "verified": true
+    },
+    {
+      "id": "spreading-rate-1000",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 8717057,
+      "sha256": "5710fd609dba8239fdd9102ba0eaadfa025a3c89db32e59193981a728a9fbb2b",
+      "verified": true
+    },
+    {
+      "id": "spreading-rate-1800",
+      "inventory": "palaeomap-plate-foundation-inventory.json",
+      "bytes": 130025,
+      "sha256": "7a5e57edbe7a84e33343e9d75a887778f4a6c56652c40c5b7c13cee58e13eab7",
+      "verified": true
+    },
+    {
+      "id": "cao2017-github-snapshot",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 480604160,
+      "sha256": "f314d0a684d8fa5ca2ce15f20db13315ba48a45efe1c2128f59d248a17c773af",
+      "verified": true
+    },
+    {
+      "id": "cao2017-paper-pdf",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 13664723,
+      "sha256": "87c66b878452be7650f4db9de5766b5eae05e55c014d68cdf51cfac40f741eaa",
+      "verified": true
+    },
+    {
+      "id": "cao2017-paper-xml",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 114504,
+      "sha256": "0959d2e07f65f88870b5af0ed8bfa3d1fd83f0ef39ce47cd20ef4003635264c1",
+      "verified": true
+    },
+    {
+      "id": "cao2017-supplement",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 93302416,
+      "sha256": "7a61384b27fde7558d42a0eec1558423a397f82893b90ff2bd6898f231267bba",
+      "verified": true
+    },
+    {
+      "id": "earthbyte-cao2017-paleogeography",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 74691405,
+      "sha256": "9cbbd835bff27367c5f542912bb58571b0fb10f81173e0a16ceb3e53d264781b",
+      "verified": true
+    },
+    {
+      "id": "scotese-wright2018-paleodem-1deg-csv",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 20302272,
+      "sha256": "db43e6261411ff468c9030ca240778a73f224bf34bf8186c735477e41454c873",
+      "verified": true
+    },
+    {
+      "id": "scotese-wright2018-paleodem-1deg-netcdf",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 9302291,
+      "sha256": "7014767a168c28d3762f55117ebafcd0f6b6b90029a495e2d14fd23f94abc16d",
+      "verified": true
+    },
+    {
+      "id": "scotese-wright2018-paleodem-01deg-netcdf",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 207273848,
+      "sha256": "ab360184d8260a815ef5ed6b8b4e0abdbf99ef5ee8aa87dfd070af323ceb42da",
+      "verified": true
+    },
+    {
+      "id": "scotese-wright2018-report",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 6840972,
+      "sha256": "8a5fca14f9860d148427a56cec241b4fc5b4108ff91bb867e8b68bde1392edac",
+      "verified": true
+    },
+    {
+      "id": "scotese2024-paleodem-v24221-01deg-netcdf",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 128708198,
+      "sha256": "02750238135c7dd8523b8944ca3e697c3f0295dab5c2fdd6270bad715b98fac3",
+      "verified": true
+    },
+    {
+      "id": "scotese2024-paleomap-v19o-r1d",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 19264366,
+      "sha256": "aee07c0d0159864f7a058cbf1591263ae4ee1413ccd2ec96a76cbb60ab7c6079",
+      "verified": true
+    },
+    {
+      "id": "pohl2022-phanerozoic-climate",
+      "inventory": "palaeomap-geography-relief.inventory.json",
+      "bytes": 19087436,
+      "sha256": "09dcf25a40faa19f9b3fb021b6fa35b4c1d9dced5583524b95b28dbeb295e152",
+      "verified": true
+    },
+    {
+      "id": "central-moray",
+      "inventory": "palaeomap-north-sea-inventory.json",
+      "bytes": 262063445,
+      "sha256": "aa85cfdd1e7335bb3f98fcf1f0efee30a53e1c7ac1109cede6b44fcf7097d5bc",
+      "verified": true
+    },
+    {
+      "id": "northern-shetland",
+      "inventory": "palaeomap-north-sea-inventory.json",
+      "bytes": 268605162,
+      "sha256": "d7d7f1bca9d26f76ea14483a57f3d6940dfb3344145bbc7fe4c414e3cfdddf3a",
+      "verified": true
+    },
+    {
+      "id": "northern-shetland-change-only",
+      "inventory": "palaeomap-north-sea-inventory.json",
+      "bytes": 5445896,
+      "sha256": "39bc2d72c60955a031110d1fd41b16c8cbc66fc39be5e8b888df5521a01bdc6e",
+      "verified": true
+    }
+  ],
+  "errors": [],
+  "laterAllocationChange": {
+    "date": "2026-09-09",
+    "reason": "Retain the accepted605392 production artifact as an immutable control for user-requested material-frequency refinement.",
+    "maximumStoreBytes": 4294967296,
+    "allocationBytes": {
+      "plates": 1449551462,
+      "geography": 1610612736,
+      "north-sea": 858993459,
+      "verification": 375809638
+    },
+    "note": "The earlier acquisition measurement and its observed allocations above remain historical evidence. The total4GiB bound is unchanged; coordinator owns validation and cleanup."
+  }
+}

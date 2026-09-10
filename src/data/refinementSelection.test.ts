@@ -14,7 +14,8 @@ function metadata(
     width: 3, height: 3, longitudeStep: 1, latitudeStep: 1,
     registration: "pixel-center", rowOrder: "north-to-south", units: "m",
     horizontalCrs: "EPSG:4326", referenceFrameId: "test-frame", verticalDatum: "test",
-    surfaceMode: "surface", domain: "topobathymetry", composition: "absolute-replace",
+    applicableSurfaceModes: ["surface"], surfaceMode: "surface",
+    domain: "topobathymetry", composition: "absolute-replace",
     evidence: "model-output", nativeResolutionMetres: 1_000, maxErrorMetres: 100,
     splitErrorPixels: 1.5, mergeErrorPixels: 1, edgeTransitionCells: 1,
     sourceProduct: "test", sourceVersion: "1", sourceIds: ["test"], assetPath: `${id}.json`,
@@ -57,6 +58,22 @@ describe("sparse surface refinement selection", () => {
     expect(selectSurfaceRefinementMetadata([root], {
       coordinates: [0, 0], requestedAgeMa: 0, surfaceMode: "surface",
       referenceFrameId: "another-frame",
+    })).toEqual([]);
+  });
+
+  it("reuses only explicitly dual-mode source tiles", () => {
+    const dualMode = { ...root, applicableSurfaceModes: ["surface", "seafloor"] as const };
+    expect(selectSurfaceRefinementMetadata([dualMode], {
+      coordinates: [0, 0], requestedAgeMa: 0, surfaceMode: "surface",
+      referenceFrameId: "test-frame",
+    }).map((tile) => tile.id)).toEqual(["root"]);
+    expect(selectSurfaceRefinementMetadata([dualMode], {
+      coordinates: [0, 0], requestedAgeMa: 0, surfaceMode: "seafloor",
+      referenceFrameId: "test-frame",
+    }).map((tile) => tile.id)).toEqual(["root"]);
+    expect(selectSurfaceRefinementMetadata([root], {
+      coordinates: [0, 0], requestedAgeMa: 0, surfaceMode: "seafloor",
+      referenceFrameId: "test-frame",
     })).toEqual([]);
   });
 });
