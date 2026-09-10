@@ -1,96 +1,57 @@
 # Renderer contract
 
-`GlobeView` owns the Three scene and keeps per-frame work outside React state.
-It attempts `WebGPURenderer` when the browser exposes WebGPU and creates a fresh,
-explicit WebGL 2 renderer if initialization fails. Runtime inputs and workers
-are served from the application origin.
-`?renderer=webgl2` bypasses WebGPU for compatibility testing; diagnostics read
-the initialized backend object rather than treating a WebGPU request as proof.
+`GlobeView` owns the scene lifetime and transports prepared Cao revisions and
+editorial context through explicit callbacks. `GlobeScene` owns the camera,
+lighting, guides, markers and frame loop. Scientific source loading, motion
+qualification and material addresses belong to `src/reconstruction`.
 
-The surface worker turns each compact snapshot into bounded albedo, relief,
-roughness and cloud fields. Its four-entry/20 MiB LRU refuses oversized values,
-and a replacement request terminates the stale worker. Coarse and regional
-textures are keyed by snapshot identity and detail tier. Detail uses separate
-enter/exit distances so camera jitter cannot churn generation.
+Both backends use Three's node renderer and the same TSL material graph.
+WebGPU is attempted when available; WebGL2 uses `WebGPURenderer` with
+`forceWebGL`. `?renderer=webgl2` selects that compatibility path. Readiness is
+reported after a successful frame, not after merely constructing a material.
+Integer palette attributes use integer GPU bindings on both backends.
 
-Relief stores 0–9,000 metres above sea level. `verticalExaggeration=1` maps
-those metres against a 6,371,000 metre mean Earth radius; the UI may scale the
-display from 1× to 30× without changing the source field or regenerating a
-texture. Fine relief, early-Earth crust and D8 drainage are deterministic visual
-inferences. Drainage follows only lower neighboring cells, leaves sinks closed,
-is bounded to 360 coarse segments, and appears only at regional detail.
-Normal `surface` mode holds oceans at sea level. Explicit `seafloor` mode uses
-the snapshot's negative elevation, a signed ±9,000 metre displacement encoding,
-and a bathymetric palette; the cache key includes the mode.
+`reconstruction/caoFoundation.ts` publishes one native land batch, one country
+line batch and exact-age boundary metadata. The static vertex/index buffers
+are retained across age changes. A shared motion palette supplies qualified
+quaternion endpoints, fractions and lifecycle activation. Present day follows
+the same path and precision as every other compiled age. Source gaps deactivate
+unsupported material; they do not receive identity motion.
 
-`SurfaceFields` also retains the completed render relief as one Float32 metre
-value per pixel. Cube CPU geometry and physical normals sample this field so
-they do not incur another 8-bit encode/decode step; the RGBA relief remains for
-the legacy globe and GPU displacement path. This representation preserves the
-same generated relief and scientific controls, so it adds no scientific
-accuracy. At 768×384 the Float32 field adds 1,179,648 bytes (1.125 MiB).
-`SurfaceFields.byteLength`, the bounded cache, and cube-worker retained-context
-diagnostics include it; transferring the active context also creates the
-worker-owned copy.
+The physical height placeholder is zero/unknown. A separate 400 metre shell
+separation prevents refined planar triangles from sinking below the ocean
+sphere. It participates in picking and bounds, but is not physical relief and
+is not multiplied by visual exaggeration. Calibrated relief, bathymetry and
+historical biome detail are deferred. Older chapters use editorial globe
+uniforms through this same scene, with native geography explicitly unavailable.
 
-The synchronous textured fallback and cloud layer use even-detail geodesic
-shells with no vertex at either geographic pole. This keeps equirectangular UV
-seams from collapsing into the radial fan produced by a latitude/longitude
-sphere while the adaptive cube surface loads or recovers from an error.
+Publication owns the matching geometry, palette, sparse picking state and
+native overlay state. Replacement and teardown release prepared-state leases
+and retire GPU resources through the shared publication/fence owner. Failed
+age changes withhold stale native geometry. Neither the old terrain workers
+nor their surface, regional, crosswalk or modern-only caches remain.
 
-Country references, tectonic features, and inferred river corridors follow
-the same continuous displayed-height sampler used for cube vertices. Great-
-circle subdivision is limited to 0.75° steps, exact pole/seam duplicates are
-removed, and each line retains immutable unit directions plus metre heights.
-Relief changes rebuild positions from those values, so 1× → 30× → 1× cannot
-compound. Clearance remains a small constant physical distance above the local
-surface, and retained drape arrays are capped at 16 MiB.
+Material picking uses source-space chart bounds and triangles, transforming a
+ray with the same prepared inverse pose that corresponds to the displayed
+palette. Static triangle ranges are computed once. Picking does not rebuild
+all globe vertices on every timeline step. A material address retains model
+chart/revision and reference direction; unsupported intervals preserve the tag
+without displaying an invented location. Age-driven retargeting preserves
+camera distance.
 
-Cube material requests keep their bounded power-of-two density target but add
-one sampled interior row and column. The odd grid includes one canonical texel
-at the center of each level-zero polar face; an even grid straddles the pole
-and interpolates four unrelated longitudes into a radial fan. Surrounding
-high-latitude samples remain unchanged.
+Native topology describes instantaneous plate ownership only. It does not
+provide persistent ocean material or seafloor age. Boundary and ownership
+geometry is withheld between marked checkpoints because continuous topology
+correspondence has not been qualified. Country references are separate modern
+locator geometry bound to the same Cao motion authority.
 
-Geographic control grids use a bounded equal-footprint longitude filter where
-their polar cells become at least four times narrower than their latitude
-spacing. This removes equirectangular oversampling spokes while retaining the
-directional geography resolvable by the source grid. Sampling is capped at 32
-longitude taps and allocates no additional retained field.
+`window.__earthHistoryDiagnostics` and canvas attributes expose actual backend,
+frame timing, camera distance, renderer object counts, active source bytes,
+static CPU/GPU buffer estimates and publication bytes. Source byte counts are
+serialized asset ledgers, not measured JavaScript heap or total driver memory.
+The runtime separately bounds checkpoint residency and unsettled loads; the
+production adoption record reports these measurements and their limitations.
 
-Procedural cloud terms also remain in Cartesian sphere space. Frequency changes
-provide the front and wisp scales; latitude-dependent longitude warps are
-forbidden because they turn the one geographic pole into a longitude ring and
-produce the same radial discontinuity on the cloud shell.
-
-The current limb is a thin, day/night-weighted geometric atmosphere that uses
-standard Three materials on both backends. The researched Takram atmosphere was
-not adopted in this bounded proof because its published package brings React
-Three Fiber and postprocessing peers plus a LUT/asset integration that would
-need a separate redistribution and dual-backend audit. The local atmosphere
-keeps the prototype self-contained; Takram remains the candidate for a later
-measured scattering replacement.
-
-`window.__earthHistoryDiagnostics` and matching canvas data attributes expose
-backend, effective quality, p50/p95 frame time, generation latency, stale-job
-count, cache bytes and renderer memory for the production browser harness.
-`surfaceRequestedAt`/`surfaceReadyAt` canvas attributes isolate refinement work
-from the duration of an input gesture and OrbitControls damping.
-`cameraDistance` updates with camera motion so the harness can time first visual
-response and verify preset framing independently.
-
-At regional zoom, a separate 128×128 camera-centred mesh samples the completed
-surface relief and adds at most ±250 metres of deterministic synthetic detail at
-1×. Its coherent spherical phase does not move when the 24° patch recentres.
-Source slope and nearby tectonic lines orient the ridges, while coast, mapped
-ice and tile edges suppress the effect. The three-entry/8 MiB cache and worker
-serial share the surface lifecycle rules. This detail sharpens the sourced
-broad relief; it is not evidence for exact summits or local landforms.
-
-The present chapter uses its bundled Beck et al. Köppen–Geiger semantic groups
-to constrain climate colour potential. The renderer maps desert, steppe,
-tropical, temperate, cold, tundra and frost groups through a restrained terrain
-blend rather than treating climate classes as observed land cover. The frost
-group also limits permanent modern ice display; modern climate is absent from
-LGM and deep-time snapshots, so those scenes keep their own documented
-controls.
+The fixed foundation does not implement adaptive spatial LOD. The retained
+bounded geometry and shared arithmetic utilities support later measured detail
+work without introducing a second rendering engine.

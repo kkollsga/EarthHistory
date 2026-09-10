@@ -1,0 +1,586 @@
+{
+  "acceptance": {
+    "adaptiveIndependentHoldoutsWithinTarget": false,
+    "adaptiveNoCapsOrDiscontinuities": false,
+    "adaptiveNumericalMutationRejected": true,
+    "adaptiveRandomOrderDeterministic": true,
+    "allCircuitsResolved": true,
+    "deterministic": true,
+    "float32WithinTarget": true,
+    "midpointCalibrationWithinTarget": false,
+    "missingCircuitRejected": true,
+    "numericalMutationRejected": true
+  },
+  "adaptive": {
+    "holdoutFractionsPerLeaf": [
+      0.37,
+      0.73
+    ],
+    "identityEndpointMutationMaximumErrorRad": 0.5534051533976342,
+    "maximumDepth": 10,
+    "maximumSamplesPerControl": 256,
+    "method": "selected moving-plate ROT times plus oracle-midpoint adaptive float32 quaternion table",
+    "randomOrderSeed": 240910,
+    "records": [
+      {
+        "holdoutCount": 74,
+        "intervalMa": [
+          0.0,
+          5.0
+        ],
+        "leafCount": 37,
+        "maximumIndependentHoldoutErrorRad": 1.2222649996822306e-05,
+        "maximumTrainingMidpointErrorRad": 1.101183589460195e-05,
+        "plateId": 69702,
+        "randomOrderErrorRad": 0.0,
+        "sourceRotationRecords": [
+          {
+            "ageMa": 0.0,
+            "fixedPlateId": 69701,
+            "line": 5657
+          }
+        ],
+        "sourceSeams": [],
+        "status": "cap",
+        "storedAgesMa": [
+          0.0,
+          0.15625,
+          0.3125,
+          0.46875,
+          0.625,
+          0.78125,
+          0.9375,
+          1.09375,
+          1.25,
+          1.40625,
+          1.5625,
+          1.71875,
+          1.875,
+          2.03125,
+          2.1875,
+          2.34375,
+          2.5,
+          2.65625,
+          2.8125,
+          2.96875,
+          2.98828125,
+          2.998046875,
+          3.0029296875,
+          3.0078125,
+          3.046875,
+          3.125,
+          3.28125,
+          3.4375,
+          3.59375,
+          3.75,
+          3.90625,
+          4.0625,
+          4.21875,
+          4.375,
+          4.53125,
+          4.6875,
+          4.84375,
+          5.0
+        ],
+        "storedSampleCount": 38
+      },
+      {
+        "holdoutCount": 64,
+        "intervalMa": [
+          420.0,
+          425.0
+        ],
+        "leafCount": 32,
+        "maximumIndependentHoldoutErrorRad": 6.978252063616676e-06,
+        "maximumTrainingMidpointErrorRad": 7.483226063126292e-06,
+        "plateId": 601,
+        "randomOrderErrorRad": 0.0,
+        "sourceRotationRecords": [
+          {
+            "ageMa": 420.0,
+            "fixedPlateId": 8011,
+            "line": 1355
+          }
+        ],
+        "sourceSeams": [],
+        "status": "resolved",
+        "storedAgesMa": [
+          420.0,
+          420.15625,
+          420.3125,
+          420.46875,
+          420.625,
+          420.78125,
+          420.9375,
+          421.09375,
+          421.25,
+          421.40625,
+          421.5625,
+          421.71875,
+          421.875,
+          422.03125,
+          422.1875,
+          422.34375,
+          422.5,
+          422.65625,
+          422.8125,
+          422.96875,
+          423.125,
+          423.28125,
+          423.4375,
+          423.59375,
+          423.75,
+          423.90625,
+          424.0625,
+          424.21875,
+          424.375,
+          424.53125,
+          424.6875,
+          424.84375,
+          425.0
+        ],
+        "storedSampleCount": 33
+      },
+      {
+        "holdoutCount": 2,
+        "intervalMa": [
+          450.0,
+          455.0
+        ],
+        "leafCount": 1,
+        "maximumIndependentHoldoutErrorRad": 4.362756800385239e-08,
+        "maximumTrainingMidpointErrorRad": 4.181878127893118e-08,
+        "plateId": 330,
+        "randomOrderErrorRad": 0.0,
+        "sourceRotationRecords": [],
+        "sourceSeams": [],
+        "status": "resolved",
+        "storedAgesMa": [
+          450.0,
+          455.0
+        ],
+        "storedSampleCount": 2
+      },
+      {
+        "holdoutCount": 2,
+        "intervalMa": [
+          470.0,
+          475.0
+        ],
+        "leafCount": 1,
+        "maximumIndependentHoldoutErrorRad": 2.8304232920290088e-08,
+        "maximumTrainingMidpointErrorRad": 2.5926311375338282e-08,
+        "plateId": 330,
+        "randomOrderErrorRad": 0.0,
+        "sourceRotationRecords": [],
+        "sourceSeams": [],
+        "status": "resolved",
+        "storedAgesMa": [
+          470.0,
+          475.0
+        ],
+        "storedSampleCount": 2
+      },
+      {
+        "holdoutCount": 32,
+        "intervalMa": [
+          250.0,
+          255.0
+        ],
+        "leafCount": 16,
+        "maximumIndependentHoldoutErrorRad": 2.3910264808424026e-06,
+        "maximumTrainingMidpointErrorRad": 2.559640768342501e-06,
+        "plateId": 176,
+        "randomOrderErrorRad": 0.0,
+        "sourceRotationRecords": [
+          {
+            "ageMa": 250.0,
+            "fixedPlateId": 101,
+            "line": 261
+          }
+        ],
+        "sourceSeams": [],
+        "status": "resolved",
+        "storedAgesMa": [
+          250.0,
+          250.3125,
+          250.625,
+          250.9375,
+          251.25,
+          251.5625,
+          251.875,
+          252.1875,
+          252.5,
+          252.8125,
+          253.125,
+          253.4375,
+          253.75,
+          254.0625,
+          254.375,
+          254.6875,
+          255.0
+        ],
+        "storedSampleCount": 17
+      }
+    ],
+    "sourceTimeLimit": "Does not collect fixed-plate ancestor knots; adaptive oracle samples absorb composed motion only where the numerical checks pass."
+  },
+  "corrected0To5": {
+    "acceptance": {
+      "deterministic": true,
+      "mutationRejected": true,
+      "withinTarget": true
+    },
+    "clockAgesMa": [
+      0.0,
+      0.2,
+      0.52,
+      0.6,
+      0.8,
+      1.0,
+      1.2,
+      1.8,
+      1.9,
+      2.0,
+      2.6,
+      2.9,
+      3.0,
+      3.1,
+      3.28,
+      3.3,
+      3.5,
+      3.6,
+      4.0,
+      4.2,
+      4.5,
+      4.6,
+      5.0
+    ],
+    "clockKind": "conservative-all-ROT-record-times-not-minimal-circuit-clock",
+    "holdoutCount": 66,
+    "identityEndpointMutationMaximumErrorRad": 0.553405369743709,
+    "leafCount": 33,
+    "limitation": "All ROT record times are overinclusive and are neither a minimal influencing circuit clock nor topology/geological events.",
+    "maximumIndependentHoldoutErrorRad": 6.3735257579466925e-06,
+    "maximumTrainingMidpointErrorRad": 6.835419900235259e-06,
+    "plateId": 69702,
+    "randomOrderErrorRad": 0.0,
+    "status": "resolved",
+    "storedSampleCount": 34,
+    "unpackedNodeBytes": 24,
+    "unpackedTableBytes": 816
+  },
+  "hypothesis": "Precompiled model-qualified motion intervals with preserved subknots can replace runtime rotation-tree queries for supported rigid material.",
+  "mutation": {
+    "frameDigestMutationRejected": true,
+    "identityEndpointMutationFailedNumericalGuard": true,
+    "identityEndpointMutationMaximumErrorRad": 0.38095761608250667,
+    "unknownPlateDefaultReturnedIdentity": true,
+    "unknownPlateStrictReturnedNone": true
+  },
+  "policy": {
+    "angularNumericalToleranceRad": 1e-10,
+    "controlAgesMa": [
+      0.0,
+      420.0,
+      450.0,
+      470.0,
+      250.0
+    ],
+    "float32QuantizationToleranceRad": 5e-07,
+    "heldOutFractions": [
+      0.25,
+      0.75
+    ],
+    "interpolationTargetRad": 1e-05,
+    "plateSelection": "active non-anchor continent feature with maximum endpoint angular movement; deterministic tie break",
+    "sampleFractions": [
+      0.125,
+      0.25,
+      0.5,
+      0.75,
+      0.875
+    ]
+  },
+  "records": [
+    {
+      "controlAgeMa": 0.0,
+      "endpointMovementRad": 0.7580887932588315,
+      "forwardReverseErrorRad": 0.0,
+      "intervalMa": [
+        0.0,
+        5.0
+      ],
+      "maximumEndpointErrorRad": 0.009140922755086102,
+      "maximumFloat32ErrorRad": 1.2440059211474664e-08,
+      "maximumMidpointCalibrationErrorRad": 0.002286165188019367,
+      "plateId": 69702,
+      "samples": [
+        {
+          "ageMa": 0.625,
+          "endpointErrorRad": 0.002130584556404203,
+          "float32ErrorRad": 1.7159341866718683e-09,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0008035320295460248
+        },
+        {
+          "ageMa": 1.25,
+          "endpointErrorRad": 0.00430533386433346,
+          "float32ErrorRad": 3.427920079100076e-09,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.0010729117222928613
+        },
+        {
+          "ageMa": 2.5,
+          "endpointErrorRad": 0.009140922755086102,
+          "float32ErrorRad": 6.824310657273075e-09,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0
+        },
+        {
+          "ageMa": 3.75,
+          "endpointErrorRad": 0.006861935112784961,
+          "float32ErrorRad": 1.0324642525351405e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.002286165188019367
+        },
+        {
+          "ageMa": 4.375,
+          "endpointErrorRad": 0.0033494164381639544,
+          "float32ErrorRad": 1.2440059211474664e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.001074567177520496
+        }
+      ],
+      "sourceFeatureId": "GPlates-35bfb312-3b5c-4015-9ec2-3ce80d2d735c",
+      "status": "resolved"
+    },
+    {
+      "controlAgeMa": 420.0,
+      "endpointMovementRad": 0.3563749890422927,
+      "forwardReverseErrorRad": 0.0,
+      "intervalMa": [
+        420.0,
+        425.0
+      ],
+      "maximumEndpointErrorRad": 0.007669491665997074,
+      "maximumFloat32ErrorRad": 2.804781908445789e-08,
+      "maximumMidpointCalibrationErrorRad": 0.0019149972591310353,
+      "plateId": 601,
+      "samples": [
+        {
+          "ageMa": 420.625,
+          "endpointErrorRad": 0.003353106218319875,
+          "float32ErrorRad": 9.079275907670967e-09,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0014361387613088777
+        },
+        {
+          "ageMa": 421.25,
+          "endpointErrorRad": 0.0057503685621106,
+          "float32ErrorRad": 4.9380195511122615e-09,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.0019149972591307003
+        },
+        {
+          "ageMa": 422.5,
+          "endpointErrorRad": 0.007669491665997074,
+          "float32ErrorRad": 9.97060097743585e-09,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0
+        },
+        {
+          "ageMa": 423.75,
+          "endpointErrorRad": 0.00575036856211089,
+          "float32ErrorRad": 1.551214650281265e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.0019149972591310353
+        },
+        {
+          "ageMa": 424.375,
+          "endpointErrorRad": 0.0033531062183207523,
+          "float32ErrorRad": 2.804781908445789e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0014361387613098604
+        }
+      ],
+      "sourceFeatureId": "GPlates-cb7ce237-8d33-402a-bb6a-af089a543e95",
+      "status": "resolved"
+    },
+    {
+      "controlAgeMa": 450.0,
+      "endpointMovementRad": 0.22281404032913227,
+      "forwardReverseErrorRad": 0.0,
+      "intervalMa": [
+        450.0,
+        455.0
+      ],
+      "maximumEndpointErrorRad": 6.206335383118183e-16,
+      "maximumFloat32ErrorRad": 5.5560972212294264e-08,
+      "maximumMidpointCalibrationErrorRad": 5.978733960281817e-16,
+      "plateId": 330,
+      "samples": [
+        {
+          "ageMa": 450.625,
+          "endpointErrorRad": 5.087681048627601e-16,
+          "float32ErrorRad": 3.6363048831668367e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 5.978733960281817e-16
+        },
+        {
+          "ageMa": 451.25,
+          "endpointErrorRad": 6.206335383118183e-16,
+          "float32ErrorRad": 3.902685086859335e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 3.3306690738754696e-16
+        },
+        {
+          "ageMa": 452.5,
+          "endpointErrorRad": 5.3533015581491455e-16,
+          "float32ErrorRad": 5.5560972212294264e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0
+        },
+        {
+          "ageMa": 453.75,
+          "endpointErrorRad": 3.3766115072321297e-16,
+          "float32ErrorRad": 3.615655723303479e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 2.0014830212433605e-16
+        },
+        {
+          "ageMa": 454.375,
+          "endpointErrorRad": 3.188872858294072e-16,
+          "float32ErrorRad": 3.7277263722306265e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 1.1102230246251565e-16
+        }
+      ],
+      "sourceFeatureId": "GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7",
+      "status": "resolved"
+    },
+    {
+      "controlAgeMa": 470.0,
+      "endpointMovementRad": 0.26790345094561474,
+      "forwardReverseErrorRad": 0.0,
+      "intervalMa": [
+        470.0,
+        475.0
+      ],
+      "maximumEndpointErrorRad": 4.47545209131181e-16,
+      "maximumFloat32ErrorRad": 5.952517491601538e-08,
+      "maximumMidpointCalibrationErrorRad": 3.3766115072321288e-16,
+      "plateId": 330,
+      "samples": [
+        {
+          "ageMa": 470.625,
+          "endpointErrorRad": 2.2887833992611187e-16,
+          "float32ErrorRad": 2.427726525454942e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 1.6653345369377348e-16
+        },
+        {
+          "ageMa": 471.25,
+          "endpointErrorRad": 2.2887833992611187e-16,
+          "float32ErrorRad": 2.961357566319667e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 3.3766115072321288e-16
+        },
+        {
+          "ageMa": 472.5,
+          "endpointErrorRad": 4.47545209131181e-16,
+          "float32ErrorRad": 5.952517491601538e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0
+        },
+        {
+          "ageMa": 473.75,
+          "endpointErrorRad": 2.2887833992611187e-16,
+          "float32ErrorRad": 1.8386401916148618e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 2.482534153247273e-16
+        },
+        {
+          "ageMa": 474.375,
+          "endpointErrorRad": 2.482534153247273e-16,
+          "float32ErrorRad": 1.5866739755046316e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 2.482534153247273e-16
+        }
+      ],
+      "sourceFeatureId": "GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7",
+      "status": "resolved"
+    },
+    {
+      "controlAgeMa": 250.0,
+      "endpointMovementRad": 0.37786406589433835,
+      "forwardReverseErrorRad": 0.0,
+      "intervalMa": [
+        250.0,
+        255.0
+      ],
+      "maximumEndpointErrorRad": 0.000652584786475379,
+      "maximumFloat32ErrorRad": 2.6242232198813508e-08,
+      "maximumMidpointCalibrationErrorRad": 0.00016281647955243623,
+      "plateId": 176,
+      "samples": [
+        {
+          "ageMa": 250.625,
+          "endpointErrorRad": 0.0002853312894653637,
+          "float32ErrorRad": 8.953504402303147e-09,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.00012210406658011772
+        },
+        {
+          "ageMa": 251.25,
+          "endpointErrorRad": 0.0004893055776268015,
+          "float32ErrorRad": 1.1558360759989625e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.00016281647955243623
+        },
+        {
+          "ageMa": 252.5,
+          "endpointErrorRad": 0.000652584786475379,
+          "float32ErrorRad": 2.6242232198813508e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.0
+        },
+        {
+          "ageMa": 253.75,
+          "endpointErrorRad": 0.0004893055776253341,
+          "float32ErrorRad": 2.2682313606786463e-08,
+          "heldOut": true,
+          "midpointCalibrationErrorRad": 0.00016281647955102848
+        },
+        {
+          "ageMa": 254.375,
+          "endpointErrorRad": 0.00028533128946387377,
+          "float32ErrorRad": 2.1272448991731236e-08,
+          "heldOut": false,
+          "midpointCalibrationErrorRad": 0.00012210406657859918
+        }
+      ],
+      "sourceFeatureId": "GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42",
+      "status": "resolved"
+    }
+  ],
+  "reference": {
+    "absoluteFrame": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "continentsSha256": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616",
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "pygplates": "1.0.0",
+    "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+    "rotationSha256": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "sourceDoi": "10.5281/zenodo.13628813"
+  },
+  "schemaVersion": 1,
+  "status": "bounded-preflight-complete",
+  "timing": {
+    "compactSlerpMedianMicroseconds": 5.375,
+    "directRotationMedianMicroseconds": 2.291,
+    "note": "Single-process algorithm timing, not app or production performance evidence.",
+    "sampleCount": 25
+  }
+}

@@ -18,61 +18,33 @@ import {
   Waves,
 } from "lucide-react";
 import { GlobeView, type PeriodCoordinateRenderState } from "./render";
-import type { SurfaceMode } from "./render/surface";
 import {
-  getSnapshot,
-  createCaoTemporalCountryResolver,
-  createCaoMaterialFocusResolver,
-  createTemporalCountryResolver,
-  createPeriodCoordinateResolver,
-  createPeriodMaterialResolver,
   environmentForAge,
   modernLandscapePresets,
-  PALEODEM_AGES,
   pointOfInterestIncludesAge,
   pointsOfInterest,
-  prefetchPaleodemAge,
-  loadPeriodMotionCatalog,
-  loadCaoCoordinateViewBundle,
-  lonLatToPeriodDirection,
-  paleomapCoordinateFrame,
-  periodDirectionToLonLat,
-  resolvePaleodemAgeBracket,
-  retimeSnapshot,
   sources,
   timeSlices,
   type GlobeStats,
-  type AreaTrackingLayer,
   type LayerVisibility,
   type LonLat,
   type PointOfInterest,
-  type PaleomapMotionCatalog,
-  type CaoCoordinateViewBundle,
-  type CaoMaterialFocusDescriptor,
-  type PeriodCoordinateResolver,
-  type TemporalCountryReferences,
   type WorldSnapshot,
 } from "./data";
 import { EvidenceBadge } from "./components/EvidenceBadge";
 import { Modal } from "./components/Modal";
-import { formatAge, formatGeographicSourceAge, Timeline } from "./components/Timeline";
+import { formatAge, Timeline } from "./components/Timeline";
 import {
-  createAreaFocusDescriptor,
-  resolveAreaFocusDescriptor,
-  type AreaFocusDescriptor,
-} from "./areaTracking";
-import {
-  parseAreaFocusDescriptor,
-  parseCaoMaterialFocusDescriptor,
+  parseMaterialAddress,
   parseFocusCoordinates,
-  serializeAreaFocusDescriptor,
-  serializeCaoMaterialFocusDescriptor,
+  serializeMaterialAddress,
   serializeFocusCoordinates,
 } from "./focusState";
+import { CaoReconstructionRuntime, type PreparedCaoRevision,
+  type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
 type Quality = "auto" | "high" | "low";
-type CoordinateViewId = "paleomap" | "cao";
 type SpatialFocus =
   | { kind: "poi"; poiId: string; coordinates: LonLat; nonce: number; distance?: number }
   | { kind: "place"; placeId: string; coordinates: LonLat; nonce: number; distance: number }
@@ -95,8 +67,8 @@ const LAYER_META: Array<{
   { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
   { key: "borders", label: "Modern-country reference", detail: "Present-day locator outlines; not historical borders", icon: Map },
   { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
-  { key: "tectonics", label: "Tectonic references", detail: "Present-day schematic story corridors; historical boundaries require dated topology", icon: Mountain },
-  { key: "rivers", label: "Inferred drainage", detail: "Modelled drainage tendency, not mapped ancient rivers", icon: Waves },
+  { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
+  { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
 ];
 
 function parseInitialState() {
@@ -116,11 +88,8 @@ function parseInitialState() {
     focus: params.get("focus"),
     place: params.get("place"),
     at: parseFocusCoordinates(params.get("at")),
-    tracking: parseAreaFocusDescriptor(params.get("track")),
-    materialFocus: parseCaoMaterialFocusDescriptor(params.get("material")),
+    nativeMaterialFocus: parseMaterialAddress(params.get("material")),
     relief: Number.isFinite(parsedRelief) ? Math.min(30, Math.max(1, Math.round(parsedRelief))) : 8,
-    surfaceMode: params.get("view") === "seafloor" ? "seafloor" as const : "surface" as const,
-    coordinateView: params.get("coordinates") === "cao" ? "cao" as const : "paleomap" as const,
   };
 }
 
@@ -135,36 +104,28 @@ function serializeAge(ageMa: number) {
   return String(Number(ageMa.toFixed(precision)));
 }
 
-function poiDisplayCoordinate(poi: PointOfInterest, snapshot: WorldSnapshot | null, ageMa: number) {
-  if (!snapshot?.poiIds.includes(poi.id) || !pointOfInterestIncludesAge(poi, ageMa)) return undefined;
-  return snapshot.poiCoordinates?.[poi.id];
+function gplatesDirectionToLonLat(direction: readonly [number, number, number]): LonLat {
+  return [Math.atan2(direction[1], direction[0]) * 180 / Math.PI,
+    Math.asin(Math.max(-1, Math.min(1, direction[2]))) * 180 / Math.PI];
 }
 
-function formatSnapshotSource(snapshot: WorldSnapshot | null, motionUnavailable: boolean): string {
-  if (motionUnavailable && snapshot?.geographicSourceAgeMa !== undefined) {
-    return `${formatGeographicSourceAge(snapshot.geographicSourceAgeMa)} · plate motion unavailable`;
-  }
-  if (snapshot?.temporalSurface === undefined) return "Illustrative field";
-  const { younger, older, exactEndpoint } = snapshot.temporalSurface;
-  if (exactEndpoint) return formatGeographicSourceAge(younger.ageMa);
-  return `${formatAge(younger.ageMa)}–${formatAge(older.ageMa)} · interpolated`;
-}
-
-function snapshotLoadKey(ageMa: number): string {
-  if (ageMa > 540) return `scenario-${closestChapter(ageMa).id}`;
-  const bracket = resolvePaleodemAgeBracket(ageMa);
-  return bracket.exact
-    ? `paleodem-${bracket.youngerAgeMa}ma`
-    : `paleodem-${bracket.youngerAgeMa}-${bracket.olderAgeMa}ma`;
-}
-
-function trackingMatchesMotion(
-  tracking: AreaTrackingLayer,
-  catalog: PaleomapMotionCatalog,
-): boolean {
-  const frame = paleomapCoordinateFrame(catalog);
-  return tracking.catalog.plateModelId === frame.modelId &&
-    tracking.catalog.referenceFrameId === frame.referenceFrameId;
+function editorialSnapshotForAge(ageMa: number): WorldSnapshot {
+  const chapter = closestChapter(ageMa);
+  const visiblePois = pointsOfInterest.filter((poi) => pointOfInterestIncludesAge(poi, ageMa));
+  return {
+    ...chapter,
+    id: `${chapter.id}__editorial`,
+    requestedAgeMa: ageMa,
+    land: [],
+    countries: [],
+    tectonics: [],
+    poiIds: visiblePois.map((poi) => poi.id),
+    // Source records may retain a locality for citation, but only the native
+    // Cao anchor catalog can authorize a globe position at a requested age.
+    poiCoordinates: {},
+    environment: environmentForAge(ageMa),
+    caveat: "Editorial context only; native Cao geometry and material motion own the rendered surface.",
+  };
 }
 
 export default function App() {
@@ -174,11 +135,6 @@ export default function App() {
     ? modernLandscapePresets.find((preset) => preset.id === initial.place)
     : undefined;
   const initialArea = initialPoi === undefined && initialLandscape === undefined ? initial.at : null;
-  const initialTracking = initialPoi === undefined && initialLandscape === undefined
-    ? initial.coordinateView === "cao" && initial.materialFocus !== null ? null : initial.tracking
-    : null;
-  const initialMaterialFocus = initialPoi === undefined && initialLandscape === undefined &&
-      initial.coordinateView === "cao" ? initial.materialFocus : null;
   const [ageMa, setAgeMa] = useState(initial.age);
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,15 +145,9 @@ export default function App() {
   const [menuActiveIndex, setMenuActiveIndex] = useState(0);
   const [contextExpanded, setContextExpanded] = useState(false);
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(initialPoi?.id ?? null);
-  const [areaFocusDescriptor, setAreaFocusDescriptor] = useState<AreaFocusDescriptor | null>(
-    initialTracking,
-  );
-  const [caoFocusDescriptor, setCaoFocusDescriptor] = useState<CaoMaterialFocusDescriptor | null>(
-    initialMaterialFocus,
-  );
   const [areaFocusStatus, setAreaFocusStatus] = useState<
     "resolving" | "resolved" | "unresolved" | null
-  >(initialTracking ? "resolving" : null);
+  >(initial.nativeMaterialFocus ? "resolving" : null);
   const [spatialFocus, setSpatialFocus] = useState<SpatialFocus | null>(
     initialLandscape
       ? {
@@ -213,39 +163,36 @@ export default function App() {
   );
   const [autoRotateEnabled, setAutoRotateEnabled] = useState(
     initialPoi === undefined && initialLandscape === undefined &&
-      initialArea === null && initialTracking === null,
+      initialArea === null && initial.nativeMaterialFocus === null,
   );
   const [resetNonce, setResetNonce] = useState(0);
   const [quality, setQuality] = useState<Quality>("auto");
   const [verticalExaggeration, setVerticalExaggeration] = useState(initial.relief);
-  const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>(
-    initialLandscape?.surfaceMode ?? initial.surfaceMode,
-  );
   const [selectedLandscapeId, setSelectedLandscapeId] = useState<string | null>(
     initialLandscape && initial.age === 0 ? initialLandscape.id : null,
   );
   const [stats, setStats] = useState<GlobeStats | null>(null);
   const [playing, setPlaying] = useState(false);
   const [shareComplete, setShareComplete] = useState(false);
-  const [motionCatalog, setMotionCatalog] = useState<PaleomapMotionCatalog | null>(null);
-  const [periodCoordinateResolver, setPeriodCoordinateResolver] = useState<PeriodCoordinateResolver | null>(null);
-  const [motionLoadError, setMotionLoadError] = useState<string | null>(null);
-  const [coordinateView, setCoordinateView] = useState<CoordinateViewId>(initial.coordinateView);
-  const [caoBundle, setCaoBundle] = useState<CaoCoordinateViewBundle | null>(null);
-  const [caoPresentTracking, setCaoPresentTracking] = useState<AreaTrackingLayer | null>(null);
   const [caoLoadError, setCaoLoadError] = useState<string | null>(null);
   const [periodCoordinateState, setPeriodCoordinateState] = useState<PeriodCoordinateRenderState>({ status: null });
+  const [caoRevision, setCaoRevision] = useState<PreparedCaoRevision | null>(null);
+  const caoRevisionRef = useRef<PreparedCaoRevision | null>(null);
+  const [materialFocusAddress, setMaterialFocusAddress] = useState<MaterialAddress | null>(initial.nativeMaterialFocus);
+  const materialFocusAddressRef = useRef<MaterialAddress | null>(null);
+  materialFocusAddressRef.current = materialFocusAddress;
+  const [caoAnchorCoordinates, setCaoAnchorCoordinates] = useState<Readonly<Record<string, LonLat>>>({});
+  const [caoRuntimeReady, setCaoRuntimeReady] = useState(0);
+  const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
+  const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const panelOpenedFromMenu = useRef(false);
   const focusNonce = useRef(0);
   const poiFocusHasResolved = useRef(false);
-  const areaFocusHasResolved = useRef(initialArea !== null || initialMaterialFocus !== null);
   const requestedAgeRef = useRef(ageMa);
   requestedAgeRef.current = ageMa;
-  const requestedSnapshotKeyRef = useRef(snapshotLoadKey(ageMa));
-  requestedSnapshotKeyRef.current = snapshotLoadKey(ageMa);
   const reducedMotion = useMemo(
     () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
     [],
@@ -253,6 +200,98 @@ export default function App() {
   const snapshotRequestController = useRef<AbortController | null>(null);
   const caoRequestController = useRef<AbortController | null>(null);
   const previousRequestedAge = useRef(ageMa);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const manifestUrl = new URL("data/reconstruction/cao-v2.4/manifest.json", document.baseURI).toString();
+    void fetch(manifestUrl, { signal: controller.signal }).then(async (response) => {
+      if (!response.ok) throw new Error(`Could not load Cao reconstruction manifest (${response.status})`);
+      const manifest = await response.json() as ReconstructionPackageManifestV2;
+      const fetcher: StaticAssetFetcher = async (path, signal) => {
+        const assetResponse = await fetch(new URL(path, manifestUrl), { signal });
+        if (!assetResponse.ok) throw new Error(`Could not load Cao reconstruction asset (${assetResponse.status})`);
+        return assetResponse.arrayBuffer();
+      };
+      if (!active) return;
+      caoRuntimeRef.current = new CaoReconstructionRuntime(manifest, fetcher);
+      setCaoSourceAges(Object.freeze(manifest.checkpoints.map((checkpoint) => checkpoint.ageMa)));
+      setCaoRuntimeReady((value) => value + 1);
+    }).catch((error: unknown) => {
+      if (active && !(error instanceof DOMException && error.name === "AbortError")) {
+        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction foundation could not be loaded");
+      }
+    });
+    return () => {
+      active = false;
+      controller.abort();
+      caoRuntimeRef.current?.dispose();
+      caoRuntimeRef.current = null;
+      setCaoSourceAges([]);
+    };
+  }, []);
+
+  useEffect(() => {
+    const runtime = caoRuntimeRef.current;
+    if (!runtime || ageMa < runtime.manifest.ageDomainMa.youngest || ageMa > runtime.manifest.ageDomainMa.oldest) {
+      runtime?.cancelActive();
+      caoRevisionRef.current?.release();
+      caoRevisionRef.current = null;
+      setCaoRevision(null);
+      setCaoAnchorCoordinates({});
+      if (materialFocusAddressRef.current !== null) {
+        setAreaFocusStatus("unresolved");
+        setSpatialFocus((current) => current?.kind === "area" ? null : current);
+      }
+      return;
+    }
+    let request: ReturnType<CaoReconstructionRuntime["request"]>;
+    // Never label a prior age's publication as the requested reconstruction.
+    caoRevisionRef.current?.release();
+    caoRevisionRef.current = null;
+    setCaoRevision(null);
+    try {
+      request = runtime.request(ageMa);
+    } catch (error) {
+      setCaoRevision(null);
+      setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
+      return;
+    }
+    let active = true;
+    void request.prepared.then((prepared) => {
+      if (!active) prepared.release(); else {
+        setCaoAnchorCoordinates(Object.fromEntries(prepared.anchorIds.flatMap((id) => {
+          const resolved = prepared.resolveAnchor(id);
+          return resolved?.pose.direction ? [[id, gplatesDirectionToLonLat(resolved.pose.direction)]] : [];
+        })));
+        const focusAddress = materialFocusAddressRef.current;
+        if (focusAddress) {
+          const pose = prepared.resolveAddress(focusAddress);
+          if (pose.direction) {
+            const coordinates = gplatesDirectionToLonLat(pose.direction);
+            setAreaFocusStatus("resolved");
+            setAutoRotateEnabled(false);
+            setSpatialFocus((current) => ({ kind: "area", coordinates, nonce: ++focusNonce.current,
+              // Age-driven material retargeting preserves the current camera radius,
+              // including reacquisition after an unsupported lifetime interval.
+              distance: undefined }));
+          } else {
+            setAreaFocusStatus("unresolved");
+            setSpatialFocus((current) => current?.kind === "area" ? null : current);
+          }
+        }
+        setCaoLoadError(null);
+        caoRevisionRef.current = prepared;
+        setCaoRevision(prepared);
+      }
+    }).catch((error: unknown) => {
+      if (active && !(error instanceof DOMException && error.name === "AbortError")) {
+        setCaoRevision(null);
+        setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
+      }
+    });
+    return () => { active = false; };
+  }, [ageMa, caoRuntimeReady]);
 
   const selectedPoiRecord = useMemo(
     () => pointsOfInterest.find((poi) => poi.id === selectedPoiId) ?? null,
@@ -275,169 +314,19 @@ export default function App() {
     () => [...orderedSlices].reverse().findIndex((slice) => slice.id === chapter.id) + 1,
     [chapter.id, orderedSlices],
   );
-  const desiredSnapshotKey = snapshotLoadKey(ageMa);
-  const retimedSnapshot = useMemo(
-    () => snapshot === null ? null : retimeSnapshot(snapshot, ageMa),
-    [ageMa, snapshot],
-  );
-  const paleomapCountryResolver = useMemo(() => {
-    if (
-      retimedSnapshot?.temporalReferences === undefined ||
-      motionCatalog === null || periodCoordinateResolver === null
-    ) return null;
-    return createTemporalCountryResolver(
-      retimedSnapshot.temporalReferences,
-      motionCatalog,
-      periodCoordinateResolver,
-    );
-  }, [motionCatalog, periodCoordinateResolver, retimedSnapshot?.temporalReferences]);
-  const caoCountryResolver = useMemo(() => {
-    if (caoBundle === null || caoPresentTracking === null || motionCatalog === null) return null;
-    return createCaoTemporalCountryResolver(caoPresentTracking, motionCatalog, caoBundle.crosswalk);
-  }, [caoBundle, caoPresentTracking, motionCatalog]);
-  const caoFocusResolver = useMemo(
-    () => caoBundle === null ? null : createCaoMaterialFocusResolver(caoBundle),
-    [caoBundle],
-  );
-  const temporalCountryAge = retimedSnapshot?.requestedAgeMa ?? retimedSnapshot?.ageMa;
-  const caoCoordinateAgeMa = coordinateView === "cao"
-    ? periodCoordinateState.displayedAgeMa ?? ageMa
-    : ageMa;
-  const caoStagedCoordinateAgeMa = coordinateView === "cao"
-    ? periodCoordinateState.stagedAgeMa ?? caoCoordinateAgeMa
-    : ageMa;
-  const countryCoordinateAgeMa = coordinateView === "cao" ? caoStagedCoordinateAgeMa : temporalCountryAge;
-  const temporalCountries = useMemo<TemporalCountryReferences | undefined>(() =>
-    countryCoordinateAgeMa === undefined
-      ? undefined
-      : coordinateView === "cao"
-        ? caoCountryResolver?.resolve(countryCoordinateAgeMa)
-        : paleomapCountryResolver?.resolve(countryCoordinateAgeMa),
-  [caoCountryResolver, coordinateView, countryCoordinateAgeMa, paleomapCountryResolver]);
-  const displayedSnapshot = useMemo<WorldSnapshot | null>(() => {
-    if (
-      motionLoadError !== null && retimedSnapshot?.temporalSurface !== undefined &&
-      !retimedSnapshot.temporalSurface.exactEndpoint
-    ) {
-      return {
-        ...retimedSnapshot,
-        temporalSurface: undefined,
-        temporalReferences: undefined,
-        evidence: "model-output",
-        caveat: `${retimedSnapshot.caveat} Plate motion is unavailable in this session, so the nearest native source frame is shown without temporal material interpolation.`,
-      };
-    }
-    if (coordinateView === "cao") {
-      if (retimedSnapshot === null || caoBundle === null || motionCatalog === null) return retimedSnapshot;
-      const requestedAgeMa = retimedSnapshot.requestedAgeMa ?? retimedSnapshot.ageMa;
-      const poiCoordinates = Object.fromEntries(retimedSnapshot.poiIds.flatMap((id) => {
-        const poi = pointsOfInterest.find((candidate) => candidate.id === id);
-        const plateId = motionCatalog.poiPlateIds[id];
-        if (poi?.coordinates === undefined || plateId === undefined) return [];
-        const resolved = caoBundle.crosswalk.resolveSourcePoint({
-          frame: paleomapCoordinateFrame(motionCatalog),
-          plateId,
-          sourceAgeMa: 0,
-          coordinates: poi.coordinates,
-        }, caoCoordinateAgeMa);
-        return resolved.status === "resolved" ? [[id, resolved.targetCoordinates]] : [];
-      }));
-      const temporalSurface = retimedSnapshot.temporalSurface === undefined
-        ? undefined
-        : {
-            ...retimedSnapshot.temporalSurface,
-            intervalId: `${caoBundle.descriptor.id}:${retimedSnapshot.temporalSurface.intervalId}`,
-          };
-      return {
-        ...retimedSnapshot,
-        id: `${retimedSnapshot.id}__${caoBundle.descriptor.id}`,
-        periodCoordinateView: caoBundle.descriptor,
-        temporalSurface,
-        land: [],
-        countries: temporalCountries === undefined ? [] : [...temporalCountries.countries],
-        poiCoordinates,
-        sourceIds: [...new Set([
-          ...retimedSnapshot.sourceIds,
-          "cao-plate-model-2024-v2-4",
-          "stein-stein-gdh1-1992",
-        ])],
-        evidence: "synthesis",
-        caveat: `${retimedSnapshot.caveat} Cao-frame continental heights use a documented model-conversion inference; unsupported material is masked with neutral low relief. Ocean motion and dated boundaries are target-native Cao geometry.`,
-      };
-    }
-    if (
-      retimedSnapshot?.temporalSurface === undefined ||
-      retimedSnapshot.temporalReferences === undefined ||
-      retimedSnapshot.temporalSurface.exactEndpoint ||
-      periodCoordinateResolver === null || motionCatalog === null
-    ) return retimedSnapshot === null || temporalCountries === undefined
-      ? retimedSnapshot
-      : { ...retimedSnapshot, countries: [...temporalCountries.countries] };
-    const source = retimedSnapshot.temporalReferences.younger;
-    const poiCoordinates = Object.fromEntries(retimedSnapshot.poiIds.flatMap((id) => {
-      const coordinates = source.poiCoordinates[id];
-      const plateId = motionCatalog.poiPlateIds[id];
-      if (coordinates === undefined || plateId === undefined) return [];
-      const resolved = periodCoordinateResolver(
-        {
-          frame: paleomapCoordinateFrame(motionCatalog),
-          plateId,
-          sourceAgeMa: source.ageMa,
-          coordinates,
-        },
-        retimedSnapshot.requestedAgeMa ?? retimedSnapshot.ageMa,
-      );
-      return resolved === undefined ? [] : [[id, resolved]];
-    }));
-    return {
-      ...retimedSnapshot,
-      countries: temporalCountries === undefined
-        ? retimedSnapshot.countries
-        : [...temporalCountries.countries],
-      poiCoordinates,
-    };
-  }, [caoBundle, caoCoordinateAgeMa, coordinateView, motionCatalog, motionLoadError, periodCoordinateResolver, retimedSnapshot, temporalCountries]);
+  const retimedSnapshot = snapshot;
+  const displayedSnapshot = retimedSnapshot;
   const temporalPoiCoordinates = useMemo<Readonly<Record<string, LonLat>> | undefined>(() => {
-    if (coordinateView !== "cao") return displayedSnapshot?.poiCoordinates;
-    if (retimedSnapshot === null || caoBundle === null || motionCatalog === null) return undefined;
-    return Object.fromEntries(retimedSnapshot.poiIds.flatMap((id) => {
-      const poi = pointsOfInterest.find((candidate) => candidate.id === id);
-      const plateId = motionCatalog.poiPlateIds[id];
-      if (poi?.coordinates === undefined || plateId === undefined) return [];
-      const resolved = caoBundle.crosswalk.resolveSourcePoint({
-        frame: paleomapCoordinateFrame(motionCatalog),
-        plateId,
-        sourceAgeMa: 0,
-        coordinates: poi.coordinates,
-      }, caoStagedCoordinateAgeMa);
-      return resolved.status === "resolved" ? [[id, resolved.targetCoordinates]] : [];
-    }));
-  }, [caoBundle, caoStagedCoordinateAgeMa, coordinateView, displayedSnapshot?.poiCoordinates, motionCatalog, retimedSnapshot]);
-  const expectedSnapshotKey = coordinateView === "cao" && caoBundle !== null
-    ? `${caoBundle.descriptor.id}:${desiredSnapshotKey}`
-    : desiredSnapshotKey;
-  const contextSnapshot = ageMa <= 540
-    ? motionLoadError !== null
-      ? displayedSnapshot?.id.endsWith(`__${desiredSnapshotKey}`) ? displayedSnapshot : null
-      : displayedSnapshot?.temporalSurface?.intervalId === expectedSnapshotKey ? displayedSnapshot : null
-    : displayedSnapshot?.id === `${closestChapter(ageMa).id}__scenario` ? displayedSnapshot : null;
+    if (ageMa > 540) return undefined;
+    return caoRevision === null ? undefined : caoAnchorCoordinates;
+  }, [ageMa, caoAnchorCoordinates, caoRevision]);
+  const contextSnapshot = displayedSnapshot;
+  const renderedEvidence = caoRevision === null ? "unknown" as const
+    : caoRevision.display.fraction === 0 || caoRevision.display.fraction === 1 ? "model-output" as const
+      : "interpolation" as const;
   const selectedPoiCoordinate = selectedPoi
-    ? poiDisplayCoordinate(selectedPoi, contextSnapshot, ageMa)
+    ? temporalPoiCoordinates?.[selectedPoi.id]
     : undefined;
-  const requestedEnvironment = useMemo(() => environmentForAge(ageMa), [ageMa]);
-  const activeTemporalSurface = useMemo(() => {
-    if (ageMa > 540 || displayedSnapshot?.temporalSurface === undefined) return displayedSnapshot?.temporalSurface;
-    const bracket = resolvePaleodemAgeBracket(ageMa);
-    const sourceIntervalId = bracket.exact
-      ? `paleodem-${bracket.youngerAgeMa}ma`
-      : `paleodem-${bracket.youngerAgeMa}-${bracket.olderAgeMa}ma`;
-    const intervalId = coordinateView === "cao" && caoBundle !== null
-      ? `${caoBundle.descriptor.id}:${sourceIntervalId}`
-      : sourceIntervalId;
-    return displayedSnapshot.temporalSurface.intervalId === intervalId
-      ? { ...displayedSnapshot.temporalSurface, requestedAgeMa: ageMa, fraction: bracket.fraction }
-      : displayedSnapshot.temporalSurface;
-  }, [ageMa, caoBundle, coordinateView, displayedSnapshot]);
   const currentPois = useMemo(
     () => pointsOfInterest
       .filter((poi) => pointOfInterestIncludesAge(poi, ageMa))
@@ -445,90 +334,11 @@ export default function App() {
     [ageMa],
   );
 
-  const loadSnapshot = useCallback(async (age: number) => {
-    snapshotRequestController.current?.abort();
-    const controller = new AbortController();
-    snapshotRequestController.current = controller;
-    const direction = Math.sign(age - previousRequestedAge.current);
-    previousRequestedAge.current = age;
-    const requestKey = snapshotLoadKey(age);
-    setLoading(true);
+  useEffect(() => {
+    setSnapshot(editorialSnapshotForAge(ageMa));
+    setLoading(false);
     setLoadError(null);
-    try {
-      const next = await getSnapshot(age, controller.signal);
-      if (requestedSnapshotKeyRef.current === requestKey && !controller.signal.aborted) {
-        setSnapshot(retimeSnapshot(next, requestedAgeRef.current));
-        const temporal = next.temporalSurface;
-        if (temporal !== undefined && direction !== 0) {
-          const candidate = direction > 0
-            ? temporal.older.ageMa + 5
-            : temporal.younger.ageMa - 5;
-          if (candidate >= 0 && candidate <= 540) void prefetchPaleodemAge(candidate).catch(() => {});
-        }
-      }
-    } catch (error) {
-      if (requestedSnapshotKeyRef.current === requestKey && !controller.signal.aborted) {
-        setLoadError(error instanceof Error ? error.message : "This reconstruction could not be loaded.");
-      }
-    } finally {
-      if (requestedSnapshotKeyRef.current === requestKey && !controller.signal.aborted) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadSnapshot(ageMa);
-  }, [desiredSnapshotKey, loadSnapshot]);
-
-  useEffect(() => () => snapshotRequestController.current?.abort(), []);
-
-  useEffect(() => {
-    let active = true;
-    void loadPeriodMotionCatalog().then((catalog) => {
-      if (!active) return;
-      setMotionCatalog(catalog);
-      setPeriodCoordinateResolver(() => createPeriodCoordinateResolver(catalog));
-      setMotionLoadError(null);
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setPeriodCoordinateResolver(null);
-      setMotionLoadError(error instanceof Error ? error.message : "Plate motion could not be loaded");
-    });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (motionLoadError !== null && coordinateView === "cao") {
-      setCaoLoadError("Cao coordinates require the PALEOMAP source-motion crosswalk");
-      setCoordinateView("paleomap");
-    }
-  }, [coordinateView, motionLoadError]);
-
-  useEffect(() => {
-    if (coordinateView !== "cao" || motionCatalog === null) {
-      caoRequestController.current?.abort();
-      return;
-    }
-    if (caoBundle !== null) return;
-    caoRequestController.current?.abort();
-    const controller = new AbortController();
-    caoRequestController.current = controller;
-    setCaoLoadError(null);
-    void Promise.all([
-      loadCaoCoordinateViewBundle(motionCatalog),
-      getSnapshot(0, controller.signal),
-    ]).then(([bundle, present]) => {
-      if (controller.signal.aborted) return;
-      setCaoBundle(bundle);
-      setCaoPresentTracking(present.areaTracking ?? null);
-    }).catch((error: unknown) => {
-      if (controller.signal.aborted) return;
-      setCaoLoadError(error instanceof Error ? error.message : "Cao coordinate view could not be loaded");
-      setCoordinateView("paleomap");
-    });
-    return () => controller.abort();
-  }, [caoBundle, coordinateView, motionCatalog]);
-
-  useEffect(() => () => caoRequestController.current?.abort(), []);
+  }, [ageMa]);
 
   const handleStats = useCallback((next: GlobeStats) => {
     const now = performance.now();
@@ -545,25 +355,16 @@ export default function App() {
       .map(([key]) => key);
     params.set("layers", visibleLayers.join(","));
     params.set("relief", String(verticalExaggeration));
-    if (surfaceMode === "seafloor") params.set("view", "seafloor");
-    if (coordinateView === "cao") params.set("coordinates", "cao");
+    params.set("coordinates", "cao");
     if (selectedPoiId) params.set("focus", selectedPoiId);
     else if (spatialFocus?.kind === "place") params.set("place", spatialFocus.placeId);
-    else if (caoFocusDescriptor !== null && coordinateView === "cao") {
-      params.set("material", serializeCaoMaterialFocusDescriptor(caoFocusDescriptor));
-      if (spatialFocus?.kind === "area" && areaFocusStatus === "resolved") {
-        params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
-      }
-    } else if (areaFocusDescriptor !== null) {
-      params.set("track", serializeAreaFocusDescriptor(areaFocusDescriptor));
-      if (spatialFocus?.kind === "area" && areaFocusStatus === "resolved") {
-        params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
-      }
+    else if (materialFocusAddress !== null) {
+      params.set("material", serializeMaterialAddress(materialFocusAddress));
     } else if (spatialFocus?.kind === "area") {
       params.set("at", serializeFocusCoordinates(spatialFocus.coordinates));
     }
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${params}`);
-  }, [ageMa, areaFocusDescriptor, areaFocusStatus, caoFocusDescriptor, coordinateView, layers, selectedPoiId, spatialFocus, surfaceMode, verticalExaggeration]);
+  }, [ageMa, layers, materialFocusAddress, selectedPoiId, spatialFocus, verticalExaggeration]);
 
   useEffect(() => {
     if (!playing || orderedSlices.length === 0) return;
@@ -636,134 +437,10 @@ export default function App() {
   }, [selectedPoi, selectedPoiCoordinate]);
 
   useEffect(() => {
-    if (caoFocusDescriptor === null) return;
-    if (coordinateView !== "cao") {
-      setAreaFocusStatus(null);
-      setSpatialFocus((current) => current?.kind === "area" ? null : current);
-      return;
-    }
-    if (caoFocusResolver === null) {
-      setAreaFocusStatus("resolving");
-      return;
-    }
-    const coordinates = caoFocusResolver.resolve(caoFocusDescriptor, caoCoordinateAgeMa);
-    if (coordinates === undefined) {
-      setAreaFocusStatus("unresolved");
-      setSpatialFocus((current) => current?.kind === "area" ? null : current);
-      return;
-    }
-    setAreaFocusStatus("resolved");
-    setAutoRotateEnabled(false);
-    const preserveDistance = areaFocusHasResolved.current;
-    areaFocusHasResolved.current = true;
-    setSpatialFocus((current) => {
-      if (current?.kind === "area" && Math.abs(current.coordinates[0] - coordinates[0]) < 0.0001 &&
-          Math.abs(current.coordinates[1] - coordinates[1]) < 0.0001) return current;
-      return { kind: "area", coordinates, nonce: ++focusNonce.current,
-        distance: current?.kind === "area" || preserveDistance ? undefined : 1.82 };
-    });
-  }, [caoCoordinateAgeMa, caoFocusDescriptor, caoFocusResolver, coordinateView]);
-
-  useEffect(() => {
-    if (caoFocusDescriptor !== null) return;
-    if (areaFocusDescriptor === null) return;
-    if (contextSnapshot === null) {
-      setAreaFocusStatus("resolving");
-      return;
-    }
-    if (contextSnapshot.areaTracking === undefined) {
-      setAreaFocusStatus("unresolved");
-      setSpatialFocus((current) => current?.kind === "area" ? null : current);
-      return;
-    }
-    const referenceCandidates = contextSnapshot.temporalReferences === undefined
-      ? [contextSnapshot.areaTracking]
-      : [
-          contextSnapshot.temporalReferences.younger.areaTracking,
-          contextSnapshot.temporalReferences.older.areaTracking,
-        ];
-    const candidate = referenceCandidates
-      .map((tracking) => ({
-        tracking,
-        resolution: resolveAreaFocusDescriptor(tracking, areaFocusDescriptor),
-      }))
-      .find(({ tracking, resolution }) => {
-        if (resolution.status !== "resolved") return false;
-        const part = tracking.catalog.parts[areaFocusDescriptor.partId];
-        const feature = part === undefined ? undefined : tracking.catalog.features[part.feature];
-        if (feature === undefined) return false;
-        const [oldest, youngest] = feature.validTimeMa;
-        return (oldest === null || ageMa <= oldest) && (youngest === null || ageMa >= youngest);
-      });
-    if (candidate === undefined) {
-      setAreaFocusStatus("unresolved");
-      setSpatialFocus((current) => current?.kind === "area" ? null : current);
-      return;
-    }
-    const { tracking, resolution } = candidate;
-    if (resolution.status !== "resolved") return;
-    const part = tracking.catalog.parts[areaFocusDescriptor.partId];
-    const feature = part === undefined ? undefined : tracking.catalog.features[part.feature];
-    const displayCoordinates: LonLat | undefined = feature?.plateId == null || motionCatalog === null ||
-        !trackingMatchesMotion(tracking, motionCatalog)
-      ? undefined
-      : coordinateView === "cao"
-        ? (() => {
-            const result = caoBundle?.crosswalk.resolveSourcePoint({
-            frame: paleomapCoordinateFrame(motionCatalog),
-            plateId: feature.plateId,
-            sourceAgeMa: tracking.ageMa,
-            coordinates: resolution.coordinates,
-            }, caoCoordinateAgeMa);
-            return result?.status === "resolved" ? result.targetCoordinates : undefined;
-          })()
-        : Math.abs(tracking.ageMa - ageMa) < 1e-9
-          ? resolution.coordinates
-          : periodCoordinateResolver?.({
-              frame: paleomapCoordinateFrame(motionCatalog),
-              plateId: feature.plateId,
-              sourceAgeMa: tracking.ageMa,
-              coordinates: resolution.coordinates,
-            }, ageMa);
-    if (displayCoordinates === undefined) {
-      setAreaFocusStatus(coordinateView === "cao" && caoBundle === null || periodCoordinateResolver === null ? "resolving" : "unresolved");
-      setSpatialFocus((current) => current?.kind === "area" ? null : current);
-      return;
-    }
-    setAreaFocusStatus("resolved");
-    setAutoRotateEnabled(false);
-    const preserveDistance = areaFocusHasResolved.current;
-    areaFocusHasResolved.current = true;
-    setSpatialFocus((current) => {
-      if (
-        current?.kind === "area" &&
-        Math.abs(current.coordinates[0] - displayCoordinates[0]) < 0.0001 &&
-        Math.abs(current.coordinates[1] - displayCoordinates[1]) < 0.0001
-      ) return current;
-      return {
-        kind: "area",
-        coordinates: displayCoordinates,
-        nonce: ++focusNonce.current,
-        distance: current?.kind === "area" || preserveDistance
-          ? undefined
-          : 1.82,
-      };
-    });
-  }, [ageMa, areaFocusDescriptor, caoBundle, caoCoordinateAgeMa, caoFocusDescriptor, contextSnapshot, coordinateView, motionCatalog, periodCoordinateResolver]);
-
-  useEffect(() => {
     if (ageMa <= 0.0001) return;
     setSelectedLandscapeId(null);
     setSpatialFocus((current) => current?.kind === "place" ? null : current);
   }, [ageMa]);
-
-  useEffect(() => {
-    if (ageMa > 540 && coordinateView === "cao") setCoordinateView("paleomap");
-  }, [ageMa, coordinateView]);
-
-  useEffect(() => {
-    if (coordinateView === "paleomap") setPeriodCoordinateState({ status: null });
-  }, [coordinateView]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -840,12 +517,10 @@ export default function App() {
     if (!poi || !pointOfInterestIncludesAge(poi, ageMa)) return;
     setSelectedPoiId(id);
     setSelectedLandscapeId(null);
-    setAreaFocusDescriptor(null);
-    setCaoFocusDescriptor(null);
+    setMaterialFocusAddress(null);
     setAreaFocusStatus(null);
-    areaFocusHasResolved.current = false;
     if (openNotes) setPanel("notes");
-    const coordinates = poiDisplayCoordinate(poi, contextSnapshot, ageMa);
+    const coordinates = temporalPoiCoordinates?.[poi.id];
     if (coordinates) {
       setAutoRotateEnabled(false);
       setSpatialFocus({
@@ -863,18 +538,16 @@ export default function App() {
     }
   };
 
-  const selectSurface = (coordinates: LonLat) => {
+  const selectSurface = (coordinates: LonLat, address?: MaterialAddress) => {
     setAutoRotateEnabled(false);
     if (
       spatialFocus !== null || selectedPoiId !== null ||
-      selectedLandscapeId !== null || areaFocusDescriptor !== null || caoFocusDescriptor !== null
+      selectedLandscapeId !== null || materialFocusAddress !== null
     ) {
       setSelectedPoiId(null);
       setSelectedLandscapeId(null);
-      setAreaFocusDescriptor(null);
-      setCaoFocusDescriptor(null);
+      setMaterialFocusAddress(null);
       setAreaFocusStatus(null);
-      areaFocusHasResolved.current = false;
       poiFocusHasResolved.current = false;
       setSpatialFocus(null);
       return;
@@ -882,51 +555,8 @@ export default function App() {
     setSelectedPoiId(null);
     poiFocusHasResolved.current = false;
     setSelectedLandscapeId(null);
-    if (coordinateView === "cao") {
-      const descriptor = caoFocusResolver?.create(coordinates, caoCoordinateAgeMa) ?? null;
-      setAreaFocusDescriptor(null);
-      setCaoFocusDescriptor(descriptor);
-      setAreaFocusStatus(descriptor === null ? "unresolved" : "resolved");
-      areaFocusHasResolved.current = descriptor !== null;
-      setSpatialFocus({ kind: "area", coordinates, nonce: ++focusNonce.current, distance: 1.82 });
-      return;
-    }
-    setCaoFocusDescriptor(null);
-    const temporalReferences = contextSnapshot?.temporalReferences;
-    const tracking = temporalReferences?.younger.areaTracking ?? contextSnapshot?.areaTracking;
-    let trackingCoordinates: LonLat | undefined = coordinates;
-    if (
-      tracking !== undefined && contextSnapshot?.temporalSurface !== undefined &&
-      !contextSnapshot.temporalSurface.exactEndpoint
-    ) {
-      const material = motionCatalog === null || !trackingMatchesMotion(tracking, motionCatalog)
-        ? null
-        : createPeriodMaterialResolver(motionCatalog, ageMa)
-          .resolveAt(lonLatToPeriodDirection(coordinates));
-      trackingCoordinates = material === null
-        ? undefined
-        : periodDirectionToLonLat(material.youngerDirection);
-    }
-    let descriptor = tracking === undefined || trackingCoordinates === undefined
-      ? null
-      : createAreaFocusDescriptor(tracking, trackingCoordinates, 25 * Math.PI / 180);
-    if (descriptor === null && temporalReferences !== undefined &&
-      temporalReferences.older.areaTracking !== tracking && motionCatalog !== null &&
-      trackingMatchesMotion(temporalReferences.older.areaTracking, motionCatalog)
-    ) {
-      const material = createPeriodMaterialResolver(motionCatalog, ageMa)
-        .resolveAt(lonLatToPeriodDirection(coordinates));
-      if (material !== null) {
-        descriptor = createAreaFocusDescriptor(
-          temporalReferences.older.areaTracking,
-          periodDirectionToLonLat(material.olderDirection),
-          25 * Math.PI / 180,
-        );
-      }
-    }
-    setAreaFocusDescriptor(descriptor);
-    setAreaFocusStatus(descriptor === null ? null : "resolved");
-    areaFocusHasResolved.current = descriptor !== null;
+    setMaterialFocusAddress(address ?? null);
+    setAreaFocusStatus(address === undefined ? "unresolved" : "resolved");
     setSpatialFocus({
       kind: "area",
       coordinates,
@@ -948,10 +578,8 @@ export default function App() {
     setSelectedLandscapeId(null);
     setSelectedPoiId(null);
     poiFocusHasResolved.current = false;
-    setAreaFocusDescriptor(null);
-    setCaoFocusDescriptor(null);
+    setMaterialFocusAddress(null);
     setAreaFocusStatus(null);
-    areaFocusHasResolved.current = false;
     setSpatialFocus(null);
     setAutoRotateEnabled(true);
     setResetNonce((value) => value + 1);
@@ -982,12 +610,9 @@ export default function App() {
     setSelectedLandscapeId(preset?.id ?? null);
     setSelectedPoiId(null);
     poiFocusHasResolved.current = false;
-    setAreaFocusDescriptor(null);
-    setCaoFocusDescriptor(null);
+    setMaterialFocusAddress(null);
     setAreaFocusStatus(null);
-    areaFocusHasResolved.current = false;
     setLayers((current) => ({ ...current, clouds: false }));
-    if (preset) setSurfaceMode(preset.surfaceMode);
     if (!preset) {
       setSpatialFocus(null);
       setAutoRotateEnabled(true);
@@ -1015,10 +640,9 @@ export default function App() {
     }
   };
 
-  const activeSourceIds = new Set([
-    ...(contextSnapshot?.sourceIds ?? []),
-    ...(selectedLandscape?.sourceIds ?? []),
-  ]);
+  const activeSourceIds = new Set(ageMa <= 540
+    ? ["cao-plate-model-2024-v2-4"]
+    : contextSnapshot?.sourceIds ?? []);
   const snapshotSources = sources.filter((source) => activeSourceIds.has(source.id));
   const poiSources = sources.filter((source) => selectedPoi?.sourceIds.includes(source.id));
   const scenarioLike = chapter.ageMa > 540;
@@ -1085,12 +709,8 @@ export default function App() {
 
       <section className="globe-stage" aria-label="Interactive Earth reconstruction">
         <GlobeView
+          caoRevision={caoRevision}
           snapshot={displayedSnapshot}
-          temporalSurface={activeTemporalSurface}
-          temporalCountries={temporalCountries}
-          temporalPoiCoordinates={temporalPoiCoordinates}
-          temporalPoiAgeMa={coordinateView === "cao" ? caoStagedCoordinateAgeMa : displayedSnapshot?.requestedAgeMa ?? displayedSnapshot?.ageMa}
-          temporalEnvironment={requestedEnvironment}
           layers={layers}
           selectedPoiId={selectedPoiId}
           onSelectPoi={(id: string) => openPoi(id)}
@@ -1102,7 +722,6 @@ export default function App() {
           autoRotate={!reducedMotion && autoRotateEnabled}
           quality={quality}
           verticalExaggeration={verticalExaggeration}
-          surfaceMode={surfaceMode}
         />
         <div className="stage-vignette" aria-hidden="true" />
         {loading && <div className="loading-state"><span /> Resolving {formatAge(ageMa)}</div>}
@@ -1110,33 +729,22 @@ export default function App() {
           <div className="error-state" role="alert">
             <p>Reconstruction unavailable</p>
             <span>{loadError}</span>
-            <button type="button" onClick={() => loadSnapshot(ageMa)}>Try again</button>
+            <button type="button" onClick={() => setSnapshot(editorialSnapshotForAge(ageMa))}>Try again</button>
           </div>
         )}
-        <div className="surface-legend" aria-label={`${surfaceMode === "seafloor" ? "Exposed seafloor view, " : "Surface-water view, "}${layers.guides ? "schematic climatological reference guides, " : ""}visual terrain relief ${verticalExaggeration} times`}>
-          <span>{surfaceMode === "seafloor" ? "Exposed seafloor" : "Surface water"}</span>
+        <div className="surface-legend" aria-label={`Surface-water view, ${layers.guides ? "schematic climatological reference guides, " : ""}Cao reconstruction with unknown elevation`}>
+          <span>Surface water</span>
           {layers.guides && <span>Schematic climate guides</span>}
-          {contextSnapshot?.temporalSurface !== undefined && !contextSnapshot.temporalSurface.exactEndpoint && (
-            <span>{formatAge(contextSnapshot.temporalSurface.younger.ageMa)}–{formatAge(contextSnapshot.temporalSurface.older.ageMa)} · partial motion coverage</span>
-          )}
-          {motionLoadError !== null && ageMa <= 540 && (
-            <span role="status">Plate motion unavailable · nearest native source frame</span>
-          )}
-          {coordinateView === "cao" && caoBundle === null && (
-            <span role="status">Preparing Cao coordinate view…</span>
-          )}
-          {coordinateView === "cao" && caoBundle !== null && (
-            <span role="status">Cao coordinates · {periodCoordinateState.status === "ready"
-              ? "partial converted relief"
-              : periodCoordinateState.status === "error" ? "render unavailable"
-                : periodCoordinateState.status === "unsupported" ? "boundary interval unsupported"
-                  : "updating"}</span>
-          )}
+          <span role="status">Cao native foundation · {ageMa > 540 ? "outside compiled domain"
+            : periodCoordinateState.status === "ready"
+            ? "rendered"
+            : periodCoordinateState.status === "error" ? "render unavailable"
+              : caoRevision === null ? "preparing" : "updating"}</span>
           {caoLoadError !== null && (
-            <span role="status">Cao coordinates unavailable · PALEOMAP retained</span>
+            <span role="status">Cao reconstruction unavailable · surface withheld</span>
           )}
-          {areaFocusStatus === "unresolved" && <span role="status">Tracked {coordinateView === "cao" ? "material" : "land"} unavailable at this age · tag retained</span>}
-          Visual relief <strong>{verticalExaggeration}×</strong>
+          {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
+          Height data unknown <strong>{verticalExaggeration}× reserved</strong>
         </div>
       </section>
 
@@ -1154,7 +762,7 @@ export default function App() {
         <div className="context-heading">
           <div className="context-topline">
             <span className="index-label">Chapter {String(chapterNumber).padStart(2, "0")}</span>
-            <span className="view-evidence"><i>Rendered view</i><EvidenceBadge status={contextSnapshot?.evidence ?? chapter.evidence} /></span>
+            <span className="view-evidence"><i>Rendered view</i><EvidenceBadge status={renderedEvidence} /></span>
           </div>
           <p className="era-line">{chapter.eon} <span>·</span> {chapter.period}</p>
           <h1>{chapter.label}</h1>
@@ -1162,11 +770,13 @@ export default function App() {
         </div>
         <div id="chapter-context-details" className="context-details">
           <p className="geography-age">
-            Geography source <strong>{loading ? "Resolving…" : formatSnapshotSource(contextSnapshot, motionLoadError !== null)}</strong>
+            Geography source <strong>{ageMa > 540 ? "Outside compiled domain · editorial scene" :
+              caoRevision === null ? "Awaiting native Cao package" :
+              caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
+                ? `${caoRevision.display.youngerAgeMa} Ma native Cao checkpoint`
+                : `${caoRevision.display.youngerAgeMa}–${caoRevision.display.olderAgeMa} Ma native Cao controls`}</strong>
           </p>
-          {coordinateView === "cao" && (
-            <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · partial coverage</strong></p>
-          )}
+          <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · source-qualified coverage</strong></p>
           <p className="chapter-copy">{chapter.description}</p>
           {scenarioLike && <span className="scenario-label"><Aperture size={13} /> Illustrative scene · geography unresolved</span>}
 
@@ -1205,20 +815,21 @@ export default function App() {
               <label htmlFor="source-age-jump">Jump to reconstruction</label>
               <select
                 id="source-age-jump"
-                value={contextSnapshot?.temporalSurface !== undefined && !contextSnapshot.temporalSurface.exactEndpoint
-                  ? "interpolated"
-                  : String(contextSnapshot?.geographicSourceAgeMa ?? "")}
+                value={caoRevision === null ? ""
+                  : caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
+                    ? String(caoRevision.display.youngerAgeMa)
+                    : "interpolated"}
                 onChange={(event) => changeAge(Number(event.target.value))}
               >
-                {contextSnapshot === null && <option value="">Resolving source age…</option>}
-                {contextSnapshot?.temporalSurface !== undefined && !contextSnapshot.temporalSurface.exactEndpoint && (
+                {caoRevision === null && <option value="">Resolving source age…</option>}
+                {caoRevision !== null && caoRevision.display.youngerAgeMa !== caoRevision.display.olderAgeMa && (
                   <option value="interpolated" disabled>
                     {formatAge(ageMa)} · interpolated
                   </option>
                 )}
-                {PALEODEM_AGES.map((sourceAge) => (
+                {caoSourceAges.map((sourceAge) => (
                   <option key={sourceAge} value={sourceAge}>
-                    {sourceAge === 0 ? "0 Ma · present-day grid" : `${sourceAge} Ma · PALEOMAP`}
+                    {sourceAge} Ma · native Cao
                   </option>
                 ))}
               </select>
@@ -1257,12 +868,10 @@ export default function App() {
 
       <Timeline
         ageMa={ageMa}
-        geographicSourceAgeMa={contextSnapshot?.geographicSourceAgeMa}
-        geographicSourceAgeBracketMa={motionLoadError === null
-          ? contextSnapshot?.geographicSourceAgeBracketMa
-          : contextSnapshot?.geographicSourceAgeMa === undefined
-            ? undefined
-            : [contextSnapshot.geographicSourceAgeMa, contextSnapshot.geographicSourceAgeMa]}
+        geographicSourceAgeMa={caoRevision !== null && caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
+          ? caoRevision.display.youngerAgeMa : undefined}
+        geographicSourceAgeBracketMa={caoRevision === null ? undefined
+          : [caoRevision.display.youngerAgeMa, caoRevision.display.olderAgeMa]}
         slices={timeSlices}
         playing={playing}
         onPlayingChange={handlePlayingChange}
@@ -1280,33 +889,13 @@ export default function App() {
               <span className={`switch ${layers[key] ? "is-on" : ""}`} aria-label={`${label} ${layers[key] ? "on" : "off"}`}><i /></span>
             </button>
           ))}
-          <button
-            type="button"
-            aria-pressed={surfaceMode === "seafloor"}
-            onClick={() => setSurfaceMode((current) => current === "surface" ? "seafloor" : "surface")}
-          >
+          <button type="button" aria-disabled="true" disabled>
             <span className="layer-icon"><Waves size={18} /></span>
             <span>
-              <strong>Expose seafloor</strong>
-              <small>Reveal ocean-floor terrain beneath the water.</small>
+              <strong>Seafloor unavailable</strong>
+              <small>The Cao foundation has no qualified ocean-floor age or depth field.</small>
             </span>
-            <span className={`switch ${surfaceMode === "seafloor" ? "is-on" : ""}`} aria-label={`Exposed seafloor ${surfaceMode === "seafloor" ? "on" : "off"}`}><i /></span>
-          </button>
-          <button
-            type="button"
-            disabled={ageMa > 540}
-            aria-pressed={coordinateView === "cao"}
-            onClick={() => {
-              setCaoLoadError(null);
-              setCoordinateView((current) => current === "cao" ? "paleomap" : "cao");
-            }}
-          >
-            <span className="layer-icon"><Map size={18} /></span>
-            <span>
-              <strong>Cao plate coordinates</strong>
-              <small>Partial target-frame view; unsupported converted relief is neutral-masked.</small>
-            </span>
-            <span className={`switch ${coordinateView === "cao" ? "is-on" : ""}`} aria-label={`Cao plate coordinates ${coordinateView === "cao" ? "on" : "off"}`}><i /></span>
+            <span className="switch" aria-label="Exposed seafloor unavailable"><i /></span>
           </button>
           <div className="relief-control">
             <label htmlFor="relief-scale"><strong>Terrain relief</strong><small>Visual vertical exaggeration; source elevations are unchanged.</small></label>
@@ -1364,7 +953,7 @@ export default function App() {
             {currentPois.map((poi, index) => (
               <button type="button" key={poi.id} onClick={() => openPoi(poi.id, false)}>
                 <span className="note-index">{String(index + 1).padStart(2, "0")}</span>
-                <span><small>{poi.category} · {formatAge(poi.ageStartMa)}{contextSnapshot?.poiCoordinates?.[poi.id] ? " · Located now" : contextSnapshot?.poiIds.includes(poi.id) ? " · This chapter" : ""}</small><strong>{poi.title}</strong><i>{poi.subtitle ?? poi.locationNote}</i></span>
+                <span><small>{poi.category} · {formatAge(poi.ageStartMa)}{temporalPoiCoordinates?.[poi.id] ? " · Native anchor" : contextSnapshot?.poiIds.includes(poi.id) ? " · This chapter" : ""}</small><strong>{poi.title}</strong><i>{poi.subtitle ?? poi.locationNote}</i></span>
                 <span aria-hidden="true">↗</span>
               </button>
             ))}

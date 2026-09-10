@@ -2,6 +2,40 @@
 
 All notable changes to EarthHistory will be recorded here.
 
+## [0.1.3] - 2026-09-10
+
+### Changed
+
+- Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 109 native
+  checkpoints from 0–540 Ma and a shared, source-qualified motion clock.
+- Store geometry once and use one GPU rendering path for present-day and
+  ancient continents, country references and native tectonic boundaries.
+- Replace the previous PALEOMAP conversion, modern-only relief inputs, terrain
+  workers and caches with the native Cao package and bounded checkpoint loading.
+- Preserve the orbital interface, chapter navigation, field notes, globe guides
+  and WebGL2 fallback. Older chapters use explicitly editorial globe states.
+
+### Fixed
+
+- Keep tagged material and supported POIs on the same coordinate authority as
+  the globe, preserving camera distance through motion and support gaps.
+- Bind integer motion-palette attributes correctly on WebGL2.
+- Release superseded or unrenderable prepared states and withhold stale maps
+  after failed age changes.
+- Validate every nested scientific asset and its size and checksum.
+
+### Known limitations
+
+- This foundation deliberately uses neutral surfaces. Calibrated mountains,
+  bathymetry, shallow-sea masks, global seafloor ages and historical biome
+  detail are deferred; previous modern-only detail is no longer rendered.
+- Native coast-class polygons are model geography, not independently validated
+  exposed-land outlines. Unsupported country fragments and POIs are omitted.
+- Continental motion interpolates on its qualified source clock. Native
+  boundary and ownership geometry is available only at exact checkpoints.
+- The initial package covers 0–540 Ma; the model's older domain is not yet
+  compiled into the application.
+
 ## [0.1.2] - 2026-09-10
 
 ### Added

@@ -1,0 +1,515 @@
+{
+  "checks": {
+    "allStatesUniquelyOwned": true,
+    "plateOwnershipStable": true,
+    "queryOrderDeterministic": true
+  },
+  "counts": {
+    "activeStates": 24,
+    "ambiguousOrMissingCircuitStates": 0,
+    "eligibleRidgeSegments": 47,
+    "inactiveStates": 0,
+    "particles": 4,
+    "selectedRidgeSegments": 2,
+    "supportedStates": 24
+  },
+  "epistemicStatus": "model-seeded bounded material-point trace; offset seeds are generated controls, not exact ridge births",
+  "model": {
+    "anchorPlateId": 0,
+    "id": "cao-et-al-2024",
+    "license": "CC-BY-4.0",
+    "pyGPlatesVersion": "1.0.0",
+    "referenceFrame": "palaeomagnetic",
+    "retrievalDate": "2026-09-09T13:26:07Z",
+    "source": "https://doi.org/10.5281/zenodo.13628813",
+    "version": "2.4"
+  },
+  "mutation": {
+    "dropSeedIdRejected": true,
+    "swapSeedOrderRejected": true
+  },
+  "particles": [
+    {
+      "initialLatLon": [
+        -50.269766895208306,
+        111.77428860918576
+      ],
+      "seedId": "ridge-0-side-0",
+      "states": [
+        {
+          "active": true,
+          "ageMa": 5.0,
+          "latLon": [
+            -50.269766895208306,
+            111.77428860918576
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-2ccf5c87-8696-4d0d-b4e5-51d93be1f0a6",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 4.0,
+          "latLon": [
+            -50.447453190020006,
+            111.29525312345797
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-af2184e5-c8f5-4443-af78-95ee2f7a4317",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 3.0,
+          "latLon": [
+            -50.62175879307356,
+            110.81075693930485
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-3e509e5c-97e0-4741-8f13-61ae3fe2f3c7",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 2.0,
+          "latLon": [
+            -50.7926276061199,
+            110.32082858821582
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-ca577955-7e11-46d5-8b5d-4db162920b4d",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 1.0,
+          "latLon": [
+            -50.96000355475918,
+            109.8255009351204
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-27a20f52-5e2f-489d-b229-22280e172d91",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 0.0,
+          "latLon": [
+            -51.12383063813963,
+            109.32481130101728
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-a93abfbd-99fd-4a8b-86fe-20d273cccc0f",
+              "plateId": 802
+            }
+          ],
+          "status": "supported"
+        }
+      ]
+    },
+    {
+      "initialLatLon": [
+        -49.831194423706066,
+        111.92884212729051
+      ],
+      "seedId": "ridge-0-side-1",
+      "states": [
+        {
+          "active": true,
+          "ageMa": 5.0,
+          "latLon": [
+            -49.831194423706066,
+            111.92884212729051
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-a1034def-f4ba-4314-a877-cf73be5bee99",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 4.0,
+          "latLon": [
+            -49.41814082767195,
+            111.82107626075911
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-a1034def-f4ba-4314-a877-cf73be5bee99",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 3.0,
+          "latLon": [
+            -49.00534054237487,
+            111.7199603794122
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-9cb66c4e-cb77-461f-9e8c-00b3e4ac34a3",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 2.0,
+          "latLon": [
+            -48.59005016772592,
+            111.6149595449926
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-a9bcbdb8-1a5c-493f-927c-564934385750",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 1.0,
+          "latLon": [
+            -48.17313466503756,
+            111.50967585420977
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-2f10c261-f613-44bf-86b4-4ae8b439fc6b",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 0.0,
+          "latLon": [
+            -47.75645862253722,
+            111.41097084997682
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-8692d64e-fbdb-4723-ab67-efc63b6919da",
+              "plateId": 801
+            }
+          ],
+          "status": "supported"
+        }
+      ]
+    },
+    {
+      "initialLatLon": [
+        -45.32219614196373,
+        -16.88078034236061
+      ],
+      "seedId": "ridge-1-side-0",
+      "states": [
+        {
+          "active": true,
+          "ageMa": 5.0,
+          "latLon": [
+            -45.32219614196373,
+            -16.88078034236061
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-493ce6a9-fb3c-43b8-8741-7773ee065da9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 4.0,
+          "latLon": [
+            -44.8955735940217,
+            -17.11517299534382
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-493ce6a9-fb3c-43b8-8741-7773ee065da9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 3.0,
+          "latLon": [
+            -44.4703010973516,
+            -17.347381030828082
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-493ce6a9-fb3c-43b8-8741-7773ee065da9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 2.0,
+          "latLon": [
+            -44.046407647847296,
+            -17.577502758180092
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-49c33a05-31be-4689-88be-672e8fb785c9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 1.0,
+          "latLon": [
+            -43.62392184683482,
+            -17.805632446322146
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-49c33a05-31be-4689-88be-672e8fb785c9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 0.0,
+          "latLon": [
+            -43.20287192096189,
+            -18.031860508126826
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-49c33a05-31be-4689-88be-672e8fb785c9",
+              "plateId": 201
+            }
+          ],
+          "status": "supported"
+        }
+      ]
+    },
+    {
+      "initialLatLon": [
+        -45.27520499653611,
+        -16.24502203070183
+      ],
+      "seedId": "ridge-1-side-1",
+      "states": [
+        {
+          "active": true,
+          "ageMa": 5.0,
+          "latLon": [
+            -45.27520499653611,
+            -16.24502203070183
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-03bf7586-bcf3-4ff5-95a0-602f937ef656",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 4.0,
+          "latLon": [
+            -44.787617764705736,
+            -16.03450174254992
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-b9c6d887-9c6b-4d34-b22d-f26a7ea19c5f",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 3.0,
+          "latLon": [
+            -44.299270858733195,
+            -15.829279463079217
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-b9c6d887-9c6b-4d34-b22d-f26a7ea19c5f",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 2.0,
+          "latLon": [
+            -43.81018954703586,
+            -15.629201957502625
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-b9c6d887-9c6b-4d34-b22d-f26a7ea19c5f",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 1.0,
+          "latLon": [
+            -43.320398096834765,
+            -15.434121905200733
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-ebfc87fc-4d08-425a-870b-f0b81e0fff0f",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        },
+        {
+          "active": true,
+          "ageMa": 0.0,
+          "latLon": [
+            -42.829919822695494,
+            -15.243897643443452
+          ],
+          "owners": [
+            {
+              "featureId": "GPlates-ebfc87fc-4d08-425a-870b-f0b81e0fff0f",
+              "plateId": 701
+            }
+          ],
+          "status": "supported"
+        }
+      ]
+    }
+  ],
+  "policySha256": "2c37aa9e6c7cb5454df36d06254df01366670fbf68806f5c0a753026023e0dd1",
+  "researchDate": "2026-09-10",
+  "schemaVersion": 1,
+  "selection": [
+    {
+      "lengthRadians": 1.3950638931361672,
+      "ridgeFeatureId": "GPlates-71804fac-69f4-41bd-aabb-0fec8b6dfe96",
+      "seedOwnersAt5Ma": [
+        [
+          {
+            "featureId": "GPlates-2ccf5c87-8696-4d0d-b4e5-51d93be1f0a6",
+            "plateId": 802
+          }
+        ],
+        [
+          {
+            "featureId": "GPlates-a1034def-f4ba-4314-a877-cf73be5bee99",
+            "plateId": 801
+          }
+        ]
+      ],
+      "sharedSubSegmentIndex": 2,
+      "sourceSharingTopologies": [
+        {
+          "featureId": "GPlates-2ccf5c87-8696-4d0d-b4e5-51d93be1f0a6",
+          "plateId": 802
+        },
+        {
+          "featureId": "GPlates-a1034def-f4ba-4314-a877-cf73be5bee99",
+          "plateId": 801
+        }
+      ]
+    },
+    {
+      "lengthRadians": 1.3256637463132996,
+      "ridgeFeatureId": "GPlates-ee06ba59-be69-49d9-ac3a-64db1a838f8c",
+      "seedOwnersAt5Ma": [
+        [
+          {
+            "featureId": "GPlates-493ce6a9-fb3c-43b8-8741-7773ee065da9",
+            "plateId": 201
+          }
+        ],
+        [
+          {
+            "featureId": "GPlates-03bf7586-bcf3-4ff5-95a0-602f937ef656",
+            "plateId": 701
+          }
+        ]
+      ],
+      "sharedSubSegmentIndex": 0,
+      "sourceSharingTopologies": [
+        {
+          "featureId": "GPlates-03bf7586-bcf3-4ff5-95a0-602f937ef656",
+          "plateId": 701
+        },
+        {
+          "featureId": "GPlates-493ce6a9-fb3c-43b8-8741-7773ee065da9",
+          "plateId": 201
+        }
+      ]
+    }
+  ],
+  "sourceMembers": [
+    {
+      "path": "250-0_plate_boundaries.gpml",
+      "sha256": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4"
+    },
+    {
+      "path": "410-250_plate_boundaries.gpml",
+      "sha256": "6516dbac4d7928e7ad71244b0bbabc65eb25e6e89dc79d4becb9a82a25a6fc91"
+    },
+    {
+      "path": "1000-410_plate_boundaries.gpml",
+      "sha256": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1"
+    },
+    {
+      "path": "TopologyBuildingBlocks.gpml",
+      "sha256": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297"
+    },
+    {
+      "path": "1000_0_rotfile.rot",
+      "sha256": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c"
+    }
+  ],
+  "status": "resolved"
+}

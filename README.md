@@ -2,8 +2,11 @@
 
 EarthHistory is an interactive orbital atlas of Earth from planetary formation
 to the present. It combines a Three.js globe with a 37-chapter geological
-timeline, regional zoom, cited field notes, reconstructed present-day country
-references, and procedural terrain, ice, vegetation, clouds and drainage.
+timeline, regional zoom, cited field notes, and reconstructed present-day country
+references. Native Cao 2024 plate coordinates now form the
+shared geographic foundation; calibrated terrain and climate detail follow
+separately. See the [adoption record](docs/research/reconstruction-cao-foundation-adoption.md)
+for implementation and validation status.
 
 The runtime is fully static. It does not call map, terrain, scientific or paid
 data services after the page loads.
@@ -47,90 +50,63 @@ API credential. The production address is
 
 ## Explore the globe
 
-- Drag to orbit and use a wheel or pinch gesture to zoom from a global view to
-  an aerial regional view.
+- Drag to orbit and use a wheel or pinch gesture for an aerial regional view.
 - Scrub or play the timeline, step between chapters, or use the chapter picker.
-- Jump directly among all 109 PALEOMAP source frames at 5 Ma intervals from
-  0–540 Ma without replacing the separate authored chapter catalog.
-- Between source ages, follow supported material through its plate rotations
-  while elevation changes between registered source samples.
-- Select **Cao plate coordinates** in Layers to inspect the Cao 2024 v2.4
-  reconstruction, including model-derived ocean relief. Converted continental
-  heights have partial coverage; unsupported areas are explicitly masked.
-- Open **Layers** to toggle the modern-country reference, tectonics, inferred
-  drainage and clouds. Clouds start off so the surface remains readable.
-- Adjust **Terrain relief** from 1× to 30×. This changes display displacement;
-  it does not alter the source elevation values. The default is 8×.
-- Open field notes to inspect dated places and events. A globe-location action
-  appears only when the active reconstruction has a defensible display point.
-- Use **Share view** to copy the selected chapter, layers, relief and modern
-  landscape to the URL.
+- Jump among 109 Cao reconstruction checkpoints at 5 Ma intervals from 0–540 Ma.
+- Between checkpoints, follow supported material using its qualified motion
+  clock. Motion gaps remain explicit.
+- Use Layers for modern-country references, native tectonic references and
+  schematic globe guides. Exact tectonic geometry is available at marked ages;
+  unmatched boundary geometry is not interpolated.
+- Relief controls do not create source elevations. The initial Cao foundation
+  uses neutral height placeholders while calibrated relief remains deferred.
+- Open field notes for dated places and events. Location actions require a
+  defensible display point in the active reconstruction.
+- Share view records the current exploration state in the URL.
 
 ## Scientific data
 
-All 109 PALEOMAP PaleoDEM v2 source grids cover 0–540 Ma in 5 Ma steps. At
-intermediate ages, supported material is reconstructed into both neighboring
-source grids before elevation interpolation. Unsupported material uses an
-explicit discrete fallback. Chapter age, source ages and interpolation status
-remain separate; smooth movement is not additional geological evidence.
+The foundation uses [Cao et al. (2024), model v2.4](https://doi.org/10.5281/zenodo.13628813).
+Its coordinate core identifies the model, reference frame, anchor, material
+chart, reference age and validity. Geometry and motion are stored once;
+timesteps refer to changing controls. Present-day and ancient states use this
+same representation and GPU rendering path.
 
-The period-coordinate core names the model, version, reference frame, anchor,
-material identity and valid reference age. Terrain, country references and
-tagged locations use this contract, including vanished ocean crust. In the
-Cao view, ocean formation/loss controls and ridge/trench geometry come from
-the same model. Inferred thermal depth and boundary morphology are disclosed
-models, not measured ancient bathymetry. The complete PALEOMAP view remains
-the default because conversion into Cao coordinates has documented gaps.
+Native coast-class polygons remain model geometry. They are not an independently
+validated atlas of exposed land or shallow seas. Native boundaries preserve
+source types, polarity and adjacency. Resolved plate polygons provide
+instantaneous ownership, which does not establish persistent ocean material,
+seafloor age or crust formation history. Missing information stays explicit.
 
-Satellite-style albedo, bump and roughness detail give the coarse scientific
-controls a more natural appearance. This fine texture is procedural synthesis
-attached to the moving material; it does not increase the resolution or
-certainty of the reconstructed geography.
+Additional published geography, calibrated mountains and bathymetry, and
+historical climate/biome fields are deferred. The initial land shell's small
+rendering offset is not physical elevation. Smooth motion is interpolation
+within the model, rather than additional geological evidence.
 
-Earlier chapters are explicitly illustrative scenes. They express sourced
-stages such as accretion, a Moon-forming impact scenario, magma-ocean cooling,
-growing oceans, early life and global glaciation without claiming resolved
-Hadean, Archean or Proterozoic geography. Their procedural crust and climate
-fields are artistic or inferred controls, and the interface shows that status.
+Earlier chapters use explicit editorial inputs for formation, crust, ocean
+and ice scenarios through the same renderer. Native reconstructed geography
+is unavailable outside the initially compiled 0–540 Ma domain.
 
-Modern Natural Earth outlines are observed reference data. Deep-time country
-lines are present-day political references reconstructed with the selected
-plate model where it supports them; they are never presented as
-historical borders. Ancient rivers, detailed ice margins and biome boundaries
-remain inferred potential rather than mapped observations.
+Natural Earth country lines are modern reference data bound offline to Cao
+coordinates. Unsupported fragments are omitted. They are never historical
+political borders. POI evidence locations retain their publication uncertainty
+separately from the reconstruction model's positional support.
 
 See [the data guide](docs/data/README.md) for coordinate conventions,
-provenance, license terms, preparation commands and uncertainty. The exact
-runtime inventory, byte sizes and SHA-256 digests live in
-[`public/data/manifest.json`](public/data/manifest.json). Third-party software
-and data notices are collected in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+provenance, licensing and uncertainty. The exact inventory, byte sizes and
+SHA-256 digests live in [public/data/manifest.json](public/data/manifest.json).
+Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Reproduce the data
 
-Runtime controls are prepared offline; their exact sizes and checksums are
-recorded in the manifest. Existing preparation inputs use the bounded,
-gitignored `dev-docs/temp/earthhistory-data/` workspace. The larger palaeomap
-study owns a separate bounded source store at
-`../EarthHistory-data/palaeomap-study/`; research archives never enter the
-application build.
-
-```sh
-python3 scripts/prepare-data.py
-python3 scripts/prepare-data-countries.py
-python3 scripts/prepare-data-modern.py
-python3 scripts/prepare-data-relief.py
-python3 scripts/prepare-paleomap-motion.py
-python3 scripts/prepare-cao-ocean-motion.py
-python3 scripts/prepare-cao-continental-motion.py
-python3 scripts/prepare-cao-ocean-lifecycle.py
-```
-
-Country and plate-model preparation need pyGPlates 1.0. The Cao commands use
-the pinned, extracted model in the study source store; see each command's
-`--help` for explicit input paths. Preparation pins source archive
-checksums and rewrites the manifest. Do not regenerate checksums simply to make
-a validation failure disappear; verify any upstream change first.
+Runtime controls are prepared offline with pyGPlates 1.0 and pinned source
+inputs. The [compiler report](docs/research/reconstruction-cao-foundation-compiler.md)
+documents inventory, triangulation, motion qualification, country/POI binding
+and exact checkpoint export. The scientific source store is
+`../EarthHistory-data/palaeomap-study/`, bounded to 4 GiB; candidate foundation
+exports have a 64 MiB sub-bound. Research archives do not enter the app build.
+Preparation verifies source hashes before producing the public manifest.
+Do not regenerate checksums merely to hide a validation failure.
 
 ## Validate changes
 
@@ -147,34 +123,25 @@ TypeScript caches are limited to 100 MiB and can be removed with
 Playwright owns and replaces `test-results/` on each browser run; retained
 failure traces and screenshots are local diagnostics and are not published.
 
-The 2026-09-07 publication checkpoint on an Apple M4 with 16 GiB RAM and
-headless Chrome using Metal held orbit and regional frame p95 at 16.7–16.8 ms.
-Two camera-response measurements were 60.9 and 63.1 ms; regional request-to-ready
-measurements were 246.4 and 254.2 ms against a 250 ms target. One sample remains
-slightly over target. Generated-data cache use was about 7.9 MB, with no stale
-jobs, browser errors or external runtime requests in this run. These are local
-measurements, not a guarantee for other browsers or devices.
+Performance evidence for the native foundation belongs in the
+[adoption record](docs/research/reconstruction-cao-foundation-adoption.md).
+Earlier measurements describe the previous implementation and cannot establish
+the new renderer's readiness. Validate the actual production build on both
+backends and retain separate source-byte, CPU-memory and GPU-allocation ledgers.
 
 ## Current limitations
 
-- PaleoDEM is interpreted model output at its deposited 1° grid sampling. It is
-  suited to global and broad regional stories, not site-scale terrain.
-- Early-Earth geography is unresolved and deliberately non-geographic.
-- Present-day climate potential uses a 0.5° 1991–2020 Köppen–Geiger control;
-  it is a climate classification rather than mapped vegetation. Ancient
-  vegetation and ice retain broad era, latitude and elevation limits and are
-  not surveys, palaeoclimate simulations or observed ice outlines.
-- Seven modern regional views can lazily load 256² ETOPO relief patches.
-  They remain broad aerial controls rather than summit, valley or seafloor
-  survey detail.
-- The reference-driven material pass adds height-controlled rock and source-local
-  relief, but the current close views still have generalized land cover and
-  coastlines. They do not yet match the supplied satellite-map visual target.
-- Country references become less complete with age as unsupported fragments
-  disappear from the plate reconstruction.
-- The globe is an aerial experience. Close terrain flight, detailed basin
-  sections and subsurface geological or petroleum-system models are outside
-  this release.
+- The initial compiled native domain is 0–540 Ma; older chapters are editorial.
+- Cao model geometry does not supply calibrated elevations, exposed-land/shallow-
+  sea masks, global seafloor ages or historical biome maps in this foundation.
+- Country references and POIs have incomplete positional support. Unsupported
+  fragments and anchors remain unavailable rather than receiving invented motion.
+- Exact native boundary and ownership states do not imply qualified continuous
+  topology between checkpoints.
+- The visual target remains a natural globe with regional detail. The initial
+  foundation's neutral surfaces do not yet reproduce the satellite-map examples.
+- Close terrain flight, detailed basin sections and subsurface geological or
+  petroleum-system models remain outside the current scope.
 
 The project does not yet declare a license for its own source code. Dataset and
 dependency licenses apply only to their respective material.

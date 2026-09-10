@@ -61,7 +61,7 @@ def check(root: Path, max_mb: float, max_file_mb: float) -> int:
     actual_public = {
         str(path.relative_to(root))
         for path in files_under(public_data)
-        if path.name != "manifest.json"
+        if path != manifest_path
     }
     missing_declarations = actual_public - set(declared)
     missing_files = set(declared) - actual_public
@@ -93,11 +93,12 @@ def check(root: Path, max_mb: float, max_file_mb: float) -> int:
         digest = sha256(path)
         if digest != record.get("sha256"):
             errors.append(f"{relative}: sha256 {digest} != manifest {record.get('sha256')}")
-        dist_copy = dist / "data" / path.name
+        dist_relative = path.relative_to(public_data)
+        dist_copy = dist / "data" / dist_relative
         if not dist_copy.is_file():
-            errors.append(f"dist copy missing: dist/data/{path.name}")
+            errors.append(f"dist copy missing: dist/data/{dist_relative}")
         elif sha256(dist_copy) != digest:
-            errors.append(f"dist copy differs: dist/data/{path.name}")
+            errors.append(f"dist copy differs: dist/data/{dist_relative}")
 
     index = dist / "index.html"
     if not index.is_file():

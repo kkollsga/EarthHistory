@@ -175,7 +175,7 @@
       "bytes": 82254,
       "sha256": "491bc5325fa912db81aab0069fe0ac6c5b059722e91459ca601f158a4d41f3aa",
       "localRelativePath": "src/data/fixtures/paleomap-motion-probes-v1.json",
-      "generatedBy": "scripts/validate-paleomap-motion.py",
+      "generatedBy": "scripts/research/validate_legacy_paleomap_motion.py",
       "oracle": "pyGPlates 1.0.0"
     },
     {
@@ -217,7 +217,7 @@
       "bytes": 114140,
       "sha256": "6004eec127a27e519b439303e4328e140e574c806abcea4ff81c660e1fde62b4",
       "localRelativePath": "src/data/fixtures/cao-ocean-probes-v1.json",
-      "generatedBy": "scripts/validate-cao-ocean-motion.py",
+      "generatedBy": "scripts/research/validate_legacy_cao_ocean_motion.py",
       "oracle": "pyGPlates 1.0.0; 380 rotation and 320 spatial probes"
     },
     {
@@ -258,7 +258,7 @@
       "bytes": 54522,
       "sha256": "793577e3c48711e39f261982468fe70ce75327c91d235e39ed894836780c97d2",
       "localRelativePath": "src/data/fixtures/cao-continental-probes-v1.json",
-      "generatedBy": "scripts/validate-cao-continental-motion.py",
+      "generatedBy": "scripts/research/validate_legacy_cao_continental_motion.py",
       "oracle": "pyGPlates 1.0.0; 401 strict-rotation area-priority ownership probes"
     },
     {
