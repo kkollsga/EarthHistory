@@ -25,6 +25,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Include the canonical third-party notices in the Pages bundle and validate
+  that the packaged copy matches.
+- Check country-outline budgets separately for every source age, retaining full
+  coverage without an aggregate test timeout.
 - Removed the rectangular shading wall at the Mid-Atlantic regional relief boundary.
 - Keep old surface textures alive until visible terrain releases them, preventing
   WebGPU invalid texture submissions during historical regional transitions.

@@ -25,6 +25,10 @@ const countries: CountryOutline[] = [
   },
 ];
 
+const dataDirectory = resolve(process.cwd(), "public/data");
+const countryAssetName = (ageMa: number) =>
+  ageMa === 0 ? "geography-0ma.json" : `countries-${ageMa}ma.json`;
+
 describe("country reference ribbons", () => {
   it("batches every run into one groove and one rim without joining runs", () => {
     const batches = createCountryRibbonBatches(countries, {
@@ -194,47 +198,48 @@ describe("country reference ribbons", () => {
     }, { maxBytes: 128 })).toThrow(/byte budget/);
   });
 
-  it("keeps every authored country asset inside the regional ribbon budget", async () => {
-    const dataDirectory = resolve(process.cwd(), "public/data");
+  it("has one authored country asset for every PaleoDEM age", async () => {
     const assets = (await readdir(dataDirectory)).filter((name) =>
       name === "geography-0ma.json" || /^countries-\d+ma\.json$/.test(name)
-    );
-    expect(assets).toHaveLength(PALEODEM_AGES.length);
-    for (const asset of assets) {
-      const parsed = JSON.parse(
-        await readFile(resolve(dataDirectory, asset), "utf8"),
-      ) as { countries: CountryOutline[] };
-      const batches = createCountryRibbonBatches(parsed.countries, {
-        sampleHeightMetres: () => 0,
-      }, { maxAngularStepDegrees: 0.25, maxHeightErrorMetres: 120 });
-      const vertices = batches.reduce(
-        (sum, batch) => sum + batch.positions.length / 3,
-        0,
-      );
-      const bytes = batches.reduce((sum, batch) => sum + batch.byteLength, 0);
-      expect(batches, asset).toHaveLength(2);
-      expect(vertices, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
-      expect(bytes, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
+    ).sort();
+    expect(assets).toEqual(PALEODEM_AGES.map(countryAssetName).sort());
+  });
 
-      const exaggerated = createCountryRibbonBatches(parsed.countries, {
-        sampleHeightMetres: ([x, y, z]) => (x * y - z * z) * 2_000,
-      }, {
-        maxAngularStepDegrees: 0.4,
-        maxHeightErrorMetres: 120,
-        maxAdaptiveDepth: 1,
-        grooveHalfWidthMetres: 5_000,
-        minimumRunLengthMetres: 60_000,
-        verticalExaggeration: 30,
-        includeRim: false,
-      });
-      expect(
-        exaggerated.reduce((sum, batch) => sum + batch.positions.length / 3, 0),
-        `${asset} exaggerated vertices`,
-      ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
-      expect(
-        exaggerated.reduce((sum, batch) => sum + batch.byteLength, 0),
-        `${asset} exaggerated bytes`,
-      ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
-    }
+  it.each(PALEODEM_AGES)("keeps the %i Ma authored country asset inside the regional ribbon budget", async (ageMa) => {
+    const asset = countryAssetName(ageMa);
+    const parsed = JSON.parse(
+      await readFile(resolve(dataDirectory, asset), "utf8"),
+    ) as { countries: CountryOutline[] };
+    const batches = createCountryRibbonBatches(parsed.countries, {
+      sampleHeightMetres: () => 0,
+    }, { maxAngularStepDegrees: 0.25, maxHeightErrorMetres: 120 });
+    const vertices = batches.reduce(
+      (sum, batch) => sum + batch.positions.length / 3,
+      0,
+    );
+    const bytes = batches.reduce((sum, batch) => sum + batch.byteLength, 0);
+    expect(batches, asset).toHaveLength(2);
+    expect(vertices, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
+    expect(bytes, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
+
+    const exaggerated = createCountryRibbonBatches(parsed.countries, {
+      sampleHeightMetres: ([x, y, z]) => (x * y - z * z) * 2_000,
+    }, {
+      maxAngularStepDegrees: 0.4,
+      maxHeightErrorMetres: 120,
+      maxAdaptiveDepth: 1,
+      grooveHalfWidthMetres: 5_000,
+      minimumRunLengthMetres: 60_000,
+      verticalExaggeration: 30,
+      includeRim: false,
+    });
+    expect(
+      exaggerated.reduce((sum, batch) => sum + batch.positions.length / 3, 0),
+      `${asset} exaggerated vertices`,
+    ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
+    expect(
+      exaggerated.reduce((sum, batch) => sum + batch.byteLength, 0),
+      `${asset} exaggerated bytes`,
+    ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
   });
 });
