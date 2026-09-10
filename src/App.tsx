@@ -212,11 +212,13 @@ export default function App() {
     let active = true;
     const controller = new AbortController();
     const manifestUrl = new URL("data/reconstruction/cao-v2.4/manifest.json", document.baseURI).toString();
-    void fetch(manifestUrl, { signal: controller.signal }).then(async (response) => {
+    void fetch(manifestUrl, { signal: controller.signal, cache: "no-store" }).then(async (response) => {
       if (!response.ok) throw new Error(`Could not load Cao reconstruction manifest (${response.status})`);
       const manifest = await response.json() as ReconstructionPackageManifestV2;
       const fetcher: StaticAssetFetcher = async (path, signal) => {
-        const assetResponse = await fetch(new URL(path, manifestUrl), { signal });
+        // no-store + content-addressed ?h=sha from loadVerifiedBytes defeat stale
+        // CDN/browser cache after package promotes that keep the same filenames.
+        const assetResponse = await fetch(new URL(path, manifestUrl), { signal, cache: "no-store" });
         if (!assetResponse.ok) throw new Error(`Could not load Cao reconstruction asset (${assetResponse.status})`);
         return assetResponse.arrayBuffer();
       };

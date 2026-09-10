@@ -32,6 +32,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Recover empty globe after Cao package promotes that keep the same filenames:
+  load verified assets with content-addressed `?h=<sha256>` URLs and `cache: no-store`
+  so a stale browser/CDN body cannot fail checksum verification against a newer
+  manifest (full-domain 0–1800 ship reused `cao-foundation-v1` paths).
 - Keep Fennoscandia (and other Eurasian plates) visible while scrubbing through
   the open 118–120 Ma Cao motion-binding gap: bridge adjacent compiled palette
   endpoints instead of treating the compiler adaptive dropout as missing motion.

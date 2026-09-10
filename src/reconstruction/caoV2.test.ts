@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
-import type { StaticAssetFetcher } from "./assetLoader";
+import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import type { ReconstructionPackageManifestV2 } from "./packageV2";
 import { createCaoFoundationGeometryResource } from "../render/reconstruction/caoFoundation";
 
@@ -44,7 +44,7 @@ function assertWitnessChartCoverage(
 const root = resolve("public/data/reconstruction/cao-v2.4");
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-  const bytes = await readFile(resolve(root, url));
+  const bytes = await readFile(resolve(root, packageAssetPath(url)));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 

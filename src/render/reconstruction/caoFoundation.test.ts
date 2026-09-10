@@ -6,6 +6,7 @@ import {
   CaoReconstructionRuntime,
   type PreparedCaoRevision,
   type ReconstructionPackageManifestV2,
+  packageAssetPath,
   type StaticAssetFetcher,
 } from "../../reconstruction";
 import {
@@ -86,7 +87,7 @@ describe("Cao foundation renderer boundary", () => {
     const manifest = JSON.parse(await readFile(resolve(packageRoot, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
     const fetcher: StaticAssetFetcher = async (path) => {
-      const bytes = await readFile(resolve(packageRoot, path));
+      const bytes = await readFile(resolve(packageRoot, packageAssetPath(path)));
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     };
     const runtime = new CaoReconstructionRuntime(manifest, fetcher);
