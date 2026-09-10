@@ -2,6 +2,48 @@
 
 All notable changes to EarthHistory will be recorded here.
 
+## [0.1.2] - 2026-09-10
+
+### Added
+
+- Shared land/ocean period coordinates, material-registered elevation interpolation,
+  and a selectable Cao 2024 v2.4 view with partial continental conversion,
+  source-native ocean boundaries and explicitly inferred seafloor relief.
+- All 109 PALEOMAP frames from 0–540 Ma, with native source-age navigation,
+  compact signed-elevation assets and bounded abortable caches.
+- Modern Alps and Japan ETOPO views, bringing the regional set to seven,
+  and explicit shared surface-water/seafloor use of compatible controls.
+- An all-age exposed-seafloor view and a cited palaeomap source/acquisition study.
+
+### Changed
+
+- Terrain color and mountain rock/shading strength follow physical height,
+  local relief and climate potential; synthesized detail stays in shading.
+- Source-local relief, blue bathymetric shading, closer aerial inspection,
+  restrained country outlines and smaller surface-oriented labels and markers.
+- Neighbor-aware tile allocation uses the existing detail and memory limits.
+
+### Fixed
+
+- Removed the rectangular shading wall at the Mid-Atlantic regional relief boundary.
+- Keep old surface textures alive until visible terrain releases them, preventing
+  WebGPU invalid texture submissions during historical regional transitions.
+- Tagged locations retain zoom while following reconstructed coordinates.
+- Fractional-age refinement no longer repeatedly reinserts stale mesh fields
+  into the terrain cache and prevents the next surface from publishing.
+- Exact present-day publication restores immutable native geometry and materials
+  directly, avoiding redundant temporal calculations while preserving relief changes.
+- Automatic focus prepares final camera refinement once; manual input cancels
+  the automatic move and resumes normal navigation.
+
+### Known limitations
+
+- Close terrain remains coarse and generalized relative to satellite-map references.
+  The Caledonian collapse history and detailed ancient valleys are not resolved.
+- Historical all-stage preparation remains slightly above the conservative
+  500 ms comparison, although the original material preparation and steady-frame
+  targets pass on the measured machine.
+
 ## [0.1.1] - 2026-09-09
 
 ### Added

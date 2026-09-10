@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   parseAreaFocusDescriptor,
+  parseCaoMaterialFocusDescriptor,
   parseFocusCoordinates,
   serializeAreaFocusDescriptor,
+  serializeCaoMaterialFocusDescriptor,
   serializeFocusCoordinates,
 } from "./focusState";
 
@@ -52,5 +54,27 @@ describe("focus coordinate URLs", () => {
       "1~a~b~c~d~0~2~0~0",
       "1~%E0%A4%A~b~c~d~0~0.5~0~0",
     ]) expect(parseAreaFocusDescriptor(value), String(value)).toBeNull();
+  });
+
+  it("round-trips a source-qualified Cao ocean material focus", () => {
+    const descriptor = {
+      version: 1 as const,
+      viewId: "cao-2024-v2.4" as const,
+      frame: { modelId: "cao-et-al-2024", modelVersion: "2.4", referenceFrameId: "palaeomagnetic-anchor-0",
+        anchorPlateId: 0, directionConvention: "gplates-xyz-x0e-y90e-znorth" as const },
+      materialId: "cao:100-105:901:a:b",
+      materialKind: "oceanic-crust" as const,
+      plateId: 901,
+      referenceAgeMa: 100,
+      directionAtReference: [0.6, 0, 0.8] as const,
+      sourceTopologyId: "ocean-fragment",
+      olderTopologyId: "ocean-fragment-older",
+      topologyIntervalMa: [100, 105] as const,
+      validTimeMa: { oldest: 180, youngest: 20 },
+    };
+    const encoded = serializeCaoMaterialFocusDescriptor(descriptor);
+    expect(parseCaoMaterialFocusDescriptor(encoded)).toEqual(descriptor);
+    expect(parseCaoMaterialFocusDescriptor(encoded.replace("~2.4~", "~2.5~"))?.frame.modelVersion).toBe("2.5");
+    expect(parseCaoMaterialFocusDescriptor(encoded.replace("~0.8~", "~4~"))).toBeNull();
   });
 });

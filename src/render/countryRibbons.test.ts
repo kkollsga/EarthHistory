@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { CountryOutline } from "../data";
+import { PALEODEM_AGES, type CountryOutline } from "../data";
 import {
   COUNTRY_RIBBON_CLEARANCE_METRES,
   createCountryRibbonBatches,
@@ -79,6 +79,51 @@ describe("country reference ribbons", () => {
     expect(bowed[0].centerVertexCount).toBeGreaterThan(flat[0].centerVertexCount);
   });
 
+  it("refines a triangular ridge before exaggeration can lift it through a ribbon span", () => {
+    const acrossRidge: CountryOutline[] = [{
+      ...countries[0],
+      lines: [[[-0.19, 0], [0.19, 0]]],
+    }];
+    const [batch] = createCountryRibbonBatches(acrossRidge, {
+      sampleHeightMetres: ([x, , z]) => {
+        const longitude = Math.atan2(-z, x) * 180 / Math.PI;
+        return Math.max(0, 1 - Math.abs(longitude) / 0.19) * 100;
+      },
+    }, {
+      maxAngularStepDegrees: 0.4,
+      maxHeightErrorMetres: 120,
+      verticalExaggeration: 30,
+      clearanceMetres: 250,
+      maxAdaptiveDepth: 1,
+      includeRim: false,
+    });
+
+    expect(batch.centerVertexCount).toBe(3);
+  });
+
+  it("suppresses short unsupported fragments without joining the surrounding runs", () => {
+    const fragmented: CountryOutline[] = [{
+      ...countries[0],
+      lines: [
+        [[0, 0], [0.2, 0]],
+        [[2, 0], [3, 0]],
+        [[5, 0], [5.15, 0]],
+      ],
+    }];
+    const [batch] = createCountryRibbonBatches(fragmented, {
+      sampleHeightMetres: () => 0,
+    }, {
+      maxAngularStepDegrees: 0.25,
+      maxHeightErrorMetres: 1_000,
+      minimumRunLengthMetres: 60_000,
+      includeRim: false,
+    });
+
+    expect(batch.runCount).toBe(1);
+    expect(batch.centerVertexCount).toBe(5);
+    expect(batch.indices).toHaveLength((batch.centerVertexCount - 1) * 6);
+  });
+
   it("anchors both ribbon edges above their independently sampled relief", () => {
     const batches = createCountryRibbonBatches(countries, {
       sampleHeightMetres: ([, y]) => 1_800 + y * 400,
@@ -154,7 +199,7 @@ describe("country reference ribbons", () => {
     const assets = (await readdir(dataDirectory)).filter((name) =>
       name === "geography-0ma.json" || /^countries-\d+ma\.json$/.test(name)
     );
-    expect(assets).toHaveLength(18);
+    expect(assets).toHaveLength(PALEODEM_AGES.length);
     for (const asset of assets) {
       const parsed = JSON.parse(
         await readFile(resolve(dataDirectory, asset), "utf8"),
@@ -170,6 +215,26 @@ describe("country reference ribbons", () => {
       expect(batches, asset).toHaveLength(2);
       expect(vertices, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
       expect(bytes, asset).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
+
+      const exaggerated = createCountryRibbonBatches(parsed.countries, {
+        sampleHeightMetres: ([x, y, z]) => (x * y - z * z) * 2_000,
+      }, {
+        maxAngularStepDegrees: 0.4,
+        maxHeightErrorMetres: 120,
+        maxAdaptiveDepth: 1,
+        grooveHalfWidthMetres: 5_000,
+        minimumRunLengthMetres: 60_000,
+        verticalExaggeration: 30,
+        includeRim: false,
+      });
+      expect(
+        exaggerated.reduce((sum, batch) => sum + batch.positions.length / 3, 0),
+        `${asset} exaggerated vertices`,
+      ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_VERTICES);
+      expect(
+        exaggerated.reduce((sum, batch) => sum + batch.byteLength, 0),
+        `${asset} exaggerated bytes`,
+      ).toBeLessThanOrEqual(MAX_COUNTRY_RIBBON_BYTES);
     }
   });
 });

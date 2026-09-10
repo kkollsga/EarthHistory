@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare five bounded ETOPO 2022 regional relief patches."""
+"""Prepare seven bounded ETOPO 2022 regional relief patches."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ PATCHES = (
     ("andes", (-78.0, -32.0, -62.0, -15.0), "surface"),
     ("east-african-rift", (28.0, -15.0, 44.0, 14.0), "surface"),
     ("greenland", (-60.0, 58.0, -20.0, 84.0), "surface"),
+    ("alps", (4.0, 43.0, 17.0, 49.0), "surface"),
+    ("japan-trench", (125.0, 18.0, 160.0, 52.0), "seafloor"),
 )
 WIDTH = 256
 HEIGHT = 256

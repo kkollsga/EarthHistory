@@ -10,6 +10,7 @@ import {
 } from "./cubeSphere";
 import {
   balanceCubeSelection,
+  cubeLodLimitsForRenderState,
   cubeNeighbor,
   selectCubeLod,
   type CubeLodSelection,
@@ -17,6 +18,29 @@ import {
 import { reliefHorizonExtensionRadians } from "./cubeRelief";
 
 const EDGES: readonly CubeEdge[] = ["north", "east", "south", "west"];
+
+describe("cubeLodLimitsForRenderState", () => {
+  it("bounds live temporal work while preserving settled PALEOMAP detail", () => {
+    expect(cubeLodLimitsForRenderState({
+      quality: "high", temporal: true, settled: false, caoCoordinateView: false,
+    })).toEqual({ maxLevel: 0, maxLeaves: 6 });
+    expect(cubeLodLimitsForRenderState({
+      quality: "high", temporal: true, settled: true, caoCoordinateView: false,
+    })).toEqual({ maxLevel: 4, maxLeaves: 96 });
+    expect(cubeLodLimitsForRenderState({
+      quality: "low", temporal: true, settled: true, caoCoordinateView: false,
+    })).toEqual({ maxLevel: 1, maxLeaves: 24 });
+  });
+
+  it("keeps the target-native Cao view on its measured bounded policy", () => {
+    expect(cubeLodLimitsForRenderState({
+      quality: "high", temporal: true, settled: false, caoCoordinateView: true,
+    })).toEqual({ maxLevel: 0, maxLeaves: 6 });
+    expect(cubeLodLimitsForRenderState({
+      quality: "high", temporal: true, settled: true, caoCoordinateView: true,
+    })).toEqual({ maxLevel: 1, maxLeaves: 18 });
+  });
+});
 
 function sameKey(left: CubeTileKey, right: CubeTileKey): boolean {
   return cubeTileId(left) === cubeTileId(right);
@@ -269,6 +293,49 @@ describe("cube LOD selection", () => {
     });
     assertSelection(close, 12, 4);
     expect(close.capped).toBe(true);
+  });
+
+  it("spends capped modern-view budgets on the inspected regions", () => {
+    const observerDistance = 1.15;
+    const displacement = 0.025428;
+    const anchors = [
+      ["Alps", 10.5, 46.5],
+      ["Andes", -69.3, -23.5],
+      ["East African Rift", 36, -3],
+      ["Japan Trench", 143, 37],
+      ["Mid-Atlantic Ridge", -45, 25],
+      ["Himalayas", 86, 28],
+      ["Greenland", -42, 74],
+    ] as const;
+    for (const [, longitudeDegrees, latitudeDegrees] of anchors) {
+      const longitude = longitudeDegrees * Math.PI / 180;
+      const latitude = latitudeDegrees * Math.PI / 180;
+      const direction: readonly [number, number, number] = [
+        Math.cos(latitude) * Math.cos(longitude),
+        Math.sin(latitude),
+        -Math.cos(latitude) * Math.sin(longitude),
+      ];
+      const input = {
+        camera: {
+          direction,
+          distance: observerDistance,
+          verticalFovRadians: 36 * Math.PI / 180,
+          viewportHeight: 652,
+        },
+        maxLevel: 4,
+        maxLeaves: 96,
+        horizonPaddingRadians:
+          0.015 + reliefHorizonExtensionRadians(observerDistance, displacement),
+      };
+      const selection = selectCubeLod(input);
+      const repeated = selectCubeLod(input);
+
+      assertSelection(selection, 96, 4);
+      expect(selection.capped).toBe(true);
+      expect(selection.leaves).toHaveLength(96);
+      expect(selectionLevelAtDirection(selection, direction)).toBe(4);
+      expect(repeated).toEqual(selection);
+    }
   });
 
   it("uses previous leaves for the 180/125px split-merge hysteresis band", () => {

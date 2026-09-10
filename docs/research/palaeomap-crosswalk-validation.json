@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-09T16:45:45.157Z",
+  "classification": "rejected instantaneous-topology-container lineage probe; not a continental-material feasibility verdict or production rendering evidence",
+  "inputs": {
+    "paleomapMotionSha256": "a4dee1ba1d9fe290c5aba98cb882d16e4663841957f0fe2b5ec1deee19e55075",
+    "caoMetadataSha256": "5504d31a0877471d6763cb51dd0e685d2ae61fc679aaec6add5d3a98d413dea4",
+    "caoBinarySha256": "bad4abcf8d95b9cdb32669ca932cfea797b7ae5906e286e9b32038a2beada387"
+  },
+  "stopRules": {
+    "writtenBeforeMeasurement": true,
+    "classification": "rejected instantaneous-topology-container lineage probe; not a continental-material feasibility verdict or production rendering evidence",
+    "agesMa": [
+      0,
+      100,
+      250,
+      400,
+      540
+    ],
+    "grid": "2 degree target-native Cao directions; exact packed rings determine ownership; four-neighbor continent agreement separates stable interior from coarse-mask margins",
+    "enableGlobalConvertedReliefOnlyIf": {
+      "minimumStableInteriorCrosswalkFractionAtEveryAge": 0.9,
+      "maximumRoundTripAngularErrorDegrees": 0.001,
+      "maximumResolvedOceanPointCount": 0,
+      "allResolvedCountrySamplesRoundTrip": true
+    },
+    "interpretationRules": [
+      "unknown or ambiguous exact Cao ring ownership is reported separately from cross-model lineage failure",
+      "coarse Cao continent-mask margins are reported separately and cannot define an exposed-land coastline",
+      "a failed stop rule rejects this topology-container lineage method; it does not establish that a static-continental-material crosswalk fails and does not invalidate target-native Cao ocean boundaries",
+      "PALEOMAP elevation sign is a coast and shelf diagnostic, not an equivalence test for Cao continental crust"
+    ]
+  },
+  "stopRuleResults": {
+    "stableInteriorCoverage": false,
+    "roundTrip": true,
+    "noResolvedOcean": true,
+    "countryRoundTrip": true
+  },
+  "globalConvertedReliefEnablement": "stopped",
+  "ageResults": [
+    {
+      "ageMa": 0,
+      "gridPoints": 16380,
+      "exactOwnership": {
+        "resolved": 16380,
+        "unknown": 0,
+        "ambiguous": 0
+      },
+      "continental": {
+        "total": 7767,
+        "stableInterior": 6633,
+        "coarseMaskMargin": 1134
+      },
+      "crosswalk": {
+        "resolved": 7751,
+        "resolvedFraction": 0.9979400025749968,
+        "resolvedStableInterior": 6623,
+        "stableInteriorFraction": 0.998492386552088,
+        "unsupportedReasons": {
+          "source-present-unsupported": 16
+        },
+        "failureExamples": {
+          "source-present-unsupported": {
+            "targetCoordinates": [
+              -180,
+              -34
+            ]
+          }
+        },
+        "resolvedOcean": 0
+      },
+      "paleodemAtResolvedTargetContinental": {
+        "positive": 4680,
+        "shelfOrLand": 6085,
+        "submergedBelowMinus200m": 1666,
+        "exposedLandFraction": 0.6037930589601341
+      },
+      "roundTrip": {
+        "attempted": 327,
+        "resolved": 327,
+        "maximumAngularErrorDegrees": 1.2074182697257333e-06,
+        "p95AngularErrorDegrees": 8.537736462515939e-07
+      },
+      "countryEdgeSamples": {
+        "attempted": 2716,
+        "resolved": 1929,
+        "resolvedFraction": 0.7102356406480118,
+        "unsupportedReasons": {
+          "source-plate-mismatch": 605,
+          "target-present-noncontinental": 168,
+          "source-material-unsupported": 14
+        },
+        "roundTripResolved": 1929,
+        "maximumRoundTripAngularErrorDegrees": 1.4787793334710982e-06
+      }
+    },
+    {
+      "ageMa": 100,
+      "gridPoints": 16380,
+      "exactOwnership": {
+        "resolved": 15989,
+        "unknown": 0,
+        "ambiguous": 391
+      },
+      "continental": {
+        "total": 7357,
+        "stableInterior": 5779,
+        "coarseMaskMargin": 1578
+      },
+      "crosswalk": {
+        "resolved": 5218,
+        "resolvedFraction": 0.7092564904172897,
+        "resolvedStableInterior": 4456,
+        "stableInteriorFraction": 0.7710676587644921,
+        "unsupportedReasons": {
+          "source-endpoint-unsupported": 563,
+          "target-present-noncontinental": 281,
+          "target-present-plate-mismatch": 1295
+        },
+        "failureExamples": {
+          "source-endpoint-unsupported": {
+            "targetCoordinates": [
+              -172,
+              -88
+            ]
+          },
+          "target-present-noncontinental": {
+            "targetCoordinates": [
+              -166,
+              -82
+            ]
+          },
+          "target-present-plate-mismatch": {
+            "targetCoordinates": [
+              -160,
+              -80
+            ]
+          }
+        },
+        "resolvedOcean": 0
+      },
+      "paleodemAtResolvedTargetContinental": {
+        "positive": 3733,
+        "shelfOrLand": 4636,
+        "submergedBelowMinus200m": 582,
+        "exposedLandFraction": 0.7154082023763895
+      },
+      "roundTrip": {
+        "attempted": 223,
+        "resolved": 223,
+        "maximumAngularErrorDegrees": 1.2074182697257333e-06,
+        "p95AngularErrorDegrees": 8.537736462515939e-07
+      },
+      "countryEdgeSamples": {
+        "attempted": 2114,
+        "resolved": 742,
+        "resolvedFraction": 0.3509933774834437,
+        "unsupportedReasons": {
+          "target-endpoint-plate-mismatch": 486,
+          "source-material-unsupported": 276,
+          "target-endpoint-noncontinental": 172,
+          "target-present-noncontinental": 60,
+          "source-plate-mismatch": 351,
+          "target-endpoint-ambiguous": 3,
+          "source-present-lineage-mismatch": 13,
+          "target-missing-rotation": 11
+        },
+        "roundTripResolved": 742,
+        "maximumRoundTripAngularErrorDegrees": 1.4787793334710982e-06
+      }
+    },
+    {
+      "ageMa": 250,
+      "gridPoints": 16380,
+      "exactOwnership": {
+        "resolved": 16380,
+        "unknown": 0,
+        "ambiguous": 0
+      },
+      "continental": {
+        "total": 6307,
+        "stableInterior": 4970,
+        "coarseMaskMargin": 1337
+      },
+      "crosswalk": {
+        "resolved": 605,
+        "resolvedFraction": 0.09592516251783732,
+        "resolvedStableInterior": 575,
+        "stableInteriorFraction": 0.11569416498993963,
+        "unsupportedReasons": {
+          "target-present-plate-mismatch": 5083,
+          "target-present-noncontinental": 552,
+          "source-endpoint-unsupported": 67
+        },
+        "failureExamples": {
+          "target-present-plate-mismatch": {
+            "targetCoordinates": [
+              -180,
+              -90
+            ]
+          },
+          "target-present-noncontinental": {
+            "targetCoordinates": [
+              -52,
+              -68
+            ]
+          },
+          "source-endpoint-unsupported": {
+            "targetCoordinates": [
+              -28,
+              -60
+            ]
+          }
+        },
+        "resolvedOcean": 0
+      },
+      "paleodemAtResolvedTargetContinental": {
+        "positive": 583,
+        "shelfOrLand": 604,
+        "submergedBelowMinus200m": 1,
+        "exposedLandFraction": 0.9636363636363636
+      },
+      "roundTrip": {
+        "attempted": 26,
+        "resolved": 26,
+        "maximumAngularErrorDegrees": 1.2074182697257333e-06,
+        "p95AngularErrorDegrees": 1.2074182697257333e-06
+      },
+      "countryEdgeSamples": {
+        "attempted": 1685,
+        "resolved": 181,
+        "resolvedFraction": 0.10741839762611276,
+        "unsupportedReasons": {
+          "target-endpoint-plate-mismatch": 887,
+          "source-material-unsupported": 188,
+          "target-present-noncontinental": 30,
+          "source-plate-mismatch": 352,
+          "target-endpoint-noncontinental": 24,
+          "target-missing-rotation": 20,
+          "source-present-lineage-mismatch": 3
+        },
+        "roundTripResolved": 181,
+        "maximumRoundTripAngularErrorDegrees": 1.2074182697257333e-06
+      }
+    },
+    {
+      "ageMa": 400,
+      "gridPoints": 16380,
+      "exactOwnership": {
+        "resolved": 16380,
+        "unknown": 0,
+        "ambiguous": 0
+      },
+      "continental": {
+        "total": 6068,
+        "stableInterior": 4894,
+        "coarseMaskMargin": 1174
+      },
+      "crosswalk": {
+        "resolved": 2191,
+        "resolvedFraction": 0.3610744891232696,
+        "resolvedStableInterior": 2056,
+        "stableInteriorFraction": 0.42010625255414796,
+        "unsupportedReasons": {
+          "source-endpoint-unsupported": 255,
+          "target-present-noncontinental": 1072,
+          "target-present-plate-mismatch": 2521,
+          "missing-present-reference": 29
+        },
+        "failureExamples": {
+          "source-endpoint-unsupported": {
+            "targetCoordinates": [
+              -144,
+              -88
+            ]
+          },
+          "target-present-noncontinental": {
+            "targetCoordinates": [
+              -126,
+              -86
+            ]
+          },
+          "target-present-plate-mismatch": {
+            "targetCoordinates": [
+              88,
+              -74
+            ]
+          },
+          "missing-present-reference": {
+            "targetCoordinates": [
+              -20,
+              -22
+            ]
+          }
+        },
+        "resolvedOcean": 0
+      },
+      "paleodemAtResolvedTargetContinental": {
+        "positive": 1798,
+        "shelfOrLand": 2069,
+        "submergedBelowMinus200m": 122,
+        "exposedLandFraction": 0.820629849383843
+      },
+      "roundTrip": {
+        "attempted": 109,
+        "resolved": 109,
+        "maximumAngularErrorDegrees": 8.537736462515939e-07,
+        "p95AngularErrorDegrees": 8.537736462515939e-07
+      },
+      "countryEdgeSamples": {
+        "attempted": 1638,
+        "resolved": 254,
+        "resolvedFraction": 0.15506715506715507,
+        "unsupportedReasons": {
+          "target-endpoint-plate-mismatch": 724,
+          "target-endpoint-noncontinental": 72,
+          "source-plate-mismatch": 326,
+          "source-material-unsupported": 193,
+          "target-present-noncontinental": 39,
+          "target-missing-rotation": 25,
+          "source-present-lineage-mismatch": 5
+        },
+        "roundTripResolved": 254,
+        "maximumRoundTripAngularErrorDegrees": 1.2074182697257333e-06
+      }
+    },
+    {
+      "ageMa": 540,
+      "gridPoints": 16380,
+      "exactOwnership": {
+        "resolved": 16380,
+        "unknown": 0,
+        "ambiguous": 0
+      },
+      "continental": {
+        "total": 4589,
+        "stableInterior": 3458,
+        "coarseMaskMargin": 1131
+      },
+      "crosswalk": {
+        "resolved": 2249,
+        "resolvedFraction": 0.49008498583569404,
+        "resolvedStableInterior": 2037,
+        "stableInteriorFraction": 0.5890688259109311,
+        "unsupportedReasons": {
+          "source-endpoint-unsupported": 169,
+          "target-present-noncontinental": 564,
+          "target-present-plate-mismatch": 1374,
+          "missing-present-reference": 233
+        },
+        "failureExamples": {
+          "source-endpoint-unsupported": {
+            "targetCoordinates": [
+              -178,
+              -84
+            ]
+          },
+          "target-present-noncontinental": {
+            "targetCoordinates": [
+              -174,
+              -84
+            ]
+          },
+          "target-present-plate-mismatch": {
+            "targetCoordinates": [
+              -140,
+              -74
+            ]
+          },
+          "missing-present-reference": {
+            "targetCoordinates": [
+              72,
+              26
+            ]
+          }
+        },
+        "resolvedOcean": 0
+      },
+      "paleodemAtResolvedTargetContinental": {
+        "positive": 2106,
+        "shelfOrLand": 2231,
+        "submergedBelowMinus200m": 18,
+        "exposedLandFraction": 0.9364161849710982
+      },
+      "roundTrip": {
+        "attempted": 98,
+        "resolved": 98,
+        "maximumAngularErrorDegrees": 1.2074182697257333e-06,
+        "p95AngularErrorDegrees": 8.537736462515939e-07
+      },
+      "countryEdgeSamples": {
+        "attempted": 1612,
+        "resolved": 209,
+        "resolvedFraction": 0.12965260545905707,
+        "unsupportedReasons": {
+          "target-endpoint-plate-mismatch": 666,
+          "target-endpoint-noncontinental": 131,
+          "source-material-unsupported": 204,
+          "target-present-noncontinental": 33,
+          "source-plate-mismatch": 330,
+          "target-missing-rotation": 37,
+          "source-present-lineage-mismatch": 2
+        },
+        "roundTripResolved": 209,
+        "maximumRoundTripAngularErrorDegrees": 1.2074182697257333e-06
+      }
+    }
+  ],
+  "durationMs": 2826,
+  "runtime": {
+    "node": "v22.16.0",
+    "platform": "darwin 25.6.0",
+    "cpu": "Apple M4"
+  },
+  "disposition": {
+    "status": "retained-rejected-method-evidence",
+    "failure": "instantaneous topology container identity is not persistent continental child-material identity",
+    "decisiveControl": "India child plate 501 can be contained by Gondwana topology 701 at 250 Ma",
+    "replacementEvidence": "docs/research/palaeomap-static-crosswalk-validation.json",
+    "runtimeUse": "none"
+  }
+}

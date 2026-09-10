@@ -3,8 +3,8 @@ import type {
   LonLat,
   ModernClimateControl,
   ModernClimateGroup,
+  ProceduralControls,
   SurfaceStage,
-  TectonicFeature,
   WorldSnapshot,
 } from "../data";
 import { rasterizeLandMask } from "./landMask";
@@ -277,6 +277,40 @@ function sampleElevation(
   );
 }
 
+/**
+ * A bounded visual ruggedness measure derived only from the loaded elevation
+ * grid. It changes material exposure and fine-detail amplitude; it does not
+ * add a geographic landform or claim a measured palaeoslope.
+ */
+export function sampleSourceReliefRuggedness(
+  snapshot: WorldSnapshot,
+  longitude: number,
+  latitude: number,
+  northPoleValue = poleElevation(snapshot, true),
+  southPoleValue = poleElevation(snapshot, false),
+): number {
+  const controls = snapshot.controls;
+  if (controls === undefined || controls.width < 2 || controls.height < 2) return 0;
+  const u = (normalizeLongitude(longitude) + 180) / 360;
+  const v = (90 - Math.max(-90, Math.min(90, latitude))) / 180;
+  const du = 1 / controls.width;
+  const dv = 1 / (controls.height - 1);
+  const west = sampleElevation(snapshot, u - du, v, northPoleValue, southPoleValue);
+  const east = sampleElevation(snapshot, u + du, v, northPoleValue, southPoleValue);
+  const north = sampleElevation(snapshot, u, Math.max(0, v - dv), northPoleValue, southPoleValue);
+  const south = sampleElevation(snapshot, u, Math.min(1, v + dv), northPoleValue, southPoleValue);
+  const longitudeSpanMetres = Math.max(
+    1,
+    2 * 111_320 * (360 / controls.width) * Math.max(0.025, Math.abs(Math.cos(latitude * Math.PI / 180))),
+  );
+  const latitudeSpanMetres = Math.max(1, 2 * 110_574 * (180 / (controls.height - 1)));
+  const grade = Math.hypot(
+    (east - west) / longitudeSpanMetres,
+    (south - north) / latitudeSpanMetres,
+  );
+  return smoothstep(0.0015, 0.025, grade);
+}
+
 function poleElevation(snapshot: WorldSnapshot, north: boolean): number | undefined {
   const controls = snapshot.controls;
   if (controls === undefined) return undefined;
@@ -289,6 +323,41 @@ function poleElevation(snapshot: WorldSnapshot, north: boolean): number | undefi
   return values.length % 2 === 0
     ? (values[middle - 1] + values[middle]) / 2
     : values[middle];
+}
+
+const CONTROL_POLE_ELEVATION_CACHE = new WeakMap<ProceduralControls, readonly [number, number]>();
+
+/** Sample the signed, source-controlled physical elevation at a geographic point. */
+export function sampleProceduralControlElevation(
+  controls: ProceduralControls,
+  longitude: number,
+  latitude: number,
+): number {
+  let poles = CONTROL_POLE_ELEVATION_CACHE.get(controls);
+  if (poles === undefined) {
+    const median = (row: number) => {
+      const values = Array.from(
+        controls.elevation.subarray(row * controls.width, (row + 1) * controls.width),
+      ).filter(Number.isFinite).sort((left, right) => left - right);
+      if (values.length === 0) return 0;
+      const middle = Math.floor(values.length / 2);
+      return values.length % 2 === 0
+        ? (values[middle - 1]! + values[middle]!) / 2
+        : values[middle]!;
+    };
+    poles = [median(0), median(controls.height - 1)];
+    CONTROL_POLE_ELEVATION_CACHE.set(controls, poles);
+  }
+  const normalized = normalizeLongitude(longitude);
+  return sampleGeographicGrid(
+    controls.elevation,
+    controls.width,
+    controls.height,
+    (normalized + 180) / 360,
+    (90 - Math.max(-90, Math.min(90, latitude))) / 180,
+    poles[0],
+    poles[1],
+  );
 }
 
 interface SouthPoleClimateGapFill {
@@ -434,39 +503,18 @@ export function modernClimateAllowsPermanentIce(
   return group === undefined ? undefined : group === "frost";
 }
 
-function distanceToFeature(point: LonLat, feature: TectonicFeature): number {
-  let minimum = Number.POSITIVE_INFINITY;
-  for (let index = 1; index < feature.coordinates.length; index++) {
-    const a = feature.coordinates[index - 1];
-    const b = feature.coordinates[index];
-    let ax = normalizeLongitude(a[0] - point[0]);
-    let bx = normalizeLongitude(b[0] - point[0]);
-    if (Math.abs(ax - bx) > 180) {
-      if (ax < bx) ax += 360;
-      else bx += 360;
-    }
-    const scale = Math.cos((point[1] * Math.PI) / 180);
-    const ay = a[1] - point[1];
-    const by = b[1] - point[1];
-    const dx = (bx - ax) * scale;
-    const dy = by - ay;
-    const lengthSquared = dx * dx + dy * dy;
-    const projection =
-      lengthSquared === 0
-        ? 0
-        : Math.max(0, Math.min(1, (-(ax * scale) * dx - ay * dy) / lengthSquared));
-    const distance = Math.hypot(ax * scale + dx * projection, ay + dy * projection);
-    minimum = Math.min(minimum, distance);
-  }
-  if (feature.coordinates.length === 1) {
-    const only = feature.coordinates[0];
-    minimum = Math.hypot(
-      normalizeLongitude(only[0] - point[0]) *
-        Math.cos((point[1] * Math.PI) / 180),
-      only[1] - point[1],
-    );
-  }
-  return minimum;
+const SPHERE_AREA_WEIGHTED_MEAN_ABSOLUTE_LATITUDE = 90 - 180 / Math.PI;
+
+/** Schematic material-temperature potential; never a calibrated climate field. */
+export function proceduralLocalTemperature(
+  globalMeanTemperatureC: number,
+  latitude: number,
+  elevationMetres: number,
+): number {
+  const latitudeDeparture =
+    Math.abs(Math.max(-90, Math.min(90, latitude))) -
+    SPHERE_AREA_WEIGHTED_MEAN_ABSOLUTE_LATITUDE;
+  return globalMeanTemperatureC - latitudeDeparture * 0.42 - Math.max(0, elevationMetres) * 0.0065;
 }
 
 function writePixel(target: Uint8Array, offset: number, rgb: readonly number[], alpha = 255) {
@@ -499,8 +547,14 @@ export function iceDisplayCoverage(
   scenarioIntensity: number,
 ): number {
   if (potential <= 0 || scenarioIntensity <= 0) return 0;
-  const normalized = potential / Math.max(0.04, scenarioIntensity);
-  return smoothstep(0.03, 0.55, normalized) * 0.96;
+  // The stored potential already contains scenario intensity. Dividing by it
+  // made weak greenhouse-era potential look like an opaque modern ice cap.
+  return smoothstep(0.03, 0.55, potential) * 0.96;
+}
+
+/** Qualitative ice presence/absence from the Cao et al. (2017) dated polygons. */
+export function caoIceChronologyAllowsPermanentIce(ageMa: number): boolean {
+  return !(ageMa > 81 && ageMa < 285.01);
 }
 
 function earlySurface(
@@ -569,7 +623,11 @@ export function generateSurface(
   const cloudWidth = Math.min(width, 256);
   const cloudHeight = Math.max(1, Math.round(cloudWidth / 2));
   const clouds = new Uint8Array(cloudWidth * cloudHeight * 4);
-  const seed = hashString(snapshot.id);
+  // Historical material texture follows the source/model family rather than
+  // the requested age or interval. This keeps authored-looking detail fixed
+  // to a material resolver while the timeline moves and still gives
+  // illustrative pre-reconstruction scenes their existing snapshot seed.
+  const seed = hashString(snapshot.renderSeedId ?? snapshot.temporalSurface?.seedId ?? snapshot.id);
   const sphericalNoise = createSphericalNoise(seed);
   const stage = snapshot.environment.stage ?? "modern-biomes";
   const mature = MATURE_STAGES.has(stage);
@@ -577,6 +635,9 @@ export function generateSurface(
   const reliefRangeMetres = seafloorActive ? RELIEF_RANGE_METRES * 2 : RELIEF_RANGE_METRES;
   const reliefBiasMetres = seafloorActive ? -RELIEF_RANGE_METRES : 0;
   const vegetation = Math.max(0, Math.min(1, snapshot.environment.vegetation));
+  const globalTemperature = Number.isFinite(snapshot.environment.temperatureC)
+    ? snapshot.environment.temperatureC!
+    : 14;
   const iceLatitude = Math.max(0, Math.min(90, snapshot.environment.iceLatitude));
   const iceIntensity = Math.max(0, Math.min(1, snapshot.environment.iceIntensity ?? 1));
   const oceanCoverage = Math.max(0, Math.min(1, snapshot.environment.oceanCoverage ?? 0.7));
@@ -606,6 +667,13 @@ export function generateSurface(
         snapshot,
         u,
         v,
+        northPoleElevation,
+        southPoleElevation,
+      );
+      const sourceRuggedness = sampleSourceReliefRuggedness(
+        snapshot,
+        longitude,
+        latitude,
         northPoleElevation,
         southPoleElevation,
       );
@@ -655,7 +723,8 @@ export function generateSurface(
               frostAt(longitude, latitude + 0.45)) * 0.14;
         }
       }
-      const hasMappedLand = snapshot.controls !== undefined || snapshot.land.length > 0;
+      const hasMappedElevation = snapshot.controls !== undefined;
+      const hasMappedLand = hasMappedElevation || snapshot.land.length > 0;
       const sourceLand = mature && (
         snapshot.land.length > 0
           ? landMask[y * width + x] > 0
@@ -683,11 +752,12 @@ export function generateSurface(
         const shallow = Math.max(0, Math.min(1, (elevation + 5000) / 5000));
         if (seafloorActive) {
           const depth = Math.max(0, Math.min(1, -elevation / 6_000));
-          color = mixColor([37, 142, 146], [10, 48, 76], depth);
+          color = mixColor([45, 151, 155], [18, 58, 82], depth);
+          color = mixColor(color, [94, 105, 99], sourceRuggedness * 0.32);
           reliefMetres = Math.max(-RELIEF_RANGE_METRES, elevation);
-          roughnessValue = 205 + n * 25;
+          roughnessValue = 182 + depth * 22 + sourceRuggedness * 42 + n * 12;
         } else {
-          color = mixColor([3, 31, 58], [12, 104, 136], shallow * 0.8 + n * 0.12);
+          color = mixColor([12, 48, 70], [27, 110, 139], shallow * 0.8 + n * 0.12);
           reliefMetres = 0;
           roughnessValue = 102 + n * 24;
         }
@@ -700,15 +770,41 @@ export function generateSurface(
           smoothstep(12, 23, absoluteLatitude) *
           (1 - smoothstep(34, 49, absoluteLatitude));
         const aridity = subtropicalBand * (0.26 + n * 0.34);
+        const localTemperature = proceduralLocalTemperature(
+          globalTemperature,
+          latitude,
+          elevation,
+        );
+        const temperatePotential =
+          smoothstep(-3, 7, localTemperature) *
+          (1 - smoothstep(21, 31, localTemperature)) *
+          (1 - aridity * 0.72);
+        const coldPotential = 1 - smoothstep(-7, 8, localTemperature);
         const green = Math.max(
           0,
-          (vegetationAtPoint ?? vegetation * (0.72 + n * 0.4)) - aridity - altitude * 0.33,
+          (vegetationAtPoint ?? vegetation * (0.72 + n * 0.4)) -
+            aridity - altitude * 0.28 - sourceRuggedness * 0.38,
         );
-        const lowland: [number, number, number] = [107, 119, 71];
-        const forest: [number, number, number] = [35, 104, 62];
-        const stone: [number, number, number] = [134, 122, 99];
-        color = mixColor(mixColor(lowland, forest, green), stone, altitude * 0.82);
+        const lowland: [number, number, number] = [124, 139, 82];
+        const forest: [number, number, number] = [42, 119, 67];
+        const stone: [number, number, number] = [144, 128, 103];
+        color = mixColor(
+          mixColor(lowland, forest, green),
+          stone,
+          Math.min(0.94, altitude * 0.72 + sourceRuggedness * 0.82),
+        );
         color = mixColor(color, [177, 145, 89], aridity * (0.45 + n * 0.25));
+        if (climateGroup === undefined) {
+          // Historical scenes currently have no loaded climate experiment.
+          // This continuous, temperature/elevation-driven material tint is an
+          // explicitly procedural potential, not a categorical climate map.
+          color = mixColor(color, [79, 126, 75], temperatePotential * vegetation * 0.24);
+          color = mixColor(
+            color,
+            [127, 126, 111],
+            coldPotential * Math.max(0, Math.min(1, iceIntensity)) * 0.28,
+          );
+        }
         if (climateGroup !== undefined && climateGroup !== "ocean") {
           // Köppen classes constrain modern climate potential. The restrained
           // blend keeps relief and local texture visible and does not claim a
@@ -719,37 +815,26 @@ export function generateSurface(
           ) as [number, number, number];
           color = mixColor(color, climateColor, climateGroup === "frost" ? 0.78 : 0.62);
         }
-        reliefMetres = Math.max(
-          0,
-          (hasMappedLand ? elevation : altitude * 4_200) + (small - 0.5) * 260,
-        );
-        roughnessValue = 184 + altitude * 50 + small * 18;
-      }
-
-      if (mature && land && snapshot.tectonics.length > 0) {
-        for (const feature of snapshot.tectonics) {
-          const distance = distanceToFeature([longitude, latitude], feature);
-          const widthDegrees = Math.max(0.4, feature.widthKm / 111);
-          if (distance > widthDegrees * 1.8) continue;
-          const strength = (1 - distance / (widthDegrees * 1.8)) * (feature.activity ?? 0.75);
-          if (feature.type === "rift") {
-            reliefMetres -= Math.max(500, Math.abs(feature.heightKm) * 1_000) * strength;
-            color = mixColor(color, [91, 64, 45], strength * 0.72);
-          } else if (feature.type === "mountain" || feature.type === "subduction") {
-            reliefMetres += Math.max(900, feature.heightKm * 1_000) * strength;
-            color = mixColor(color, [142, 132, 114], strength * 0.58);
-          } else {
-            reliefMetres += Math.max(1_100, feature.heightKm * 1_000) * strength;
-            color = mixColor(color, [93, 69, 58], strength * 0.62);
-          }
-        }
+        // A numeric elevation control owns physical height. Procedural noise
+        // remains in material and bump channels, so native knots recover the
+        // source DEM instead of adding unsourced metres at the transition.
+        reliefMetres = Math.max(0, hasMappedElevation
+          ? elevation
+          : altitude * 4_200 + (small - 0.5) * 260);
+        roughnessValue = 172 + altitude * 38 + sourceRuggedness * 56 + small * 14;
       }
 
       const raggedIceEdge = iceLatitude + (n - 0.5) * 13 - Math.max(0, elevation) / 1800;
       const climateIcePotential = modernClimateAllowsPermanentIce(climateGroup);
       const potentialIceAllowed = climateIcePotential ??
         (iceIntensity >= 0.9 || Math.abs(latitude) > raggedIceEdge);
-      const ice = mature &&
+      // Cao et al. (2017) resolves no ice polygons between the 81 Ma end of
+      // its 76 Ma feature and the 285.01 Ma start of its 287 Ma feature. Use
+      // that source only as a presence/absence constraint; its geometry is in
+      // a different frame and is never draped on this PALEOMAP surface.
+      const reconstructionAgeMa = snapshot.requestedAgeMa ?? snapshot.ageMa;
+      const sourceAllowsPermanentIce = caoIceChronologyAllowsPermanentIce(reconstructionAgeMa);
+      const ice = mature && sourceAllowsPermanentIce &&
         (modernFrostCoverage !== undefined
           ? modernIceSurface || (land && modernFrostCoverage > 0.015)
           : iceAtPoint !== undefined
@@ -772,7 +857,7 @@ export function generateSurface(
         // illustrative ice cover at the display datum instead of turning its
         // potential mask into invented topography; signed bed remains in the
         // explicit seafloor view.
-        if (!(modernIceSurface && !sourceLand)) {
+        if (!hasMappedElevation && !(modernIceSurface && !sourceLand)) {
           reliefMetres += 180 * (iceAtPoint ?? iceIntensity);
         }
       }
@@ -789,7 +874,15 @@ export function generateSurface(
           reliefRangeMetres) *
         255;
       writePixel(relief, offset, [encodedRelief, encodedRelief, encodedRelief]);
-      writePixel(roughness, offset, [roughnessValue, roughnessValue, roughnessValue]);
+      // Three.js consumes the green channel for roughness. Alpha retains the
+      // normalized source-grid ruggedness so later material synthesis can
+      // distinguish a rough-looking soil palette from an actual relief slope.
+      writePixel(
+        roughness,
+        offset,
+        [roughnessValue, roughnessValue, roughnessValue],
+        Math.round(sourceRuggedness * 255),
+      );
 
     }
   }

@@ -75,6 +75,10 @@ export const tectonicFeatures: TectonicFeature[] = [
 ];
 
 export function tectonicsAt(ageMa: number): TectonicFeature[] {
+  // These editorial corridors are authored in present coordinates and do not
+  // carry dated boundary topology. Historical boundary assets must use the
+  // shared period-coordinate model rather than freezing or rigidly moving them.
+  if (Math.abs(ageMa) > 1e-9) return [];
   return tectonicFeatures.filter(
     (feature) =>
       (feature.ageStartMa === undefined || ageMa <= feature.ageStartMa) &&

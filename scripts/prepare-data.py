@@ -14,6 +14,7 @@ import io
 import json
 import pathlib
 import re
+import struct
 import urllib.request
 import zipfile
 
@@ -39,8 +40,12 @@ PALEODEM_URL = (
     "PaleoDEMS_long_lat_elev_csv_v2.zip?download=1"
 )
 PALEODEM_SHA256 = "db43e6261411ff468c9030ca240778a73f224bf34bf8186c735477e41454c873"
-PALEODEM_AGES = (0, 20, 35, 55, 65, 95, 130, 185, 220, 250, 300, 320, 360, 400, 430, 470, 520, 540)
+PALEODEM_AGES = tuple(range(0, 541, 5))
 PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES = frozenset(range(-60, -90, -1))
+PALEODEM_BINARY_SCHEMA_VERSION = 1
+PALEODEM_BINARY_HEADER = struct.Struct("<4sHHHHI")
+PALEODEM_WIDTH = 360
+PALEODEM_HEIGHT = 181
 
 
 def fetch(name: str, url: str, cache_dir: pathlib.Path, suffix: str = ".geojson") -> pathlib.Path:
@@ -60,88 +65,100 @@ def prepare_paleodem(cache_dir: pathlib.Path, requested_ages: tuple[int, ...]) -
         raise SystemExit(f"unexpected PaleoDEM checksum: {archive_sha}")
 
     outputs = []
+    source_header_forms: set[str] = set()
+    source_grid_layouts: set[str] = set()
+    south_pole_closure_ages: list[int] = []
     with zipfile.ZipFile(archive) as source_zip:
         members = {
             int(match.group(1)): name
             for name in source_zip.namelist()
             if (match := re.search(r"_(\d{3})Ma\.csv$", name))
         }
+        if tuple(sorted(members)) != PALEODEM_AGES:
+            raise SystemExit(
+                "PaleoDEM archive ages differ from the required 0–540 Ma, 5 Ma source catalog"
+            )
         for age in requested_ages:
             name = members[age]
-            east_meridian: dict[int, int] = {}
+            source_rows: list[list[int]] = []
+            current_row: list[int] = []
+            current_latitude: int | None = None
+            source_cells = 0
+            with source_zip.open(name) as raw_source:
+                source = io.TextIOWrapper(raw_source, encoding="ascii", newline=None)
+                for raw_line in source:
+                    if raw_line.startswith("#"):
+                        source_header_forms.add("comment")
+                        continue
+                    if raw_line.startswith("longitude,latitude,elevation"):
+                        source_header_forms.add("longitude,latitude,elevation")
+                        continue
+                    if not raw_line.strip():
+                        continue
+                    lon_text, lat_text, elevation_text = raw_line.strip().split(",")
+                    lon = int(float(lon_text))
+                    lat = int(float(lat_text))
+                    if current_latitude is None:
+                        current_latitude = lat
+                    elif lat != current_latitude:
+                        if lat != current_latitude - 1 or len(current_row) not in (360, 361):
+                            raise SystemExit(f"{name}: invalid row transition at {lon},{lat}")
+                        source_rows.append(current_row)
+                        current_row = []
+                        current_latitude = lat
+                    expected_lon = -180 + len(current_row)
+                    expected_lat = 90 - len(source_rows)
+                    if lon != expected_lon or lat != expected_lat:
+                        raise SystemExit(
+                            f"{name}: grid coordinate {lon},{lat} differs from "
+                            f"expected {expected_lon},{expected_lat} at cell {source_cells}"
+                        )
+                    elevation = round(float(elevation_text))
+                    current_row.append(max(-12000, min(12000, elevation)))
+                    source_cells += 1
+            if current_row:
+                source_rows.append(current_row)
+            source_widths = {len(row) for row in source_rows}
+            layout = (next(iter(source_widths)), len(source_rows)) if len(source_widths) == 1 else None
+            if layout not in ((361, 181), (360, 180)):
+                raise SystemExit(
+                    f"{name}: expected a 361x181 or 360x180 source grid, found "
+                    f"widths {sorted(source_widths)} and {len(source_rows)} rows"
+                )
+            if layout == (361, 181):
+                source_grid_layouts.add("361x181 with duplicate +180 endpoint")
+            else:
+                source_grid_layouts.add("360x180 ending at -89 latitude")
+                south_pole_closure_ages.append(age)
+                source_rows.append(source_rows[-1].copy())
             if age == 0:
-                west_meridian: dict[int, int] = {}
-                with source_zip.open(name) as raw_source:
-                    source = io.TextIOWrapper(raw_source, encoding="ascii", newline=None)
-                    for raw_line in source:
-                        if raw_line.startswith("#"):
-                            continue
-                        lon_text, lat_text, elevation_text = raw_line.strip().split(",")
-                        lon = int(float(lon_text))
-                        lat = int(float(lat_text))
-                        elevation = round(float(elevation_text))
-                        if lon == -180:
-                            west_meridian[lat] = elevation
-                        elif lon == 180:
-                            east_meridian[lat] = elevation
                 bad_zero_run = {
-                    latitude
-                    for latitude, elevation in west_meridian.items()
-                    if elevation == 0 and -89 <= latitude <= -55
+                    90 - row_index
+                    for row_index, row in enumerate(source_rows)
+                    if row[0] == 0 and -89 <= 90 - row_index <= -55
                 }
                 if bad_zero_run != PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES:
                     raise SystemExit(
                         f"{name}: verified 0 Ma -180 duplicate-zero run changed: "
                         f"{sorted(bad_zero_run, reverse=True)}"
                     )
-                if any(east_meridian.get(latitude, 0) == 0 for latitude in bad_zero_run):
-                    raise SystemExit(f"{name}: +180 duplicate cannot repair the verified zero run")
-            grid: list[int] = []
-            with source_zip.open(name) as raw_source:
-                source = io.TextIOWrapper(raw_source, encoding="ascii", newline=None)
-                for raw_line in source:
-                    if raw_line.startswith("#"):
-                        continue
-                    lon_text, lat_text, elevation_text = raw_line.strip().split(",")
-                    lon = int(float(lon_text))
-                    lat = int(float(lat_text))
-                    if lon == 180 or lon % 2 or (90 - lat) % 2:
-                        continue
-                    elevation = round(float(elevation_text))
-                    # The deposited 0 Ma CSV has a verified artificial zero run
-                    # in one of two records for the same physical meridian. Use
-                    # its valid +180° duplicate only for those exact -180° cells;
-                    # every other source value and every other age stays literal.
-                    if (
-                        age == 0
-                        and lon == -180
-                        and lat in PALEODEM_0MA_BAD_WEST_MERIDIAN_LATITUDES
-                        and elevation == 0
-                    ):
-                        elevation = east_meridian[lat]
-                    grid.append(max(-12000, min(12000, elevation)))
-            width = 180
-            height = len(grid) // width
-            if len(grid) != width * height:
-                raise SystemExit(f"{name}: cell count {len(grid)} is not divisible by width {width}")
-            if height == 90:
-                # Some older archive CSVs stop at -89 degrees. Close the sampled
-                # pole with the nearest available (-88 degree) row so every
-                # runtime grid has one stable 90..-90 convention.
-                grid.extend(grid[-width:])
-                height = 91
-            payload = {
-                "ageMa": age,
-                "width": width,
-                "height": height,
-                "origin": [-180, 90],
-                "spacingDegrees": [2, -2],
-                "units": "metres relative to interpreted paleo sea level",
-                "sourceIds": ["scotese-wright-paleodem-v2"],
-                "elevation": grid,
-            }
-            destination = OUTPUT / f"paleodem-{age}ma.json"
-            destination.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
+                for latitude in bad_zero_run:
+                    row = source_rows[90 - latitude]
+                    if row[360] == 0:
+                        raise SystemExit(f"{name}: +180 duplicate cannot repair the verified zero run")
+                    row[0] = row[360]
+            grid = [value for row in source_rows for value in row[:PALEODEM_WIDTH]]
+            header = PALEODEM_BINARY_HEADER.pack(
+                b"EHPD",
+                PALEODEM_BINARY_SCHEMA_VERSION,
+                age,
+                PALEODEM_WIDTH,
+                PALEODEM_HEIGHT,
+                0,
+            )
+            payload = header + struct.pack(f"<{len(grid)}h", *grid)
+            destination = OUTPUT / f"paleodem-{age}ma.bin"
+            destination.write_bytes(payload)
             outputs.append(
                 {
                     "ageMa": age,
@@ -154,16 +171,37 @@ def prepare_paleodem(cache_dir: pathlib.Path, requested_ages: tuple[int, ...]) -
         "url": PALEODEM_URL,
         "sha256": archive_sha,
         "bytes": archive.stat().st_size,
+        "sourceAgeCatalog": {
+            "minimumAgeMa": PALEODEM_AGES[0],
+            "maximumAgeMa": PALEODEM_AGES[-1],
+            "stepMa": 5,
+            "count": len(PALEODEM_AGES),
+        },
+        "sourceCsvHeaderForms": sorted(source_header_forms),
+        "sourceGridLayouts": sorted(source_grid_layouts),
         "nativeGrid": "1 degree longitude/latitude/elevation CSV",
-        "derivedGrid": "180x91 grid points at lon -180..178 and lat 90..-90, 2 degree spacing; nearest source samples, with -90 nearest-row closure where older CSVs end at -89; int16-range metres serialized as JSON integers",
+        "derivedGrid": "360x181 grid points at lon -180..179 and lat 90..-90, 1 degree spacing; duplicate +180 endpoint omitted after the verified 0 Ma repair",
+        "binaryEncoding": {
+            "schemaVersion": PALEODEM_BINARY_SCHEMA_VERSION,
+            "header": "16 bytes: EHPD magic; uint16-le schema, ageMa, width, height; uint32-le reserved zero",
+            "values": "row-major signed-int16-le metres relative to interpreted paleo sea level",
+            "expectedBytesPerFile": PALEODEM_BINARY_HEADER.size + PALEODEM_WIDTH * PALEODEM_HEIGHT * 2,
+        },
         "sourceAdapters": [
             {
                 "ageMa": 0,
                 "condition": "Verified -180 degree source duplicate is zero at every integer latitude -60 through -89 while the same physical +180 degree duplicate is populated",
-                "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before 2 degree sampling",
-                "affectedOutputCells": 15,
-                "notes": "15 sampled even-latitude cells (-60 through -88); the source-authored -90 row and raw archive bytes remain unchanged",
-            }
+                "replacement": "Use the +180 degree value only for that exact 0 Ma -180 degree duplicate-zero run before endpoint collapse",
+                "affectedOutputCells": 30,
+                "notes": "30 one-degree cells (-60 through -89); the source-authored -90 row and raw archive bytes remain unchanged",
+            },
+            {
+                "agesMa": south_pole_closure_ages,
+                "condition": "Source CSV uses 360 longitudes (-180..179) and stops at -89 latitude",
+                "replacement": "Repeat the nearest available -89 latitude row at the -90 runtime pole",
+                "affectedOutputCells": len(south_pole_closure_ages) * PALEODEM_WIDTH,
+                "notes": "The closure supplies a consistent 360x181 runtime registration without inventing sub-grid detail",
+            },
         ],
         "outputs": outputs,
     }
@@ -266,12 +304,20 @@ def main() -> None:
             }
             outputs_by_age.update({output["ageMa"]: output for output in prepared["outputs"]})
             prepared["outputs"] = [outputs_by_age[age] for age in sorted(outputs_by_age)]
+            # A one-age rebuild cannot re-inventory aggregate source layout
+            # variants. Preserve the archive-wide facts established by the
+            # preceding complete, checksum-pinned generation.
+            for key in ("sourceCsvHeaderForms", "sourceGridLayouts", "sourceAdapters"):
+                prepared[key] = previous_paleodem[key]
         manifest["inputs"]["scotese-wright-paleodem-v2"] = prepared
     cache_bytes = sum(path.stat().st_size for path in args.cache_dir.iterdir() if path.is_file())
     if cache_bytes > MAX_CACHE_BYTES:
         raise SystemExit(f"cache is {cache_bytes} bytes, above the {MAX_CACHE_BYTES} byte bound")
     manifest["scratchCacheBytes"] = cache_bytes
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    if not args.modern_only or args.paleodem_age:
+        for age in ages:
+            (OUTPUT / f"paleodem-{age}ma.json").unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

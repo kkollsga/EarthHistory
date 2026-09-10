@@ -40,6 +40,111 @@ async function waitForRefinedCube(page: Page, source: RegExp) {
   }, { timeout: 10_000 }).toBe(true);
 }
 
+async function waitForCubeNativeModernPatch(
+  page: Page,
+  id: string,
+  mode: "surface" | "seafloor",
+) {
+  await waitForRefinedCube(
+    page,
+    new RegExp(`:${mode}:regional:ETOPO_2022_v1_60s_surface:${id}$`),
+  );
+  const target = canvas(page);
+  await expect(target).toHaveAttribute("data-regional-strategy", "cube-native");
+  await expect(target).toHaveAttribute("data-regional-visible", "false");
+  await expect(target).toHaveAttribute("data-regional-source", id);
+  await expect.poll(async () => {
+    const [status, appliedKey, displayedKey] = await Promise.all([
+      target.getAttribute("data-regional-status"),
+      target.getAttribute("data-regional-applied-key"),
+      target.getAttribute("data-cube-displayed-key"),
+    ]);
+    return status === "ready" && appliedKey !== null && appliedKey === displayedKey;
+  }).toBe(true);
+  await expect.poll(async () =>
+    (await target.getAttribute("data-cube-source-patch-ids"))?.split(",").includes(id),
+  ).toBe(true);
+  await expect.poll(async () => {
+    const tiles = Number(await target.getAttribute("data-cube-source-material-tiles"));
+    const bytes = Number(await target.getAttribute("data-cube-source-material-texture-bytes"));
+    // Each source tile owns three RGBA8 textures with a 128px density target,
+    // one canonical endpoint row/column, and two gutter texels. More visible
+    // source tiles may use more memory as the LOD allocator spends its existing
+    // budget; the total cache remains the product-level bound below.
+    return tiles > 0 && bytes > 0 && bytes <= tiles * 3 * 131 * 131 * 4;
+  }).toBe(true);
+  await expect.poll(async () => Number(await target.getAttribute("data-cube-cache-bytes")))
+    .toBeLessThanOrEqual(48 * 1024 * 1024);
+  await expect(target).toHaveAttribute("data-cube-lod-max-level", "4");
+  await expect(target).toHaveAttribute("data-cube-lod-max-leaves", "96");
+}
+
+async function waitForExactModernNativePublication(
+  page: Page,
+  detail: "coarse" | "regional",
+) {
+  const target = canvas(page);
+  await expect.poll(() => target.getAttribute("data-temporal-status")).toBe("ready");
+  await expect(target).toHaveAttribute("data-temporal-displayed-age-ma", "0.000000");
+  await expect(target).toHaveAttribute(
+    "data-temporal-material-detail-method",
+    "exact-modern-native-cube-fields",
+  );
+  await expect(target).toHaveAttribute("data-temporal-material-detail-profile", detail);
+  await expect(target).toHaveAttribute("data-temporal-update-vertices", "0");
+  await expect.poll(async () =>
+    Number(await target.getAttribute("data-temporal-native-reused-vertices")),
+  ).toBeGreaterThan(0);
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
+}
+
+async function publishedMeshOverlayKey(page: Page) {
+  const target = canvas(page);
+  const [
+    status,
+    surfaceKey,
+    appliedKey,
+    cubeKey,
+    temporalStatus,
+    displayedAge,
+    mode,
+    exaggeration,
+    materialDetail,
+  ] =
+    await Promise.all([
+    target.getAttribute("data-overlay-drape-status"),
+    target.getAttribute("data-overlay-drape-surface-key"),
+    target.getAttribute("data-overlay-drape-applied-surface-key"),
+    target.getAttribute("data-cube-displayed-key"),
+    target.getAttribute("data-temporal-status"),
+    target.getAttribute("data-temporal-displayed-age-ma"),
+    target.getAttribute("data-surface-mode"),
+    target.getAttribute("data-vertical-exaggeration"),
+    target.getAttribute("data-temporal-material-detail-profile"),
+  ]);
+  if (status !== "ready" || surfaceKey === null || surfaceKey !== appliedKey || cubeKey === null ||
+      mode === null || exaggeration === null) return null;
+  if (surfaceKey.startsWith(cubeKey) && /^:mesh:r[1-9]\d*$/.test(surfaceKey.slice(cubeKey.length))) {
+    return surfaceKey;
+  }
+  const interval = cubeKey.match(/__(paleodem-[^:]+):/)?.[1];
+  if (
+    temporalStatus !== "ready" || interval === undefined || displayedAge === null ||
+    (materialDetail !== "coarse" && materialDetail !== "regional")
+  ) return null;
+  const expectedPrefix = [
+    interval,
+    displayedAge,
+    mode,
+    Number(exaggeration).toFixed(3),
+    materialDetail,
+    "published:r",
+  ].join(":");
+  return surfaceKey.startsWith(expectedPrefix) && /^\d+$/.test(surfaceKey.slice(expectedPrefix.length))
+    ? surfaceKey
+    : null;
+}
+
 async function selectChapter(page: Page, id: string, heading: string) {
   await page.locator("#chapter-jump").selectOption(id);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
@@ -103,19 +208,18 @@ test("supports the explicit WebGL 2 fallback", { tag: "@ci" }, async ({ page }) 
   expect(errors).toEqual([]);
 });
 
-test("lazily creates and then toggles bounded schematic reference guides", async ({ page }) => {
-  await page.goto("./#age=0&layers=borders,tectonics&relief=8");
+test("creates and toggles bounded schematic reference guides", async ({ page }) => {
+  await page.goto("./");
   await waitForSurface(page);
+  await useHighDetail(page);
+  await waitForRefinedCube(
+    page,
+    /:surface:coarse:ETOPO_2022_v1_60s_surface:mid-atlantic-ridge$/,
+  );
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
   const target = canvas(page);
-  await expect(target).toHaveAttribute("data-country-ribbon-batches", "2");
-  await expect(target).toHaveAttribute("data-reference-guide-batches", "0");
-
-  await openMenu(page);
-  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  const guides = page.getByRole("button", { name: /^Reference guides/ });
-  await expect(guides).toHaveAttribute("aria-pressed", "false");
-  await guides.click();
-  await expect(guides).toHaveAttribute("aria-pressed", "true");
+  await expect(target).toHaveAttribute("data-country-ribbon-batches", "1");
   await expect(target).toHaveAttribute("data-reference-guide-visible", "true");
   await expect(target).toHaveAttribute("data-reference-guide-batches", "1");
   await expect(page.locator(".surface-legend")).toContainText(/schematic climate guides/i);
@@ -123,12 +227,31 @@ test("lazily creates and then toggles bounded schematic reference guides", async
     bytes: element.dataset.referenceGuideBytes,
     vertices: element.dataset.referenceGuideVertices,
   }));
+  expect(Number(created.bytes)).toBeGreaterThan(0);
+  expect(Number(created.vertices)).toBeGreaterThan(0);
   expect(Number(created.bytes)).toBeLessThanOrEqual(2 * 1024 * 1024);
 
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const guides = page.getByRole("button", { name: /^Reference guides/ });
+  await expect(guides).toHaveAttribute("aria-pressed", "true");
   await guides.click();
+  await expect(guides).toHaveAttribute("aria-pressed", "false");
   await expect(target).toHaveAttribute("data-reference-guide-visible", "false");
   await expect(target).toHaveAttribute("data-reference-guide-bytes", created.bytes!);
   await expect(target).toHaveAttribute("data-reference-guide-vertices", created.vertices!);
+  await guides.click();
+  await expect(guides).toHaveAttribute("aria-pressed", "true");
+  await expect(target).toHaveAttribute("data-reference-guide-visible", "true");
+  await expect(target).toHaveAttribute("data-reference-guide-bytes", created.bytes!);
+  await expect(target).toHaveAttribute("data-reference-guide-vertices", created.vertices!);
+  const restored = await target.evaluate((element) => ({
+    bytes: Number(element.dataset.referenceGuideBytes),
+    vertices: Number(element.dataset.referenceGuideVertices),
+  }));
+  expect(restored.bytes).toBeGreaterThan(0);
+  expect(restored.vertices).toBeGreaterThan(0);
+  expect(restored.bytes).toBeLessThanOrEqual(2 * 1024 * 1024);
 });
 
 test("keeps story age, title, and geographic source age distinct", async ({ page }) => {
@@ -137,30 +260,101 @@ test("keeps story age, title, and geographic source age distinct", async ({ page
 
   await selectChapter(page, "quaternary-lgm", "Last Glacial Maximum");
   await expect(page.locator(".age-display")).toHaveText("21 ka");
-  await expect(page.locator(".geography-age")).toContainText("0 Ma (present-day grid)");
+  await expect(page.locator(".geography-age")).toContainText("Today–5 Ma");
 
   await selectChapter(page, "permian", "Permian");
   await expect(page.locator(".age-display")).toHaveText("255 Ma");
-  await expect(page.locator(".geography-age")).toContainText("250 Ma");
+  await expect(page.locator(".geography-age")).toContainText("255 Ma");
 
   await selectChapter(page, "kpg-boundary", "K–Pg boundary");
   await expect(page.locator(".age-display")).toHaveText("66.04 Ma");
-  await expect(page.locator(".geography-age")).toContainText("65 Ma");
+  await expect(page.locator(".geography-age")).toContainText("65 Ma–70 Ma");
 
   await selectChapter(page, "antarctic-glaciation", "Antarctic glaciation");
   await expect(page.locator(".age-display")).toHaveText("33.6 Ma");
-  await expect(page.locator(".geography-age")).toContainText("35 Ma");
+  await expect(page.locator(".geography-age")).toContainText("30 Ma–35 Ma");
+
+  const sourceAges = page.locator("#source-age-jump");
+  await expect(sourceAges.locator("option:not([disabled])")).toHaveCount(109);
+  await sourceAges.selectOption("385");
+  await waitForSurface(page);
+  await expect(page.locator(".age-display")).toHaveText("385 Ma");
+  await expect(page.locator(".geography-age")).toContainText("385 Ma");
 
   await selectChapter(page, "moon-forming-scenario", "Moon-forming impact scenario");
   await expect(page.locator(".scenario-label")).toHaveText("Illustrative scene · geography unresolved");
   await expect(page.locator(".geography-age")).toContainText("Illustrative field");
 });
 
+test("keeps exposed seafloor available across historical source ages and reload", async ({ page }) => {
+  await page.goto("./#age=100&layers=borders,guides&relief=8");
+  await waitForSurface(page);
+  await expect(canvas(page)).toHaveAttribute("data-surface-mode", "surface");
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const seafloor = page.getByRole("button", { name: /^Expose seafloor/ });
+  await expect(seafloor).toHaveAttribute("aria-pressed", "false");
+  await seafloor.click();
+  await waitForSurface(page);
+  await expect(canvas(page)).toHaveAttribute("data-surface-mode", "seafloor");
+  await expect(page.locator(".surface-legend")).toContainText("Exposed seafloor");
+  expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).get("view")).toBe("seafloor");
+
+  await page.locator("#source-age-jump").selectOption("105");
+  await waitForSurface(page);
+  await expect(page.locator(".age-display")).toHaveText("105 Ma");
+  await expect(canvas(page)).toHaveAttribute("data-surface-mode", "seafloor");
+  await page.reload();
+  await waitForSurface(page);
+  await expect(page.locator(".age-display")).toHaveText("105 Ma");
+  await expect(canvas(page)).toHaveAttribute("data-surface-mode", "seafloor");
+});
+
 test("changes relief, keeps clouds off by default, and restores an orbital camera", async ({ page }) => {
   test.slow();
-  await page.goto("./");
+  await page.goto("./#age=22.5&layers=borders,guides&relief=8");
   await waitForSurface(page);
+  await useHighDetail(page);
+  await waitForSurface(page);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-displayed-age-ma")))
+    .toBeCloseTo(22.5, 3);
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
+  await expect(canvas(page)).toHaveAttribute("data-detail", "coarse");
+  await expect(canvas(page)).toHaveAttribute("data-temporal-material-detail-profile", "coarse");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-level", "4");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-leaves", "96");
+  const preScrubSurfaceKey = await publishedMeshOverlayKey(page);
+  expect(preScrubSurfaceKey).not.toBeNull();
   await expect(page.locator(".surface-legend")).toContainText("8×");
+
+  await page.evaluate(() => {
+    const target = document.querySelector("canvas");
+    const state = window as Window & { __temporalLodPolicies?: string[] };
+    state.__temporalLodPolicies = [];
+    if (!target) return;
+    const record = () => state.__temporalLodPolicies!.push(
+      `${target.dataset.cubeLodMaxLevel}/${target.dataset.cubeLodMaxLeaves}`,
+    );
+    new MutationObserver(record).observe(target, {
+      attributes: true,
+      attributeFilter: ["data-cube-lod-max-level", "data-cube-lod-max-leaves"],
+    });
+  });
+  await page.locator("#geological-age").fill("44");
+  const scrubbedAgeMa = 44 / 1000 * 538.8;
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-requested-age-ma")))
+    .toBeCloseTo(scrubbedAgeMa, 3);
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  expect(await page.evaluate(() =>
+    (window as Window & { __temporalLodPolicies?: string[] }).__temporalLodPolicies ?? [],
+  )).toContain("0/6");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-level", "4");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-leaves", "96");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
+  const initialSurfaceKey = await publishedMeshOverlayKey(page);
+  expect(initialSurfaceKey).not.toBeNull();
+  expect(initialSurfaceKey).not.toBe(preScrubSurfaceKey);
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
@@ -169,6 +363,7 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
   await relief.fill("30");
   await expect(page.locator(".surface-legend")).toContainText("30×");
   await expect.poll(() => canvas(page).getAttribute("data-vertical-exaggeration")).toBe("30.0");
+  await expect(canvas(page)).toHaveAttribute("data-cube-relief-update", "atomic-temporal-restage");
   await expect(canvas(page)).toHaveAttribute("data-overlay-drape-status", "ready");
   await expect(canvas(page)).toHaveAttribute("data-overlay-drape-exaggeration", "30.0");
   await expect.poll(async () => Number(await canvas(page).getAttribute("data-overlay-drape-vertices")))
@@ -176,13 +371,15 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
   await expect.poll(async () => Number(await canvas(page).getAttribute("data-overlay-drape-cache-bytes")))
     .toBeLessThanOrEqual(16 * 1024 * 1024);
   await expect.poll(async () => {
-    const target = canvas(page);
-    return await target.getAttribute("data-overlay-drape-surface-key") ===
-      await target.getAttribute("data-cube-displayed-key");
+    const surfaceKey = await publishedMeshOverlayKey(page);
+    return surfaceKey !== null && surfaceKey !== initialSurfaceKey;
   }).toBe(true);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-displayed-age-ma")))
+    .toBeCloseTo(scrubbedAgeMa, 3);
+  const reliefSurfaceKey = await publishedMeshOverlayKey(page);
+  expect(reliefSurfaceKey).not.toBeNull();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();
-  await useHighDetail(page);
 
   const bounds = await canvas(page).boundingBox();
   expect(bounds).not.toBeNull();
@@ -190,14 +387,35 @@ test("changes relief, keeps clouds off by default, and restores an orbital camer
   for (let index = 0; index < 12; index++) await page.mouse.wheel(0, -300);
   await expect.poll(() => canvas(page).getAttribute("data-detail")).toBe("regional");
   await waitForRefinedCube(page, /:surface:regional:/);
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect(canvas(page)).toHaveAttribute("data-temporal-material-detail-profile", "regional");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-level", "4");
+  await expect(canvas(page)).toHaveAttribute("data-cube-lod-max-leaves", "96");
   await expect.poll(async () => {
-    const target = canvas(page);
-    return await target.getAttribute("data-overlay-drape-surface-key") ===
-      await target.getAttribute("data-cube-displayed-key");
+    const byLod = JSON.parse(
+      await canvas(page).getAttribute("data-cube-visible-by-lod") ?? "{}",
+    ) as Record<string, number>;
+    return Object.entries(byLod).some(([level, count]) => Number(level) > 1 && count > 0);
   }).toBe(true);
+  await expect.poll(async () => {
+    const surfaceKey = await publishedMeshOverlayKey(page);
+    return surfaceKey !== null && surfaceKey !== reliefSurfaceKey;
+  }).toBe(true);
+
+  await page.locator("#source-age-jump").selectOption("25");
+  await waitForSurface(page);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-displayed-age-ma")))
+    .toBeCloseTo(25, 3);
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect(canvas(page)).toHaveAttribute("data-detail", "regional");
+  await expect(canvas(page)).toHaveAttribute("data-temporal-material-detail-profile", "regional");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
   await openMenu(page);
   await page.getByRole("menuitem", { name: "Reset camera" }).click();
   await expect.poll(() => canvas(page).getAttribute("data-detail")).toBe("coarse");
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect(canvas(page)).toHaveAttribute("data-temporal-material-detail-profile", "coarse");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
 });
 
 test("opens repeatable modern landscape views and marks the seafloor explicitly", async ({ page }) => {
@@ -206,17 +424,19 @@ test("opens repeatable modern landscape views and marks the seafloor explicitly"
   await waitForSurface(page);
   await useHighDetail(page);
   const landscapes = page.getByLabel("Explore a landscape");
-  await expect(landscapes.locator("option")).toHaveCount(12);
+  await expect(landscapes.locator("option")).toHaveCount(14);
 
   await landscapes.selectOption("mid-atlantic-ridge");
   await expect(page.locator(".landscape-summary")).toContainText("submerged divergent plate boundary");
-  await expect(page.locator(".surface-legend")).toContainText("Seafloor view");
+  await expect(page.locator(".surface-legend")).toContainText("Exposed seafloor");
   await expect.poll(() => canvas(page).getAttribute("data-surface-mode")).toBe("seafloor");
   await waitForSurface(page);
   await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")), {
     timeout: 3_000,
   }).toBeLessThan(1.82);
   await waitForRefinedCube(page, /:seafloor:regional:ETOPO_2022_v1_60s_surface:mid-atlantic-ridge$/);
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
   await expect(page).toHaveURL(/place=mid-atlantic-ridge/);
   await page.reload();
   await waitForSurface(page);
@@ -225,11 +445,66 @@ test("opens repeatable modern landscape views and marks the seafloor explicitly"
   await expect.poll(() => canvas(page).getAttribute("data-detail")).toBe("regional");
   await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance"))).toBeLessThan(1.82);
   await waitForRefinedCube(page, /:seafloor:regional:ETOPO_2022_v1_60s_surface:mid-atlantic-ridge$/);
+  await expect.poll(() => canvas(page).getAttribute("data-temporal-status")).toBe("ready");
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
   await expect(page.getByRole("button", { name: /^Clouds/ })).toHaveAttribute("aria-pressed", "false");
   await page.keyboard.press("Escape");
+
+  await landscapes.selectOption("alps");
+  await expect(page.locator(".surface-legend")).toContainText("Surface water");
+  await expect.poll(() => canvas(page).getAttribute("data-surface-mode")).toBe("surface");
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(1.18, 2);
+  await waitForCubeNativeModernPatch(page, "alps", "surface");
+  await waitForExactModernNativePublication(page, "regional");
+  const nativeSurfaceKey = await publishedMeshOverlayKey(page);
+  expect(nativeSurfaceKey).not.toBeNull();
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  await page.getByRole("slider", { name: /^Terrain relief/ }).fill("30");
+  await expect.poll(() => canvas(page).getAttribute("data-vertical-exaggeration")).toBe("30.0");
+  await waitForExactModernNativePublication(page, "regional");
+  await expect.poll(async () => {
+    const key = await publishedMeshOverlayKey(page);
+    return key !== null && key !== nativeSurfaceKey;
+  }).toBe(true);
+  await page.keyboard.press("Escape");
+
+  // The ETOPO patch is valid only at 0 Ma. A fractional request must leave its
+  // source context, and returning to the endpoint must restore it exactly.
+  await page.locator("#geological-age").fill("969");
+  await expect.poll(async () =>
+    Number(await canvas(page).getAttribute("data-temporal-requested-age-ma")),
+  ).toBeCloseTo(2.5, 2);
+  await expect.poll(async () =>
+    Number(await canvas(page).getAttribute("data-temporal-displayed-age-ma")),
+  ).toBeCloseTo(2.5, 2);
+  await expect.poll(async () =>
+    Number(await canvas(page).getAttribute("data-temporal-update-vertices")),
+  ).toBeGreaterThan(0);
+  await expect.poll(() => publishedMeshOverlayKey(page)).not.toBeNull();
+  await expect(canvas(page)).toHaveAttribute("data-cube-source-patch-ids", "none");
+  await page.locator("#geological-age").fill("0");
+  await waitForExactModernNativePublication(page, "regional");
+  await waitForCubeNativeModernPatch(page, "alps", "surface");
+
+  await landscapes.selectOption("japan-trench");
+  await expect(page.locator(".surface-legend")).toContainText("Surface water");
+  await expect.poll(() => canvas(page).getAttribute("data-surface-mode")).toBe("surface");
+  await waitForCubeNativeModernPatch(page, "japan-trench", "surface");
+  const [displayedMinimum, sourceMinimum] = await Promise.all([
+    canvas(page).getAttribute("data-cube-displayed-height-range-metres"),
+    canvas(page).getAttribute("data-cube-source-material-height-range-metres"),
+  ]).then(([displayed, source]) => [
+    Number(displayed?.split(",")[0]),
+    Number(source?.split(",")[0]),
+  ]);
+  expect(displayedMinimum).toBeGreaterThanOrEqual(0);
+  expect(sourceMinimum).toBeLessThan(0);
 
   await landscapes.selectOption("sahara-sahel");
   await expect(page.locator(".landscape-summary")).toContainText("semi-arid steppe and savanna");
@@ -254,7 +529,7 @@ test("offers one labelled timeline range control with keyboard scrubbing", async
   await slider.focus();
   await slider.press("ArrowRight");
   await expect(page.locator(".timeline-handle-label")).not.toHaveText("Today");
-  await expect(page.locator(".timeline-readout")).toContainText("Geography source: 0 Ma");
+  await expect(page.locator(".timeline-readout")).toContainText("Geography source: Today–5 Ma");
 
   await page.locator("#chapter-jump").selectOption("moon-forming-scenario");
   await expect(timelineRange).toHaveValue("deep");
@@ -270,7 +545,228 @@ test("offers one labelled timeline range control with keyboard scrubbing", async
   await page.getByRole("button", { name: "Pause time travel" }).click();
 });
 
+test("keeps one continuous requested age across terrain, countries, and a tagged focus", async ({ page }) => {
+  test.slow();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=22.5&layers=borders,guides&focus=east-african-rift&relief=8");
+  await waitForSurface(page);
+  const target = canvas(page);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-requested-age-ma")))
+    .toBeCloseTo(22.5, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(22.5, 3);
+  await expect(target).toHaveAttribute("data-focus-kind", "poi");
+
+  const center = await canvasPosition(page);
+  await page.mouse.move(center.x, center.y);
+  for (let index = 0; index < 5; index++) await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number(await target.getAttribute("data-camera-distance")))
+    .toBeLessThan(1.65);
+  const taggedDistance = Number(await target.getAttribute("data-camera-distance"));
+  const initialLongitude = Number(await target.getAttribute("data-camera-longitude"));
+
+  const sliderValues = [43, 44, 45, 46, 47, 48, 49, 50, 51];
+  const ageSlider = page.locator("#geological-age");
+  for (const value of sliderValues) {
+    await ageSlider.fill(String(value));
+    await page.waitForTimeout(35);
+  }
+  const expectedAgeMa = sliderValues.at(-1)! / 1000 * 538.8;
+
+  await expect(page.locator(".age-display")).toHaveText("27.48 Ma");
+  await expect(page.locator(".geography-age")).toContainText("25 Ma–30 Ma · interpolated");
+  await expect(page.locator(".timeline-readout")).toContainText("Geography source: 25 Ma–30 Ma · interpolated");
+  await expect(page.locator("#source-age-jump option:not([disabled])")).toHaveCount(109);
+  await expect.poll(() => target.getAttribute("data-temporal-status")).toBe("ready");
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-requested-age-ma")))
+    .toBeCloseTo(expectedAgeMa, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-displayed-age-ma")))
+    .toBeCloseTo(expectedAgeMa, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-update-vertices")))
+    .toBeGreaterThan(0);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-requested-age-ma")))
+    .toBeCloseTo(expectedAgeMa, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(expectedAgeMa, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-resolved-parts")))
+    .toBeGreaterThan(100);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-poi-displayed-age-ma")))
+    .toBeCloseTo(expectedAgeMa, 3);
+  await expect(target).toHaveAttribute("data-focus-kind", "poi");
+  await expect(page).toHaveURL(/(?:#|&)focus=east-african-rift(?:&|$)/);
+  await expect.poll(async () => Number(await target.getAttribute("data-camera-distance")))
+    .toBeCloseTo(taggedDistance, 2);
+  await expect.poll(async () =>
+    Math.abs(Number(await target.getAttribute("data-camera-longitude")) - initialLongitude),
+  ).toBeGreaterThan(0.01);
+});
+
+test("discloses native source fallback when plate motion cannot load", async ({ page }) => {
+  await page.route("**/data/paleomap-motion-v1.json", (route) => route.abort("failed"));
+  await page.goto("./#age=22.5&layers=borders,guides&relief=8");
+  await waitForSurface(page);
+
+  await expect(page.locator(".surface-legend [role='status']"))
+    .toContainText("Plate motion unavailable");
+  await expect(page.locator(".geography-age")).toContainText("25 Ma · plate motion unavailable");
+  await expect(page.locator(".timeline-readout")).toContainText("Geography source: 25 Ma");
+  await expect(page.locator(".view-evidence")).toHaveText(/Rendered viewModel output/);
+  await expect(canvas(page)).not.toHaveAttribute("data-temporal-status", "ready");
+});
+
+test("keeps Cao terrain, boundaries, countries, and a tagged focus on one continuous age", async ({ page }) => {
+  test.slow();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=20&layers=borders,guides&focus=east-african-rift&relief=8");
+  await waitForSurface(page);
+  const target = canvas(page);
+  const center = await canvasPosition(page);
+  await page.mouse.move(center.x, center.y);
+  for (let index = 0; index < 5; index++) await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number(await target.getAttribute("data-camera-distance"))).toBeLessThan(1.65);
+  const taggedDistance = Number(await target.getAttribute("data-camera-distance"));
+  const initialLongitude = Number(await target.getAttribute("data-camera-longitude"));
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  await page.getByRole("button", { name: /^Cao plate coordinates/ }).click();
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(page).toHaveURL(/(?:#|&)coordinates=cao(?:&|$)/);
+  await expect(target).toHaveAttribute("data-period-coordinate-view", "cao-2024-v2.4");
+  await expect(page.locator(".view-evidence")).toHaveText(/Rendered viewSynthesis/);
+  await expect.poll(() => target.getAttribute("data-period-coordinate-status"), { timeout: 20_000 }).toBe("ready");
+  await expect.poll(async () => Number(await target.getAttribute("data-period-coordinate-displayed-age-ma")))
+    .toBeCloseTo(20, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-cao-boundary-points"))).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await target.getAttribute("data-period-coordinate-unsupported-vertices")))
+    .toBeGreaterThan(0);
+  await expect(page.locator(".surface-legend")).toContainText("partial converted relief");
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(20, 3);
+  const initialPoiPositionSignature = await target.getAttribute("data-temporal-poi-position-signature");
+  expect(initialPoiPositionSignature).toBeTruthy();
+
+  await page.evaluate(() => {
+    const canvas = document.querySelector("canvas");
+    const mismatches: Array<Record<string, string | undefined>> = [];
+    const frameMismatches: Array<Record<string, string | undefined>> = [];
+    const blankFrames: string[] = [];
+    const state = window as Window & {
+      __caoReadinessMismatches?: typeof mismatches;
+      __caoFrameMismatches?: typeof frameMismatches;
+      __caoBlankFrames?: typeof blankFrames;
+      __sampleCaoFrames?: boolean;
+    };
+    state.__caoReadinessMismatches = mismatches;
+    state.__caoFrameMismatches = frameMismatches;
+    state.__caoBlankFrames = blankFrames;
+    state.__sampleCaoFrames = true;
+    if (!canvas) return;
+    new MutationObserver(() => {
+      if (canvas.dataset.periodCoordinateStatus !== "ready") return;
+      const ages = {
+        terrain: canvas.dataset.periodCoordinateDisplayedAgeMa,
+        boundary: canvas.dataset.caoBoundaryDisplayedAgeMa,
+        country: canvas.dataset.temporalCountryDisplayedAgeMa,
+        poi: canvas.dataset.temporalPoiDisplayedAgeMa,
+      };
+      if (Object.values(ages).some((age) => age !== ages.terrain)) mismatches.push(ages);
+    }).observe(canvas, { attributes: true });
+    const sampleFrame = () => {
+      if (!state.__sampleCaoFrames) return;
+      const ages = {
+        terrain: canvas.dataset.periodCoordinateDisplayedAgeMa,
+        boundary: canvas.dataset.caoBoundaryDisplayedAgeMa,
+        country: canvas.dataset.temporalCountryDisplayedAgeMa,
+        poi: canvas.dataset.temporalPoiDisplayedAgeMa,
+      };
+      const values = Object.values(ages);
+      if (values.every((age) => age !== undefined) && values.some((age) => age !== ages.terrain)) {
+        frameMismatches.push(ages);
+      }
+      if (Number(canvas.dataset.surfaceVisibleMeshes) <= 0) {
+        blankFrames.push(canvas.dataset.surfaceVisibleMeshes ?? "missing");
+      }
+      requestAnimationFrame(sampleFrame);
+    };
+    requestAnimationFrame(sampleFrame);
+  });
+
+  for (const value of [38, 39, 40, 41, 42]) {
+    await page.locator("#geological-age").fill(String(value));
+    await page.waitForTimeout(35);
+  }
+  const requestedAge = Number(await target.getAttribute("data-period-coordinate-requested-age-ma"));
+  expect(requestedAge).toBeGreaterThan(20);
+  expect(requestedAge).toBeLessThan(25);
+  await expect.poll(() => target.getAttribute("data-period-coordinate-status"), { timeout: 20_000 }).toBe("ready");
+  await expect.poll(async () => Number(await target.getAttribute("data-period-coordinate-displayed-age-ma")))
+    .toBeCloseTo(requestedAge, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-cao-boundary-displayed-age-ma")))
+    .toBeCloseTo(requestedAge, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-period-coordinate-resolved-vertices")))
+    .toBeGreaterThan(0);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(requestedAge, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-poi-displayed-age-ma")))
+    .toBeCloseTo(requestedAge, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-poi-displayed-count")))
+    .toBeGreaterThan(0);
+  await expect.poll(() => target.getAttribute("data-temporal-poi-position-signature"))
+    .not.toBe(initialPoiPositionSignature);
+  await expect(target).toHaveAttribute("data-focus-kind", "poi");
+  await expect.poll(async () => Number(await target.getAttribute("data-camera-distance")))
+    .toBeCloseTo(taggedDistance, 2);
+  await expect.poll(async () => Math.abs(Number(await target.getAttribute("data-camera-longitude")) - initialLongitude))
+    .toBeGreaterThan(0.01);
+
+  await page.locator("#source-age-jump").selectOption("25");
+  await expect.poll(() => target.getAttribute("data-period-coordinate-status"), { timeout: 20_000 }).toBe("ready");
+  await expect.poll(async () => Number(await target.getAttribute("data-period-coordinate-displayed-age-ma")))
+    .toBeCloseTo(25, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-cao-boundary-displayed-age-ma")))
+    .toBeCloseTo(25, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(25, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-temporal-poi-displayed-age-ma")))
+    .toBeCloseTo(25, 3);
+  await expect.poll(async () => Number(await target.getAttribute("data-surface-visible-meshes")))
+    .toBeGreaterThan(0);
+  await expect.poll(async () => Number(await target.getAttribute("data-camera-distance")))
+    .toBeCloseTo(taggedDistance, 2);
+  expect(await page.evaluate(() =>
+    (window as Window & { __caoReadinessMismatches?: unknown[] }).__caoReadinessMismatches ?? []
+  )).toEqual([]);
+  expect(await page.evaluate(() => {
+    const state = window as Window & {
+      __caoFrameMismatches?: unknown[];
+      __caoBlankFrames?: string[];
+      __sampleCaoFrames?: boolean;
+    };
+    state.__sampleCaoFrames = false;
+    return state.__caoFrameMismatches ?? [];
+  })).toEqual([]);
+  expect(await page.evaluate(() =>
+    (window as Window & { __caoBlankFrames?: string[] }).__caoBlankFrames ?? []
+  )).toEqual([]);
+});
+
+test("falls back visibly when the Cao coordinate bundle cannot load", async ({ page }) => {
+  await page.route("**/data/cao-ocean-motion-v1.json", (route) => route.abort("failed"));
+  await page.goto("./#age=100&layers=borders,guides&relief=8");
+  await waitForSurface(page);
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  await page.getByRole("button", { name: /^Cao plate coordinates/ }).click();
+  await expect(page.locator(".surface-legend [role='status']"))
+    .toContainText("Cao coordinates unavailable · PALEOMAP retained");
+  await expect.poll(() => new URLSearchParams(new URL(page.url()).hash.slice(1)).get("coordinates"))
+    .toBeNull();
+  await expect(canvas(page)).not.toHaveAttribute("data-period-coordinate-view", "cao-2024-v2.4");
+});
+
 test("crossfades completed authored scenes and settles rapid chapter changes on the latest request", async ({ page }) => {
+  test.slow();
   await page.goto("./");
   await waitForSurface(page);
   await page.evaluate(() => {
@@ -282,6 +778,31 @@ test("crossfades completed authored scenes and settles rapid chapter changes on 
       .observe(target, { attributes: true, attributeFilter: ["data-surface-transition"] });
   });
 
+  await selectChapter(page, "cryogenian", "Cryogenian");
+  await expect.poll(() => canvas(page).getAttribute("data-surface-transition")).toBe("idle");
+  expect(await page.evaluate(() =>
+    (window as Window & { __surfaceTransitions?: string[] }).__surfaceTransitions ?? [],
+  )).toContain("crossfade");
+  await page.evaluate(() => {
+    const target = document.querySelector("canvas");
+    const state = window as Window & {
+      __surfaceTransitions?: string[];
+      __mappedBlankFrames?: string[];
+      __sampleMappedFrames?: boolean;
+    };
+    state.__surfaceTransitions = [];
+    state.__mappedBlankFrames = [];
+    state.__sampleMappedFrames = true;
+    const sampleFrame = () => {
+      if (!state.__sampleMappedFrames) return;
+      if (Number(target?.dataset.surfaceVisibleMeshes) <= 0) {
+        state.__mappedBlankFrames!.push(target?.dataset.surfaceVisibleMeshes ?? "missing");
+      }
+      requestAnimationFrame(sampleFrame);
+    };
+    requestAnimationFrame(sampleFrame);
+  });
+
   await page.locator("#chapter-jump").selectOption("permian");
   await page.locator("#chapter-jump").selectOption("kpg-boundary");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("K–Pg boundary");
@@ -290,17 +811,30 @@ test("crossfades completed authored scenes and settles rapid chapter changes on 
   const transitions = await page.evaluate(() =>
     (window as Window & { __surfaceTransitions?: string[] }).__surfaceTransitions ?? [],
   );
-  expect(transitions).toContain("crossfade");
-  await expect(page.locator(".geography-age")).toContainText("65 Ma");
+  expect(transitions).not.toContain("crossfade");
+  await expect(page.locator(".geography-age")).toContainText("65 Ma–70 Ma");
   await waitForRefinedCube(
     page,
-    /^kpg-boundary__paleodem-65ma:surface:coarse:procedural$/,
+    /^kpg-boundary__paleodem-65-70ma:surface:coarse:procedural$/,
   );
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-requested-age-ma")))
+    .toBeCloseTo(66.04, 3);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-displayed-age-ma")))
+    .toBeCloseTo(66.04, 3);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-country-displayed-age-ma")))
+    .toBeCloseTo(66.04, 3);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-temporal-poi-displayed-age-ma")))
+    .toBeCloseTo(66.04, 3);
+  expect(await page.evaluate(() => {
+    const state = window as Window & { __mappedBlankFrames?: string[]; __sampleMappedFrames?: boolean };
+    state.__sampleMappedFrames = false;
+    return state.__mappedBlankFrames ?? [];
+  })).toEqual([]);
 });
 
 test("a stale retry cannot replace a newer chapter", async ({ page }) => {
   let attempts = 0;
-  await page.route("**/data/paleodem-250ma.json", async (route) => {
+  await page.route("**/data/paleodem-255ma.bin", async (route) => {
     attempts += 1;
     if (attempts === 1) await route.abort("failed");
     else {
@@ -315,10 +849,10 @@ test("a stale retry cannot replace a newer chapter", async ({ page }) => {
   await page.getByRole("button", { name: "Try again" }).click();
   await page.locator("#chapter-jump").selectOption("kpg-boundary");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("K–Pg boundary");
-  await expect(page.locator(".geography-age")).toContainText("65 Ma");
+  await expect(page.locator(".geography-age")).toContainText("65 Ma–70 Ma");
   await page.waitForTimeout(1_000);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("K–Pg boundary");
-  await expect(page.locator(".geography-age")).toContainText("65 Ma");
+  await expect(page.locator(".geography-age")).toContainText("65 Ma–70 Ma");
 });
 
 test("does not offer globe navigation for an unlocalized ancient evidence site", async ({ page }) => {
@@ -344,9 +878,17 @@ test("shows only field notes valid at the requested age and clears an expired se
   await page.getByRole("button", { name: /Andean volcanic margin/ }).click();
   await expect(page).toHaveURL(/(?:#|&)focus=andes-volcanic-margin(?:&|$)/);
   await page.getByRole("button", { name: "Close dialog" }).click();
+  const taggedCenter = await canvasPosition(page);
+  await page.mouse.move(taggedCenter.x, taggedCenter.y);
+  for (let index = 0; index < 5; index++) await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")))
+    .toBeLessThan(1.65);
+  const taggedDistance = Number(await canvas(page).getAttribute("data-camera-distance"));
   await selectChapter(page, "neogene", "Neogene");
   await expect(page).toHaveURL(/(?:#|&)focus=andes-volcanic-margin(?:&|$)/);
   await expect(page.locator(".selected-note")).toContainText("Andean volcanic margin");
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(taggedDistance, 2);
 
   await selectChapter(page, "kpg-boundary", "K–Pg boundary");
   await expect(page).not.toHaveURL(/(?:#|&)focus=/);
@@ -435,6 +977,12 @@ test("retains a land anchor through disappearance and reacquires its exact sourc
   await expect(canvas(page)).toHaveAttribute("data-focus-kind", "area");
   const presentAt = new URL(page.url()).hash.match(/(?:#|&)at=([^&]+)/)?.[1];
   expect(presentAt).toBeTruthy();
+  const center = await canvasPosition(page);
+  await page.mouse.move(center.x, center.y);
+  for (let index = 0; index < 5; index++) await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")))
+    .toBeLessThan(1.65);
+  const taggedDistance = Number(await canvas(page).getAttribute("data-camera-distance"));
 
   await page.locator("#chapter-jump").selectOption("ordovician");
   await waitForSurface(page);
@@ -448,6 +996,8 @@ test("retains a land anchor through disappearance and reacquires its exact sourc
   await waitForSurface(page);
   await expect(canvas(page)).toHaveAttribute("data-focus-kind", "area");
   await expect(retainedStatus).toHaveCount(0);
+  await expect.poll(async () => Number(await canvas(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(taggedDistance, 2);
   const reappearedAt = new URL(page.url()).hash.match(/(?:#|&)at=([^&]+)/)?.[1];
   expect(reappearedAt).toBeTruthy();
   expect(reappearedAt).not.toBe(presentAt);

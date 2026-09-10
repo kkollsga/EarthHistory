@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planCubeRender } from "./cubeRenderPlan";
+import { cubeRenderResidentIds, planCubeRender } from "./cubeRenderPlan";
 import { CUBE_FACES, cubeTileId, type CubeTileKey } from "./cubeSphere";
 import { balanceCubeSelection } from "./cubeLod";
 
@@ -96,5 +96,15 @@ describe("cube render planning", () => {
     expect(plan.renderKeys).toEqual([pxRoot, nxRoot]);
     expect(plan.nextRequests).toEqual([...pxChildren, ...nxChildren]);
     expect(plan.complete).toBe(false);
+  });
+
+  it("uses mesh-owned temporal fields without inserting them into the bounded cache", () => {
+    const cached = new Set(pxChildren.slice(0, 3).map(cubeTileId));
+    const resident = cubeRenderResidentIds(cached, [pxChildren[3]]);
+    const plan = planCubeRender(pxChildren, resident);
+    expect(plan.complete).toBe(true);
+    expect(plan.nextRequests).toEqual([]);
+    expect(cached.size).toBe(3);
+    expect(cached.has(cubeTileId(pxChildren[3]))).toBe(false);
   });
 });

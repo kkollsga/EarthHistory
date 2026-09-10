@@ -1,0 +1,545 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-09-09T19:16:08Z",
+  "study": "palaeomap plate reconstruction foundation",
+  "externalRoot": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/plates",
+  "externalRootCapBytes": 1503238554,
+  "externalRootMeasuredKiB": 1231428,
+  "measurementCommand": "du -sk",
+  "cleanupOwner": "EarthHistory project research lead after study acceptance",
+  "cleanupOrder": [
+    "extracted/ (regenerable from verified archives)",
+    "quarantine grid samples after unresolved metadata is recorded",
+    "comparison-only archives if no longer needed"
+  ],
+  "artifacts": [
+    {
+      "id": "cao2024-v2.4",
+      "selection": "recommended-target-after-conversion-validation",
+      "kind": "model-archive",
+      "modelRangeMa": [
+        0,
+        1800
+      ],
+      "referenceFrame": "palaeomagnetic",
+      "version": "2.4",
+      "releaseRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "conceptRecord": "https://doi.org/10.5281/zenodo.11536686",
+      "sourceUrl": "https://zenodo.org/api/records/13628813/files/1.8Ga_model_GSF.zip/content",
+      "retrievedUtc": "2026-09-09T13:26:07Z",
+      "bytes": 20669287,
+      "sha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "localRelativePath": "downloads/cao2024-v2.4-record13628813.zip",
+      "license": "CC-BY-4.0",
+      "licenseStatus": "verified-on-Zenodo-record",
+      "publishStatus": "eligible-after-attribution-and-derived-asset-validation"
+    },
+    {
+      "id": "muller2025-v1.3",
+      "selection": "recommended-mantle-frame-alternate",
+      "kind": "model-archive",
+      "modelRangeMa": [
+        0,
+        1800
+      ],
+      "referenceFrame": "mantle",
+      "version": "1.3",
+      "releaseRecord": "https://doi.org/10.5281/zenodo.17142287",
+      "sourceUrl": "https://zenodo.org/api/records/17142287/files/Cao_etal_2024_1.8_Ga_mantle_ref_frame.zip/content",
+      "retrievedUtc": "2026-09-09T13:27:34Z",
+      "bytes": 334794001,
+      "sha256": "248603d18dea10212b91034eb37800e1872babcac7d1c4b53e346a38c10338ef",
+      "localRelativePath": "downloads/muller2025-v1.3-record17142287.zip",
+      "license": "CC-BY-4.0",
+      "licenseStatus": "verified-on-Zenodo-record",
+      "publishStatus": "eligible-after-attribution-and-derived-asset-validation"
+    },
+    {
+      "id": "merdith2021-v1.2.4",
+      "selection": "comparison-only",
+      "kind": "model-archive",
+      "modelRangeMa": [
+        0,
+        1000
+      ],
+      "referenceFrame": "palaeomagnetic",
+      "version": "1.2.4",
+      "releaseRecord": "https://doi.org/10.5281/zenodo.13635864",
+      "conceptRecord": "https://doi.org/10.5281/zenodo.10346399",
+      "sourceUrl": "https://zenodo.org/api/records/13635864/files/Merdith_etal_2021_ESR_v1.2.4.zip/content",
+      "retrievedUtc": "2026-09-09T13:26:01Z",
+      "bytes": 8496217,
+      "sha256": "c08cd59f9fc26a99315a9a28c7a8da33ef7dc16e60c14eaec24e673cb6b78e6e",
+      "localRelativePath": "downloads/merdith2021-v1.2.4-record13635864.zip",
+      "license": "CC-BY-4.0",
+      "licenseStatus": "verified-on-Zenodo-record",
+      "publishStatus": "comparison-only"
+    },
+    {
+      "id": "muller2022-v1.2.4",
+      "selection": "comparison-only",
+      "kind": "model-archive",
+      "modelRangeMa": [
+        0,
+        1000
+      ],
+      "referenceFrame": "mantle",
+      "version": "1.2.4",
+      "releaseRecord": "https://doi.org/10.5281/zenodo.13636799",
+      "conceptRecord": "https://doi.org/10.5281/zenodo.10297173",
+      "sourceUrl": "https://zenodo.org/api/records/13636799/files/Muller_etal_2022_SE_v1.2.4.zip/content",
+      "retrievedUtc": "2026-09-09T13:26:04Z",
+      "bytes": 11629841,
+      "sha256": "add1f4975360ecd259517b99860f4fb0d176170d909333387e8022c69255bbcd",
+      "localRelativePath": "downloads/muller2022-v1.2.4-record13636799.zip",
+      "license": "CC-BY-4.0",
+      "licenseStatus": "verified-on-Zenodo-record",
+      "publishStatus": "comparison-only"
+    },
+    {
+      "id": "paleomap-global-v3-app-input",
+      "selection": "existing-native-surface-input",
+      "kind": "model-archive-inspected-from-existing-cache",
+      "modelRangeMa": [
+        0,
+        1100
+      ],
+      "referenceFrame": "PALEOMAP model frame",
+      "version": "3 (Zenodo record version 7.3)",
+      "releaseRecord": "https://doi.org/10.5281/zenodo.7994000",
+      "sourceUrl": "https://zenodo.org/records/7994000/files/paleomap_global_plate_model_v3.zip?download=1",
+      "bytes": 414657,
+      "sha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "localRelativePath": null,
+      "license": "CC-BY-4.0",
+      "licenseStatus": "verified-on-Zenodo-record",
+      "publishStatus": "already-used-source; archive contains no ridge/subduction/transform topology"
+    },
+    {
+      "id": "cao2024-gpml-inspection",
+      "selection": "research-evidence",
+      "kind": "derived-inspection-manifest",
+      "sourceArtifact": "cao2024-v2.4",
+      "retrievedUtc": "2026-09-09T13:35:19Z",
+      "bytes": 72866,
+      "sha256": "d3699b69ac9d6f7630e6e1c0aaa44127d7579c7c29c36b56a105598937f9c065",
+      "localRelativePath": "cao2024-v2.4-gpml-inspection.json",
+      "license": "project-generated factual manifest",
+      "licenseStatus": "derived-from-CC-BY-4.0-source",
+      "publishStatus": "research-evidence"
+    },
+    {
+      "id": "muller2025-grid-directory-index-age",
+      "selection": "quarantined-source-discovery",
+      "kind": "directory-index",
+      "sourceUrl": "https://repo.gplates.org/webdav/PlateModel_Age_SR_Grids/Muller_etal_2025/SeafloorAge/",
+      "retrievedUtc": "2026-09-09T13:35:47Z",
+      "bytes": 260746,
+      "sha256": "3a059c55da07c06afd259427e4d01dca3466edc1656ae91d2cb618fc2cf7746d",
+      "localRelativePath": "indexes/muller2025-seafloor-age-index.html",
+      "license": null,
+      "licenseStatus": "unresolved",
+      "publishStatus": "quarantine"
+    },
+    {
+      "id": "muller2025-grid-directory-index-spreading",
+      "selection": "quarantined-source-discovery",
+      "kind": "directory-index",
+      "sourceUrl": "https://repo.gplates.org/webdav/PlateModel_Age_SR_Grids/Muller_etal_2025/SpreadingRate/",
+      "retrievedUtc": "2026-09-09T13:35:47Z",
+      "bytes": 278760,
+      "sha256": "4e08c3e3308a14fe1fcfddb91c071868129cd0aa65368a512ab9fa7744c108eb",
+      "localRelativePath": "indexes/muller2025-spreading-rate-index.html",
+      "license": null,
+      "licenseStatus": "unresolved",
+      "publishStatus": "quarantine"
+    }
+  ],
+  "derivedArtifacts": [
+    {
+      "id": "paleomap-rigid-motion-v1",
+      "selection": "published-static-same-family-motion-control",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.7994000",
+      "sourceArchiveSha256": "a58409f42bdb5f247e0dd543e8c3287f5d291d5928d0df730af8b2fa1ae7be65",
+      "bytes": 678894,
+      "sha256": "a4dee1ba1d9fe290c5aba98cb882d16e4663841957f0fe2b5ec1deee19e55075",
+      "localRelativePath": "public/data/paleomap-motion-v1.json",
+      "generatedBy": "scripts/prepare-paleomap-motion.py",
+      "referenceFrame": "PALEOMAP model frame",
+      "license": "CC-BY-4.0",
+      "coverage": "partial rigid material coverage at nonzero ages; unknown elsewhere"
+    },
+    {
+      "id": "paleomap-motion-probes-v1",
+      "selection": "validation-only",
+      "bytes": 82254,
+      "sha256": "491bc5325fa912db81aab0069fe0ac6c5b059722e91459ca601f158a4d41f3aa",
+      "localRelativePath": "src/data/fixtures/paleomap-motion-probes-v1.json",
+      "generatedBy": "scripts/validate-paleomap-motion.py",
+      "oracle": "pyGPlates 1.0.0"
+    },
+    {
+      "id": "cao-ocean-motion-v1-metadata",
+      "selection": "published-static-target-native-motion-metadata",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 2462978,
+      "sha256": "256e357e961ec3e6bb68fde2c7ff4be0ffaa2885e4ee4275bba9e881b76e6057",
+      "localRelativePath": "public/data/cao-ocean-motion-v1.json",
+      "generatedBy": "scripts/prepare-cao-ocean-motion.py",
+      "coverage": "109 native ages 0..540 Ma; exact topology rings, rotations, boundaries, strict fractional links and ambiguity"
+    },
+    {
+      "id": "cao-ocean-motion-v1-binary",
+      "selection": "published-static-target-native-motion-binary",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 3146951,
+      "sha256": "c9d2486b8b24a08686091ad0e3f53f2a715e1d4644bac05456819902e909a78a",
+      "localRelativePath": "public/data/cao-ocean-motion-v1.bin",
+      "generatedBy": "scripts/prepare-cao-ocean-motion.py",
+      "coverage": "packed exact topology and boundary coordinates plus conservative sparse candidates"
+    },
+    {
+      "id": "cao-ocean-motion-probes-v1",
+      "selection": "validation-only",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 114140,
+      "sha256": "6004eec127a27e519b439303e4328e140e574c806abcea4ff81c660e1fde62b4",
+      "localRelativePath": "src/data/fixtures/cao-ocean-probes-v1.json",
+      "generatedBy": "scripts/validate-cao-ocean-motion.py",
+      "oracle": "pyGPlates 1.0.0; 380 rotation and 320 spatial probes"
+    },
+    {
+      "id": "cao-continental-motion-v1-metadata",
+      "selection": "published-static-target-native-continental-material",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 320201,
+      "sha256": "15d39ac7563e5a46844d8c36c7863ae3ce8a3a5d503302ff7732939ecdc13342",
+      "localRelativePath": "public/data/cao-continental-motion-v1.json",
+      "generatedBy": "scripts/prepare-cao-continental-motion.py",
+      "coverage": "869 source static polygon parts; geometry keys; strict missing rotations unsupported"
+    },
+    {
+      "id": "cao-continental-motion-v1-binary",
+      "selection": "published-static-target-native-continental-rings",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 299600,
+      "sha256": "5b8b9ede36040f5755c88921ed05e7e8bd3c6b14f9f4d0abfdc95823f0ef64c4",
+      "localRelativePath": "public/data/cao-continental-motion-v1.bin",
+      "generatedBy": "scripts/prepare-cao-continental-motion.py"
+    },
+    {
+      "id": "cao-continental-probes-v1",
+      "selection": "validation-only",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 54522,
+      "sha256": "793577e3c48711e39f261982468fe70ce75327c91d235e39ed894836780c97d2",
+      "localRelativePath": "src/data/fixtures/cao-continental-probes-v1.json",
+      "generatedBy": "scripts/validate-cao-continental-motion.py",
+      "oracle": "pyGPlates 1.0.0; 401 strict-rotation area-priority ownership probes"
+    },
+    {
+      "id": "cao-ocean-lifecycle-v1-metadata",
+      "selection": "published-static-model-derived-lifecycle-metadata",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 10605,
+      "sha256": "2ff4d594610a0a698ceda295e46d127bcdd89f898b94e333be31fc51c7c1f1bc",
+      "localRelativePath": "public/data/cao-ocean-lifecycle-v1.json",
+      "generatedBy": "scripts/prepare-cao-ocean-lifecycle.py",
+      "coverage": "1,110,007 unique ocean controls; 768,984 ridge-attributed birth and 546,549 trench-attributed loss bounds; other deactivations unavailable/censored",
+      "epistemicStatus": "boundary-attributed model intervals; 5 Ma and <=158 km; not observed seafloor age"
+    },
+    {
+      "id": "cao-ocean-lifecycle-v1-binary",
+      "selection": "published-static-model-derived-lifecycle-binary",
+      "sourceRecord": "https://doi.org/10.5281/zenodo.13628813",
+      "sourceArchiveSha256": "4ae9158a29c597b46f687f8c3f0f5a4a55df5ab69bde18e24257a17d358d8592",
+      "modelVersion": "Cao et al. 2024 v2.4",
+      "referenceFrame": "palaeomagnetic, anchor plate 0",
+      "license": "CC-BY-4.0",
+      "bytes": 5356284,
+      "sha256": "22008f37a23c9308ebadaf5919378c76a14057289ef121b9a5ca4435835d1c05",
+      "localRelativePath": "public/data/cao-ocean-lifecycle-v1.bin",
+      "generatedBy": "scripts/prepare-cao-ocean-lifecycle.py",
+      "topologySlotBinding": "per-age identity SHA-256 must match motion catalog"
+    }
+  ],
+  "gridSamples": [
+    {
+      "ageMa": 0,
+      "kind": "seafloor-age",
+      "bytes": 1079875,
+      "sha256": "32f104a0f79ba9ac41125dd0d3d9ea54c5192531d1ad707d173c7b728d284e88",
+      "retrievedUtc": "2026-09-09T13:35:48Z",
+      "localRelativePath": "grids/muller2025-v1.3/SEAFLOOR_AGE_grid_0.00Ma.nc"
+    },
+    {
+      "ageMa": 250,
+      "kind": "seafloor-age",
+      "bytes": 671150,
+      "sha256": "8e07633a5c269e7d1ae5126e3bf1639041ced15ae45ebc0612cd35a869f41221",
+      "retrievedUtc": "2026-09-09T13:35:48Z",
+      "localRelativePath": "grids/muller2025-v1.3/SEAFLOOR_AGE_grid_250.00Ma.nc"
+    },
+    {
+      "ageMa": 410,
+      "kind": "seafloor-age",
+      "bytes": 672705,
+      "sha256": "8115a03a214a0b894d72c05910e039f9b40340ca3cf58351bc57df8389464ebd",
+      "retrievedUtc": "2026-09-09T13:35:48Z",
+      "localRelativePath": "grids/muller2025-v1.3/SEAFLOOR_AGE_grid_410.00Ma.nc"
+    },
+    {
+      "ageMa": 1000,
+      "kind": "seafloor-age",
+      "bytes": 1150572,
+      "sha256": "a028837d72d9216450b300afdf1228a2bd04ccc278283b3c28d5e1a47c45c31b",
+      "retrievedUtc": "2026-09-09T13:35:50Z",
+      "localRelativePath": "grids/muller2025-v1.3/SEAFLOOR_AGE_grid_1000.00Ma.nc"
+    },
+    {
+      "ageMa": 1800,
+      "kind": "seafloor-age",
+      "bytes": 3239113,
+      "sha256": "a675ddfbe94f609b33b433aa117b8e8baddb92de250c064ec93b8009c568238f",
+      "retrievedUtc": "2026-09-09T13:35:49Z",
+      "localRelativePath": "grids/muller2025-v1.3/SEAFLOOR_AGE_grid_1800.00Ma.nc"
+    },
+    {
+      "ageMa": 0,
+      "kind": "spreading-rate",
+      "bytes": 8518766,
+      "sha256": "a24ab01af0b2ea29f209938f655b04c966d73716b94b97881b4febbaff2a9cb0",
+      "retrievedUtc": "2026-09-09T13:35:49Z",
+      "localRelativePath": "grids/muller2025-v1.3/Cao2024_SPREADING_RATE_grid_0.00Ma.nc"
+    },
+    {
+      "ageMa": 250,
+      "kind": "spreading-rate",
+      "bytes": 5644445,
+      "sha256": "ddbb2b8af502de433a13a17737a105602faaa88ef1e3e6baadf1e763d802707b",
+      "retrievedUtc": "2026-09-09T13:35:49Z",
+      "localRelativePath": "grids/muller2025-v1.3/Cao2024_SPREADING_RATE_grid_250.00Ma.nc"
+    },
+    {
+      "ageMa": 410,
+      "kind": "spreading-rate",
+      "bytes": 5215542,
+      "sha256": "e86e4d9db33caeee976a971278f5f1f8e1a9f6b2c6fe7a1f8ff4eeb8abc9c0d7",
+      "retrievedUtc": "2026-09-09T13:35:49Z",
+      "localRelativePath": "grids/muller2025-v1.3/Cao2024_SPREADING_RATE_grid_410.00Ma.nc"
+    },
+    {
+      "ageMa": 1000,
+      "kind": "spreading-rate",
+      "bytes": 8717057,
+      "sha256": "5710fd609dba8239fdd9102ba0eaadfa025a3c89db32e59193981a728a9fbb2b",
+      "retrievedUtc": "2026-09-09T13:35:50Z",
+      "localRelativePath": "grids/muller2025-v1.3/Cao2024_SPREADING_RATE_grid_1000.00Ma.nc"
+    },
+    {
+      "ageMa": 1800,
+      "kind": "spreading-rate",
+      "bytes": 130025,
+      "sha256": "7a5e57edbe7a84e33343e9d75a887778f4a6c56652c40c5b7c13cee58e13eab7",
+      "retrievedUtc": "2026-09-09T13:35:47Z",
+      "localRelativePath": "grids/muller2025-v1.3/Cao2024_SPREADING_RATE_grid_1800.00Ma.nc"
+    }
+  ],
+  "gridSampleCommonStatus": {
+    "selection": "quarantined-research-sample",
+    "sourceBaseUrl": "https://repo.gplates.org/webdav/PlateModel_Age_SR_Grids/Muller_etal_2025/",
+    "shape": [
+      1801,
+      3601
+    ],
+    "license": null,
+    "licenseStatus": "unresolved",
+    "zUnits": null,
+    "publishStatus": "quarantine",
+    "knownIssue": "spreading-rate grid at 1800 Ma is uniformly 100 across all non-NaN cells"
+  },
+  "comparisonOnlyNotAcquired": [
+    {
+      "id": "zahirovic2022",
+      "modelRangeMa": [
+        0,
+        410
+      ],
+      "reason": "younger-Earth specialist comparison; not required for selected continuous family and storage was bounded"
+    },
+    {
+      "id": "muller2019-v3",
+      "modelRangeMa": [
+        0,
+        250
+      ],
+      "reason": "Phanerozoic specialist comparison; not required for selected continuous family and storage was bounded"
+    }
+  ],
+  "unavailableOrUnresolvedRequirements": [
+    {
+      "requirement": "PALEOMAP-native ridges, transforms, subduction zones and polarity",
+      "status": "not-found",
+      "evidence": "app-pinned v3 and current v19o archives contain rotations and partition polygons, while GWS lists no PALEOMAP topology layer"
+    },
+    {
+      "requirement": "redistributable, documented Muller 2025-family seafloor-age and spreading grids",
+      "status": "unresolved",
+      "evidence": "WebDAV indexes and NetCDF attributes provide no file-level licence or z units; 1800 Ma spreading sample is constant 100"
+    },
+    {
+      "requirement": "global model-matched orogen height and palaeoelevation",
+      "status": "not-acquired",
+      "evidence": "Cao topology includes only 12 OrogenicBelt features and boundary geometry does not encode relief amplitude"
+    },
+    {
+      "requirement": "validated PALEOMAP-to-Cao material conversion",
+      "status": "implemented-with-partial-continental-support",
+      "evidence": "source-qualified crosswalk uses the PALEOMAP present material point and Cao static child-continent fragment; exact endpoint lineage is revalidated, unsupported land is masked, and destroyed ocean crust is handled only by target-native Cao topology/lifecycle controls"
+    }
+  ],
+  "softwarePins": [
+    {
+      "name": "GPlates",
+      "version": "2.5",
+      "gitTagObject": "8c4bd81e32311744fb4f813d28bd5b5603e2d05f",
+      "gitCommit": "f31ac9455c4198d2110e172f7510da512646718a",
+      "license": "GPL-2.0-only",
+      "source": "https://github.com/GPlates/GPlates"
+    },
+    {
+      "name": "Plate Model Manager catalog inspection",
+      "gitCommit": "45984d905da461846e02ac51c4a0e249704cc1b7",
+      "source": "https://github.com/GPlates/plate-model-manager"
+    }
+  ],
+  "validationEvidence": {
+    "caoContinentalCrosswalkProfile": {
+      "path": "palaeomap-study/verification/cao-continental-crosswalk-profile.json",
+      "bytes": 3507,
+      "sha256": "35970acb0179530bf38c9ad45902c12f5639747154af7029bede6e7ecd7cb930",
+      "scope": "isolated development-runner 6,534-direction helper profile; not production R11 acceptance",
+      "cleanupOwner": "project research lead"
+    },
+    "caoOceanLifecycleR1Mutation": {
+      "path": "palaeomap-study/verification/cao-ocean-lifecycle-r1-mutation.log",
+      "mutation": "first birth byte changed to reserved code 201",
+      "mutatedExit": 1,
+      "restoredExit": 0,
+      "cleanupOwner": "project research lead"
+    },
+    "caoContinentalSpatialIndexProfile": {
+      "path": "palaeomap-study/verification/cao-continental-spatial-index-profile.json",
+      "bytes": 4890,
+      "sha256": "bdbee903fe33e6628fbcb994cbe5b54a2abc3b72520c114330edcade8c7b7863",
+      "scope": "isolated development-runner 6,534-direction exact-vs-index profile; not production R11 acceptance",
+      "cleanupOwner": "project research lead"
+    },
+    "caoContinentalSpatialIndexR1Mutation": {
+      "path": "palaeomap-study/verification/cao-continental-cell-index-r1-mutation.log",
+      "mutation": "omit child plate 501 from only the lazy cell candidate list",
+      "mutatedExit": 1,
+      "restoredExit": 0,
+      "bytes": 1597,
+      "sha256": "82b0fdcf6ad86b715e903510aa3f55b726455ce089558d7e0fc2b81177f737a7",
+      "cleanupOwner": "project research lead"
+    }
+  },
+  "runtimeCacheContracts": [
+    {
+      "id": "cao-continental-lazy-cell-index",
+      "selection": "enabled-source-equivalent-accelerator",
+      "cellSizeDegrees": 10,
+      "cellsPerAge": 648,
+      "agePoseLruLimit": 4,
+      "numericEncoding": "Uint16 candidate indices",
+      "numericByteLimitPerAge": 196608,
+      "numericByteLimitAllCachedAges": 786432,
+      "fallback": "full exact source-ordered fragment scan",
+      "cleanupOwner": "Cao continental material model age-pose LRU",
+      "validation": "src/data/caoContinental.test.ts and external validationEvidence records",
+      "candidateRule": "conservative reconstructed fragment bounding-cap intersection; false positives allowed, false negatives rejected",
+      "authority": "exact spherical ring containment in source partition order",
+      "buildPolicy": "lazy per reconstructed age pose",
+      "overLimitPolicy": "full exact source-ordered fragment scan",
+      "equivalenceAgesMa": [
+        0,
+        100,
+        102.5,
+        250,
+        400,
+        540
+      ],
+      "equivalenceProbeSet": "all 648 cell centres plus dateline, pole and pyGPlates oracle probes",
+      "developmentProfile": "100 Ma 24.268-24.762 ms indexed warm versus 46.340 ms full, 34.701 ms build; 102.5 Ma 21.692-24.472 ms indexed warm versus 43.823 ms full, 30.016 ms build; 6,534 directions on Apple M4/Node 22.16",
+      "performanceQualification": "helper-only development evidence; not production renderer or R11 frame acceptance"
+    }
+  ],
+  "runtimeIntegrationContracts": [
+    {
+      "id": "cao-partial-continental-crosswalk",
+      "status": "enabled-partial-source-qualified",
+      "globalCompleteConversion": "stopped-by-prewritten-90-percent-stable-interior-rule",
+      "evidence": "docs/research/palaeomap-static-crosswalk-validation.json",
+      "policy": "render supported Cao child-continent material; mask unsupported lineage; never reuse PALEOMAP ocean pixels"
+    },
+    {
+      "id": "temporal-country-reference-drape",
+      "status": "implemented-bounded-reference-overlay",
+      "sourceSemantics": "modern-country reference lines reconstructed only where material correspondence is supported; gaps are never bridged",
+      "minimumRunLengthMetres": {
+        "orbital": 60000,
+        "regional": 20000
+      },
+      "measuredSourceLengthRetainedPercent": [
+        99.47,
+        99.6
+      ],
+      "surfaceRegistration": "exact published triangle sampler",
+      "adaptiveHeightTolerance": "min(configured source metres, clearance metres / vertical exaggeration * 0.5)",
+      "validation": "src/render/countryRibbons.test.ts triangular-ridge and all-109-asset bounded checks"
+    },
+    {
+      "id": "cao-2017-permanent-ice-absence-constraint",
+      "status": "implemented-qualitative-chronology-only",
+      "source": "https://doi.org/10.5194/bg-14-5425-2017",
+      "sourcePackage": "EarthByte GPlates 2.3 Paleogeography package",
+      "license": "CC-BY-3.0",
+      "constraintOpenIntervalMa": [
+        81,
+        285.01
+      ],
+      "policy": "suppress mapped permanent-ice paint inside the interval; do not transfer source polygon geometry between frames",
+      "limitations": "absence of a dated polygon is not proof of an ice-free Earth; sparse high-altitude snow remains an authored climate-potential inference",
+      "validation": "src/render/surface.test.ts and src/data/data.test.ts"
+    }
+  ]
+}

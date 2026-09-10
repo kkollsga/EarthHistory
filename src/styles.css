@@ -135,7 +135,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   min-height: 0;
   overflow: hidden;
 }
-.stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 61% 44%, transparent 0 29%, rgba(2, 6, 8, .05) 52%, rgba(2, 6, 8, .64) 100%), linear-gradient(90deg, rgba(2, 6, 8, .75), transparent 32%, transparent 78%, rgba(2, 6, 8, .4)); }
+.stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 61% 44%, transparent 0 34%, rgba(2, 6, 8, .025) 58%, rgba(2, 6, 8, .34) 100%), linear-gradient(90deg, rgba(2, 6, 8, .36), transparent 28%, transparent 82%, rgba(2, 6, 8, .24)); }
 .surface-legend { position: absolute; z-index: 3; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid var(--line); background: rgba(5, 11, 14, .72); color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .12em; backdrop-filter: blur(10px); pointer-events: none; }
 .surface-legend span { padding-right: 7px; border-right: 1px solid rgba(154, 199, 210, .35); color: var(--ice); font-weight: 700; }
 .surface-legend strong { margin-left: 5px; color: var(--ink); font-size: 10px; }

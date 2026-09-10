@@ -1,4 +1,4 @@
-import type { CountryOutline } from "../data";
+import type { CountryOutline, LonLat } from "../data";
 import {
   densifyGeodesicDirectionSegments,
   type DisplayedHeightSampler,
@@ -29,6 +29,7 @@ export interface CountryRibbonOptions {
   maxHeightErrorMetres?: number;
   maxAdaptiveDepth?: number;
   grooveHalfWidthMetres?: number;
+  minimumRunLengthMetres?: number;
   clearanceMetres?: number;
   verticalExaggeration?: number;
   maxRenderedVertices?: number;
@@ -46,6 +47,7 @@ interface ResolvedOptions {
   maxHeightErrorMetres: number;
   maxAdaptiveDepth: number;
   grooveHalfWidthMetres: number;
+  minimumRunLengthMetres: number;
   clearanceMetres: number;
   verticalExaggeration: number;
   maxRenderedVertices: number;
@@ -61,9 +63,24 @@ function finitePositive(value: number, name: string): number {
   return value;
 }
 
+function finiteNonNegative(value: number, name: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError(`${name} must be a non-negative finite number`);
+  }
+  return value;
+}
+
 function resolveOptions(options: CountryRibbonOptions): ResolvedOptions {
   const maxAdaptiveDepth = options.maxAdaptiveDepth ?? 2;
   const maxRenderedVertices = options.maxRenderedVertices ?? MAX_COUNTRY_RIBBON_VERTICES;
+  const clearanceMetres = finitePositive(
+    options.clearanceMetres ?? COUNTRY_RIBBON_CLEARANCE_METRES,
+    "Country ribbon clearance",
+  );
+  const verticalExaggeration = Math.max(1, Math.min(
+    30,
+    Number.isFinite(options.verticalExaggeration) ? options.verticalExaggeration! : 1,
+  ));
   if (!Number.isInteger(maxAdaptiveDepth) || maxAdaptiveDepth < 0 || maxAdaptiveDepth > 8) {
     throw new RangeError("Country ribbon adaptive depth must be an integer in [0, 8]");
   }
@@ -75,23 +92,21 @@ function resolveOptions(options: CountryRibbonOptions): ResolvedOptions {
       options.maxAngularStepDegrees ?? 0.5,
       "Country ribbon angular step",
     ),
-    maxHeightErrorMetres: finitePositive(
-      options.maxHeightErrorMetres ?? 180,
-      "Country ribbon height error",
+    maxHeightErrorMetres: Math.min(
+      finitePositive(options.maxHeightErrorMetres ?? 180, "Country ribbon height error"),
+      clearanceMetres / verticalExaggeration * 0.5,
     ),
     maxAdaptiveDepth,
     grooveHalfWidthMetres: finitePositive(
       options.grooveHalfWidthMetres ?? 12_000,
       "Country ribbon half width",
     ),
-    clearanceMetres: finitePositive(
-      options.clearanceMetres ?? COUNTRY_RIBBON_CLEARANCE_METRES,
-      "Country ribbon clearance",
+    minimumRunLengthMetres: finiteNonNegative(
+      options.minimumRunLengthMetres ?? 0,
+      "Country ribbon minimum run length",
     ),
-    verticalExaggeration: Math.max(1, Math.min(
-      30,
-      Number.isFinite(options.verticalExaggeration) ? options.verticalExaggeration! : 1,
-    )),
+    clearanceMetres,
+    verticalExaggeration,
     maxRenderedVertices,
     maxBytes: finitePositive(
       options.maxBytes ?? MAX_COUNTRY_RIBBON_BYTES,
@@ -123,6 +138,34 @@ function midpointDirection(
     length = Math.hypot(x, y, z);
   }
   return [x / length, y / length, z / length];
+}
+
+function runLengthMetres(values: Float32Array): number {
+  let lengthRadians = 0;
+  for (let index = 1; index < values.length / 3; index += 1) {
+    const previous = directionAt(values, index - 1);
+    const current = directionAt(values, index);
+    lengthRadians += Math.acos(Math.max(-1, Math.min(1,
+      previous[0] * current[0] + previous[1] * current[1] + previous[2] * current[2],
+    )));
+  }
+  return lengthRadians * EARTH_RADIUS_METRES;
+}
+
+export function countryLineLengthMetres(coordinates: readonly LonLat[]): number {
+  let lengthRadians = 0;
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const [fromLongitude, fromLatitude] = coordinates[index - 1]!;
+    const [toLongitude, toLatitude] = coordinates[index]!;
+    const fromLon = fromLongitude * Math.PI / 180;
+    const fromLat = fromLatitude * Math.PI / 180;
+    const toLon = toLongitude * Math.PI / 180;
+    const toLat = toLatitude * Math.PI / 180;
+    const cosine = Math.sin(fromLat) * Math.sin(toLat) +
+      Math.cos(fromLat) * Math.cos(toLat) * Math.cos(toLon - fromLon);
+    lengthRadians += Math.acos(Math.max(-1, Math.min(1, cosine)));
+  }
+  return lengthRadians * EARTH_RADIUS_METRES;
 }
 
 function appendRefinedSpan(
@@ -192,7 +235,7 @@ function refineRuns(
       });
       for (const base of baseRuns) {
         const baseCount = base.length / 3;
-        if (baseCount < 2) continue;
+        if (baseCount < 2 || runLengthMetres(base) < options.minimumRunLengthMetres) continue;
         if (
           renderedVertexCount.value + options.renderedVerticesPerCenter >
             options.maxRenderedVertices

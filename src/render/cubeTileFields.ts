@@ -4,6 +4,7 @@ import type {
   SurfaceStage,
   WorldSnapshot,
 } from "../data";
+import { surfaceRefinementAppliesToMode } from "../data";
 import {
   createCubeTileGeometry,
   cubeFaceDirection,
@@ -12,10 +13,11 @@ import {
   type CubeFace,
   type CubeTileKey,
 } from "./cubeSphere";
-import { createPerceptualDetailSampler } from "./perceptualDetail";
+import { createPerceptualDetailSampler, perceptualMaterialChannel } from "./perceptualDetail";
 import {
   EARTH_RADIUS_METRES,
   sampleModernClimateGroup,
+  sampleProceduralControlElevation,
   sampleSurfaceLand,
   sampleSurfaceReliefMetres,
   type SurfaceDetail,
@@ -53,6 +55,8 @@ export interface CubeTileFields {
   detailHeight: Uint8Array;
   minHeightMetres: number;
   maxHeightMetres: number;
+  minSourceMaterialHeightMetres?: number;
+  maxSourceMaterialHeightMetres?: number;
   generationMs: number;
   byteLength: number;
   sourcePatchIds: string[];
@@ -76,22 +80,32 @@ export const DETAIL_HEIGHT_RANGE_METRES = {
   regional: 250,
 } as const;
 
-const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
 const NORMAL_SAMPLE_STEP = 1 / 4096;
-const TECTONIC_GRID_WIDTH = 360;
-const TECTONIC_GRID_HEIGHT = 181;
 
 interface SampleState {
   longitude: number;
   latitude: number;
   baseHeight: number;
+  shadingHeight: number;
+  sourceMaterialHeight: number;
   height: number;
   detailHeight: number;
   albedoRed: number;
   albedoGreen: number;
   albedoBlue: number;
   roughness: number;
+}
+
+function surfaceWaterBathymetryColor(
+  signedHeightMetres: number,
+): [red: number, green: number, blue: number] {
+  const depth = smoothstep(120, 8_500, -signedHeightMetres);
+  return [
+    25 + (7 - 25) * depth,
+    108 + (37 - 108) * depth,
+    139 + (68 - 139) * depth,
+  ];
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -264,67 +278,6 @@ function samplePatchLandCoverage(
   return north * (1 - ty) + south * ty;
 }
 
-function buildTectonicInfluence(snapshot: WorldSnapshot): Uint8Array {
-  const field = new Uint8Array(TECTONIC_GRID_WIDTH * TECTONIC_GRID_HEIGHT);
-  const splat = (longitude: number, latitude: number, radiusDegrees: number, activity: number) => {
-    const centerX = ((normalizedLongitude(longitude) + 180) / 360) * TECTONIC_GRID_WIDTH;
-    const centerY = ((90 - latitude) / 180) * (TECTONIC_GRID_HEIGHT - 1);
-    const radiusY = Math.max(1, Math.ceil(radiusDegrees));
-    const radiusX = Math.max(1, Math.ceil(radiusDegrees / Math.max(0.25, Math.cos(latitude * DEG_TO_RAD))));
-    for (let dy = -radiusY; dy <= radiusY; dy += 1) {
-      const y = Math.round(centerY + dy);
-      if (y < 0 || y >= TECTONIC_GRID_HEIGHT) continue;
-      for (let dx = -radiusX; dx <= radiusX; dx += 1) {
-        const scaledX = dx / radiusX;
-        const scaledY = dy / radiusY;
-        const distance = Math.hypot(scaledX, scaledY);
-        if (distance > 1) continue;
-        const x = ((Math.round(centerX + dx) % TECTONIC_GRID_WIDTH) + TECTONIC_GRID_WIDTH) % TECTONIC_GRID_WIDTH;
-        const value = Math.round(255 * activity * (1 - smoothstep(0.18, 1, distance)));
-        const index = y * TECTONIC_GRID_WIDTH + x;
-        if (value > field[index]) field[index] = value;
-      }
-    }
-  };
-
-  for (const feature of snapshot.tectonics) {
-    const radius = clamp(feature.widthKm / 111 * 2.4, 0.7, 7);
-    const activity = clamp(feature.activity ?? 0.75, 0, 1);
-    for (let index = 1; index < feature.coordinates.length; index += 1) {
-      const [aLongitude, aLatitude] = feature.coordinates[index - 1];
-      const [bLongitude, bLatitude] = feature.coordinates[index];
-      const deltaLongitude = normalizedLongitude(bLongitude - aLongitude);
-      const span = Math.hypot(deltaLongitude * Math.cos(aLatitude * DEG_TO_RAD), bLatitude - aLatitude);
-      const steps = Math.max(1, Math.ceil(span / 0.75));
-      for (let step = 0; step <= steps; step += 1) {
-        const t = step / steps;
-        splat(
-          normalizedLongitude(aLongitude + deltaLongitude * t),
-          aLatitude + (bLatitude - aLatitude) * t,
-          radius,
-          activity,
-        );
-      }
-    }
-  }
-  return field;
-}
-
-function sampleTectonicInfluence(field: Uint8Array, longitude: number, latitude: number): number {
-  const fx = ((normalizedLongitude(longitude) + 180) / 360) * TECTONIC_GRID_WIDTH;
-  const fy = clamp(((90 - latitude) / 180) * (TECTONIC_GRID_HEIGHT - 1), 0, TECTONIC_GRID_HEIGHT - 1);
-  const xBase = Math.floor(fx);
-  const x0 = ((xBase % TECTONIC_GRID_WIDTH) + TECTONIC_GRID_WIDTH) % TECTONIC_GRID_WIDTH;
-  const x1 = (x0 + 1) % TECTONIC_GRID_WIDTH;
-  const y0 = Math.floor(fy);
-  const y1 = Math.min(TECTONIC_GRID_HEIGHT - 1, y0 + 1);
-  const tx = fx - xBase;
-  const ty = fy - y0;
-  const north = field[y0 * TECTONIC_GRID_WIDTH + x0] * (1 - tx) + field[y0 * TECTONIC_GRID_WIDTH + x1] * tx;
-  const south = field[y1 * TECTONIC_GRID_WIDTH + x0] * (1 - tx) + field[y1 * TECTONIC_GRID_WIDTH + x1] * tx;
-  return (north * (1 - ty) + south * ty) / 255;
-}
-
 function writeCubeDirection(
   face: CubeFace,
   u: number,
@@ -364,8 +317,9 @@ export function decodeDetailHeight(code: number, detail: SurfaceDetail): number 
 export function createCubeTileFieldGenerator(
   context: CubeTileFieldContext,
 ): CubeTileFieldGenerator {
-  const sampler = createPerceptualDetailSampler(context.snapshot.id);
-  const tectonicInfluence = buildTectonicInfluence(context.snapshot);
+  const sampler = createPerceptualDetailSampler(
+    context.snapshot.renderSeedId ?? context.snapshot.temporalSurface?.seedId ?? context.snapshot.id,
+  );
   const albedoPoleValues = Float64Array.from({ length: 6 }, (_, index) =>
     poleChannelAverage(
       context.surface.albedo,
@@ -378,6 +332,10 @@ export function createCubeTileFieldGenerator(
     poleChannelAverage(context.surface.roughness, context.surface, true, 0),
     poleChannelAverage(context.surface.roughness, context.surface, false, 0),
   ]);
+  const ruggednessPoleValues = new Float64Array([
+    poleChannelAverage(context.surface.roughness, context.surface, true, 3),
+    poleChannelAverage(context.surface.roughness, context.surface, false, 3),
+  ]);
   const reliefPoleValues = new Float64Array([
     poleChannelAverage(context.surface.relief, context.surface, true, 0) / 255 *
       context.surface.reliefRangeMetres + context.surface.reliefBiasMetres,
@@ -386,7 +344,7 @@ export function createCubeTileFieldGenerator(
   ]);
   const requestedAge = context.snapshot.requestedAgeMa ?? context.snapshot.ageMa;
   const validModernRelief = (context.modernRelief ?? []).filter((patch) =>
-    patch.surfaceMode === context.mode &&
+    surfaceRefinementAppliesToMode(patch, context.mode) &&
     patch.referenceFrameId === "present-day-geographic" && requestedAge === 0 &&
     requestedAge <= patch.validRequestedAgeMa[0] &&
     requestedAge >= patch.validRequestedAgeMa[1]
@@ -394,11 +352,14 @@ export function createCubeTileFieldGenerator(
     right.priority - left.priority || right.level - left.level ||
     left.longitudeStep - right.longitudeStep || left.id.localeCompare(right.id)
   );
+  const exactModernSourceMaterial = requestedAge === 0 && validModernRelief.length > 0;
   const stage: SurfaceStage = context.snapshot.environment.stage ?? "modern-biomes";
   const sampleState: SampleState = {
     longitude: 0,
     latitude: 0,
     baseHeight: 0,
+    shadingHeight: 0,
+    sourceMaterialHeight: 0,
     height: 0,
     detailHeight: 0,
     albedoRed: 0,
@@ -427,11 +388,22 @@ export function createCubeTileFieldGenerator(
     const [longitude, latitude] = directionToLonLat(x, y, z);
     const u = (longitude + 180) / 360;
     const v = (latitude + 90) / 180;
-    let baseHeight = sampleSurfaceReliefMetres(context.surface, u, v);
+    // Source-controlled grids own physical height. Sampling them directly
+    // also makes the native cube endpoint identical to temporal DEM sampling;
+    // raster material fields may be lower resolution and must not shift it.
+    let baseHeight = context.snapshot.controls === undefined
+      ? sampleSurfaceReliefMetres(context.surface, u, v)
+      : sampleProceduralControlElevation(context.snapshot.controls, longitude, latitude);
+    if (context.snapshot.controls !== undefined && context.mode === "surface") {
+      baseHeight = Math.max(0, baseHeight);
+    }
     const globalLand = sampleSurfaceLand(context.surface, longitude, latitude);
     let refinementWeight = 0;
     let refinementLand = globalLand;
     let refinementHeight = baseHeight;
+    let shadingHeight = baseHeight;
+    let surfaceWaterBathymetryWeight = 0;
+    let sourceTextureReliefMetres = 0;
     // Complete only the unsampled half-pixel of generated render relief.
     const poleCenterLatitude = 90 - 90 / context.surface.height;
     if (latitude > poleCenterLatitude) {
@@ -441,6 +413,17 @@ export function createCubeTileFieldGenerator(
       const poleBlend = (-latitude - poleCenterLatitude) / (90 - poleCenterLatitude);
       baseHeight += (reliefPoleValues[1] - baseHeight) * poleBlend;
     }
+    // Polar completion comes from the rendered relief raster, which may carry
+    // signed bathymetry. Reassert the surface-water shell after that blend so
+    // the collapsed pole texel cannot reintroduce negative physical geometry.
+    if (context.snapshot.controls !== undefined && context.mode === "surface") {
+      baseHeight = Math.max(0, baseHeight);
+    }
+    // Local modern patches refine physical shape and material structure. Their
+    // feather weight keeps the higher-resolution elevation and gradient from
+    // becoming a rectangular color boundary at the source edge.
+    let materialElevationMetres = baseHeight;
+    let refinementSlope = 0;
     for (const patch of validModernRelief) {
       const weight = patchFeatherWeight(patch, longitude, latitude);
       if (weight <= 0) continue;
@@ -449,7 +432,51 @@ export function createCubeTileFieldGenerator(
       const displayedPatchHeight = context.mode === "surface"
         ? Math.max(0, refinementHeight)
         : refinementHeight;
+      const surfaceWaterBathymetry = context.mode === "surface" && refinementHeight < 0;
       baseHeight += (displayedPatchHeight - baseHeight) * weight;
+      materialElevationMetres += (displayedPatchHeight - materialElevationMetres) * weight;
+      if (surfaceWaterBathymetry) {
+        surfaceWaterBathymetryWeight = weight;
+      }
+      const longitudeStep = Math.max(1e-5, patch.longitudeStep);
+      const latitudeStep = Math.max(1e-5, patch.latitudeStep);
+      const westHeight = samplePatchElevation(patch, longitude - longitudeStep, latitude);
+      const eastHeight = samplePatchElevation(patch, longitude + longitudeStep, latitude);
+      const southHeight = samplePatchElevation(patch, longitude, latitude - latitudeStep);
+      const northHeight = samplePatchElevation(patch, longitude, latitude + latitudeStep);
+      const farWestHeight = samplePatchElevation(patch, longitude - longitudeStep * 4, latitude);
+      const farEastHeight = samplePatchElevation(patch, longitude + longitudeStep * 4, latitude);
+      const farSouthHeight = samplePatchElevation(patch, longitude, latitude - latitudeStep * 4);
+      const farNorthHeight = samplePatchElevation(patch, longitude, latitude + latitudeStep * 4);
+      const localMean = (
+        refinementHeight * 4 + westHeight + eastHeight + southHeight + northHeight +
+        farWestHeight + farEastHeight + farSouthHeight + farNorthHeight
+      ) / 12;
+      // Preserve the source's local peak/valley residual in the material bump
+      // grid. It changes shading only; physical vertices and height queries
+      // continue to use the unmodified source elevation above.
+      sourceTextureReliefMetres = clamp(
+        (refinementHeight - localMean) * 0.42,
+        -DETAIL_HEIGHT_RANGE_METRES.regional,
+        DETAIL_HEIGHT_RANGE_METRES.regional,
+      ) * weight;
+      // Surface water uses source-local relief for virtual normals. Taking the
+      // derivative of feathered absolute ocean depth adds an artificial
+      // depth-times-feather-gradient wall at the rectangular source window.
+      // Raw signed depth remains available for bathymetric color/diagnostics;
+      // physical geometry and the displayed-height sampler stay at sea level.
+      shadingHeight = surfaceWaterBathymetry
+        ? baseHeight + sourceTextureReliefMetres
+        : shadingHeight + (displayedPatchHeight - shadingHeight) * weight;
+      const eastWestRun = Math.max(
+        1,
+        2 * longitudeStep * 111_320 * Math.max(0.12, Math.cos(latitude / RAD_TO_DEG)),
+      );
+      const northSouthRun = Math.max(1, 2 * latitudeStep * 110_574);
+      refinementSlope = clamp(Math.hypot(
+        (eastHeight - westHeight) / eastWestRun,
+        (northHeight - southHeight) / northSouthRun,
+      ), 0, 1) * weight;
       refinementWeight = weight;
       sourcePatchIds?.add(patch.id);
       break;
@@ -464,9 +491,19 @@ export function createCubeTileFieldGenerator(
       roughnessPoleValues[0],
       roughnessPoleValues[1],
     );
-    // Global roughness is already derived from the broad relief and is a stable,
-    // seam-safe slope proxy. Fine normal derivatives come from detailHeight.
-    const slope = clamp((baseRoughness / 255 - 0.38) * 1.65, 0, 1);
+    // Alpha carries the source-grid ruggedness control. The GPU roughness map
+    // consumes green, leaving this channel available to keep flat material
+    // from being misread as slope.
+    const broadSlope = sampleRgbaChannel(
+      context.surface.roughness,
+      context.surface,
+      longitude,
+      latitude,
+      3,
+      ruggednessPoleValues[0],
+      ruggednessPoleValues[1],
+    ) / 255;
+    const slope = Math.max(broadSlope * (1 - refinementWeight), refinementSlope);
     const ice = sampleByteControl(
       context.snapshot,
       context.snapshot.controls?.potentialIce,
@@ -482,20 +519,34 @@ export function createCubeTileFieldGenerator(
       longitude,
       latitude,
       elevationMetres: baseHeight,
+      materialElevationMetres,
       slope,
       land: refinementWeight >= 0.5 ? refinementLand : globalLand,
       ice,
       climateGroup,
       stage,
-      tectonicInfluence: sampleTectonicInfluence(tectonicInfluence, longitude, latitude),
+      // The runtime tectonic catalog contains schematic story corridors, not
+      // native PALEOMAP boundary geometry. It must not emboss linework into
+      // the physical surface; source relief and its slope control the detail.
+      tectonicInfluence: 0,
       detail: context.detail,
     });
 
     sampleState.longitude = longitude;
     sampleState.latitude = latitude;
     sampleState.baseHeight = baseHeight;
-    sampleState.detailHeight = detail.heightDeltaMetres;
-    sampleState.height = baseHeight + detail.heightDeltaMetres;
+    sampleState.detailHeight = exactModernSourceMaterial
+      ? sourceTextureReliefMetres
+      : detail.heightDeltaMetres;
+    sampleState.height = baseHeight + (context.snapshot.controls === undefined
+      ? detail.heightDeltaMetres * (1 - refinementWeight)
+      : 0);
+    sampleState.shadingHeight = surfaceWaterBathymetryWeight > 0
+      ? shadingHeight
+      : sampleState.height;
+    sampleState.sourceMaterialHeight = surfaceWaterBathymetryWeight > 0
+      ? refinementHeight
+      : sampleState.height;
     sampleState.roughness = clamp(baseRoughness + detail.roughnessDelta * 255, 0, 255);
     if (includeMaterial) {
       let albedoRed = sampleRgbaChannel(
@@ -510,9 +561,17 @@ export function createCubeTileFieldGenerator(
           context.surface.albedo, context.surface, longitude, latitude, 2,
           albedoPoleValues[2], albedoPoleValues[5],
       );
-      sampleState.albedoRed = clamp(albedoRed * detail.albedoMultiplier[0], 0, 255);
-      sampleState.albedoGreen = clamp(albedoGreen * detail.albedoMultiplier[1], 0, 255);
-      sampleState.albedoBlue = clamp(albedoBlue * detail.albedoMultiplier[2], 0, 255);
+      sampleState.albedoRed = clamp(perceptualMaterialChannel(albedoRed / 255, detail, 0) * 255, 0, 255);
+      sampleState.albedoGreen = clamp(perceptualMaterialChannel(albedoGreen / 255, detail, 1) * 255, 0, 255);
+      sampleState.albedoBlue = clamp(perceptualMaterialChannel(albedoBlue / 255, detail, 2) * 255, 0, 255);
+      if (surfaceWaterBathymetryWeight > 0) {
+        const bathymetry = surfaceWaterBathymetryColor(refinementHeight);
+        const mix = surfaceWaterBathymetryWeight *
+          (0.55 + 0.35 * smoothstep(120, 8_500, -refinementHeight));
+        sampleState.albedoRed += (bathymetry[0] - sampleState.albedoRed) * mix;
+        sampleState.albedoGreen += (bathymetry[1] - sampleState.albedoGreen) * mix;
+        sampleState.albedoBlue += (bathymetry[2] - sampleState.albedoBlue) * mix;
+      }
     }
     return sampleState;
   };
@@ -521,15 +580,16 @@ export function createCubeTileFieldGenerator(
   const displacedAt = (face: CubeFace, u: number, v: number): [number, number, number] => {
     // cubeFaceDirection intentionally accepts coordinates outside one face.
     const direction = cubeFaceDirection(face, u, v);
-    const height = evaluate(direction[0], direction[1], direction[2]).height;
+    const height = evaluate(direction[0], direction[1], direction[2]).shadingHeight;
     const radius = 1 + height / EARTH_RADIUS_METRES;
     return [direction[0] * radius, direction[1] * radius, direction[2] * radius];
   };
 
   return {
     retainedBytes:
-      sampler.retainedTableBytes + tectonicInfluence.byteLength +
-      albedoPoleValues.byteLength + roughnessPoleValues.byteLength + reliefPoleValues.byteLength +
+      sampler.retainedTableBytes +
+      albedoPoleValues.byteLength + roughnessPoleValues.byteLength + ruggednessPoleValues.byteLength +
+      reliefPoleValues.byteLength +
       contextRetainedBytes,
     sampleHeightMetres(direction) {
       const length = Math.hypot(direction[0], direction[1], direction[2]);
@@ -545,6 +605,8 @@ export function createCubeTileFieldGenerator(
       const sourcePatchIds = new Set<string>();
       let minHeightMetres = Number.POSITIVE_INFINITY;
       let maxHeightMetres = Number.NEGATIVE_INFINITY;
+      let minSourceMaterialHeightMetres = Number.POSITIVE_INFINITY;
+      let maxSourceMaterialHeightMetres = Number.NEGATIVE_INFINITY;
 
       for (let index = 0; index < vertexCount; index += 1) {
         const offset = index * 3;
@@ -554,10 +616,19 @@ export function createCubeTileFieldGenerator(
         geometry.directions[offset] = x;
         geometry.directions[offset + 1] = y;
         geometry.directions[offset + 2] = z;
-        const height = evaluate(x, y, z, sourcePatchIds).height;
+        const sample = evaluate(x, y, z, sourcePatchIds);
+        const height = sample.height;
         heightsMetres[index] = height;
         minHeightMetres = Math.min(minHeightMetres, height);
         maxHeightMetres = Math.max(maxHeightMetres, height);
+        minSourceMaterialHeightMetres = Math.min(
+          minSourceMaterialHeightMetres,
+          sample.sourceMaterialHeight,
+        );
+        maxSourceMaterialHeightMetres = Math.max(
+          maxSourceMaterialHeightMetres,
+          sample.sourceMaterialHeight,
+        );
         const radius = 1 + height / EARTH_RADIUS_METRES;
         geometry.positions[offset] = x * radius;
         geometry.positions[offset + 1] = y * radius;
@@ -595,7 +666,13 @@ export function createCubeTileFieldGenerator(
       // interior row and column put one canonical texel at a level-zero pole.
       // An even interior straddles that singularity with four longitudes and
       // turns their GPU interpolation into a visible radial fan.
-      const textureInteriorSize = request.textureSize + 1;
+      // Only tiles whose geometry actually sampled an active modern patch get
+      // the denser regional material grid. This exposes source-local ridges in
+      // the one rendered cube without increasing the global LOD/cache policy.
+      const textureSize = context.detail === "regional" && sourcePatchIds.size > 0
+        ? Math.max(128, request.textureSize) as 128 | 256
+        : request.textureSize;
+      const textureInteriorSize = textureSize + 1;
       const textureStride = textureInteriorSize + 2;
       const textureBytes = textureStride * textureStride * 4;
       const albedo = new Uint8Array(textureBytes);
@@ -655,7 +732,7 @@ export function createCubeTileFieldGenerator(
       return {
         key: request.key,
         meshSegments: request.meshSegments,
-        textureSize: request.textureSize,
+        textureSize,
         textureStride,
         directions: geometry.directions,
         positions: geometry.positions,
@@ -668,6 +745,8 @@ export function createCubeTileFieldGenerator(
         detailHeight,
         minHeightMetres,
         maxHeightMetres,
+        minSourceMaterialHeightMetres,
+        maxSourceMaterialHeightMetres,
         generationMs: finished - started,
         byteLength,
         sourcePatchIds: [...sourcePatchIds].sort(),

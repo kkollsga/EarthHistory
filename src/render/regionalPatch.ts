@@ -1,4 +1,5 @@
 import { createNoise3D } from "simplex-noise";
+import { surfaceRefinementAppliesToMode } from "../data";
 import type { LonLat, ModernReliefPatch, WorldSnapshot } from "../data";
 import type { SurfaceMode } from "./surface";
 
@@ -8,6 +9,8 @@ export interface RegionalPatchFields {
   directions: Float32Array;
   heightsMetres: Float32Array;
   sourceHeightsMetres: Float32Array;
+  /** Signed source height used only to shade bathymetry below surface water. */
+  sourceMaterialHeightsMetres: Float32Array;
   sourceBlendWeights: Float32Array;
   syntheticDetailMetres: Float32Array;
   blendWeights: Float32Array;
@@ -262,6 +265,7 @@ export function generateRegionalPatch(
   const directions = new Float32Array(vertexCount * 3);
   const heightsMetres = new Float32Array(vertexCount);
   const sourceHeightsMetres = new Float32Array(vertexCount);
+  const sourceMaterialHeightsMetres = new Float32Array(vertexCount);
   const sourceBlendWeights = new Float32Array(vertexCount);
   const uvs = new Float32Array(vertexCount * 2);
   const detail = new Float32Array(vertexCount);
@@ -270,6 +274,10 @@ export function generateRegionalPatch(
   const centerCos = Math.max(0.28, Math.cos((center[1] * Math.PI) / 180));
   const useTangentPatch = Math.abs(center[1]) > 58;
   const segments = tectonicSegments(snapshot);
+  const applicableSourcePatch = sourcePatch !== undefined &&
+      surfaceRefinementAppliesToMode(sourcePatch, mode)
+    ? sourcePatch
+    : undefined;
   let weightedDetail = 0;
   let weightSum = 0;
 
@@ -293,15 +301,18 @@ export function generateRegionalPatch(
       uvs[index * 2] = (((longitude + 180) / 360) % 1 + 1) % 1;
       uvs[index * 2 + 1] = (latitude + 90) / 180;
 
-      const modernElevation = sampleModernRelief(sourcePatch, longitude, latitude);
+      const modernElevation = sampleModernRelief(applicableSourcePatch, longitude, latitude);
       const sourceElevation = modernElevation ?? sampleElevation(snapshot, longitude, latitude);
       const baseElevation = mode === "seafloor" ? sourceElevation : Math.max(0, sourceElevation);
       heightsMetres[index] = baseElevation;
       sourceHeightsMetres[index] = baseElevation;
+      sourceMaterialHeightsMetres[index] = mode === "surface" && modernElevation !== undefined
+        ? sourceElevation
+        : baseElevation;
 
-      const gradientStep = sourcePatch === undefined ? 1 : 0.16;
+      const gradientStep = applicableSourcePatch === undefined ? 1 : 0.16;
       const sourceAt = (sampleLon: number, sampleLat: number) =>
-        sampleBlendedSourceElevation(snapshot, sourcePatch, sampleLon, sampleLat);
+        sampleBlendedSourceElevation(snapshot, applicableSourcePatch, sampleLon, sampleLat);
       const eastGradient =
         sourceAt(longitude + gradientStep, latitude) -
         sourceAt(longitude - gradientStep, latitude);
@@ -318,7 +329,7 @@ export function generateRegionalPatch(
       const edgeWeight = smoothstep(0, 0.12, edgeDistance);
       sourceBlendWeights[index] = modernElevation === undefined
         ? 0
-        : edgeWeight * modernReliefFeatherWeight(sourcePatch, longitude, latitude);
+        : edgeWeight * modernReliefFeatherWeight(applicableSourcePatch, longitude, latitude);
       const icePotential = sampleByteControl(
         snapshot.controls?.potentialIce,
         snapshot,
@@ -331,8 +342,8 @@ export function generateRegionalPatch(
       const weight = coastWeight * edgeWeight * iceSmoothing;
 
       const [px, py, pz] = direction;
-      const broadFrequency = sourcePatch === undefined ? 43 : 145;
-      const fineFrequency = sourcePatch === undefined ? 91 : 310;
+      const broadFrequency = applicableSourcePatch === undefined ? 43 : 145;
+      const fineFrequency = applicableSourcePatch === undefined ? 91 : 310;
       const broad = noise3d(px * broadFrequency, py * broadFrequency, pz * broadFrequency);
       const fine = noise3d(px * fineFrequency + 17, py * fineFrequency - 9, pz * fineFrequency + 4);
       const gradientLength = Math.max(1, gradientMagnitude);
@@ -346,7 +357,7 @@ export function generateRegionalPatch(
         tectonic.across * 4.1 * tectonic.influence;
       const alignedRidge = 1 - Math.abs(Math.sin(stablePhase + broad * 1.4));
       const ridged = (alignedRidge * 0.58 + (1 - Math.abs(broad)) * 0.3 + fine * 0.12) * 2 - 1;
-      const amplitude = sourcePatch === undefined
+      const amplitude = applicableSourcePatch === undefined
         ? 42 + slopeWeight * 163 + tectonic.influence * 45
         : 14 + slopeWeight * 38 + tectonic.influence * 13;
       detail[index] = ridged * amplitude;
@@ -389,17 +400,19 @@ export function generateRegionalPatch(
     directions,
     heightsMetres,
     sourceHeightsMetres,
+    sourceMaterialHeightsMetres,
     sourceBlendWeights,
     syntheticDetailMetres,
     blendWeights: weights,
     uvs,
     indices,
     generationMs: ended - started,
-    sourcePatchId: sourcePatch?.id,
+    sourcePatchId: applicableSourcePatch?.id,
     byteLength:
       directions.byteLength +
       heightsMetres.byteLength +
       sourceHeightsMetres.byteLength +
+      sourceMaterialHeightsMetres.byteLength +
       sourceBlendWeights.byteLength +
       syntheticDetailMetres.byteLength +
       weights.byteLength +

@@ -36,19 +36,23 @@ climate class rather than a direct inventory of forests, and the loader omits it
 from the LGM and every older chapter.
 
 NOAA ETOPO 2022 supplies modern global relief with separate ice-surface and
-bedrock products. Five lazy 256×256 patches now cover the named landform views
+bedrock products. Seven lazy 256×256 patches now cover the named landform views
 through the NOAA ImageServer's `ETOPO_2022_v1_60s_surface` mosaic. Each stores
 outer and pixel-center bounds, WGS84 coordinates, EGM2008 metres, row order,
 source resampling method and source/output hashes. Values are bilinearly sampled
 then rounded to metre-scale int16. The patches are generation inputs and are not
-also treated as independent withheld accuracy tests.
+also treated as independent withheld accuracy tests. The Alps and Japan Trench
+additions are present-day ETOPO controls only: they do not supply palaeo-relief,
+orogen history, plate-boundary geometry or a causal subduction model. Apple Maps
+screenshots guided visual comparison only; no screenshot pixels or derived
+image textures enter the runtime bundle.
 
 ### Polar display normalization
 
 The 0 Ma PaleoDEM grid repeats one mathematical pole across every longitude,
 and those duplicate values are not internally consistent. EarthHistory uses
 the finite-row median at the exact pole and interpolates it to the unchanged
-±88° controls. This normalization leaves source bytes and non-pole relief
+±89° controls. This normalization leaves source bytes and non-pole relief
 untouched and remains model output rather than measured polar topography.
 
 The Beck 1991–2020 raster has a complete all-`EF` row at 88.25°S followed by

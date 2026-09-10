@@ -55,6 +55,30 @@ export interface CubeLodSelection {
   capped: boolean;
 }
 
+export interface CubeLodRenderState {
+  quality: "high" | "low";
+  temporal: boolean;
+  settled: boolean;
+  caoCoordinateView: boolean;
+}
+
+/** Keep live temporal previews bounded without reducing the settled PALEOMAP view. */
+export function cubeLodLimitsForRenderState(
+  state: CubeLodRenderState,
+): { maxLevel: number; maxLeaves: number } {
+  if (state.caoCoordinateView) {
+    return state.settled
+      ? { maxLevel: 1, maxLeaves: 18 }
+      : { maxLevel: 0, maxLeaves: 6 };
+  }
+  if (state.temporal && !state.settled) {
+    return { maxLevel: 0, maxLeaves: 6 };
+  }
+  return state.quality === "high"
+    ? { maxLevel: 4, maxLeaves: 96 }
+    : { maxLevel: 1, maxLeaves: 24 };
+}
+
 const EDGES: readonly CubeEdge[] = ["north", "east", "south", "west"];
 const DEFAULT_MAX_LEVEL = 4;
 const DEFAULT_MAX_LEAVES = 96;
@@ -526,24 +550,39 @@ export function selectCubeLod(input: CubeLodInput): CubeLodSelection {
         const threshold = previousRefined(key, previous) ? mergePixels : splitPixels;
         return error(key) > threshold;
       })
+      // Spend a capped budget where one more split removes the most visible error.
+      // Level-first ordering lets broad limb branches starve the inspected center.
       .sort((left, right) =>
-        left.level - right.level || error(right) - error(left) || compareKeys(left, right),
+        error(right) - error(left) || left.level - right.level || compareKeys(left, right),
       );
     if (candidates.length === 0) break;
-    const candidate = candidates[0];
-    const children = childKeys(candidate);
-    const nextCount = leaves.length - 1 + children.length;
-    if (nextCount > maxLeaves) {
+    if (leaves.length + 3 > maxLeaves) {
       capped = true;
       break;
     }
-    leaves = leaves.filter((key) => !sameKey(key, candidate));
-    leaves.push(...children);
+    let accepted: CubeTileKey[] | undefined;
+    for (const candidate of candidates) {
+      const proposal = leaves.filter((key) => !sameKey(key, candidate));
+      proposal.push(...childKeys(candidate));
+      // Close neighbor levels without a cap so balancing can only refine the
+      // existing partition. Reject an unaffordable closure and try the next
+      // screen-error candidate instead of coarsening detail already accepted.
+      const balancedProposal = balanceCubeSelection(
+        proposal,
+        maxLevel,
+        Number.MAX_SAFE_INTEGER,
+      );
+      if (balancedProposal.length <= maxLeaves) {
+        accepted = balancedProposal;
+        break;
+      }
+      capped = true;
+    }
+    if (accepted === undefined) break;
+    leaves = accepted;
   }
 
-  const beforeBalanceMaxLevel = Math.max(0, ...leaves.map((key) => key.level));
   const balanced = balanceCubeSelection(leaves, maxLevel, maxLeaves);
-  if (Math.max(0, ...balanced.map((key) => key.level)) < beforeBalanceMaxLevel) capped = true;
   const ordered = balanced.sort(compareKeys);
   const described = describeCubeLodLeaves(ordered);
   for (const leaf of described) leaf.projectedErrorPx = error(leaf.key);

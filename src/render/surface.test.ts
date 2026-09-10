@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ModernClimateControl, SurfaceStage, WorldSnapshot } from "../data";
 import {
+  caoIceChronologyAllowsPermanentIce,
   EARTH_RADIUS_METRES,
   generateSurface,
   iceDisplayCoverage,
@@ -11,8 +12,10 @@ import {
   sampleSurfaceLand,
   modernClimateAllowsPermanentIce,
   polarLongitudeSampleCount,
+  proceduralLocalTemperature,
   sampleGeographicGrid,
   sampleSurfaceReliefMetres,
+  sampleSourceReliefRuggedness,
 } from "./surface";
 
 function snapshot(stage: SurfaceStage): WorldSnapshot {
@@ -97,6 +100,72 @@ describe("surface generation", () => {
     expect(second.clouds).toEqual(first.clouds);
   });
 
+  it("keeps procedural material fixed to the model seed across source intervals", () => {
+    const controls = {
+      width: 4,
+      height: 3,
+      elevation: new Float32Array(12).fill(1_200),
+    };
+    const younger = snapshot("barren-continents");
+    younger.id = "requested-102ma";
+    younger.land = [];
+    younger.controls = controls;
+    younger.temporalSurface = {
+      intervalId: "paleodem-100-105ma",
+      seedId: "stable-model-material",
+      requestedAgeMa: 102,
+      younger: { ageMa: 100, controls },
+      older: { ageMa: 105, controls },
+      fraction: 0.4,
+      exactEndpoint: false,
+      evidence: "interpolation",
+      method: "material-registered-relative-elevation-with-discrete-fallback",
+    };
+    const older = {
+      ...younger,
+      id: "requested-107ma",
+      temporalSurface: {
+        ...younger.temporalSurface!,
+        intervalId: "paleodem-105-110ma",
+        requestedAgeMa: 107,
+      },
+    };
+    const first = generateSurface(younger, "coarse", { width: 32, height: 16 });
+    const second = generateSurface(older, "coarse", { width: 32, height: 16 });
+    expect(second.albedo).toEqual(first.albedo);
+    expect(second.relief).toEqual(first.relief);
+    expect(second.clouds).toEqual(first.clouds);
+  });
+
+  it("keeps the same procedural seed after temporal arrays are stripped for workers", () => {
+    const controls = {
+      width: 4,
+      height: 3,
+      elevation: new Float32Array(12).fill(900),
+    };
+    const main = snapshot("barren-continents");
+    main.id = "chapter__paleodem-100-105ma";
+    main.renderSeedId = "stable-paleodem-family";
+    main.controls = controls;
+    main.temporalSurface = {
+      intervalId: "paleodem-100-105ma",
+      seedId: "stable-paleodem-family",
+      requestedAgeMa: 102.5,
+      younger: { ageMa: 100, controls },
+      older: { ageMa: 105, controls },
+      fraction: 0.5,
+      exactEndpoint: false,
+      evidence: "interpolation",
+      method: "material-registered-relative-elevation-with-discrete-fallback",
+    };
+    const worker = { ...main, temporalSurface: undefined, temporalReferences: undefined };
+    const expected = generateSurface(main, "coarse", { width: 32, height: 16 });
+    const actual = generateSurface(worker, "coarse", { width: 32, height: 16 });
+    expect(actual.albedo).toEqual(expected.albedo);
+    expect(actual.relief).toEqual(expected.relief);
+    expect(actual.clouds).toEqual(expected.clouds);
+  });
+
   it("does not leak modern coast geometry into the magma-ocean scene", () => {
     const withModernLand = snapshot("magma-ocean");
     const withoutModernLand = { ...withModernLand, land: [] };
@@ -142,6 +211,68 @@ describe("surface generation", () => {
     expect(sampleSurfaceLand(oceanFields, 45, 0)).toBe(false);
   });
 
+  it("centres schematic latitude cooling on the sphere-wide global mean", () => {
+    const meanAbsoluteLatitude = 90 - 180 / Math.PI;
+    expect(proceduralLocalTemperature(15, meanAbsoluteLatitude, 0)).toBeCloseTo(15, 10);
+    expect(proceduralLocalTemperature(15, 0, 0)).toBeGreaterThan(25);
+    expect(proceduralLocalTemperature(15, 60, 0)).toBeLessThan(5);
+    expect(proceduralLocalTemperature(15, meanAbsoluteLatitude, 1_000)).toBeCloseTo(8.5, 10);
+  });
+
+  it("derives rugged material control from source relief without inventing height", () => {
+    const flat = snapshot("barren-continents");
+    flat.controls = {
+      width: 8,
+      height: 5,
+      elevation: new Float32Array(40).fill(1_000),
+    };
+    const ridge = snapshot("barren-continents");
+    ridge.controls = {
+      width: 360,
+      height: 181,
+      elevation: Float32Array.from({ length: 360 * 181 }, (_, index) =>
+        index % 360 < 180 ? 200 : 4_200
+      ),
+    };
+    expect(sampleSourceReliefRuggedness(flat, 0, 0)).toBe(0);
+    expect(sampleSourceReliefRuggedness(ridge, 0, 0)).toBeGreaterThan(0.5);
+    const flatGenerated = generateSurface(flat, "coarse", { width: 32, height: 16 });
+    const generated = generateSurface(ridge, "coarse", { width: 32, height: 16 });
+    expect(Math.max(...generated.reliefMetres)).toBeLessThanOrEqual(4_330);
+    const flatRuggedness = Array.from({ length: 32 * 16 }, (_, index) =>
+      flatGenerated.roughness[index * 4 + 3]
+    );
+    const ridgeRuggedness = Array.from({ length: 32 * 16 }, (_, index) =>
+      generated.roughness[index * 4 + 3]
+    );
+    expect(Math.max(...flatRuggedness)).toBe(0);
+    expect(Math.max(...ridgeRuggedness)).toBeGreaterThan(128);
+  });
+
+  it("does not emboss schematic tectonic corridors into source relief", () => {
+    const world = snapshot("barren-continents");
+    world.environment.iceIntensity = 0;
+    world.environment.iceLatitude = 90;
+    world.controls = {
+      width: 8,
+      height: 5,
+      elevation: new Float32Array(40).fill(1_000),
+    };
+    const baseline = generateSurface(world, "coarse", { width: 72, height: 36 });
+    world.tectonics = [{
+      id: "heightless-subduction",
+      name: "Heightless subduction fixture",
+      type: "subduction",
+      coordinates: [[-20, 0], [20, 0]],
+      widthKm: 180,
+      heightKm: 6,
+      sourceIds: [],
+      activity: 1,
+    }];
+    const withBoundary = generateSurface(world, "coarse", { width: 72, height: 36 });
+    expect(withBoundary.reliefMetres).toEqual(baseline.reliefMetres);
+  });
+
   it("bounds global cloud synthesis independently from regional terrain detail", () => {
     const fields = generateSurface(snapshot("modern-biomes"), "regional");
     expect(fields.width).toBe(768);
@@ -184,10 +315,18 @@ describe("surface generation", () => {
     expect(inferDrainageCorridors(basin)).toEqual([]);
   });
 
-  it("uses ice intensity for extent, not translucent glacier paint", () => {
-    expect(iceDisplayCoverage(0.12, 0.12)).toBeGreaterThan(0.9);
+  it("does not renormalize weak stored ice potential into opaque paint", () => {
+    expect(iceDisplayCoverage(0.12, 0.12)).toBeLessThan(0.12);
+    expect(iceDisplayCoverage(0.8, 0.8)).toBeGreaterThan(0.9);
     expect(iceDisplayCoverage(0.01, 0.12)).toBeLessThan(0.1);
     expect(iceDisplayCoverage(0, 0.8)).toBe(0);
+  });
+
+  it("uses the dated Cao ice chronology as presence and absence evidence", () => {
+    expect(caoIceChronologyAllowsPermanentIce(76)).toBe(true);
+    expect(caoIceChronologyAllowsPermanentIce(100)).toBe(false);
+    expect(caoIceChronologyAllowsPermanentIce(255)).toBe(false);
+    expect(caoIceChronologyAllowsPermanentIce(287)).toBe(true);
   });
 
   it("keeps negative elevation hidden until explicit seafloor mode", () => {

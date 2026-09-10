@@ -37,6 +37,7 @@ interface TileDefinition {
   longitudeStep: number;
   latitudeStep: number;
   surfaceMode: "surface" | "seafloor";
+  applicableSurfaceModes?: readonly ("surface" | "seafloor")[];
   domain: "land" | "bathymetry" | "topobathymetry";
   verticalDatum: string;
   sourceProduct: string;
@@ -57,6 +58,12 @@ interface TileDefinition {
 }
 
 function tile(definition: TileDefinition): SurfaceRefinementTileMetadata {
+  const applicableSurfaceModes = definition.applicableSurfaceModes ?? [definition.surfaceMode];
+  if (
+    applicableSurfaceModes.length === 0 ||
+    !applicableSurfaceModes.includes(definition.surfaceMode) ||
+    new Set(applicableSurfaceModes).size !== applicableSurfaceModes.length
+  ) throw new Error(`Invalid surface-mode applicability for ${definition.id}`);
   return {
     id: definition.id,
     setId: definition.setId ?? `etopo-${definition.id}`,
@@ -77,6 +84,7 @@ function tile(definition: TileDefinition): SurfaceRefinementTileMetadata {
     horizontalCrs: "EPSG:4326",
     referenceFrameId: "present-day-geographic",
     verticalDatum: definition.verticalDatum,
+    applicableSurfaceModes,
     surfaceMode: definition.surfaceMode,
     domain: definition.domain,
     composition: definition.composition ?? "absolute-replace",
@@ -98,14 +106,23 @@ const ETOPO_VERSION = "v1";
 const ETOPO_SOURCE = ["noaa-etopo-2022"];
 
 export const surfaceRefinementTiles: SurfaceRefinementTileMetadata[] = [
-  tile({ id: "mid-atlantic-ridge", bounds: [-60, 10, -30, 40], cellCenterBounds: [-59.94140625, 10.05859375, -30.05859375, 39.94140625], longitudeStep: 0.1171875, latitudeStep: 0.1171875, surfaceMode: "seafloor", domain: "bathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-mid-atlantic-ridge.json" }),
+  tile({ id: "mid-atlantic-ridge", bounds: [-60, 10, -30, 40], cellCenterBounds: [-59.94140625, 10.05859375, -30.05859375, 39.94140625], longitudeStep: 0.1171875, latitudeStep: 0.1171875, surfaceMode: "seafloor", applicableSurfaceModes: ["surface", "seafloor"], domain: "bathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-mid-atlantic-ridge.json" }),
   tile({ id: "himalayas", bounds: [72, 22, 100, 38], cellCenterBounds: [72.0546875, 22.03125, 99.9453125, 37.96875], longitudeStep: 0.109375, latitudeStep: 0.0625, surfaceMode: "surface", domain: "land", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-himalayas.json" }),
-  tile({ id: "andes", bounds: [-78, -32, -62, -15], cellCenterBounds: [-77.96875, -31.966796875, -62.03125, -15.033203125], longitudeStep: 0.0625, latitudeStep: 0.06640625, surfaceMode: "surface", domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-andes.json" }),
-  tile({ id: "east-african-rift", bounds: [28, -15, 44, 14], cellCenterBounds: [28.03125, -14.943359375, 43.96875, 13.943359375], longitudeStep: 0.0625, latitudeStep: 0.11328125, surfaceMode: "surface", domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-east-african-rift.json" }),
+  tile({ id: "alps", bounds: [4, 43, 17, 49], cellCenterBounds: [4.025390625, 43.01171875, 16.974609375, 48.98828125], longitudeStep: 0.05078125, latitudeStep: 0.0234375, surfaceMode: "surface", domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-alps.json" }),
+  tile({ id: "andes", bounds: [-78, -32, -62, -15], cellCenterBounds: [-77.96875, -31.966796875, -62.03125, -15.033203125], longitudeStep: 0.0625, latitudeStep: 0.06640625, surfaceMode: "surface", applicableSurfaceModes: ["surface", "seafloor"], domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-andes.json" }),
+  tile({ id: "east-african-rift", bounds: [28, -15, 44, 14], cellCenterBounds: [28.03125, -14.943359375, 43.96875, 13.943359375], longitudeStep: 0.0625, latitudeStep: 0.11328125, surfaceMode: "surface", applicableSurfaceModes: ["surface", "seafloor"], domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-east-african-rift.json" }),
+  tile({ id: "japan-trench", bounds: [125, 18, 160, 52], cellCenterBounds: [125.068359375, 18.06640625, 159.931640625, 51.93359375], longitudeStep: 0.13671875, latitudeStep: 0.1328125, surfaceMode: "seafloor", applicableSurfaceModes: ["surface", "seafloor"], domain: "topobathymetry", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-japan-trench.json" }),
   tile({ id: "greenland", bounds: [-60, 58, -20, 84], cellCenterBounds: [-59.921875, 58.05078125, -20.078125, 83.94921875], longitudeStep: 0.15625, latitudeStep: 0.1015625, surfaceMode: "surface", domain: "land", verticalDatum: "EGM2008", sourceProduct: ETOPO_PRODUCT, sourceVersion: ETOPO_VERSION, sourceIds: ETOPO_SOURCE, assetPath: "data/etopo-greenland.json" }),
   tile({ id: "north-sea-basin-coarse", setId: "emodnet-north-sea", level: 0, childIds: ["north-sea-basin"], priority: 100, width: 64, height: 64, edgeTransitionCells: 16, bounds: [1, 55, 4, 58], cellCenterBounds: [1.0234375, 55.0234375, 3.9765625, 57.9765625], longitudeStep: 0.046875, latitudeStep: 0.046875, surfaceMode: "seafloor", domain: "bathymetry", verticalDatum: "LAT", nativeResolutionMetres: 460, maxErrorMetres: 180, evidence: "synthesis", composition: "visual-feather", sourceProduct: "EMODnet_DTM_2024_mean", sourceVersion: "DTM 2024", sourceIds: ["emodnet-bathymetry-2024"], assetPath: "data/emodnet-north-sea-basin-coarse.json" }),
   tile({ id: "north-sea-basin", setId: "emodnet-north-sea", level: 1, parentId: "north-sea-basin-coarse", priority: 100, edgeTransitionCells: 64, bounds: [1, 55, 4, 58], cellCenterBounds: [1.005859375, 55.005859375, 3.994140625, 57.994140625], longitudeStep: 0.01171875, latitudeStep: 0.01171875, surfaceMode: "seafloor", domain: "bathymetry", verticalDatum: "LAT", nativeResolutionMetres: 115, maxErrorMetres: 45, evidence: "synthesis", composition: "visual-feather", sourceProduct: "EMODnet_DTM_2024_mean", sourceVersion: "DTM 2024", sourceIds: ["emodnet-bathymetry-2024"], assetPath: "data/emodnet-north-sea-basin.json" }),
 ];
+
+export function surfaceRefinementAppliesToMode(
+  metadata: SurfaceRefinementTileMetadata,
+  mode: "surface" | "seafloor",
+): boolean {
+  return (metadata.applicableSurfaceModes ?? [metadata.surfaceMode]).includes(mode);
+}
 
 export const surfaceRefinementSets: SurfaceRefinementSetMetadata[] = Array.from(
   new Map(surfaceRefinementTiles.map((metadata) => [metadata.setId, metadata])).values(),
@@ -141,6 +158,7 @@ function sameNumbers(left: readonly number[], right: readonly number[]): boolean
 }
 
 function decode(metadata: SurfaceRefinementTileMetadata, asset: SurfaceRefinementAsset): SurfaceRefinementTile {
+  const applicableSurfaceModes = metadata.applicableSurfaceModes ?? [metadata.surfaceMode];
   if (
     asset.schemaVersion !== 1 || asset.encoding !== "int16-le-base64" || asset.scaleMetres !== 1 ||
     asset.id !== metadata.id || asset.width !== metadata.width || asset.height !== metadata.height ||
@@ -151,6 +169,9 @@ function decode(metadata: SurfaceRefinementTileMetadata, asset: SurfaceRefinemen
     asset.registration !== metadata.registration || asset.rowOrder !== metadata.rowOrder ||
     asset.units !== metadata.units || asset.verticalDatum !== metadata.verticalDatum ||
     asset.surfaceMode !== metadata.surfaceMode || asset.sourceProduct !== metadata.sourceProduct ||
+    applicableSurfaceModes.length === 0 ||
+    !applicableSurfaceModes.includes(metadata.surfaceMode) ||
+    new Set(applicableSurfaceModes).size !== applicableSurfaceModes.length ||
     asset.sourceIds.length !== metadata.sourceIds.length ||
     asset.sourceIds.some((value, index) => value !== metadata.sourceIds[index])
   ) throw new Error(`Surface refinement metadata mismatch for ${metadata.id}`);

@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "id": "paleomap-caledonian-material-height-validation-v1",
+  "model": "paleomap-global-plate-model-v3",
+  "modelVersion": "m15g60_v2d3 / ContOCeanPolyv10u_v2d3",
+  "referenceFrame": "PALEOMAP model frame",
+  "sourceAgesMa": "native 5 Ma slices, 0\u2013540 Ma",
+  "samplingMethod": "Each present-day corridor point is independently partitioned in the PALEOMAP 0 Ma static polygons, reconstructed by its assigned plate rotation, and bilinearly sampled in the native 1 degree PaleoDEM at each 5 Ma source slice. No age interpolation and no fixed-modern-coordinate sampling.",
+  "epistemicLimit": "This detects authored coarse relief in PaleoDEM; it does not identify a Caledonian process or separate inherited relief from later uplift and erosion.",
+  "verdict": {
+    "orogenicRelief": "captured as a broad high-relief signal by 420 Ma in all three reconstructed corridors",
+    "devonianCollapse": "not independently resolved or validated: elevation-only controls contain no named collapse process and persistent relief is not a geological contradiction",
+    "presentTraces": "coarsely present, strongest in East Greenland; 1-degree cells and coast-adjacent samples cannot attribute modern height directly to Caledonian relief",
+    "productionVisual": "partial: equal-view captures show broad high terrain at 420/390/355 Ma, but no diagnostic collapse or remnant-belt morphology"
+  },
+  "selectedAges": [
+    {
+      "ageMa": 460,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": -750.9,
+          "minMetres": -813.7,
+          "maxMetres": -524.4,
+          "reconstructedCenterLonLat": [
+            -11.930446,
+            -30.121964
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": -122.8,
+          "minMetres": -130.6,
+          "maxMetres": -31.6,
+          "reconstructedCenterLonLat": [
+            -30.884291,
+            -19.886509
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": -484.8,
+          "minMetres": -716.6,
+          "maxMetres": -224.1,
+          "reconstructedCenterLonLat": [
+            -27.636707,
+            -11.376826
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 440,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": -687.3,
+          "minMetres": -1059.7,
+          "maxMetres": -326.1,
+          "reconstructedCenterLonLat": [
+            -11.657306,
+            -23.65952
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 299.8,
+          "minMetres": 192.1,
+          "maxMetres": 811.3,
+          "reconstructedCenterLonLat": [
+            -23.573758,
+            -12.837607
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": -1078.1,
+          "minMetres": -1381.5,
+          "maxMetres": -850.4,
+          "reconstructedCenterLonLat": [
+            -21.512745,
+            -4.004405
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 430,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": -822.0,
+          "minMetres": -1433.5,
+          "maxMetres": -750.5,
+          "reconstructedCenterLonLat": [
+            -12.077173,
+            -14.265523
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 830.6,
+          "minMetres": 606.7,
+          "maxMetres": 1635.6,
+          "reconstructedCenterLonLat": [
+            -19.874906,
+            -14.824894
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 287.1,
+          "minMetres": 178.6,
+          "maxMetres": 515.8,
+          "reconstructedCenterLonLat": [
+            -17.785566,
+            -5.995412
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 425,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": -528.4,
+          "minMetres": -618.7,
+          "maxMetres": -321.8,
+          "reconstructedCenterLonLat": [
+            -12.558903,
+            -9.587063
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 1127.4,
+          "minMetres": 1040.7,
+          "maxMetres": 1419.6,
+          "reconstructedCenterLonLat": [
+            -18.014323,
+            -15.820864
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 570.1,
+          "minMetres": 357.6,
+          "maxMetres": 845.4,
+          "reconstructedCenterLonLat": [
+            -15.91746,
+            -6.991488
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 420,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2510.0,
+          "minMetres": 1912.3,
+          "maxMetres": 2893.2,
+          "reconstructedCenterLonLat": [
+            -10.165904,
+            -12.327935
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 2375.5,
+          "minMetres": 1917.8,
+          "maxMetres": 2437.1,
+          "reconstructedCenterLonLat": [
+            -14.402967,
+            -18.655463
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1394.0,
+          "minMetres": 677.2,
+          "maxMetres": 1936.0,
+          "reconstructedCenterLonLat": [
+            -12.954331,
+            -9.699711
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 410,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2065.5,
+          "minMetres": 1539.1,
+          "maxMetres": 2272.5,
+          "reconstructedCenterLonLat": [
+            -3.140804,
+            -16.584092
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 1765.0,
+          "minMetres": 928.0,
+          "maxMetres": 2158.6,
+          "reconstructedCenterLonLat": [
+            -6.354204,
+            -23.482617
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1805.0,
+          "minMetres": 1369.1,
+          "maxMetres": 2481.1,
+          "reconstructedCenterLonLat": [
+            -6.373824,
+            -14.417684
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 400,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2434.5,
+          "minMetres": 2365.6,
+          "maxMetres": 2622.3,
+          "reconstructedCenterLonLat": [
+            1.135721,
+            -17.436684
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 2201.2,
+          "minMetres": 1810.5,
+          "maxMetres": 2274.1,
+          "reconstructedCenterLonLat": [
+            -1.430217,
+            -24.575378
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1165.8,
+          "minMetres": 1118.5,
+          "maxMetres": 1443.3,
+          "reconstructedCenterLonLat": [
+            -2.296005,
+            -15.546875
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 390,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2267.0,
+          "minMetres": 2235.1,
+          "maxMetres": 2407.9,
+          "reconstructedCenterLonLat": [
+            0.417461,
+            -14.5588
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 2137.4,
+          "minMetres": 1952.1,
+          "maxMetres": 2271.6,
+          "reconstructedCenterLonLat": [
+            -2.367429,
+            -21.608024
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1824.1,
+          "minMetres": 1704.4,
+          "maxMetres": 1902.5,
+          "reconstructedCenterLonLat": [
+            -2.898749,
+            -12.557273
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 380,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2154.6,
+          "minMetres": 2007.2,
+          "maxMetres": 2205.5,
+          "reconstructedCenterLonLat": [
+            -0.186193,
+            -11.658242
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 2114.8,
+          "minMetres": 2005.3,
+          "maxMetres": 2250.5,
+          "reconstructedCenterLonLat": [
+            -3.176732,
+            -18.61289
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 2434.4,
+          "minMetres": 2313.9,
+          "maxMetres": 2587.1,
+          "reconstructedCenterLonLat": [
+            -3.39634,
+            -9.550436
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 370,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2325.0,
+          "minMetres": 2281.1,
+          "maxMetres": 2386.1,
+          "reconstructedCenterLonLat": [
+            -0.681494,
+            -8.739128
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 2012.0,
+          "minMetres": 1624.9,
+          "maxMetres": 2031.6,
+          "reconstructedCenterLonLat": [
+            -3.868563,
+            -15.594434
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 2136.1,
+          "minMetres": 2021.3,
+          "maxMetres": 2265.0,
+          "reconstructedCenterLonLat": [
+            -3.79415,
+            -6.529775
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 355,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2463.8,
+          "minMetres": 2361.7,
+          "maxMetres": 2516.5,
+          "reconstructedCenterLonLat": [
+            0.122609,
+            -3.167063
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 1913.7,
+          "minMetres": 1552.6,
+          "maxMetres": 1973.8,
+          "reconstructedCenterLonLat": [
+            -3.677408,
+            -9.682032
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 2116.6,
+          "minMetres": 2006.1,
+          "maxMetres": 2149.0,
+          "reconstructedCenterLonLat": [
+            -2.73263,
+            -0.665942
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 350,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 2569.3,
+          "minMetres": 2492.5,
+          "maxMetres": 2701.9,
+          "reconstructedCenterLonLat": [
+            0.939071,
+            -1.014195
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 1936.0,
+          "minMetres": 1639.8,
+          "maxMetres": 2029.2,
+          "reconstructedCenterLonLat": [
+            -3.154911,
+            -7.34141
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 2184.9,
+          "minMetres": 2107.6,
+          "maxMetres": 2244.7,
+          "reconstructedCenterLonLat": [
+            -1.791402,
+            1.620879
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 300,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 520.2,
+          "minMetres": 496.4,
+          "maxMetres": 545.4,
+          "reconstructedCenterLonLat": [
+            13.958122,
+            14.42486
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 837.6,
+          "minMetres": 603.5,
+          "maxMetres": 1330.0,
+          "reconstructedCenterLonLat": [
+            9.102389,
+            8.587845
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1971.7,
+          "minMetres": 1755.7,
+          "maxMetres": 2167.2,
+          "reconstructedCenterLonLat": [
+            11.455744,
+            17.358599
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 100,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": -175.8,
+          "minMetres": -218.2,
+          "maxMetres": 438.1,
+          "reconstructedCenterLonLat": [
+            5.839614,
+            51.13893
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 222.0,
+          "minMetres": -515.0,
+          "maxMetres": 481.6,
+          "reconstructedCenterLonLat": [
+            -2.385833,
+            45.928461
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 468.8,
+          "minMetres": 432.2,
+          "maxMetres": 508.7,
+          "reconstructedCenterLonLat": [
+            -0.667089,
+            54.47494
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 0,
+      "corridors": {
+        "westernNorway": {
+          "sampleCount": 6,
+          "medianMetres": 85.0,
+          "minMetres": -120.0,
+          "maxMetres": 780.0,
+          "reconstructedCenterLonLat": [
+            6.5,
+            62.5
+          ]
+        },
+        "northwestScotland": {
+          "sampleCount": 5,
+          "medianMetres": 80.0,
+          "minMetres": -40,
+          "maxMetres": 512.0,
+          "reconstructedCenterLonLat": [
+            -5.0,
+            57.6
+          ]
+        },
+        "eastGreenland": {
+          "sampleCount": 5,
+          "medianMetres": 1280.0,
+          "minMetres": 630.0,
+          "maxMetres": 1880.0,
+          "reconstructedCenterLonLat": [
+            -25.0,
+            72.0
+          ]
+        }
+      }
+    }
+  ],
+  "externalEvidence": {
+    "localPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-material-height-probe.json",
+    "sha256": "586f8303c0b1096d39aaeeeb6162d21892ce5d38c70e16290ee67ba2c9b54c1a",
+    "bytes": 997187,
+    "generatorPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-material-height-probe.mjs",
+    "generatorSha256": "5c2640927b042dc80047c803d98405053dee92af61325cbc33c58b491ef13662",
+    "generatorBytes": 6168,
+    "cleanupOwner": "EarthHistory palaeomap-study verification owner",
+    "bound": "combined generator, numeric output, production metadata and four PNGs < 4 MiB",
+    "productionCapture": {
+      "metadataPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-source-sequence.json",
+      "metadataSha256": "c20e6da4fe63cdc27a3851f89359a25ad5380196e7ed1d4cfaa0140554534cb2",
+      "metadataBytes": 24603,
+      "entrySha256": "2b444482ef51a391b6a3a37c0e5dd2311d04fbeff5c555b2f1b7edc310bb585c",
+      "reliefExaggeration": 18,
+      "cameraDistanceRange": [
+        1.82,
+        1.82
+      ],
+      "pngs": [
+        {
+          "ageMa": 420,
+          "sha256": "d3f8bd8b26dd5fbce055a9f340b8ba8b7e6de6557aaefba8106e6f827bb899a1",
+          "bytes": 549543
+        },
+        {
+          "ageMa": 390,
+          "sha256": "4e8a55ec6ed4329937d7cf927d00cf2190bfb0af1f52195057ff6a6846d6a7f6",
+          "bytes": 541699
+        },
+        {
+          "ageMa": 355,
+          "sha256": "5310695a8277c7830a7ba2d48eab4e8cb91d1d94621ef14ef653f0717ba9caea",
+          "bytes": 529441
+        },
+        {
+          "ageMa": 0,
+          "sha256": "59586776ce92c937ad86c1b7d57564a798d8be029995d34d17446c462166ba80",
+          "bytes": 591615
+        }
+      ],
+      "sceneConsistency": {
+        "agesMa": [
+          420,
+          390,
+          355,
+          0
+        ],
+        "reliefExaggeration": 18,
+        "cameraDistance": 1.82,
+        "centersAndSourceHeightsMatchNumericProbe": true,
+        "lodPolicy": "restored projected high-quality PALEOMAP LOD"
+      },
+      "supersededCapture": {
+        "entrySha256Prefix": "261a38cf",
+        "status": "overwritten-lower-lod",
+        "filesRetained": false,
+        "note": "Former PNG hashes are historical metadata only and do not identify the current files."
+      },
+      "final420Alias": {
+        "localPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-final-420ma.png",
+        "sha256": "d3f8bd8b26dd5fbce055a9f340b8ba8b7e6de6557aaefba8106e6f827bb899a1",
+        "bytes": 549543,
+        "byteIdenticalToAgeMa": 420
+      }
+    },
+    "inlandSentinels": {
+      "localPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-inland-sentinels.json",
+      "sha256": "2b3287ef1a5c300f677bc67362c9564aab730f6f48e8315ac004488fdd2e0156",
+      "bytes": 6085,
+      "generatorPath": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/verification/caledonian-inland-sentinels.mjs",
+      "generatorSha256": "b3e46233305b4ce9743833840cb07370e623bb36854ff740982fd8655e79bad4",
+      "generatorBytes": 3295
+    }
+  },
+  "inlandSentinels": [
+    {
+      "id": "jotunheimen",
+      "presentLonLat": [
+        8.2,
+        61.6
+      ],
+      "plateId": 301,
+      "fragmentId": "GPlates-501bc3b2-b4f0-4da2-a0a9-c13e1b34e20a:0",
+      "placement": "Interior southern Norway; Jotun Nappe Complex, Southern Norwegian Caledonides",
+      "source": "https://www.ngu.no/publikasjon/structure-jotun-nappe-complex-southern-norwegian-caledonides-ambiquity-gravity",
+      "samples": [
+        {
+          "ageMa": 420,
+          "reconstructedLonLat": [
+            -9.052341,
+            -12.841298
+          ],
+          "elevationMetres": 1983.6
+        },
+        {
+          "ageMa": 390,
+          "reconstructedLonLat": [
+            1.6276,
+            -14.831746
+          ],
+          "elevationMetres": 1951.7
+        },
+        {
+          "ageMa": 355,
+          "reconstructedLonLat": [
+            1.231075,
+            -3.636449
+          ],
+          "elevationMetres": 2214.4
+        },
+        {
+          "ageMa": 300,
+          "reconstructedLonLat": [
+            14.998181,
+            13.771284
+          ],
+          "elevationMetres": 787.0
+        },
+        {
+          "ageMa": 100,
+          "reconstructedLonLat": [
+            7.226852,
+            50.31814
+          ],
+          "elevationMetres": 1025.0
+        },
+        {
+          "ageMa": 0,
+          "reconstructedLonLat": [
+            8.2,
+            61.6
+          ],
+          "elevationMetres": 1236.8
+        }
+      ]
+    },
+    {
+      "id": "hardangervidda",
+      "presentLonLat": [
+        7.5,
+        60.2
+      ],
+      "plateId": 301,
+      "fragmentId": "GPlates-501bc3b2-b4f0-4da2-a0a9-c13e1b34e20a:0",
+      "placement": "Interior southwest Norway; Hardangervidda\u2013Ryfylke Nappe Complex",
+      "source": "https://aps.ngu.no/pls/utf8/geoenhet_SokiDb.Vis_enhet?p_id=145748&p_spraak=N",
+      "samples": [
+        {
+          "ageMa": 420,
+          "reconstructedLonLat": [
+            -8.791831,
+            -14.259641
+          ],
+          "elevationMetres": 1568.5
+        },
+        {
+          "ageMa": 390,
+          "reconstructedLonLat": [
+            2.196379,
+            -16.164202
+          ],
+          "elevationMetres": 2329.9
+        },
+        {
+          "ageMa": 355,
+          "reconstructedLonLat": [
+            1.539228,
+            -5.04408
+          ],
+          "elevationMetres": 2167.5
+        },
+        {
+          "ageMa": 300,
+          "reconstructedLonLat": [
+            15.054532,
+            12.331555
+          ],
+          "elevationMetres": 930.7
+        },
+        {
+          "ageMa": 100,
+          "reconstructedLonLat": [
+            6.908766,
+            48.892183
+          ],
+          "elevationMetres": 793.4
+        },
+        {
+          "ageMa": 0,
+          "reconstructedLonLat": [
+            7.5,
+            60.2
+          ],
+          "elevationMetres": 1212.0
+        }
+      ]
+    },
+    {
+      "id": "cairngorms",
+      "presentLonLat": [
+        -3.7,
+        57.1
+      ],
+      "plateId": 313,
+      "fragmentId": "GPlates-b957611e-06b3-4285-b033-0b58b01285a1:0",
+      "placement": "Interior Grampian Highlands; Cairngorm Caledonian granite suite",
+      "source": "https://earthwise.bgs.ac.uk/index.php/Post-tectonic_granitoid_intrusions%2C_Caledonian_magmatism%2C_Grampian_Highlands",
+      "samples": [
+        {
+          "ageMa": 420,
+          "reconstructedLonLat": [
+            -13.569039,
+            -19.000224
+          ],
+          "elevationMetres": 2312.4
+        },
+        {
+          "ageMa": 390,
+          "reconstructedLonLat": [
+            -1.458027,
+            -21.774847
+          ],
+          "elevationMetres": 2429.4
+        },
+        {
+          "ageMa": 355,
+          "reconstructedLonLat": [
+            -2.858965,
+            -9.984605
+          ],
+          "elevationMetres": 1861.7
+        },
+        {
+          "ageMa": 300,
+          "reconstructedLonLat": [
+            9.863185,
+            8.169106
+          ],
+          "elevationMetres": 753.8
+        },
+        {
+          "ageMa": 100,
+          "reconstructedLonLat": [
+            -1.362573,
+            45.447913
+          ],
+          "elevationMetres": 974.6
+        },
+        {
+          "ageMa": 0,
+          "reconstructedLonLat": [
+            -3.7,
+            57.1
+          ],
+          "elevationMetres": 558.4
+        }
+      ]
+    }
+  ]
+}
