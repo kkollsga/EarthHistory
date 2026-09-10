@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedBy": "Cao foundation promotion audit (package compiler: scripts/research/emit_cao_foundation_package.py)",
+  "generatedBy": "Restored Cao shapes_coasts foundation (land-fill proxy); continents build kept as cao-v2.4.continents",
   "retrievedAt": "2026-09-10",
   "inputs": {
     "natural-earth-countries": {
@@ -11,3324 +11,3324 @@
     "cao-reconstruction-foundation-v2": {
       "record": "https://doi.org/10.5281/zenodo.13628813",
       "license": "CC BY 4.0",
-      "retrievalDate": "2026-09-09T13:26:07Z",
-      "processing": "Pinned Cao v2.4 source-native coastline-class geometry; complete ordered authored rotation collection (1000-0 and 1800-1000 Ma); local gnomonic Earcut triangulation and bounded 1-degree geodesic refinement; shared strict adaptive plate-motion palette; 109 exact native boundary/topology checkpoints; Natural Earth 1:110m modern-country reference partitioned by endpoint-and-midpoint agreement with valid Cao static fragments; physical height unknown and uniform zero",
-      "scope": "Cao v2.4 0-540 Ma foundation. Model geometry is not dated exposed land; relief and seafloor age remain unavailable. Unsupported country fragments and POI anchors are hidden.",
+      "retrievalDate": "2026-09-10",
+      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy (~29% sphere); Natural Earth country locator lines; native boundaries/ownership.",
+      "scope": "Cao v2.4 0-540 Ma foundation using coastline-class model geometry as landmass proxy (still not dated exposed-land evidence). Country lines remain modern locators only.",
       "outputs": [
         {
           "role": "anchors.json",
-          "path": "public/data/reconstruction/cao-v2.4/anchors.json",
+          "path": "data/reconstruction/cao-v2.4/anchors.json",
           "sha256": "f582c769408849e2bef81376aca19e23a1e53d53beb8901f7fccbdde5ab176e0",
           "bytes": 4341
         },
         {
           "role": "batch-0.ehgb",
-          "path": "public/data/reconstruction/cao-v2.4/batch-0.ehgb",
+          "path": "data/reconstruction/cao-v2.4/batch-0.ehgb",
           "sha256": "4132bcf5c661589dd19997ece3ecd672c20eb648bfc21277805b793ba47dfea6",
           "bytes": 5547276
         },
         {
           "role": "boundary-0ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-0ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-0ma.ehnb",
           "sha256": "c51e9e2ec0861b1afeae6fc52d45bd63f6157b13c595290757e55455be63038d",
           "bytes": 33128
         },
         {
           "role": "boundary-0ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-0ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-0ma.json",
           "sha256": "a1124904f3c9aea3a9769e064cd316cc96d38671271334ef4bea56473ad1d8bc",
           "bytes": 122656
         },
         {
           "role": "boundary-100ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-100ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-100ma.ehnb",
           "sha256": "9e32e24ea7cb8597e1b84a044b024b7dbadf8c12865122c07fd2257c1396ff37",
           "bytes": 16400
         },
         {
           "role": "boundary-100ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-100ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-100ma.json",
           "sha256": "c175e974252db384f649b2baad442f3f59c129f05d6acab4d3677ec79d6fde59",
           "bytes": 76790
         },
         {
           "role": "boundary-105ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-105ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-105ma.ehnb",
           "sha256": "fbf3378d5a405c1dc2cb746bb61ac89646c4a35351763bef8d9637b3f50d3cb2",
           "bytes": 16316
         },
         {
           "role": "boundary-105ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-105ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-105ma.json",
           "sha256": "81586278ffde7764d4e1d2ae1104cb1f1a0949657471b1a01d0cf46582802aa0",
           "bytes": 74695
         },
         {
           "role": "boundary-10ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-10ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-10ma.ehnb",
           "sha256": "5d4ce50de921c73214fa50234e7fa6f2609cc27ea99c1839afdb519a35fa5152",
           "bytes": 25208
         },
         {
           "role": "boundary-10ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-10ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-10ma.json",
           "sha256": "3990e382621a163275f16bb34a6929ea0028bd69b68253be8d4db606ce39615a",
           "bytes": 103216
         },
         {
           "role": "boundary-110ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-110ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-110ma.ehnb",
           "sha256": "6afa6e94b462fe37de63241b856e1292a05c5786b246e276111f52564b3e873e",
           "bytes": 16088
         },
         {
           "role": "boundary-110ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-110ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-110ma.json",
           "sha256": "5123a435a27334c938f4dd93dbd8e2afa9bb96ff3ca928119801600add07cbe8",
           "bytes": 74366
         },
         {
           "role": "boundary-115ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-115ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-115ma.ehnb",
           "sha256": "6d7d6c90cc5782815c9255a5bda471deed26a0b3020d611630ca73558451722f",
           "bytes": 16064
         },
         {
           "role": "boundary-115ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-115ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-115ma.json",
           "sha256": "cbf573364848497acd12142044776391ea25dd708f9ed072265a3ad769bfc08f",
           "bytes": 70232
         },
         {
           "role": "boundary-120ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-120ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-120ma.ehnb",
           "sha256": "a8242005b4dd2811f4f694fc7d1636109785f23c50c3216384854b42a7074c95",
           "bytes": 16508
         },
         {
           "role": "boundary-120ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-120ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-120ma.json",
           "sha256": "84be7c93fadb69cb1072dbcc971eea1f8bb9273f911414cb66e63d1ce8fa9857",
           "bytes": 75013
         },
         {
           "role": "boundary-125ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-125ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-125ma.ehnb",
           "sha256": "3d3ff49285cb25b59ef261946765b61446a972dadeda4c0443e6af0629a1d18e",
           "bytes": 18212
         },
         {
           "role": "boundary-125ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-125ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-125ma.json",
           "sha256": "fda5b11cd81b44ecc65a4c8f0918af2e5534a3e8c615bbfbed837333669df27b",
           "bytes": 83470
         },
         {
           "role": "boundary-130ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-130ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-130ma.ehnb",
           "sha256": "e323157995b0976be7f08de3b0680421a7d21b7f66181fd89c21b81df4d9fb5c",
           "bytes": 18164
         },
         {
           "role": "boundary-130ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-130ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-130ma.json",
           "sha256": "e4c5b29c8e5db415908372597f3e9c58f70a88381831af92fbf18cc630e92ec6",
           "bytes": 86720
         },
         {
           "role": "boundary-135ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-135ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-135ma.ehnb",
           "sha256": "1f7197c4a4a4fbd99ba216c8b15628c44f7f61c5dfcee3c2f2978a865a4f2bcc",
           "bytes": 18332
         },
         {
           "role": "boundary-135ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-135ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-135ma.json",
           "sha256": "b2d44d72699117d251f56a8c5dcae5658a77866b98e1d67d91764aee6e225251",
           "bytes": 86106
         },
         {
           "role": "boundary-140ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-140ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-140ma.ehnb",
           "sha256": "16f01c5e96a3dc4fb71b4520ee2184733e106dd03c1c588afadf21b4abbc9199",
           "bytes": 17480
         },
         {
           "role": "boundary-140ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-140ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-140ma.json",
           "sha256": "bb699e6aff626d45b72069a7c396ca974617bdd0137fbfcb8c9db91f8051f77d",
           "bytes": 81487
         },
         {
           "role": "boundary-145ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-145ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-145ma.ehnb",
           "sha256": "9f600e64bf84c5f767dd4185c1fd260a38a2fed802f24635760cc556220b78a4",
           "bytes": 15464
         },
         {
           "role": "boundary-145ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-145ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-145ma.json",
           "sha256": "8caa9c6464d6a378e1d5efabd025ea97781604879eef690effda3ae67e765ba7",
           "bytes": 76004
         },
         {
           "role": "boundary-150ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-150ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-150ma.ehnb",
           "sha256": "0efcc03bdfd4f1b68f98e6faefdbccf4209f48c73c7f49ea1479c28c6261af6a",
           "bytes": 13748
         },
         {
           "role": "boundary-150ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-150ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-150ma.json",
           "sha256": "955b744e2b2b76a4b33947afcfea540a2ee7b4091cc9f8c95ea747a18b964473",
           "bytes": 67475
         },
         {
           "role": "boundary-155ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-155ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-155ma.ehnb",
           "sha256": "bd9d569097ee20e248353be6b1cb2f626996e1afd73fbc87177087869293836a",
           "bytes": 12836
         },
         {
           "role": "boundary-155ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-155ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-155ma.json",
           "sha256": "85d8c931cee182727ea9ea945a2cee0eda7c5d2c5415a5d73c368800f4f56377",
           "bytes": 65131
         },
         {
           "role": "boundary-15ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-15ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-15ma.ehnb",
           "sha256": "789ada7b29d737a95b322177206e710663e1b13f9be6a439a0ed2aa84bd809ce",
           "bytes": 23168
         },
         {
           "role": "boundary-15ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-15ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-15ma.json",
           "sha256": "b42796588a4e9bd17c1b33ebaa0b1e6da4331ac8d2ad097a4bcf4abed10e995a",
           "bytes": 95932
         },
         {
           "role": "boundary-160ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-160ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-160ma.ehnb",
           "sha256": "86d4b80fb2ef00e9974ce77c7e543d5b14ddba4b236191937ef1bd7f361d5cfa",
           "bytes": 11684
         },
         {
           "role": "boundary-160ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-160ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-160ma.json",
           "sha256": "d4ac7143c378e1cfa3492ccc928470b1138aa3d6d25e18e52f44ae4ae90bff64",
           "bytes": 60795
         },
         {
           "role": "boundary-165ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-165ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-165ma.ehnb",
           "sha256": "ebfc96ae46887b399f32fb83f61fbadb21337381161c990d48f17539bf45fc56",
           "bytes": 9752
         },
         {
           "role": "boundary-165ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-165ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-165ma.json",
           "sha256": "19c148da1e1039d7a36a35d5ade5a1de4c2b5c9fcb3ce44b69a5f19b8b3525ba",
           "bytes": 52350
         },
         {
           "role": "boundary-170ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-170ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-170ma.ehnb",
           "sha256": "7c5ca09400b77a3ff8abb4f5305e4ddf35624a769e81c69e1730fbdc2ca35a92",
           "bytes": 9572
         },
         {
           "role": "boundary-170ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-170ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-170ma.json",
           "sha256": "20b8535b7e99ea6130cb2ecde49b5d4fda176b0a425c190008c203a10ec238ed",
           "bytes": 52354
         },
         {
           "role": "boundary-175ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-175ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-175ma.ehnb",
           "sha256": "56def24b0b1ad47823876d44ad23d5cfbd2ae10c088bd690944ec0e97d5f03f4",
           "bytes": 9152
         },
         {
           "role": "boundary-175ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-175ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-175ma.json",
           "sha256": "1bca1362bee2e887631cb26876fd42653e6619942d42138b96622fc92d1035ec",
           "bytes": 50728
         },
         {
           "role": "boundary-180ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-180ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-180ma.ehnb",
           "sha256": "b8fc75eb8c0dac46184514d936a6670d339f5ce937f7a5f2950dd30922b80bd2",
           "bytes": 8048
         },
         {
           "role": "boundary-180ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-180ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-180ma.json",
           "sha256": "66241071737a72d714744910ba2b83b70b3d2e407ec2e229a6cb101adacd4cdc",
           "bytes": 43071
         },
         {
           "role": "boundary-185ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-185ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-185ma.ehnb",
           "sha256": "d08fe73af29df53cc4831888ff87e1a7dc0ad034ec78915cbfccea94190a7092",
           "bytes": 8432
         },
         {
           "role": "boundary-185ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-185ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-185ma.json",
           "sha256": "3519097377986026c7f813340887376ef24308cec1a397e974cd6aba16b253a0",
           "bytes": 46625
         },
         {
           "role": "boundary-190ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-190ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-190ma.ehnb",
           "sha256": "5295b85386c918d2534d1985d5873db67a72a09bbb03f6ab652cbc557b6de0c9",
           "bytes": 8480
         },
         {
           "role": "boundary-190ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-190ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-190ma.json",
           "sha256": "d589d2c7d6d7387abd6da1e8a313439d275e4e01087a8e23b590fa275e072ab9",
           "bytes": 47540
         },
         {
           "role": "boundary-195ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-195ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-195ma.ehnb",
           "sha256": "16aac5224e91012a5e8766204ae9944d89dd5151dc85257d866a7ee39756844f",
           "bytes": 7676
         },
         {
           "role": "boundary-195ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-195ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-195ma.json",
           "sha256": "137bc5025540883cff234ed0e6eaf27d059f835f0401966652827b6e36d674a9",
           "bytes": 38822
         },
         {
           "role": "boundary-200ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-200ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-200ma.ehnb",
           "sha256": "917903b596c7d828f616677e643edd3896f6ae8acf55c7318c095dfd6ef421a3",
           "bytes": 7148
         },
         {
           "role": "boundary-200ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-200ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-200ma.json",
           "sha256": "6a578262b4a0b4da6b0f24d8be64e8e94acd6a573a059793b01ad639241988e9",
           "bytes": 34791
         },
         {
           "role": "boundary-205ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-205ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-205ma.ehnb",
           "sha256": "5d6de2a9d376fbd287bdfd16927054e3e23489455c4d0c17603ed2c43c2da617",
           "bytes": 6128
         },
         {
           "role": "boundary-205ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-205ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-205ma.json",
           "sha256": "8ab3155babeef70e901714239d7b7e7ca3c499a308eff6da6b2faa5b29e5beb2",
           "bytes": 31661
         },
         {
           "role": "boundary-20ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-20ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-20ma.ehnb",
           "sha256": "70bb19ed6fb1789eb00e07a0241674b9005f9e1faf60e7ce02fed6e037076d3d",
           "bytes": 21908
         },
         {
           "role": "boundary-20ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-20ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-20ma.json",
           "sha256": "3d5da8d1647e5d15e7be372bf01e1b9406598945aac9090a40b93f4e10ccbe91",
           "bytes": 96193
         },
         {
           "role": "boundary-210ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-210ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-210ma.ehnb",
           "sha256": "2b1bc50c3f3ef18437610018823269bdaa7f0359fdd522d4209fb4a691d210cd",
           "bytes": 6188
         },
         {
           "role": "boundary-210ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-210ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-210ma.json",
           "sha256": "eb5cf17c2342c1930cce7cc0deb73ce9177540963d2500fd60e97924cee248e7",
           "bytes": 32162
         },
         {
           "role": "boundary-215ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-215ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-215ma.ehnb",
           "sha256": "2e3bfee91dd660e13ed893d5863bc02e874bdc814efe812548fbbc75a19416aa",
           "bytes": 6236
         },
         {
           "role": "boundary-215ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-215ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-215ma.json",
           "sha256": "64ab1070899261f8dd6cb45c45ca52ed2bbc8c2be139b3859bb58c3d59a476ff",
           "bytes": 32577
         },
         {
           "role": "boundary-220ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-220ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-220ma.ehnb",
           "sha256": "e2a1c821b8939170a23f250e85ea22f68630ba643f27dd462736619e7f84a142",
           "bytes": 6236
         },
         {
           "role": "boundary-220ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-220ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-220ma.json",
           "sha256": "f9896ea02b075f5fd80a2ffc26179d1ee70d134b304d5f8ec48e17fd1d4e62dd",
           "bytes": 32578
         },
         {
           "role": "boundary-225ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-225ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-225ma.ehnb",
           "sha256": "2f91cd310da856b8e35912a41835bb82b2b0c474606a21e97eb832c23b27dc18",
           "bytes": 6248
         },
         {
           "role": "boundary-225ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-225ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-225ma.json",
           "sha256": "16df4b77c82659061eed561922e1ad2b04f9b4d9c6555370e5d34c592df6ed1c",
           "bytes": 32572
         },
         {
           "role": "boundary-230ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-230ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-230ma.ehnb",
           "sha256": "093dcff42741a22600055374ab48503670cc4aaec250e8d0b60772c7fd63e210",
           "bytes": 6272
         },
         {
           "role": "boundary-230ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-230ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-230ma.json",
           "sha256": "950fec57482c070e2ef6fc24eda7fbc0ff18436396319ab19459c394f5b024eb",
           "bytes": 33068
         },
         {
           "role": "boundary-235ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-235ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-235ma.ehnb",
           "sha256": "f8c6d54977ad8989a6666c917fa4123d6694cde13edfa5ad55c9fedfd8a28221",
           "bytes": 6092
         },
         {
           "role": "boundary-235ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-235ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-235ma.json",
           "sha256": "514714938185f05176b9f981bf6f604869a5ec7f00e3ce2010668b5390e1f236",
           "bytes": 36698
         },
         {
           "role": "boundary-240ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-240ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-240ma.ehnb",
           "sha256": "67df44cd7e6afada0ce64bf297314902eb06c02606e667c1e107153f153404ed",
           "bytes": 6104
         },
         {
           "role": "boundary-240ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-240ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-240ma.json",
           "sha256": "220286f679f18e604277a8e76668349e05f2e415044c7d019d64824ef4bf7166",
           "bytes": 36707
         },
         {
           "role": "boundary-245ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-245ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-245ma.ehnb",
           "sha256": "0910f888f627009fe3b730307f2db304f931b762b980d2695950e23627eeea35",
           "bytes": 5504
         },
         {
           "role": "boundary-245ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-245ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-245ma.json",
           "sha256": "500d41fdaecfa351e9d936a26dc77ac86395c261711877b69851ed8921b20566",
           "bytes": 35208
         },
         {
           "role": "boundary-250ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-250ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-250ma.ehnb",
           "sha256": "cae8cfd4e37dff37ed523c06a887e953bc471b2326aa320088697037106f7796",
           "bytes": 5528
         },
         {
           "role": "boundary-250ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-250ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-250ma.json",
           "sha256": "d65cdf9cf4e693493a6f7bc954625fc6ab60692bee4c9e31d7bddf9123a61edb",
           "bytes": 35211
         },
         {
           "role": "boundary-255ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-255ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-255ma.ehnb",
           "sha256": "43220fde881bd80327eee1067d8e8cd8d1edb8da7835fb2a2da89d4c2a6addfd",
           "bytes": 4820
         },
         {
           "role": "boundary-255ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-255ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-255ma.json",
           "sha256": "0ae6b4dacb7fff4e128170c83b8a2786f1b16cc356c2fc20e36c18811e5b694b",
           "bytes": 35778
         },
         {
           "role": "boundary-25ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-25ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-25ma.ehnb",
           "sha256": "7aa7f71589ad35dba523deae21d2dcca2e0b5b7797972284575a5d3b6ebcb844",
           "bytes": 21656
         },
         {
           "role": "boundary-25ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-25ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-25ma.json",
           "sha256": "dd0459040d33744985577d404137a53cab0573261962b32d76fda665625910f7",
           "bytes": 96841
         },
         {
           "role": "boundary-260ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-260ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-260ma.ehnb",
           "sha256": "b9f020964b29b267ca9bb189cc41795af69131db64fe13485aeae585656f7f7e",
           "bytes": 4628
         },
         {
           "role": "boundary-260ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-260ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-260ma.json",
           "sha256": "6266223275efbc27801329ff9b98ab45c90591b5a5d00cffa207eef8047a51c4",
           "bytes": 34286
         },
         {
           "role": "boundary-265ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-265ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-265ma.ehnb",
           "sha256": "dde803984c7812f5fe67a7f818d39fcfcf83bd3bb0cb4a6d1b5295e74defe721",
           "bytes": 5192
         },
         {
           "role": "boundary-265ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-265ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-265ma.json",
           "sha256": "2e9d5b135b3528a546c63095692cb689a70aaf8275188cadb33d5b0e6a08f248",
           "bytes": 40555
         },
         {
           "role": "boundary-270ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-270ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-270ma.ehnb",
           "sha256": "cb6ccbc441023a839080f46986280197dd00977e30ebe2ab630e51cd261afdc4",
           "bytes": 5636
         },
         {
           "role": "boundary-270ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-270ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-270ma.json",
           "sha256": "c12aa4e698b441f433d2a6e00eec0c6d29930999d4805aa6d6d1229c5797ffb4",
           "bytes": 42675
         },
         {
           "role": "boundary-275ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-275ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-275ma.ehnb",
           "sha256": "280cce4d0e288a4701b6807d70930b46692420ec58534e3f663c74418b85cb2b",
           "bytes": 5060
         },
         {
           "role": "boundary-275ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-275ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-275ma.json",
           "sha256": "9b822cf641b5a43daeb7c6417578c88681942e34bc50e6265266361131ca698d",
           "bytes": 37260
         },
         {
           "role": "boundary-280ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-280ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-280ma.ehnb",
           "sha256": "8f6a42f864da064349281309d03f5e62b551e4f5a52d217397d3df5f52083521",
           "bytes": 4772
         },
         {
           "role": "boundary-280ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-280ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-280ma.json",
           "sha256": "d06646ff5918e7d45d9d6ffe53b3815a4d371e115d8844e5359a9e88478f6271",
           "bytes": 35687
         },
         {
           "role": "boundary-285ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-285ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-285ma.ehnb",
           "sha256": "648f045ecbdb9a77b4648f57219736c1d23d50266aefba0e956d271d5b43e577",
           "bytes": 4784
         },
         {
           "role": "boundary-285ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-285ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-285ma.json",
           "sha256": "43906d437262572ce3d187da6aa197016ba96bee3b00997437a3851c53ba03d4",
           "bytes": 35694
         },
         {
           "role": "boundary-290ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-290ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-290ma.ehnb",
           "sha256": "5bb407357e419047a043cc0f10df823d9c339e7f004d80e0e562948b29f9424e",
           "bytes": 4784
         },
         {
           "role": "boundary-290ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-290ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-290ma.json",
           "sha256": "f1ef751e8ab97e9b5a2411039e6806389a1e6a1187d770746c788bf93287f357",
           "bytes": 35693
         },
         {
           "role": "boundary-295ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-295ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-295ma.ehnb",
           "sha256": "99884407519ce7d05d842d4786230eef275e639908099fcea5ecce778078247d",
           "bytes": 4748
         },
         {
           "role": "boundary-295ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-295ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-295ma.json",
           "sha256": "d4dd5b19a15994de6adc136161f03af1a32478ee619fac2e432a29f573ca6a5c",
           "bytes": 35773
         },
         {
           "role": "boundary-300ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-300ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-300ma.ehnb",
           "sha256": "7c726ed618e63a38fa9df01ba76d2515078748b9af954aaf19a425ee84456714",
           "bytes": 4664
         },
         {
           "role": "boundary-300ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-300ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-300ma.json",
           "sha256": "8191e1c11546b8b32497e0d83964d02267730b593934e54ef330acf38659af73",
           "bytes": 35775
         },
         {
           "role": "boundary-305ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-305ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-305ma.ehnb",
           "sha256": "7e1eab334a522843dad72ec4356ede57622e6358fcfe3b80b3a4451741335141",
           "bytes": 4784
         },
         {
           "role": "boundary-305ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-305ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-305ma.json",
           "sha256": "0556f0da9f3b564a064cdfb0d5d2b14e2397ba048577148012acf6a4cae2e07d",
           "bytes": 38659
         },
         {
           "role": "boundary-30ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-30ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-30ma.ehnb",
           "sha256": "72699948748b529a3adba2f73b20c1ad755d76da5fda75f28c461d62ddc97037",
           "bytes": 23252
         },
         {
           "role": "boundary-30ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-30ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-30ma.json",
           "sha256": "156f0d09577cca6839fa413a4e388c1909a5e29656e5a46b53dd3893013eaf66",
           "bytes": 103440
         },
         {
           "role": "boundary-310ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-310ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-310ma.ehnb",
           "sha256": "14029bb47c8e5ec43acef798170ac0a5389b538f960d14670a32e2e923a68394",
           "bytes": 4772
         },
         {
           "role": "boundary-310ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-310ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-310ma.json",
           "sha256": "c5564d2b48cbaa195382d8755cad2b9b390d4fdbb0c8a88b7d7e5a4af679838d",
           "bytes": 38649
         },
         {
           "role": "boundary-315ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-315ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-315ma.ehnb",
           "sha256": "fd67ee0f6e4ba8fafbd21fb3517c0e6d13c2bb25c5570e5a3d71735a49b97087",
           "bytes": 5504
         },
         {
           "role": "boundary-315ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-315ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-315ma.json",
           "sha256": "8294b48a721ea4f136b2e7ebe1155f6fdfc05b040540a92f5d6b604094453a0b",
           "bytes": 45696
         },
         {
           "role": "boundary-320ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-320ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-320ma.ehnb",
           "sha256": "faf5359828e1127f1826e65756e18111072adb4933c648d584f4333001e132e5",
           "bytes": 6548
         },
         {
           "role": "boundary-320ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-320ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-320ma.json",
           "sha256": "c686a4469a30a884f854ea9ad4dadb85265b1ab2104cad8828f0ea8a7c90de03",
           "bytes": 51839
         },
         {
           "role": "boundary-325ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-325ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-325ma.ehnb",
           "sha256": "2825c5a398763aa9fa423a925ca11cf2af9d59ec04ab3d3cea4d7f2bafa3a1bf",
           "bytes": 6728
         },
         {
           "role": "boundary-325ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-325ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-325ma.json",
           "sha256": "f9c42b7d40413d93cb54806759a568eb0d359a6bc853c753c341e0780102e4de",
           "bytes": 53695
         },
         {
           "role": "boundary-330ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-330ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-330ma.ehnb",
           "sha256": "65f631567212ba4dee91b07226aeae10637c042a6935eb83ad72da0bad9fee33",
           "bytes": 6560
         },
         {
           "role": "boundary-330ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-330ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-330ma.json",
           "sha256": "768d00297891e83b054bed77474719c5a8f930a47f9c798e2400d93001b13ee0",
           "bytes": 50678
         },
         {
           "role": "boundary-335ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-335ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-335ma.ehnb",
           "sha256": "7eced34e0ac37e2f97091f2d1093b9bf0b89132cfedec31ecc37534d1adc8f50",
           "bytes": 6860
         },
         {
           "role": "boundary-335ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-335ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-335ma.json",
           "sha256": "5fd1abea254ee2bbc7400a4c9f1c7b326be846f4a6e2e966c233f19e224a72f4",
           "bytes": 55194
         },
         {
           "role": "boundary-340ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-340ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-340ma.ehnb",
           "sha256": "c0736c63c1552ca3edec36c2d05e456beb89b2a9df230f084c9c08d278fc9834",
           "bytes": 6332
         },
         {
           "role": "boundary-340ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-340ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-340ma.json",
           "sha256": "17ee184d13aa0d36dc12a346bcae8d82257a326acfe97bd79a05fcd289fdd175",
           "bytes": 52865
         },
         {
           "role": "boundary-345ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-345ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-345ma.ehnb",
           "sha256": "9adc2e53d3e6e604d9be9d9a743f420468feb9cae4ec32ce04347de7ffa7dd4e",
           "bytes": 6476
         },
         {
           "role": "boundary-345ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-345ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-345ma.json",
           "sha256": "0138ce4179c821f310c917e32bdbd826e4d15322fe546868a7bc9d3615fe70e2",
           "bytes": 53337
         },
         {
           "role": "boundary-350ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-350ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-350ma.ehnb",
           "sha256": "ba56b40b93b6bda00f9088c59a11800ad72b6126079d3bc3b064c3193b8e4fe9",
           "bytes": 6464
         },
         {
           "role": "boundary-350ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-350ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-350ma.json",
           "sha256": "afa062653e29100ad828e0f5e314a25e5c6bfe0f2617db7c386c18c38771af37",
           "bytes": 52333
         },
         {
           "role": "boundary-355ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-355ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-355ma.ehnb",
           "sha256": "c7568f1e3c46227613e02c2214e232276759519e2578eb90b46c041da7b8d95d",
           "bytes": 6692
         },
         {
           "role": "boundary-355ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-355ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-355ma.json",
           "sha256": "c2201b718c8dfb6c873ff216801d06341ad21ca0d81bf417e0a8afa7e8db3852",
           "bytes": 53136
         },
         {
           "role": "boundary-35ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-35ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-35ma.ehnb",
           "sha256": "2b09b8f76340d487ad0800c091edb2829ca7548cca47e1c86879ec62ecc4acf9",
           "bytes": 22664
         },
         {
           "role": "boundary-35ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-35ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-35ma.json",
           "sha256": "e8e1c914b23258b079db2222dfe5b34d59253b593ffa9fc080c700b727b7b367",
           "bytes": 99747
         },
         {
           "role": "boundary-360ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-360ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-360ma.ehnb",
           "sha256": "de16726e74638df192ddd7039ee051b88c58aecadd1d43840ab2b7d58154ab32",
           "bytes": 5744
         },
         {
           "role": "boundary-360ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-360ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-360ma.json",
           "sha256": "00c1e1c4703770b313d8624fa42ad3a84f5975ad8ab6c97c7ac0280abecca75c",
           "bytes": 44119
         },
         {
           "role": "boundary-365ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-365ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-365ma.ehnb",
           "sha256": "78d46917508cb4bf1444e90ed37998a1ce4e217e8280ecc9fe07e8a6eceee3fc",
           "bytes": 5624
         },
         {
           "role": "boundary-365ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-365ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-365ma.json",
           "sha256": "19dc98010ab9bd604a413241be7b76e8545f30ca5b6f54b1810625d0e501a21f",
           "bytes": 43191
         },
         {
           "role": "boundary-370ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-370ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-370ma.ehnb",
           "sha256": "49a7becfe78189a0dffa1eb300157c72815d53a1568f7af6aeaebd1305e042c7",
           "bytes": 5408
         },
         {
           "role": "boundary-370ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-370ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-370ma.json",
           "sha256": "904b18a1cf6b8557196b4b4d3c87eeef0fd2189bbc99fcd8f552b95e07e1da4b",
           "bytes": 42789
         },
         {
           "role": "boundary-375ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-375ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-375ma.ehnb",
           "sha256": "bfbae4968b8be60ad67f0446e05ff3d19ecb9e6de358eac9d03fe55bc451783c",
           "bytes": 5576
         },
         {
           "role": "boundary-375ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-375ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-375ma.json",
           "sha256": "f53a3aeb7283dfefec2e2729bbbd815b964f9f9be12a5ebc7a6735ede91a3251",
           "bytes": 44661
         },
         {
           "role": "boundary-380ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-380ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-380ma.ehnb",
           "sha256": "685ba61782db54070e18403b2873766106c99fa906d8f4a063e0eb22846617ce",
           "bytes": 5660
         },
         {
           "role": "boundary-380ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-380ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-380ma.json",
           "sha256": "ac78a217733a7050bc0da8a562c37f21a595ce9647ef8041497ffd39fbad464d",
           "bytes": 44796
         },
         {
           "role": "boundary-385ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-385ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-385ma.ehnb",
           "sha256": "0619d38320575d1f4e61286f32698ef200c1d9fe504e009cf0ed401b800542a4",
           "bytes": 6212
         },
         {
           "role": "boundary-385ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-385ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-385ma.json",
           "sha256": "0f8f8d1d7429d317b1b83bec34852c9b4049eab6aac0787a7f58c0170ebbc61a",
           "bytes": 49667
         },
         {
           "role": "boundary-390ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-390ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-390ma.ehnb",
           "sha256": "1de9aa2d92ff8e4ced6fba62cd3b675036e8b4518b3bdaf70096c1fbb06b902d",
           "bytes": 6056
         },
         {
           "role": "boundary-390ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-390ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-390ma.json",
           "sha256": "aaf26c209002a7f8501809a1bdd0d6f897ebd3d0e16d558bbab564721a40f8a7",
           "bytes": 49155
         },
         {
           "role": "boundary-395ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-395ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-395ma.ehnb",
           "sha256": "9fcb0648ccb9eeeddc615c100c2971a0096c70854df7be5d4e037c1448e339db",
           "bytes": 5132
         },
         {
           "role": "boundary-395ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-395ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-395ma.json",
           "sha256": "18f742eae6f283b8a94735eb016a1a8f8628883a0158160662f700c8dcccf06b",
           "bytes": 41719
         },
         {
           "role": "boundary-400ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-400ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-400ma.ehnb",
           "sha256": "340fa7ebf692e92f476e97199c9ddfce7bf053bef6b148d6d9ae9497716537db",
           "bytes": 5240
         },
         {
           "role": "boundary-400ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-400ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-400ma.json",
           "sha256": "f9bbac9eca3437768fa19e81b765d4bd9f80a6a0a471b4f55144d4a1acbc5316",
           "bytes": 42713
         },
         {
           "role": "boundary-405ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-405ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-405ma.ehnb",
           "sha256": "f3d3ee744580c2d6d8bf3139cde2f4fbda5482e9d43c5a8b210c4f92b2fd7bba",
           "bytes": 4844
         },
         {
           "role": "boundary-405ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-405ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-405ma.json",
           "sha256": "d2c54a2502b6b08929a823e43684f68cb83a55596b559752be6ff9e583f1dd28",
           "bytes": 38187
         },
         {
           "role": "boundary-40ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-40ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-40ma.ehnb",
           "sha256": "5acb1a3a734b9f585926de5e85604a71164bbfd3f4c8061525d19b70fc4e740f",
           "bytes": 21560
         },
         {
           "role": "boundary-40ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-40ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-40ma.json",
           "sha256": "a2c23bb4b9078ef175dd585f75468bb52edf1d14ae870a4da8510148a3250c15",
           "bytes": 95534
         },
         {
           "role": "boundary-410ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-410ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-410ma.ehnb",
           "sha256": "0226bfc09f4d32fbf3f060964c6cd493b5ae303d37bb34419be16d3f7557b98e",
           "bytes": 4856
         },
         {
           "role": "boundary-410ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-410ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-410ma.json",
           "sha256": "da3147a13987054c68ee20fd626dd7dd391663dd58b85ca569bef2ec0dec060e",
           "bytes": 38188
         },
         {
           "role": "boundary-415ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-415ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-415ma.ehnb",
           "sha256": "5f141b17dafb0998fe0c16106bec7dd61324de96145ad82ecd0481bef8b44591",
           "bytes": 5324
         },
         {
           "role": "boundary-415ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-415ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-415ma.json",
           "sha256": "c9ea3b318680661b338999f97fa027e6dde9f2bbeb768742032f67457d90cbd8",
           "bytes": 37749
         },
         {
           "role": "boundary-420ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-420ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-420ma.ehnb",
           "sha256": "47eb53bbd2c90394cf34e835393bb8ce0a5be0e76d4f3be0cc2eb0a8f63dc76d",
           "bytes": 5468
         },
         {
           "role": "boundary-420ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-420ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-420ma.json",
           "sha256": "0e647c0ff3afa60620c9524f9b979423c445c21bf5e78278e423f74170d14c05",
           "bytes": 37750
         },
         {
           "role": "boundary-425ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-425ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-425ma.ehnb",
           "sha256": "7a0366da796a2864c9c49c5ff149ec3c26c1ec1e69c0a07e27c736004989575a",
           "bytes": 5600
         },
         {
           "role": "boundary-425ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-425ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-425ma.json",
           "sha256": "5ecbe2f310e7c41a166904cb5432697614fbd2d2d5afdf1b8f34e6ce5c931dd3",
           "bytes": 39255
         },
         {
           "role": "boundary-430ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-430ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-430ma.ehnb",
           "sha256": "b01cb93d89f638c276a69fae94f5bb420701736f064cf9ed60de63340b99d6b1",
           "bytes": 5612
         },
         {
           "role": "boundary-430ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-430ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-430ma.json",
           "sha256": "c6bc818daadc353a89f550ab2f86a21ad53906efd330f0a7400b315e84f84153",
           "bytes": 40124
         },
         {
           "role": "boundary-435ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-435ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-435ma.ehnb",
           "sha256": "e87fd4b51a5d88602955d61983777ffce07ef71fbbfd9db95d87b077ce1f3edb",
           "bytes": 6620
         },
         {
           "role": "boundary-435ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-435ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-435ma.json",
           "sha256": "cfc73f15d6a1771b36d83af4c1864c8c2efa7826bec307bfa56d91ad194e04a1",
           "bytes": 44012
         },
         {
           "role": "boundary-440ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-440ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-440ma.ehnb",
           "sha256": "0023ef0e5fada3d1fcc0cee0f6140d1f06a86af1f4a15b50f65726b3d453a0ba",
           "bytes": 6656
         },
         {
           "role": "boundary-440ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-440ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-440ma.json",
           "sha256": "691bd7b9480e5c1121fe100ec33d5a7fc1d39fcbf326722157d25a46487e3c56",
           "bytes": 45289
         },
         {
           "role": "boundary-445ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-445ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-445ma.ehnb",
           "sha256": "9a6f7253b9d76df6c058a748cb22fbe8774becfef30f46f749954e2cc6a7c06c",
           "bytes": 7244
         },
         {
           "role": "boundary-445ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-445ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-445ma.json",
           "sha256": "4b93dd0e6976725613a9399bbda1a3e4acbb8aa9231cb670f1d05d8c5998122c",
           "bytes": 52662
         },
         {
           "role": "boundary-450ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-450ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-450ma.ehnb",
           "sha256": "8fea19ce93df920194a531907b29267750889fed4f06b18d5777aa003075df40",
           "bytes": 7376
         },
         {
           "role": "boundary-450ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-450ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-450ma.json",
           "sha256": "b2774b9645c7b954b7a69a9af3442953d34421b5bb3191be3c855cf988acfe6f",
           "bytes": 52540
         },
         {
           "role": "boundary-455ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-455ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-455ma.ehnb",
           "sha256": "1f1e6bfc4eff0796b9880533011b79671c047e40d1a4c4d98abf1a4075cdbdf1",
           "bytes": 8012
         },
         {
           "role": "boundary-455ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-455ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-455ma.json",
           "sha256": "3b2e17249a6fdd021caee691035ccbc45a3e43b5fa300061a011819428df1de7",
           "bytes": 54810
         },
         {
           "role": "boundary-45ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-45ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-45ma.ehnb",
           "sha256": "1556fe489b97020b8aefab53c26c2c938793e221793f1ef4c23022310442131a",
           "bytes": 20012
         },
         {
           "role": "boundary-45ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-45ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-45ma.json",
           "sha256": "352279fe5fd66dc7955970d5894c5c5ea110cde0b4cc57d944caae1b8d29fffe",
           "bytes": 84853
         },
         {
           "role": "boundary-460ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-460ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-460ma.ehnb",
           "sha256": "f166174b6726c8c74700da2445c8189e920d6bca3276067db82fbb1a01a4a4fe",
           "bytes": 7796
         },
         {
           "role": "boundary-460ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-460ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-460ma.json",
           "sha256": "c6a36c3f3f739286ff090771d9b5eb30d94a5a6f4697a56bdda7504c25d9a087",
           "bytes": 54327
         },
         {
           "role": "boundary-465ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-465ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-465ma.ehnb",
           "sha256": "a18d91acfa5e24a3da4bbf50caf5ac9c36ec2ecaaa650d03bffa0b782100e6fb",
           "bytes": 8300
         },
         {
           "role": "boundary-465ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-465ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-465ma.json",
           "sha256": "1d1241e75405d671530059fefe663b8b8dfc82a74b95da5b2f03ce2633d84360",
           "bytes": 56710
         },
         {
           "role": "boundary-470ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-470ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-470ma.ehnb",
           "sha256": "a9e3e4bbf5be4aea30d28ca3d06e666373a7da71f388e9c7a528ed06ccdd28fd",
           "bytes": 8252
         },
         {
           "role": "boundary-470ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-470ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-470ma.json",
           "sha256": "fd3453e43467524afead403bebdded1f202516ad81a8e6c92283788aa14ba19a",
           "bytes": 57264
         },
         {
           "role": "boundary-475ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-475ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-475ma.ehnb",
           "sha256": "f615563338f1d36aabee31320f9bd5dca8c6bc3b6ebb15f1fac44b2e9065ae7e",
           "bytes": 9272
         },
         {
           "role": "boundary-475ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-475ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-475ma.json",
           "sha256": "00cd4808bd32b979d8429d7825acfca1c1a85ead731855fde4d92bb477c833f7",
           "bytes": 66349
         },
         {
           "role": "boundary-480ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-480ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-480ma.ehnb",
           "sha256": "07a21e1ff2c1fb402eace00cc28ec4c0fab05d9b8896e94b80f1069b2df0376c",
           "bytes": 9680
         },
         {
           "role": "boundary-480ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-480ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-480ma.json",
           "sha256": "1516d28cc1b7e06e114cee8a66233a0686c965942f96dc5e29a741399fe9c4b2",
           "bytes": 68280
         },
         {
           "role": "boundary-485ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-485ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-485ma.ehnb",
           "sha256": "c671431c6dde4abef6bb55dacd12d356e6f923cdc8e60a4109204c4995a095c8",
           "bytes": 9584
         },
         {
           "role": "boundary-485ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-485ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-485ma.json",
           "sha256": "c98cd604eb8aef479d0628506a6c545ec0b779d9171c726348f7720cab2e9a13",
           "bytes": 69030
         },
         {
           "role": "boundary-490ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-490ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-490ma.ehnb",
           "sha256": "64567d7ffa00ba931efa3d633226908ba40fd828f5ec62da78f219c0b8643995",
           "bytes": 9668
         },
         {
           "role": "boundary-490ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-490ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-490ma.json",
           "sha256": "207a53c7f02c3eb68d7ec8f97ceb6961992e41e128300df7ce95dab6b569d1a9",
           "bytes": 71468
         },
         {
           "role": "boundary-495ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-495ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-495ma.ehnb",
           "sha256": "018cc48c65d6c958e1099ec5570fcefd441c0bc72c0b3492198765112419602f",
           "bytes": 8732
         },
         {
           "role": "boundary-495ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-495ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-495ma.json",
           "sha256": "bd3673954f8d5403def4d4345e851818748fd29184fd5d8d8ffd6198d033cf3d",
           "bytes": 66108
         },
         {
           "role": "boundary-500ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-500ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-500ma.ehnb",
           "sha256": "93c965afba1ed1937f6b7b1e11f25de238c6debd49b2df4d861d34b4d752f686",
           "bytes": 8672
         },
         {
           "role": "boundary-500ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-500ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-500ma.json",
           "sha256": "0ee99cd553bf7dddc2b43a6b1ab453b8898f815ac802e8237d710298e813593f",
           "bytes": 66111
         },
         {
           "role": "boundary-505ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-505ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-505ma.ehnb",
           "sha256": "8c20b7d1cca88d87629c328977aa8792c4a1b48bf19e0272e299e97f22a0bb96",
           "bytes": 7976
         },
         {
           "role": "boundary-505ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-505ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-505ma.json",
           "sha256": "c1c3e0492ecb7add52d19fd14d5a8d930778f2c32cd9eabbcea3046fbfc6d2d1",
           "bytes": 56435
         },
         {
           "role": "boundary-50ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-50ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-50ma.ehnb",
           "sha256": "036283a4f3123f615d7c60ff8d2c667f6cc1b0e12c0b2feb206c398a29b1bac1",
           "bytes": 18464
         },
         {
           "role": "boundary-50ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-50ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-50ma.json",
           "sha256": "8a1f8b4c1f66d1c7a2683316e77ea5cf1d6707e4bed802c873959100cfb89c50",
           "bytes": 76921
         },
         {
           "role": "boundary-510ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-510ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-510ma.ehnb",
           "sha256": "21eb33079c0fc7ba88acf969b2200d09ad7b8a7966b74e2e4a5318a8b4def491",
           "bytes": 8108
         },
         {
           "role": "boundary-510ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-510ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-510ma.json",
           "sha256": "0311e05ccb21c91e76acc1b7f3dafffa17125ecaac4a462fc6251ae24119f258",
           "bytes": 57593
         },
         {
           "role": "boundary-515ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-515ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-515ma.ehnb",
           "sha256": "06c0e71435b4ca62d32044c5372555d06ae7b84b7b590cc1a5d3007088f53fab",
           "bytes": 8012
         },
         {
           "role": "boundary-515ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-515ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-515ma.json",
           "sha256": "4fc8682c3d02181a055eb27446dc386327fe95497922c519ff7c844f07b66d48",
           "bytes": 55733
         },
         {
           "role": "boundary-520ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-520ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-520ma.ehnb",
           "sha256": "f5cba08c25f73f7f6a8c68f0c3590851a3954ed9b32b4e7c28843a63bd16c36a",
           "bytes": 7916
         },
         {
           "role": "boundary-520ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-520ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-520ma.json",
           "sha256": "9aa4e419bef3a8f0edda31a343c616c7b72ff534313baaf0428f559f75afbe39",
           "bytes": 55733
         },
         {
           "role": "boundary-525ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-525ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-525ma.ehnb",
           "sha256": "ee1670a9ff489aeaf33271910937b454c50ccdfa3873da3138f508005a8b69a4",
           "bytes": 8456
         },
         {
           "role": "boundary-525ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-525ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-525ma.json",
           "sha256": "a2d045d7b70c2a4f207dd35fef61a41ddd87bb3d09934e8dd28ab44e973f1576",
           "bytes": 55214
         },
         {
           "role": "boundary-530ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-530ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-530ma.ehnb",
           "sha256": "e2d21663d56d931f775a3cf30d5f55e90bd1e95b24be60bb8645c8adf9bc84fd",
           "bytes": 8492
         },
         {
           "role": "boundary-530ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-530ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-530ma.json",
           "sha256": "3243d1309d764bf7a68099b169990761e04c2e695357f07fdf82bdca5236111d",
           "bytes": 55720
         },
         {
           "role": "boundary-535ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-535ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-535ma.ehnb",
           "sha256": "cd7231e45fb78e9bb55a746fe92bc3d882031fbd235445a4412be37d4d6cfd89",
           "bytes": 8108
         },
         {
           "role": "boundary-535ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-535ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-535ma.json",
           "sha256": "1e0c00bff2437eedc5fe9012159d06bbd9f056c2bcf16a94432280a238efdf0c",
           "bytes": 56166
         },
         {
           "role": "boundary-540ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-540ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-540ma.ehnb",
           "sha256": "8ecde0c0f755340ecdf4880a11046aa6aef5b3d139038e8206ea9f257be641ca",
           "bytes": 8084
         },
         {
           "role": "boundary-540ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-540ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-540ma.json",
           "sha256": "acf31327d6af0a08902d32bdb8fe0f41dfb5311f949a03524e76542c21ba9aa8",
           "bytes": 56082
         },
         {
           "role": "boundary-55ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-55ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-55ma.ehnb",
           "sha256": "cfc070085556d47725d694d0702a9647c6fe0f3014f912e17ea4f4d02bef9337",
           "bytes": 19628
         },
         {
           "role": "boundary-55ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-55ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-55ma.json",
           "sha256": "ae25cf80a4228756c549cf595ab6829e9023cf46efccb80de493c36d4c55f5ac",
           "bytes": 81563
         },
         {
           "role": "boundary-5ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-5ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-5ma.ehnb",
           "sha256": "41834d72791519c3dd652461db604b536054bb7066a43627875cba06ea0bdb41",
           "bytes": 26096
         },
         {
           "role": "boundary-5ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-5ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-5ma.json",
           "sha256": "0476eae405a71f604a1fcba7c7bab1c1ad052cdb1ebfcf366224ba50b7316f9f",
           "bytes": 113018
         },
         {
           "role": "boundary-60ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-60ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-60ma.ehnb",
           "sha256": "d6dd59f6de953fdcc268f3dcc6249fd0aa7a5b96789b521c06cb423ffeb219de",
           "bytes": 20204
         },
         {
           "role": "boundary-60ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-60ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-60ma.json",
           "sha256": "abfb7233f96054f7b42f330b34a59f0ca3be1631f66870ec55accc53ec678980",
           "bytes": 81416
         },
         {
           "role": "boundary-65ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-65ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-65ma.ehnb",
           "sha256": "8e7f092cfb959c16f38ba5ba072e6a66fbdfd2fd9b5bcd5364ce8a974d5566b1",
           "bytes": 20384
         },
         {
           "role": "boundary-65ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-65ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-65ma.json",
           "sha256": "5da8166b172e5fc059a7626222a2c144623d5f1985cab2ae1c4f23b791a90f91",
           "bytes": 81528
         },
         {
           "role": "boundary-70ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-70ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-70ma.ehnb",
           "sha256": "4ec1a2aabfb6889bc45d05f1fa222c73f5b2c42d565d4106057366b8c4299f15",
           "bytes": 21500
         },
         {
           "role": "boundary-70ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-70ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-70ma.json",
           "sha256": "ebe41bf904006f0e64f814b9b9aad5c95b8d771eb6f7d59d4bb6fada09dbb9f8",
           "bytes": 83534
         },
         {
           "role": "boundary-75ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-75ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-75ma.ehnb",
           "sha256": "3e021375712930c350d5f2b72a836d0549cdff1a1192472c459e3b4f5d8a83da",
           "bytes": 20672
         },
         {
           "role": "boundary-75ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-75ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-75ma.json",
           "sha256": "ab4acf106b3bafcdb272adede0a03c56c4f2a1a95e73957adec1b05848bbb8f6",
           "bytes": 84429
         },
         {
           "role": "boundary-80ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-80ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-80ma.ehnb",
           "sha256": "bdd5bf9be31595febf5256cabbe760dd36799ea19ababe76669a6eb1fa528227",
           "bytes": 19664
         },
         {
           "role": "boundary-80ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-80ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-80ma.json",
           "sha256": "c30e30ac57872311df90916b77535aa1dbbc2f54fbad860c63f87b604c71128d",
           "bytes": 82412
         },
         {
           "role": "boundary-85ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-85ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-85ma.ehnb",
           "sha256": "89899a728b2a3e72be9c09bfb9aaf30e0d872e753f413bd045868b6676316145",
           "bytes": 18140
         },
         {
           "role": "boundary-85ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-85ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-85ma.json",
           "sha256": "75ace10a57c39d712cc7ed982d7175c030d5168c66297ccd77e0c7220a3fb593",
           "bytes": 84752
         },
         {
           "role": "boundary-90ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-90ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-90ma.ehnb",
           "sha256": "a176ef621d0d3d10bca3805efe4744ad8bf5df7c3701d8552fd9b7b57317ec09",
           "bytes": 16088
         },
         {
           "role": "boundary-90ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-90ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-90ma.json",
           "sha256": "65d626f92815e9bd27e07e443ae997ec8280f0d4c662bbc569155a3d5a1a283a",
           "bytes": 75989
         },
         {
           "role": "boundary-95ma.ehnb",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-95ma.ehnb",
+          "path": "data/reconstruction/cao-v2.4/boundary-95ma.ehnb",
           "sha256": "d2f2c0d133eb2f6ae0a529d75111af67fb190da373eecba39b4bb4457f0707a3",
           "bytes": 15848
         },
         {
           "role": "boundary-95ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/boundary-95ma.json",
+          "path": "data/reconstruction/cao-v2.4/boundary-95ma.json",
           "sha256": "8265b3b992c14cf165d87c241c3fcd1e7d2630189e9a90035bdcbb9d35e33ae7",
           "bytes": 74525
         },
         {
           "role": "checkpoint-0ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-0ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-0ma.json",
           "sha256": "5899a77d71a10d4c0c30587f46de6da6a4b73e1e2c5bda44bca6eb6ff2c580a6",
           "bytes": 1205
         },
         {
           "role": "checkpoint-100ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-100ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-100ma.json",
           "sha256": "638bc8ab96e66b7a8743d833fd1e682c2a523ccb21ec2c6004a9841bc0145b1e",
           "bytes": 1217
         },
         {
           "role": "checkpoint-105ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-105ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-105ma.json",
           "sha256": "82f8cb0d3b9a4563564bbdf6b4bf23f80b2be090605074bd21e86849c74ad4da",
           "bytes": 1217
         },
         {
           "role": "checkpoint-10ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-10ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-10ma.json",
           "sha256": "7698ed1305bbc5f071d905f5d3e50d2bc585810021a93c40cc105a44fe7e2dc0",
           "bytes": 1212
         },
         {
           "role": "checkpoint-110ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-110ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-110ma.json",
           "sha256": "9bc362fd42b3bd09e36bd1f7a36e4bad5af9ca3ce6a8d87f54f9213e98c7ef93",
           "bytes": 1217
         },
         {
           "role": "checkpoint-115ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-115ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-115ma.json",
           "sha256": "d657aab979e3a0f03bbef0a43f89974ef4a25380ee8afaa8e4bc2c8f5fd180c5",
           "bytes": 1217
         },
         {
           "role": "checkpoint-120ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-120ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-120ma.json",
           "sha256": "13d3ab85e91434b782cf56f6c3e5d86caed53832cbf848f0fd5883c7a98feeda",
           "bytes": 1217
         },
         {
           "role": "checkpoint-125ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-125ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-125ma.json",
           "sha256": "b4f263ed47e5151bbc2f63d49b9b49547504ea6e212ad342667818d43ee9a26b",
           "bytes": 1217
         },
         {
           "role": "checkpoint-130ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-130ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-130ma.json",
           "sha256": "9f0ba266092938e1ec2c0eb86dcef94c8323d7cd706ed83504f0a0f3392e180a",
           "bytes": 1217
         },
         {
           "role": "checkpoint-135ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-135ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-135ma.json",
           "sha256": "30a9c90ab8f273cd9e7f09f4698d44aea061beed62b0bfd229c7d13d19a74099",
           "bytes": 1217
         },
         {
           "role": "checkpoint-140ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-140ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-140ma.json",
           "sha256": "0ccfba4b7c4e83706d3fb7ccb1bd3d8f8ebe31b50093b7525216d19072c47ced",
           "bytes": 1217
         },
         {
           "role": "checkpoint-145ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-145ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-145ma.json",
           "sha256": "f02a579f9d9e004469f718b2512719968a231f3e2c44c81275cf738c0bd13756",
           "bytes": 1217
         },
         {
           "role": "checkpoint-150ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-150ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-150ma.json",
           "sha256": "3e80a6b72d03d1e6e237d91488c968354433f18734b90bf1f2c4da220e69e37c",
           "bytes": 1217
         },
         {
           "role": "checkpoint-155ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-155ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-155ma.json",
           "sha256": "134b82174290d6c32bf519817c2900e88110f57886d57bf3ee4219ca04a26d99",
           "bytes": 1217
         },
         {
           "role": "checkpoint-15ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-15ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-15ma.json",
           "sha256": "1dcdb6097062f20072db9780f08da13346efec9cf7c05b890328814172490a9c",
           "bytes": 1211
         },
         {
           "role": "checkpoint-160ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-160ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-160ma.json",
           "sha256": "a7aaa50208dd8abf4edbd8edf2b6c0ecf3759210a310b853407b87a87cecb87a",
           "bytes": 1217
         },
         {
           "role": "checkpoint-165ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-165ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-165ma.json",
           "sha256": "083938d40daef980a7ee5b7d44ee33ca22b70895467d012d822e807c039523b3",
           "bytes": 1216
         },
         {
           "role": "checkpoint-170ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-170ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-170ma.json",
           "sha256": "36ab3afff900c876ca444ae783233bcb86125dba6670b88b9e64819f8ce8a2dc",
           "bytes": 1216
         },
         {
           "role": "checkpoint-175ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-175ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-175ma.json",
           "sha256": "d114e12c89df1ac0e7212e09c10cb128076d1289892fcd790378aad4b0b043bd",
           "bytes": 1216
         },
         {
           "role": "checkpoint-180ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-180ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-180ma.json",
           "sha256": "b8a52ee3cd4366c90417496a543dd76dca962a593b88ad37d0a6ab4ff4c7dc36",
           "bytes": 1216
         },
         {
           "role": "checkpoint-185ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-185ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-185ma.json",
           "sha256": "9a28f6054613a5f5a1661c84a169ad52dbb960dbe326173d6bb8152a7b10a314",
           "bytes": 1216
         },
         {
           "role": "checkpoint-190ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-190ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-190ma.json",
           "sha256": "8ef14837d44d7eac602dd8c76af35a078798e92b8f18ebbe4cf81ec6fc57054c",
           "bytes": 1216
         },
         {
           "role": "checkpoint-195ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-195ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-195ma.json",
           "sha256": "c97b3bde46802aedd570455a8a04e5433a5d589f682d79a8269c5008d7c977bb",
           "bytes": 1216
         },
         {
           "role": "checkpoint-200ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-200ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-200ma.json",
           "sha256": "15e17bd3b997b41adf07a16a1677af4c7cbb79c77f1e272ae733abd4652a369d",
           "bytes": 1216
         },
         {
           "role": "checkpoint-205ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-205ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-205ma.json",
           "sha256": "5eaab5d42da73a149620cda1265818b89559f3339d4938edea9d8ad5d84c31ba",
           "bytes": 1216
         },
         {
           "role": "checkpoint-20ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-20ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-20ma.json",
           "sha256": "89885e4d7dbb21eedb7eb017a76cd722234cb5d6c25b599c5a2b0f8da8a5f9c5",
           "bytes": 1211
         },
         {
           "role": "checkpoint-210ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-210ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-210ma.json",
           "sha256": "95130b63d679814807b7a83f7f534bbf8d5d36ac7c3efccc9cb4fb738b6c9b04",
           "bytes": 1216
         },
         {
           "role": "checkpoint-215ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-215ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-215ma.json",
           "sha256": "1689cbbb54200fc62436b403f85562325ea7382292164d3bd443c5188449092b",
           "bytes": 1216
         },
         {
           "role": "checkpoint-220ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-220ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-220ma.json",
           "sha256": "8df28f5058b68e7c4d228d30d0adca6670c0a685bb83a7499f8fbb7db9b2ab5d",
           "bytes": 1216
         },
         {
           "role": "checkpoint-225ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-225ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-225ma.json",
           "sha256": "9c34232cbbdb4b08aa63fbaaea375eba0c1ff9172de993c29716aed819afecd5",
           "bytes": 1216
         },
         {
           "role": "checkpoint-230ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-230ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-230ma.json",
           "sha256": "2a4b179140ed23ec8fd2009f08e6aea3c9c6b3e33465fcf592e9c8149c113494",
           "bytes": 1216
         },
         {
           "role": "checkpoint-235ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-235ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-235ma.json",
           "sha256": "872232801c84b9835d3b0c0526d5bec0b9488190dddba352fc737cb5473a8297",
           "bytes": 1216
         },
         {
           "role": "checkpoint-240ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-240ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-240ma.json",
           "sha256": "14feda8d2ecfb34896aa0431430e5f6a507f70ea27f0536e41606b90030ca0d8",
           "bytes": 1216
         },
         {
           "role": "checkpoint-245ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-245ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-245ma.json",
           "sha256": "69bdfa47c26c7b8d6f7ae84619842bd062eac7b65b84b58968448c1b6282d40a",
           "bytes": 1216
         },
         {
           "role": "checkpoint-250ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-250ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-250ma.json",
           "sha256": "dfb6353437e94ca94f3f36c2eb0e3b1f3b7912d108a4628a826ff7ebb7771236",
           "bytes": 1216
         },
         {
           "role": "checkpoint-255ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-255ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-255ma.json",
           "sha256": "6b178c392cadc7eadf19c45af18fc4ff19d7246a9e1448be5447bd95eb7bbe3e",
           "bytes": 1215
         },
         {
           "role": "checkpoint-25ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-25ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-25ma.json",
           "sha256": "d0ff6fdd444db6dbbeb147c9ad58f9f8f7104d6d3cfc98503cbe086e1447b313",
           "bytes": 1211
         },
         {
           "role": "checkpoint-260ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-260ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-260ma.json",
           "sha256": "644f4b19ec31bc08e14630b53ab3a51bba8c4bc65cc8e2e63b6726690ee165fc",
           "bytes": 1215
         },
         {
           "role": "checkpoint-265ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-265ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-265ma.json",
           "sha256": "4a05793d369f33dc5a30fca0720b292b837ee17eececc62ff0acf9c59e01e1b7",
           "bytes": 1215
         },
         {
           "role": "checkpoint-270ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-270ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-270ma.json",
           "sha256": "7fd59806b61daff9d0f09b89c1e8c5d81ce44762c1c85cc3f6ac58c2c108dbfb",
           "bytes": 1216
         },
         {
           "role": "checkpoint-275ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-275ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-275ma.json",
           "sha256": "f4252e6127283ac1827ad68495337cb9e321d8ab5f79020f3291d8379e5f0440",
           "bytes": 1215
         },
         {
           "role": "checkpoint-280ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-280ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-280ma.json",
           "sha256": "a33a5e0182e377f6214b4d0f5fe7391bbf6aac3d9d5ff64d0d1ba7989002bd7a",
           "bytes": 1215
         },
         {
           "role": "checkpoint-285ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-285ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-285ma.json",
           "sha256": "427f893b285cc7421c3feb1084d1ee818e8c0400fe92e6f6095c752b79eeaf32",
           "bytes": 1215
         },
         {
           "role": "checkpoint-290ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-290ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-290ma.json",
           "sha256": "981a62de2b671a7d184352ff518a008050e9c8574ae3061d1739b5bd59616f7e",
           "bytes": 1215
         },
         {
           "role": "checkpoint-295ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-295ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-295ma.json",
           "sha256": "71030165e99b668bf678f272a8497425bcdd97baf590f3bc40a25119f7438a7b",
           "bytes": 1215
         },
         {
           "role": "checkpoint-300ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-300ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-300ma.json",
           "sha256": "f9b014b1ddb469cea417ca6d9f201f56e3ad49631f9a644cfbf83ccb20a9ea25",
           "bytes": 1215
         },
         {
           "role": "checkpoint-305ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-305ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-305ma.json",
           "sha256": "56a8e5545745e8af38db0363d805b137740dc7862a615be9533a9f5e80b3694e",
           "bytes": 1215
         },
         {
           "role": "checkpoint-30ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-30ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-30ma.json",
           "sha256": "0a43be08642257a4b19027c5e594e7d9183b087db909a7de26ab82a1d172e5eb",
           "bytes": 1212
         },
         {
           "role": "checkpoint-310ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-310ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-310ma.json",
           "sha256": "2b20da8afcf5543cf8155914de99506abe1509399542aa0f209248801638fbe4",
           "bytes": 1215
         },
         {
           "role": "checkpoint-315ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-315ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-315ma.json",
           "sha256": "743b56d8139350c1cced09168d4c9a40fe7cad55cd2bbb68aef94e06005efa9b",
           "bytes": 1216
         },
         {
           "role": "checkpoint-320ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-320ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-320ma.json",
           "sha256": "8c0d9e3939ab10e5bbb98d4f71ebf78c387f5cb19a522aacfe5f854e80c45d8f",
           "bytes": 1216
         },
         {
           "role": "checkpoint-325ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-325ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-325ma.json",
           "sha256": "c54efde565da2a795a60c42c01af7aa54e9ba31f653142b1368fb46e7d60b1d4",
           "bytes": 1216
         },
         {
           "role": "checkpoint-330ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-330ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-330ma.json",
           "sha256": "aecf6420c19084383b59492e6e03d6d04b9ea7f5d301a1b15fcf509112d15472",
           "bytes": 1216
         },
         {
           "role": "checkpoint-335ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-335ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-335ma.json",
           "sha256": "a6df571138803091f3c11fa0da67c69a0c05a66adb0353520b030b870bebd733",
           "bytes": 1216
         },
         {
           "role": "checkpoint-340ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-340ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-340ma.json",
           "sha256": "30cf150046677af1a597831222804e4dc2139d747d9e3e3677cc936360c79115",
           "bytes": 1216
         },
         {
           "role": "checkpoint-345ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-345ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-345ma.json",
           "sha256": "69ee0c4ad3ff30691b17dfdb928dcf5513ebdaf7fef40f113a9894e84a06c791",
           "bytes": 1216
         },
         {
           "role": "checkpoint-350ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-350ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-350ma.json",
           "sha256": "c27a686889bfe625d1e76b472b5eaf51bbd1e6fa578e62418583203b0fd65409",
           "bytes": 1216
         },
         {
           "role": "checkpoint-355ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-355ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-355ma.json",
           "sha256": "1a22115f33d05cc8ecf1334aed5f4f913982d126911350f84bffcb77a38e9841",
           "bytes": 1216
         },
         {
           "role": "checkpoint-35ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-35ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-35ma.json",
           "sha256": "cfd15eba4541d638d179beb773643b5544883eeec76be8f95aa31874347b3ef7",
           "bytes": 1211
         },
         {
           "role": "checkpoint-360ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-360ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-360ma.json",
           "sha256": "1744019d730a5e16e6b04ce914c08d2cbf2e97a265269239c5159056fa5b5ab9",
           "bytes": 1216
         },
         {
           "role": "checkpoint-365ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-365ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-365ma.json",
           "sha256": "a7666649009695a046164fd836dc3919ee947e04d8484e0a68e472ff6c491561",
           "bytes": 1216
         },
         {
           "role": "checkpoint-370ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-370ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-370ma.json",
           "sha256": "55ca19c2e4254e7b2f1d921ebc82e1d94e64ecfbd70acd2fed17057f74555295",
           "bytes": 1216
         },
         {
           "role": "checkpoint-375ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-375ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-375ma.json",
           "sha256": "5c083c62dd905e2ec0cfa9e0c357ed6918bf5843db974f042bc657804ee35900",
           "bytes": 1216
         },
         {
           "role": "checkpoint-380ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-380ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-380ma.json",
           "sha256": "c726b0e9962713d68975a9b2f32f66802d672d0529b9afe1bb6f03bdc22fdbd4",
           "bytes": 1216
         },
         {
           "role": "checkpoint-385ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-385ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-385ma.json",
           "sha256": "f88cebbadf5f186698c80306e2abc06c5e317da3d0d2ae6bc848d17f04310179",
           "bytes": 1216
         },
         {
           "role": "checkpoint-390ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-390ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-390ma.json",
           "sha256": "dd74379a40cdc83cd7000ad8bf50892f84f81f6a47ba8377dbf98de9cb9af884",
           "bytes": 1216
         },
         {
           "role": "checkpoint-395ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-395ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-395ma.json",
           "sha256": "64fe1fa704aee4838b471d7a5ddc699863f85ac41ca5e5cbb5508cf94d38c4cc",
           "bytes": 1215
         },
         {
           "role": "checkpoint-400ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-400ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-400ma.json",
           "sha256": "d3271a50b8c0a15c6be5a36a64d0a4f727a26fbdaa8e4c80eb8de0e669c843e9",
           "bytes": 1215
         },
         {
           "role": "checkpoint-405ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-405ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-405ma.json",
           "sha256": "be94e661c4dbeb038846290054fb4a5f9899d41d7f538f974b4b6fe21f7f53ae",
           "bytes": 1215
         },
         {
           "role": "checkpoint-40ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-40ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-40ma.json",
           "sha256": "1aa4a84668bb384d787049a78fd363d395870457652089ab494022e95be38c12",
           "bytes": 1211
         },
         {
           "role": "checkpoint-410ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-410ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-410ma.json",
           "sha256": "da830c5be247152b4f583da89b72938e8b60674e66a53912816cc94c1fa75a58",
           "bytes": 1215
         },
         {
           "role": "checkpoint-415ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-415ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-415ma.json",
           "sha256": "262dbd7391dffe9d0e0bd314652976ae31a369b2232d14be3f98d9db6e6d8660",
           "bytes": 1216
         },
         {
           "role": "checkpoint-420ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-420ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-420ma.json",
           "sha256": "e37082caeca74d3b45f51c295cd377f559e7bffa909149b174911bcc91a3b27d",
           "bytes": 1216
         },
         {
           "role": "checkpoint-425ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-425ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-425ma.json",
           "sha256": "d76616afd0a85748b8b8d3d4d36c7cd2e33256189e8070872c299044cce3b299",
           "bytes": 1216
         },
         {
           "role": "checkpoint-430ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-430ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-430ma.json",
           "sha256": "7d3fdc22f7b91d93467cfbc17715b258c490c17a069b8a550229663f94fc886c",
           "bytes": 1216
         },
         {
           "role": "checkpoint-435ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-435ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-435ma.json",
           "sha256": "1def585778c3b39e0e7858d2b55bebffbe0eb00c5665c8087026c4c243bfd96a",
           "bytes": 1216
         },
         {
           "role": "checkpoint-440ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-440ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-440ma.json",
           "sha256": "ce174e0ae367b452e2e3b948dcb20da03a382b387c6b320eb1c501f9d671e16f",
           "bytes": 1216
         },
         {
           "role": "checkpoint-445ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-445ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-445ma.json",
           "sha256": "36d91dadc1046b178b8a1a186bd9757b34b503d50ecbe96461875bbf9be75c7e",
           "bytes": 1216
         },
         {
           "role": "checkpoint-450ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-450ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-450ma.json",
           "sha256": "7bcb19311503f133ec6dded2d9116c035a56d77982a1c6c2ebfe2ec8dc32e8f9",
           "bytes": 1216
         },
         {
           "role": "checkpoint-455ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-455ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-455ma.json",
           "sha256": "4ab3b74f16fc0d1e5e4fb2eb8b4e9f9fef079839a338a36c5b7760d1a2d33b4b",
           "bytes": 1216
         },
         {
           "role": "checkpoint-45ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-45ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-45ma.json",
           "sha256": "9e7b5210c9d74e6639ebe52c890ee17f8208f5570ba89050003618a8b2182d55",
           "bytes": 1211
         },
         {
           "role": "checkpoint-460ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-460ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-460ma.json",
           "sha256": "fd697fb35a70f6361adfaf8b88f52590726e98410368d2370de7c7c85fe78469",
           "bytes": 1216
         },
         {
           "role": "checkpoint-465ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-465ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-465ma.json",
           "sha256": "56f8276361a0b0b164bd28beb8def22c17a2eb658ba734ee552fae26a76e559f",
           "bytes": 1216
         },
         {
           "role": "checkpoint-470ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-470ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-470ma.json",
           "sha256": "ca961a554e87ee5feceebc00a99d3cfcf3ead54df6c65c0a809d07c3b5c4cf22",
           "bytes": 1216
         },
         {
           "role": "checkpoint-475ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-475ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-475ma.json",
           "sha256": "2b5cf351ef527fe9f182745a15a43366260919f4f7d4a7871f510d3719acafff",
           "bytes": 1216
         },
         {
           "role": "checkpoint-480ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-480ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-480ma.json",
           "sha256": "abbf0808aaad327c2eba36a2a7d5a8f43a80f456a3c7bab81ae05bfcf48f0334",
           "bytes": 1216
         },
         {
           "role": "checkpoint-485ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-485ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-485ma.json",
           "sha256": "c00749167df6c41ab7fad00e6a1afcbbda8bf983ce3965b91db1d71f084178d6",
           "bytes": 1216
         },
         {
           "role": "checkpoint-490ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-490ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-490ma.json",
           "sha256": "6c76629142881c9fee0710ba498a497d45552f4b896dc2cbeebd83cbef352a00",
           "bytes": 1216
         },
         {
           "role": "checkpoint-495ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-495ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-495ma.json",
           "sha256": "87d17a1e80b67a1fe953eedc156e019902c7dfc0027edea3730eea756102cc56",
           "bytes": 1216
         },
         {
           "role": "checkpoint-500ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-500ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-500ma.json",
           "sha256": "b6e5eebfa76779cecf07f47fe8b970f5113c8fe7fda82b5035df1e1f1de67735",
           "bytes": 1216
         },
         {
           "role": "checkpoint-505ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-505ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-505ma.json",
           "sha256": "a99605fcd11f361d104dedbbcfa78be71653a2fbe3b35fc45a96d0c18bbae3c8",
           "bytes": 1216
         },
         {
           "role": "checkpoint-50ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-50ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-50ma.json",
           "sha256": "81d69334f8e6926b6959afca78910327c940518a9985bf222be51b4afd811cfd",
           "bytes": 1210
         },
         {
           "role": "checkpoint-510ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-510ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-510ma.json",
           "sha256": "e3727a7527851dd9bc1476d6132ed97ce42253ffa0a11b214577e2f41de1aa69",
           "bytes": 1216
         },
         {
           "role": "checkpoint-515ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-515ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-515ma.json",
           "sha256": "8643621b69afd47053672f3d103838c24b93fd1ec4e6ad6b6fc925e522cbbdd8",
           "bytes": 1216
         },
         {
           "role": "checkpoint-520ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-520ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-520ma.json",
           "sha256": "514748285944cf252a8c29651f786cbbc05bc02e785fddd8b164bb78194cef6d",
           "bytes": 1216
         },
         {
           "role": "checkpoint-525ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-525ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-525ma.json",
           "sha256": "77b84dbe23921a3a48d875921c40955b7fb540259a09b3e712feeff929fe9e62",
           "bytes": 1216
         },
         {
           "role": "checkpoint-530ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-530ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-530ma.json",
           "sha256": "a7de43454bbb19c8b2d53247255902d590ae71b88fa65791e0df5e956776c8e4",
           "bytes": 1216
         },
         {
           "role": "checkpoint-535ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-535ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-535ma.json",
           "sha256": "6ab5fd8064c91d912911080867bcb0f6b9a2ca89c3d99f33e51a674499d29f5d",
           "bytes": 1216
         },
         {
           "role": "checkpoint-540ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-540ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-540ma.json",
           "sha256": "beba4257a33dbb6e1a9843c3261a4f9d009af467b0438bf4a3211bf2542209c5",
           "bytes": 1216
         },
         {
           "role": "checkpoint-55ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-55ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-55ma.json",
           "sha256": "7a96ddfd47b9d7ab544fc8dcd92bdb949943a807b331d0d93bbc97c005ff4aa3",
           "bytes": 1211
         },
         {
           "role": "checkpoint-5ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-5ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-5ma.json",
           "sha256": "2d372de7afe9d254073e02345466965ce34aa1c457d56e342aad72ff5acea7ec",
           "bytes": 1205
         },
         {
           "role": "checkpoint-60ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-60ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-60ma.json",
           "sha256": "aeccf15f69df89b88071a685b85df74047623ebb87f25aad2c4e0b5f49202b01",
           "bytes": 1210
         },
         {
           "role": "checkpoint-65ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-65ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-65ma.json",
           "sha256": "c756e5a00189f03e3a6a1ed6de15ce9e3b7c820e2c30c7bcff985968a4093f59",
           "bytes": 1210
         },
         {
           "role": "checkpoint-70ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-70ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-70ma.json",
           "sha256": "4f41f3172e07d71ce0c6ae055511e5626da551cd83fc3320e8b210454f256af6",
           "bytes": 1211
         },
         {
           "role": "checkpoint-75ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-75ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-75ma.json",
           "sha256": "3a32cf97b796a9558e23081f833ad1f16c061ddcf38c4444a90c41df60caa7bf",
           "bytes": 1211
         },
         {
           "role": "checkpoint-80ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-80ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-80ma.json",
           "sha256": "f91a6604103a02de572ef5be07035a4d0d80c14a2735a9c412d7bd5f7870903b",
           "bytes": 1211
         },
         {
           "role": "checkpoint-85ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-85ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-85ma.json",
           "sha256": "dcc4b59baa1244e25e5de4adba7e96cc36f2ee2c876737f6c5128ba8ac98e398",
           "bytes": 1210
         },
         {
           "role": "checkpoint-90ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-90ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-90ma.json",
           "sha256": "baef465bc4f937f0241371ab5859b549e569b709aa055e48679a336c3560e527",
           "bytes": 1210
         },
         {
           "role": "checkpoint-95ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/checkpoint-95ma.json",
+          "path": "data/reconstruction/cao-v2.4/checkpoint-95ma.json",
           "sha256": "0981605a4d3cff1bbb22fe254a0605c3a0a1e2adbe111a8e6fd1c8b6de7905d4",
           "bytes": 1210
         },
         {
           "role": "core.json",
-          "path": "public/data/reconstruction/cao-v2.4/core.json",
+          "path": "data/reconstruction/cao-v2.4/core.json",
           "sha256": "db3648b121275533ae2a27556f5faca94181ba6d9d936639e41ee1439b5a0a9e",
           "bytes": 6964710
         },
         {
           "role": "country-reference.ehgl",
-          "path": "public/data/reconstruction/cao-v2.4/country-reference.ehgl",
+          "path": "data/reconstruction/cao-v2.4/country-reference.ehgl",
           "sha256": "09fff7f47a39d56d08ac310672e0db671705ccb8ef752ea70467191daa729933",
           "bytes": 400752
         },
         {
           "role": "manifest.json",
-          "path": "public/data/reconstruction/cao-v2.4/manifest.json",
+          "path": "data/reconstruction/cao-v2.4/manifest.json",
           "sha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9",
           "bytes": 18372
         },
         {
           "role": "motion-palette.bin",
-          "path": "public/data/reconstruction/cao-v2.4/motion-palette.bin",
+          "path": "data/reconstruction/cao-v2.4/motion-palette.bin",
           "sha256": "ef41ed521b6b52d55200f11e3d0f1c3442180b17c8f113c9b2c8288b7c4bd76d",
           "bytes": 4314892
         },
         {
           "role": "motion-palette.json",
-          "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
+          "path": "data/reconstruction/cao-v2.4/motion-palette.json",
           "sha256": "fedeb703536e9254c4c29e506b7366801ee18992797594e28a12ec415477a594",
           "bytes": 1029340
         },
         {
           "role": "ownership-0ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-0ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-0ma.ehto",
           "sha256": "ea3e1823dc8086ba3565964454552a9708fe84a3fa3238e248ad8c59384e5f63",
           "bytes": 62480
         },
         {
           "role": "ownership-0ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-0ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-0ma.json",
           "sha256": "70539925945a29e6f3213b5bc673e472fd4fd3e74188b54e7157fb62cf268b0b",
           "bytes": 14928
         },
         {
           "role": "ownership-100ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-100ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-100ma.ehto",
           "sha256": "93e0e7b3bdce3eed92ffe418bcdc84dac0cafb3ee9b58dab604c9d2f971fa9ec",
           "bytes": 31568
         },
         {
           "role": "ownership-100ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-100ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-100ma.json",
           "sha256": "cfc0ee88ccfae20c910021d80b4ea9767689f169411979dbbccacef4d8375b19",
           "bytes": 8816
         },
         {
           "role": "ownership-105ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-105ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-105ma.ehto",
           "sha256": "b583d5fddc9ab98bcb0330992a24a85a68cc9b8e1f8748b525e8770b0cda3496",
           "bytes": 30716
         },
         {
           "role": "ownership-105ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-105ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-105ma.json",
           "sha256": "4a6f025ea3dd67318ea9fb5d5421a9263711280241cefa8bb57767cdb7571f3b",
           "bytes": 7871
         },
         {
           "role": "ownership-10ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-10ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-10ma.ehto",
           "sha256": "96e366fb1d9a4248b3a329aba4dd9d9a0bb1995998438a91dfece08c5077c835",
           "bytes": 48620
         },
         {
           "role": "ownership-10ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-10ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-10ma.json",
           "sha256": "c43e24121ec3a6d785c04b30b643b1e348d5bd5d4e69512c5c8b9a37c0e6f176",
           "bytes": 12830
         },
         {
           "role": "ownership-110ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-110ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-110ma.ehto",
           "sha256": "93dc3144eb7d6c479ff4eae5bf9d43f96e22ceb2af8c6299be55cbb87d44f486",
           "bytes": 30368
         },
         {
           "role": "ownership-110ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-110ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-110ma.json",
           "sha256": "a44a9d6b142527729a812c4373fff8da9955f36bf78d68e39796b9c202116b84",
           "bytes": 7870
         },
         {
           "role": "ownership-115ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-115ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-115ma.ehto",
           "sha256": "1383ff8ec13152eea2745513ac5896179989011186437f1e365750953fe656fe",
           "bytes": 30920
         },
         {
           "role": "ownership-115ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-115ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-115ma.json",
           "sha256": "85e2acb5615090d1ce6600dfc66255fd36964c0063906f4fb8b9bb788e88e820",
           "bytes": 7871
         },
         {
           "role": "ownership-120ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-120ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-120ma.ehto",
           "sha256": "ec464b2b15df5ea5624d9948886412a25c0677c54014319875ca7b6b84d12c64",
           "bytes": 31304
         },
         {
           "role": "ownership-120ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-120ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-120ma.json",
           "sha256": "d3a304a3b89733ceef94232fa8524976f018ab37eb4e81118098d023e46d8988",
           "bytes": 8502
         },
         {
           "role": "ownership-125ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-125ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-125ma.ehto",
           "sha256": "4416c2b416328e545da8d8901193855096033cc1826802e4425fbd0dff23f881",
           "bytes": 34136
         },
         {
           "role": "ownership-125ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-125ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-125ma.json",
           "sha256": "a7ec1dbb6edef30bb0a4227c4e508edb673155462ee86eff953f6bfce441a377",
           "bytes": 9460
         },
         {
           "role": "ownership-130ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-130ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-130ma.ehto",
           "sha256": "0448678d1569bfe40ab56281413637b36b75af7b58881a0a710fff2395bdf12f",
           "bytes": 33572
         },
         {
           "role": "ownership-130ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-130ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-130ma.json",
           "sha256": "5e97698bcff6b2ca2c0c7c330bb9aaeeced4b9e46bf0a486760ab15f5a66cef8",
           "bytes": 9780
         },
         {
           "role": "ownership-135ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-135ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-135ma.ehto",
           "sha256": "57edb68fdc1e3a725a53b622b69c48a2d17a7fdbe79ab28ba79120f76c35db78",
           "bytes": 34544
         },
         {
           "role": "ownership-135ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-135ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-135ma.json",
           "sha256": "f7fff3b468cc9a23189be3df071c993b37486a7a2edb4b41e8542ebf891b27f6",
           "bytes": 9778
         },
         {
           "role": "ownership-140ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-140ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-140ma.ehto",
           "sha256": "2a600c6d077aec94d460330f21d1eb43b9a5a4a0fa702f359e3383b87bff16c1",
           "bytes": 33140
         },
         {
           "role": "ownership-140ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-140ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-140ma.json",
           "sha256": "1e0a758914cfb794047c268bfe9823e99857aae6b56b4af6ad114270b33c7971",
           "bytes": 9147
         },
         {
           "role": "ownership-145ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-145ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-145ma.ehto",
           "sha256": "315ecea90a77c75e220324e51a4f793e4eceaf3380eb4ce7fc16f31cc1742e1d",
           "bytes": 29192
         },
         {
           "role": "ownership-145ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-145ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-145ma.json",
           "sha256": "3e81b4be35c7dfa2addfd7e0c5b20364a548f672668510f75541827f39555b64",
           "bytes": 8839
         },
         {
           "role": "ownership-150ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-150ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-150ma.ehto",
           "sha256": "e0995d1ece34e72041bf58dcc9db6b68a6ec09ffa3c6995e80fc6ae7ea57e700",
           "bytes": 25904
         },
         {
           "role": "ownership-150ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-150ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-150ma.json",
           "sha256": "31234d8f1de1dd0e51fe09aa26f93bdb3e6bc177be64c3b2f21b34ef49c4be41",
           "bytes": 7890
         },
         {
           "role": "ownership-155ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-155ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-155ma.ehto",
           "sha256": "f1d4bec5bb7b4f61cb1752651f92c78f599f9cd39b3b253d3e9655547c6a1056",
           "bytes": 24440
         },
         {
           "role": "ownership-155ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-155ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-155ma.json",
           "sha256": "3d625ecf0157193310effba0d82dd939819ba46fd0aa1cd0541f4b8b4fe72f3c",
           "bytes": 7885
         },
         {
           "role": "ownership-15ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-15ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-15ma.ehto",
           "sha256": "a7297dc6321911ec2537091970ec5bbb374c22ecd95ec603c1c8753d9fd7eab3",
           "bytes": 44072
         },
         {
           "role": "ownership-15ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-15ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-15ma.json",
           "sha256": "049153bd77642b60d196a39f664153ae685de8c6d5d03accffc2299ac5d02bd9",
           "bytes": 11577
         },
         {
           "role": "ownership-160ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-160ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-160ma.ehto",
           "sha256": "70f464a8e64d6d22434fc58ed002216be8d2817d80da0af868a4f96b96059425",
           "bytes": 22292
         },
         {
           "role": "ownership-160ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-160ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-160ma.json",
           "sha256": "d64232ecc21ecc18c9972ec0bc2d2ad81bcb1a1b05e9f05cafb84455121ab495",
           "bytes": 7255
         },
         {
           "role": "ownership-165ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-165ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-165ma.ehto",
           "sha256": "617581199c2a8da8541428e5aa36714d4f585b473d1f81c82a8d5b3360c128e0",
           "bytes": 18752
         },
         {
           "role": "ownership-165ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-165ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-165ma.json",
           "sha256": "a08a84a0412057b495f0b4c371333160ddc36f9e94b89f39c8eb6a7aec57a728",
           "bytes": 5984
         },
         {
           "role": "ownership-170ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-170ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-170ma.ehto",
           "sha256": "9e76766d2c9a86e36b96ecef461f915cc4024940ea6632f97f16e3aa8c991eae",
           "bytes": 18392
         },
         {
           "role": "ownership-170ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-170ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-170ma.json",
           "sha256": "91e393608070b6d5d4277d26fb784440ebea05d87fc6dbe6ebfdb1f240ab86c8",
           "bytes": 5986
         },
         {
           "role": "ownership-175ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-175ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-175ma.ehto",
           "sha256": "e390b17ece408f6a5ad25089482cafd4326579f43c5cab5393431304d2fdb57e",
           "bytes": 17564
         },
         {
           "role": "ownership-175ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-175ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-175ma.json",
           "sha256": "689bb248ecad607481ff9552631f2c52009beee39e4aef44291a8a301597129a",
           "bytes": 5349
         },
         {
           "role": "ownership-180ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-180ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-180ma.ehto",
           "sha256": "6da6bb1d9d61a08d4a25472f00ef2b9fc27ee162c61987513cb5d995f09bbb3e",
           "bytes": 15584
         },
         {
           "role": "ownership-180ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-180ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-180ma.json",
           "sha256": "b48f8d773888b510f3abe45fda284e06b61fe224f5cb29f978969833487f4901",
           "bytes": 4715
         },
         {
           "role": "ownership-185ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-185ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-185ma.ehto",
           "sha256": "1d24031ffb9a9de059a3609933366600d53030f96c740acaaa9348aa1f5b6f75",
           "bytes": 16040
         },
         {
           "role": "ownership-185ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-185ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-185ma.json",
           "sha256": "8683661fd155602a66561fd99a0d68cbc554a497f22b55c8995d501e509b5ef7",
           "bytes": 5031
         },
         {
           "role": "ownership-190ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-190ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-190ma.ehto",
           "sha256": "a2d938050ed461c193c155c94f2d3ec8b8d6abb1012562d8b107f2c0dc6a12ef",
           "bytes": 15980
         },
         {
           "role": "ownership-190ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-190ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-190ma.json",
           "sha256": "6f6f31e1a7dffdce332d4cf8b7b347b4f3bab753d08bef14c1c8bdbf88262308",
           "bytes": 5029
         },
         {
           "role": "ownership-195ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-195ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-195ma.ehto",
           "sha256": "8782e452791d9d7f472f833369e8756eab6a3938fabb3204142887a76ce78f16",
           "bytes": 14792
         },
         {
           "role": "ownership-195ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-195ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-195ma.json",
           "sha256": "86c4d09d08d1f7266018cf649c1a934251683a5e8ad5a6a082cb56fe06c84375",
           "bytes": 4712
         },
         {
           "role": "ownership-200ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-200ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-200ma.ehto",
           "sha256": "2756b27e3301808bc774e676bd1199175828a2657719e6dacfebd43b117de037",
           "bytes": 13784
         },
         {
           "role": "ownership-200ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-200ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-200ma.json",
           "sha256": "2e4d38104bb54db4bb71a08e3d94007a14449c13a89faef5ad834a7473068e31",
           "bytes": 4395
         },
         {
           "role": "ownership-205ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-205ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-205ma.ehto",
           "sha256": "790c7d00d2d3da56beeb2a833656354dc9af15ee6385e0c290902c9326e1041a",
           "bytes": 11528
         },
         {
           "role": "ownership-205ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-205ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-205ma.json",
           "sha256": "79c3738c43a585aafc2c941a217f679b412aa798dba8b06cfa098f53ce6a50f8",
           "bytes": 3765
         },
         {
           "role": "ownership-20ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-20ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-20ma.ehto",
           "sha256": "fbded66770c0fbb538f15f8a2b6521cce589bcecfa2964366470a7181827da1f",
           "bytes": 41588
         },
         {
           "role": "ownership-20ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-20ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-20ma.json",
           "sha256": "0b194b168531015b4c54f739fb2323fa845910c29125efd08a60733321ebe286",
           "bytes": 11578
         },
         {
           "role": "ownership-210ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-210ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-210ma.ehto",
           "sha256": "0e4e8104189cd0300cc2d53c849c6c770561b1859fe9e467cc804609759c8fb5",
           "bytes": 11648
         },
         {
           "role": "ownership-210ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-210ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-210ma.json",
           "sha256": "0b2c040c46b7b7d9d44c1bc9cc9550a58cf5a4a097cbb92509e6cb522019f742",
           "bytes": 3764
         },
         {
           "role": "ownership-215ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-215ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-215ma.ehto",
           "sha256": "4a19f460a9acab27521f6cf663dcca7d6e7d69c22c7e9f63cc87ae90d201eefb",
           "bytes": 11600
         },
         {
           "role": "ownership-215ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-215ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-215ma.json",
           "sha256": "ff5fdcbd148de16c5e745769a07e4de24f9428c94e5733093cf12eb541c6d1b5",
           "bytes": 3764
         },
         {
           "role": "ownership-220ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-220ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-220ma.ehto",
           "sha256": "80d66c07b81530cc36a03a5445e30ffd1373a7fed1e2cef92d1cbf210bbe0329",
           "bytes": 11600
         },
         {
           "role": "ownership-220ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-220ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-220ma.json",
           "sha256": "a67945e12993ec23ea69febaf9e52a7b553106e5134412a0bb35b27b7a7f43f1",
           "bytes": 3764
         },
         {
           "role": "ownership-225ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-225ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-225ma.ehto",
           "sha256": "71eca041a012b6f75d282c519411560d39b62e2517c3c0d5396d0a2cecdf0d08",
           "bytes": 11624
         },
         {
           "role": "ownership-225ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-225ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-225ma.json",
           "sha256": "acd24222252b40a22b2ed2446916023ab69d8aedf6b35cd52063f023effb53d5",
           "bytes": 3765
         },
         {
           "role": "ownership-230ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-230ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-230ma.ehto",
           "sha256": "39f814fe45146bb7754fa70580ad57893d41be7ee39380887718b25b22838e6c",
           "bytes": 11672
         },
         {
           "role": "ownership-230ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-230ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-230ma.json",
           "sha256": "cdd5883408101e583bd1952eb3941bad0e4b20de1e99f1efbf27c968e0c3b878",
           "bytes": 3765
         },
         {
           "role": "ownership-235ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-235ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-235ma.ehto",
           "sha256": "089e106fcfa0d0a240d4c17952837b368f79e358f3c3119f65cfe7d7d1dabc3b",
           "bytes": 11528
         },
         {
           "role": "ownership-235ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-235ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-235ma.json",
           "sha256": "f703f411d35d57942d53f03561b9b343bc1827f9bd010ec7ce1e14d5056883d2",
           "bytes": 4406
         },
         {
           "role": "ownership-240ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-240ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-240ma.ehto",
           "sha256": "618500cf6f24e83dfc0b77fced4ad4f695d5196cf9da7f5d35aa5c7146e70306",
           "bytes": 11552
         },
         {
           "role": "ownership-240ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-240ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-240ma.json",
           "sha256": "01131080da3952a39e59d2ba2f218e2ae336edfd13481d06ec1d0210ded22763",
           "bytes": 4405
         },
         {
           "role": "ownership-245ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-245ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-245ma.ehto",
           "sha256": "a6d0140df0581e3b7b192a71579014b48060944d3d5c883cb662c8bfefd27340",
           "bytes": 10400
         },
         {
           "role": "ownership-245ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-245ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-245ma.json",
           "sha256": "1b0b609ebb6dbeff9bbcbcf602d9102d14688ecdc472e31c2faf5fafe1d5fc35",
           "bytes": 4089
         },
         {
           "role": "ownership-250ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-250ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-250ma.ehto",
           "sha256": "f4e66a4a7f192e5a61f5cdad703bd2a85e415601760fa16caeee7e2152d3c461",
           "bytes": 10448
         },
         {
           "role": "ownership-250ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-250ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-250ma.json",
           "sha256": "85b5dba1c0e7d052eccf5ee19d82b163333cc309c7dcdfa3ba62ec4bf3d495dc",
           "bytes": 4089
         },
         {
           "role": "ownership-255ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-255ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-255ma.ehto",
           "sha256": "02691bd031b310d07a024910c0da7cf1615ad12cae7fe10571c7ed0bf6435257",
           "bytes": 9032
         },
         {
           "role": "ownership-255ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-255ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-255ma.json",
           "sha256": "822fd5589c32eadf78a3011a34edfc7dd217c2a6364d897d74cc0c8fb42f4348",
           "bytes": 5037
         },
         {
           "role": "ownership-25ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-25ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-25ma.ehto",
           "sha256": "8313e045ad140c1282f1c4b3f2775ce41ca2a6bd80ea6f4f856462020c76321f",
           "bytes": 40544
         },
         {
           "role": "ownership-25ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-25ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-25ma.json",
           "sha256": "5ddad4e052ae7edd121a327478c1bfa10d339e554d4d39a4b7bc09b185615d2e",
           "bytes": 10952
         },
         {
           "role": "ownership-260ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-260ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-260ma.ehto",
           "sha256": "c7aa73a9867ede8ff123aeecb11a425b288aa6371b5c7d167b68413f92d52eed",
           "bytes": 8648
         },
         {
           "role": "ownership-260ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-260ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-260ma.json",
           "sha256": "9aed3644bd9fe655d5e642f564d5a62641e0fc38000b8f8178838601d0ee7ac0",
           "bytes": 4722
         },
         {
           "role": "ownership-265ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-265ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-265ma.ehto",
           "sha256": "d3e332931bcffcb713328c55a916ae6fbf733ea924ab67e9659a34ff4c0159b8",
           "bytes": 9404
         },
         {
           "role": "ownership-265ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-265ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-265ma.json",
           "sha256": "e1bacc99affabeb18157a900ef7f132b1d191835770c3eae254c05b58dc1e12e",
           "bytes": 5353
         },
         {
           "role": "ownership-270ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-270ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-270ma.ehto",
           "sha256": "2e9802f3fdd05fadfe89dc474d478f03a90a37f789cf12995519db8324d1227d",
           "bytes": 10340
         },
         {
           "role": "ownership-270ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-270ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-270ma.json",
           "sha256": "fc354e8d9f10164cbf17f025c198292f9635ce898d896a15e0637055188b820d",
           "bytes": 5985
         },
         {
           "role": "ownership-275ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-275ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-275ma.ehto",
           "sha256": "1dde97fbfc797e7bb91e36d87c5fd29e6092123d27442cc4d3de2aec67ccf08c",
           "bytes": 9416
         },
         {
           "role": "ownership-275ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-275ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-275ma.json",
           "sha256": "4005c3efe518df860d3fb2454501c544e99f68bbf5a60913726ded38e57698ac",
           "bytes": 5663
         },
         {
           "role": "ownership-280ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-280ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-280ma.ehto",
           "sha256": "7824b7ea7dc88a05f264aef52a96984670ee74349b69970014fe10f66da7b0d5",
           "bytes": 8804
         },
         {
           "role": "ownership-280ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-280ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-280ma.json",
           "sha256": "38287e8c3e46ce1c39553f1fbd1b9908767e961259ea3384ae56d50d13d2664c",
           "bytes": 5981
         },
         {
           "role": "ownership-285ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-285ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-285ma.ehto",
           "sha256": "be3f939fc21247e2240440fddb93f86d7b836c59a4e618e276324849fddf392e",
           "bytes": 8804
         },
         {
           "role": "ownership-285ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-285ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-285ma.json",
           "sha256": "0218ffcd78994122d60085f5b5fba1ee01ff8f1d46e4a6314f947a6aa8466f5b",
           "bytes": 5981
         },
         {
           "role": "ownership-290ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-290ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-290ma.ehto",
           "sha256": "1b6c68ce83fd716c70af626ef681225b5ace2d41d80ea2cc2c8f02b685a57333",
           "bytes": 8780
         },
         {
           "role": "ownership-290ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-290ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-290ma.json",
           "sha256": "aaf822a7e5b39d88e23c0612abf960340e25ef2ce7c0a69b755d5ca0bb5ba370",
           "bytes": 5982
         },
         {
           "role": "ownership-295ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-295ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-295ma.ehto",
           "sha256": "fad3c418d1444acc9590d560c1c6b7548429ce70ad7178f5951738ffc980eeda",
           "bytes": 8708
         },
         {
           "role": "ownership-295ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-295ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-295ma.json",
           "sha256": "f91bf0c302407aeb7eb7df29938393dfe6bb900fa98e39552e478f71a52db789",
           "bytes": 5982
         },
         {
           "role": "ownership-300ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-300ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-300ma.ehto",
           "sha256": "67582e659c1178353bebc3d14820281f09cd4e499bce394beda97ca80bb3ff27",
           "bytes": 8528
         },
         {
           "role": "ownership-300ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-300ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-300ma.json",
           "sha256": "83974b9e45bc23234030128e79deb6c341ed275e4760439b64a7e68e13b59b95",
           "bytes": 5982
         },
         {
           "role": "ownership-305ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-305ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-305ma.ehto",
           "sha256": "c3e1e32b3db24ab1bc3049c5614e38333f345dfac61b2236f62d92af2ac0cbc6",
           "bytes": 8828
         },
         {
           "role": "ownership-305ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-305ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-305ma.json",
           "sha256": "bf8d7c07e4789ff3b13253b3d5f73aba6654be8402fea1c12822717304c0177a",
           "bytes": 6295
         },
         {
           "role": "ownership-30ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-30ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-30ma.ehto",
           "sha256": "21bc569fdee68f6a42afcd442505676af1d60ab08c3347bdc68002c0fadbff48",
           "bytes": 43916
         },
         {
           "role": "ownership-30ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-30ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-30ma.json",
           "sha256": "ad1dcc03a977f653607381937b811a9803ddc339184ea7e60c21442f751d3604",
           "bytes": 12520
         },
         {
           "role": "ownership-310ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-310ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-310ma.ehto",
           "sha256": "6033973f278ccf8232d8f959bde690c76104af4767ed2be3323649df03ef11a5",
           "bytes": 8804
         },
         {
           "role": "ownership-310ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-310ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-310ma.json",
           "sha256": "4057bb5a2e32fa9ce1eb8dc9f11c2af812c82e0f8a0b3ccdb38d91d4962186ea",
           "bytes": 5980
         },
         {
           "role": "ownership-315ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-315ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-315ma.ehto",
           "sha256": "c42c16ad93773eaed202607581e112cb2bd9a1850afbe432b743237ebd58cbb5",
           "bytes": 10124
         },
         {
           "role": "ownership-315ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-315ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-315ma.json",
           "sha256": "38968a3cce43871d4f13d4855c47f473f5e1feb4816eebabcb2725189e455c84",
           "bytes": 6926
         },
         {
           "role": "ownership-320ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-320ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-320ma.ehto",
           "sha256": "cac58036234701f825ecff05d8c0d50d7b326cb1b263d757fb3530d6f7de8e08",
           "bytes": 12056
         },
         {
           "role": "ownership-320ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-320ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-320ma.json",
           "sha256": "c018bf6ff089626b845990f95d7b3f5121d0319e97c3bffb68a22264d9c50c9f",
           "bytes": 7553
         },
         {
           "role": "ownership-325ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-325ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-325ma.ehto",
           "sha256": "89ea19b95d3c957141473a5ca8e8f69e40dd046f9ba99725644ed2a30db2601e",
           "bytes": 12248
         },
         {
           "role": "ownership-325ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-325ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-325ma.json",
           "sha256": "e12bdfcaa0fbfb6c2af771ebf72fe31143b0112100050630dc4946c590567600",
           "bytes": 7871
         },
         {
           "role": "ownership-330ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-330ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-330ma.ehto",
           "sha256": "276481cfd79c49b32649bff19a6c1f526eb9a01b3d858157e9c060559926e4c5",
           "bytes": 12200
         },
         {
           "role": "ownership-330ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-330ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-330ma.json",
           "sha256": "6e60371eed69271fc86e7313e3f40b1558fb87bc4f9849d772c431f3146942c8",
           "bytes": 7553
         },
         {
           "role": "ownership-335ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-335ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-335ma.ehto",
           "sha256": "55a2b9b5004a7f1bc885dfb1f20baf4a6ec22756ec75ef29becb118a8ab454d7",
           "bytes": 12380
         },
         {
           "role": "ownership-335ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-335ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-335ma.json",
           "sha256": "17e605caa31353298fbfd89f1195e7698bee1130f06a51d2443108a731d930f0",
           "bytes": 7875
         },
         {
           "role": "ownership-340ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-340ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-340ma.ehto",
           "sha256": "64d3df1da97c25db39210dd449dfcf8a58a359f563a6583deb43cc0956c7a01c",
           "bytes": 11504
         },
         {
           "role": "ownership-340ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-340ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-340ma.json",
           "sha256": "b6d2ede124841a66bd007c9a6f9c5fb94693b41cbcca0c15ccd0fc77e72f655f",
           "bytes": 7560
         },
         {
           "role": "ownership-345ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-345ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-345ma.ehto",
           "sha256": "6934b2e2b15d5ce043fb46dcd2558f42721384fe4bf8be88c35566b62cd45202",
           "bytes": 11912
         },
         {
           "role": "ownership-345ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-345ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-345ma.json",
           "sha256": "601ff89ad38f81e761b28d6b9f8436ec22ac1c457022a3df13e5ffca779a4f29",
           "bytes": 7559
         },
         {
           "role": "ownership-350ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-350ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-350ma.ehto",
           "sha256": "c22364550a73faf8a9fd1e35c0c753bad435c72ef1a57193a8df879f58575e02",
           "bytes": 11936
         },
         {
           "role": "ownership-350ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-350ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-350ma.json",
           "sha256": "8fdfa014c9b9984a1121023a4907b891711d2b5ca8c275fc38c4b7eb8e7bb862",
           "bytes": 7559
         },
         {
           "role": "ownership-355ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-355ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-355ma.ehto",
           "sha256": "2d77db35e8583e737e6582269314bebc8f9de4fab20783b3b0a701db30daa5bb",
           "bytes": 12332
         },
         {
           "role": "ownership-355ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-355ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-355ma.json",
           "sha256": "6a255fbc93f8feb3b9f62c62b04d0c74962020684bc263e7191fcb1c9b3e87d0",
           "bytes": 7559
         },
         {
           "role": "ownership-35ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-35ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-35ma.ehto",
           "sha256": "02fdce36b0ed2c37322c5ea54a3968ca61c1998c3fc492018f437a3ebf398337",
           "bytes": 43352
         },
         {
           "role": "ownership-35ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-35ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-35ma.json",
           "sha256": "f83a2a3d6ea5c78947ff0a87621019b1f7e8da271df34f7b0f081c27ee505aaf",
           "bytes": 12520
         },
         {
           "role": "ownership-360ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-360ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-360ma.ehto",
           "sha256": "dcef04b4d2d531ba8c7189410ad6a12edb9d1701f56300a71577870a96f6853c",
           "bytes": 10592
         },
         {
           "role": "ownership-360ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-360ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-360ma.json",
           "sha256": "5742bf1ba90f1a2b6e572a3119ab0598a686ae7e933af1122e29758ad12ca133",
           "bytes": 6924
         },
         {
           "role": "ownership-365ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-365ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-365ma.ehto",
           "sha256": "c1d0eaba9b6f2ac15e1a849f74818c90a1b6b72cbca6c4ad6305a6759289a98e",
           "bytes": 10328
         },
         {
           "role": "ownership-365ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-365ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-365ma.json",
           "sha256": "cc07d3d5f8460993b11777e94df02885804f56b760dc9dde915018bb3a249674",
           "bytes": 6610
         },
         {
           "role": "ownership-370ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-370ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-370ma.ehto",
           "sha256": "d87e8479692a6601cb8dc2d3a48cf9890c35bf2eab54c51bb7b409a4c37b5b7c",
           "bytes": 10016
         },
         {
           "role": "ownership-370ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-370ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-370ma.json",
           "sha256": "1f6d8297aa201f5ec2047517ba6bd5aa020b03d67bcff785657b5cfac61b59c5",
           "bytes": 6610
         },
         {
           "role": "ownership-375ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-375ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-375ma.ehto",
           "sha256": "85b5b19f4b9b187619c00250acd87fe09bd2e1f4bdff9ebc9ff27bd9d69d7479",
           "bytes": 10232
         },
         {
           "role": "ownership-375ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-375ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-375ma.json",
           "sha256": "331126866700ec3ecda7d62179d566b918d21b75a6d4bdb86410f7be89f27d4a",
           "bytes": 6609
         },
         {
           "role": "ownership-380ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-380ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-380ma.ehto",
           "sha256": "0dc0f4237630700656a4a9a63545b16d5b35d02c6ad2385e301ae73b12ce8edd",
           "bytes": 10424
         },
         {
           "role": "ownership-380ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-380ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-380ma.json",
           "sha256": "36b6adf1135e625197f079a2aba50e40f6040e14a7ab5aa50b95c012562f7362",
           "bytes": 6930
         },
         {
           "role": "ownership-385ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-385ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-385ma.ehto",
           "sha256": "67df7f723bae827ae31418016da3aaa8ff327c2734a6612c86b0666878dd9486",
           "bytes": 11336
         },
         {
           "role": "ownership-385ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-385ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-385ma.json",
           "sha256": "21225045c4dd63927a3180adf2359893cf47ee2c430126c4aec80b949ce4a617",
           "bytes": 7565
         },
         {
           "role": "ownership-390ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-390ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-390ma.ehto",
           "sha256": "bfb29c28ad7004d199e10f9d2999c32875d398b6382d7ac53c6cfd6789092721",
           "bytes": 11132
         },
         {
           "role": "ownership-390ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-390ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-390ma.json",
           "sha256": "586250766c551abada900190eee8fa8272b4f13bc0d6cccf6c1f6c8dba6d5068",
           "bytes": 7244
         },
         {
           "role": "ownership-395ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-395ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-395ma.ehto",
           "sha256": "9864e5d5808d103f3574f2118cee7c15cc3062588390237e0191176d9a4f9467",
           "bytes": 9560
         },
         {
           "role": "ownership-395ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-395ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-395ma.json",
           "sha256": "84eb41e53e8d5c726a958012b3e10b8f5d7cca7105b9c73806ffe0d00b0474ef",
           "bytes": 5978
         },
         {
           "role": "ownership-400ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-400ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-400ma.ehto",
           "sha256": "cdba212b66402c2d7d3ee317ebcce266114b6cffd6ec48b39d9d351ddcfb93af",
           "bytes": 9728
         },
         {
           "role": "ownership-400ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-400ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-400ma.json",
           "sha256": "6d1ccb31abb2d38fca3b38c44b5cbf8be125fe3c4fe8a52e05cedfd1dc4287c5",
           "bytes": 6291
         },
         {
           "role": "ownership-405ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-405ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-405ma.ehto",
           "sha256": "61266347d2ef5f3900783ac2a0e6b67adf70b7ffb00a5dc4ddd800f69a6396dc",
           "bytes": 9032
         },
         {
           "role": "ownership-405ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-405ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-405ma.json",
           "sha256": "a46709fd6f3c1eef203af82e74c555fb1ddc281735ff75321d0e64077654ca80",
           "bytes": 5657
         },
         {
           "role": "ownership-40ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-40ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-40ma.ehto",
           "sha256": "af0ab420060a80bd748758c2b4c22d9ad68b2a5d4203484a82503bbf6dd3b9de",
           "bytes": 41204
         },
         {
           "role": "ownership-40ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-40ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-40ma.json",
           "sha256": "ffa225723be3137faa41ec558fd6a9f62151783e21960a1a5f9961a2fba2f913",
           "bytes": 11897
         },
         {
           "role": "ownership-410ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-410ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-410ma.ehto",
           "sha256": "65682d2b0643478e480ae31f7b8b14270cbd015859270c036fa0391374cf4474",
           "bytes": 9056
         },
         {
           "role": "ownership-410ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-410ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-410ma.json",
           "sha256": "3d573d5a4660df16255ce208af7d6bdf15e697253964a6cb822eb77ea7609e53",
           "bytes": 5657
         },
         {
           "role": "ownership-415ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-415ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-415ma.ehto",
           "sha256": "a6744ce4b8cb3a5a5859c05ccc5f2c5a3e5bc2df684b75b4cb56b9eb5885db25",
           "bytes": 10040
         },
         {
           "role": "ownership-415ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-415ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-415ma.json",
           "sha256": "8c427c81797afe83006984dd3faa4f9829955ba0ae89ef13a082125139b86ddb",
           "bytes": 5023
         },
         {
           "role": "ownership-420ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-420ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-420ma.ehto",
           "sha256": "0da775afb70d6d76292431032f1330efd55beadb1343c6264d86d725c757b6d4",
           "bytes": 10280
         },
         {
           "role": "ownership-420ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-420ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-420ma.json",
           "sha256": "ac58bc25a61c43a7ef58d697d6479b260afd0e4814d011fa9e3abfbb69e66677",
           "bytes": 5023
         },
         {
           "role": "ownership-425ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-425ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-425ma.ehto",
           "sha256": "b97dd8561d91f255aa06d79c3c79a223c3017890746973e70f1e612d35ee1ba3",
           "bytes": 10592
         },
         {
           "role": "ownership-425ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-425ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-425ma.json",
           "sha256": "73625b87e6127e6fc63c5728c4d4f9a774b5b53b1e65e4a2a6059224911e7956",
           "bytes": 5337
         },
         {
           "role": "ownership-430ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-430ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-430ma.ehto",
           "sha256": "c349930002d043f43183fd13640406cc8dab01fc7c1702c17ca285c7e8b30d57",
           "bytes": 10508
         },
         {
           "role": "ownership-430ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-430ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-430ma.json",
           "sha256": "1e55999f4f5a8d5dca535f19f4c9027fcec5a7b9e184741e480cb7f4c9a0bbb2",
           "bytes": 5337
         },
         {
           "role": "ownership-435ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-435ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-435ma.ehto",
           "sha256": "d992cc6591c45001fd1c20b9ac9b0f26a7c0409f4a8dea9f570300e5f4721a86",
           "bytes": 12992
         },
         {
           "role": "ownership-435ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-435ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-435ma.json",
           "sha256": "10efa95e51efbd56a6f06aa35fe68afe1f58fc48ea8257261f13add588115be9",
           "bytes": 6283
         },
         {
           "role": "ownership-440ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-440ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-440ma.ehto",
           "sha256": "88f30772537578892ad8517888f897286f6f026fc2e1ad82571466aa3dac0cc5",
           "bytes": 12560
         },
         {
           "role": "ownership-440ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-440ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-440ma.json",
           "sha256": "e24dda481dcf2fd96e5d261be65c25c9543a6fd6be18baa12541054531c87521",
           "bytes": 5968
         },
         {
           "role": "ownership-445ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-445ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-445ma.ehto",
           "sha256": "56bf6b568d45e4be94298addeb0eb1a08a27ab6e65f15ea83c0ab8f296ead3b4",
           "bytes": 13472
         },
         {
           "role": "ownership-445ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-445ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-445ma.json",
           "sha256": "5f606627258a35926d3a158a8656351e8f8e11fb585c86a888412fc1a7f20d3f",
           "bytes": 6910
         },
         {
           "role": "ownership-450ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-450ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-450ma.ehto",
           "sha256": "b85b00f6ca7e61fb842696ce9f24f344206bdda3981bb8b89ee422dbd48eb466",
           "bytes": 13568
         },
         {
           "role": "ownership-450ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-450ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-450ma.json",
           "sha256": "6ce32de0708a5e8eb32f71524e03b0373f32b0fc2f4c8d2061fcdfc782021b94",
           "bytes": 6911
         },
         {
           "role": "ownership-455ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-455ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-455ma.ehto",
           "sha256": "0a687cfe4ae7759cbcff461b6362599e63cf5f5db09ce5d9e41a879d78331d5e",
           "bytes": 15080
         },
         {
           "role": "ownership-455ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-455ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-455ma.json",
           "sha256": "bae466644b0b34c66cc6c4271e17c556f21404e324852b5d12e1c3ebd720e75f",
           "bytes": 7227
         },
         {
           "role": "ownership-45ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-45ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-45ma.ehto",
           "sha256": "d82530507329bd3cdc31c4560d854f44b42bdbd0622acd4d5dd45b056b6c310b",
           "bytes": 38516
         },
         {
           "role": "ownership-45ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-45ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-45ma.json",
           "sha256": "9721314cb4f18fc0b5049e9bc2883d8b9083b405cb92bc4249ed67fb4035e7a5",
           "bytes": 10330
         },
         {
           "role": "ownership-460ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-460ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-460ma.ehto",
           "sha256": "2f2754c85bcbb69ea3e1a30f410abb53ade514e0d3157e31944f0ad5f713bb71",
           "bytes": 14600
         },
         {
           "role": "ownership-460ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-460ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-460ma.json",
           "sha256": "50936985498ff7e1ae9e223adcaa4241afddd76d47f035d83a7086609c8677e5",
           "bytes": 7228
         },
         {
           "role": "ownership-465ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-465ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-465ma.ehto",
           "sha256": "5ea46bd30a5e6dee0e8f70a6e487420edfdbeeb1d339e4710b3050bd6d99752e",
           "bytes": 15476
         },
         {
           "role": "ownership-465ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-465ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-465ma.json",
           "sha256": "0c8d9efe26a9d1e0a8a4a8a4fcd1d1094bf3dc759b96168b8aa47e49200111d0",
           "bytes": 7546
         },
         {
           "role": "ownership-470ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-470ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-470ma.ehto",
           "sha256": "be0faa6bb4817c83a609ee3ff244394b04f17897c5f91033800cb0d65a812a68",
           "bytes": 15560
         },
         {
           "role": "ownership-470ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-470ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-470ma.json",
           "sha256": "f15ffb1282f9de33eeb4ad93c25f111889dec35b37d42ae71588759bcbefab4d",
           "bytes": 7545
         },
         {
           "role": "ownership-475ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-475ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-475ma.ehto",
           "sha256": "3f735c6c113c2b17900bf07342d0eca5f36d159a14b4cabc679f4a276cc0646a",
           "bytes": 16964
         },
         {
           "role": "ownership-475ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-475ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-475ma.json",
           "sha256": "02e14daff62c97874fead2113a62cd2c44f6caac733abd04c118259f1c0014a8",
           "bytes": 8491
         },
         {
           "role": "ownership-480ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-480ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-480ma.ehto",
           "sha256": "b6e4ac8943c0bab48a83d4e25332a66be8c2060a102a1ccfdf1bff5f0eaf9091",
           "bytes": 17960
         },
         {
           "role": "ownership-480ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-480ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-480ma.json",
           "sha256": "c4599575693d9df57cdd34ab6d2f47e0056c336d04b34fb3fe7bf4f5b398208b",
           "bytes": 8489
         },
         {
           "role": "ownership-485ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-485ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-485ma.ehto",
           "sha256": "b9ed77d3543d44b8cf2be7b50d79159ae7a8612662cfe1ce87f21d21638b0f2c",
           "bytes": 17816
         },
         {
           "role": "ownership-485ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-485ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-485ma.json",
           "sha256": "72d8b397f0b9f2c85c4ae2b3d6b69ea886a93528394fcc9830a3d08f35e73304",
           "bytes": 8492
         },
         {
           "role": "ownership-490ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-490ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-490ma.ehto",
           "sha256": "5fd8828439aec927a492fbbf1dbcf5eb3bc0d1313869978258eeaaad695b7446",
           "bytes": 17864
         },
         {
           "role": "ownership-490ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-490ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-490ma.json",
           "sha256": "4a1f3e42effef46d8b720b62781be0f43ad118d1d354ef16dac1a7b70350a9dc",
           "bytes": 8807
         },
         {
           "role": "ownership-495ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-495ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-495ma.ehto",
           "sha256": "f1876d8d77b193c31a11ae8ed178b45944a2f49368739fb442e6ac2ef256ff18",
           "bytes": 16184
         },
         {
           "role": "ownership-495ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-495ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-495ma.json",
           "sha256": "a98899fbb03dcb5f909e4325f08d8bb548e4d5432592ee3b3ea83cc4460bc731",
           "bytes": 7857
         },
         {
           "role": "ownership-500ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-500ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-500ma.ehto",
           "sha256": "5fa28d78494f8711c9131e8424a83b01a2f40715d3de2c71673fd2eea393530d",
           "bytes": 16052
         },
         {
           "role": "ownership-500ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-500ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-500ma.json",
           "sha256": "e6c5fcd00a2cbb2d3444cd46360b2d112a03d32c247db08d4a731e38a4fbbeef",
           "bytes": 7857
         },
         {
           "role": "ownership-505ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-505ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-505ma.ehto",
           "sha256": "e227a0ea5c9036035cd2729df405a90b33f3ee83597415be599d6d0b3d3c179e",
           "bytes": 14672
         },
         {
           "role": "ownership-505ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-505ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-505ma.json",
           "sha256": "0784feee72d96bf0fc6e1e5b181f8a0e534311befff358d1cc8744b1efe8ca1e",
           "bytes": 6604
         },
         {
           "role": "ownership-50ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-50ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-50ma.ehto",
           "sha256": "4a29e960a122a0191a5cf301728bcc74c81ca89d5aaaaeab78f587df3bda8aa5",
           "bytes": 35804
         },
         {
           "role": "ownership-50ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-50ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-50ma.json",
           "sha256": "5287d9b01ba05d06b547aa751a0cdf4d3f74f1224dbbe9cb00daa21c76d0b5d2",
           "bytes": 9074
         },
         {
           "role": "ownership-510ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-510ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-510ma.ehto",
           "sha256": "d9fc6cab921d5fe89b8dc57944e3cbda1086dfac97720ec612f5a72fd0134e0a",
           "bytes": 15080
         },
         {
           "role": "ownership-510ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-510ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-510ma.json",
           "sha256": "5f8a5829d2fb4d8da4af6fb211f6e04f593a69ac65e4dbc2a4c59d5656f62ffa",
           "bytes": 6920
         },
         {
           "role": "ownership-515ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-515ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-515ma.ehto",
           "sha256": "d592a4ab918da4d3d40e87e0fe4e57ccd047113462d40d4199f38edb0fbbb3fa",
           "bytes": 14960
         },
         {
           "role": "ownership-515ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-515ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-515ma.json",
           "sha256": "146419fec26605d1e2d19ae414ddf71ed8c152f7ff779433b3a1eb51e6ea7448",
           "bytes": 7232
         },
         {
           "role": "ownership-520ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-520ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-520ma.ehto",
           "sha256": "505245e72b270b5d399b50b2973e8a1e8c48964350f06269e7e4159a6d853580",
           "bytes": 14768
         },
         {
           "role": "ownership-520ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-520ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-520ma.json",
           "sha256": "2d8a1720b5399c410f3c1bef68e9a3de2c6f0c9a407aa97ab808bbdcfe2894ca",
           "bytes": 7231
         },
         {
           "role": "ownership-525ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-525ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-525ma.ehto",
           "sha256": "523031b62dc595944ad4184258de7fbef6db331fa2a3e9b65e91f2cf841cfdcb",
           "bytes": 15800
         },
         {
           "role": "ownership-525ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-525ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-525ma.json",
           "sha256": "97f6cf47db04dc08444c8bc2d79765ed9493097f19918eabbefffe978efb6dcd",
           "bytes": 7241
         },
         {
           "role": "ownership-530ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-530ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-530ma.ehto",
           "sha256": "384d0a784c509ae47771d39df8bce4765e6cc71e1a7b16e8801c15eb336abc48",
           "bytes": 15872
         },
         {
           "role": "ownership-530ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-530ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-530ma.json",
           "sha256": "7aa9e5ec0c1f245ac61ebdb715c509dd54a1bc8a2dc8daeaa12850f2eecbfe73",
           "bytes": 7241
         },
         {
           "role": "ownership-535ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-535ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-535ma.ehto",
           "sha256": "3b2a2b0d633009ed614065fcab9a4dcb6782b13ff2d3158d59884cfe9aeb291a",
           "bytes": 15152
         },
         {
           "role": "ownership-535ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-535ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-535ma.json",
           "sha256": "d151ec00a0557698bd02505d519568d7350d70f739b42003562ce1c35fbd9706",
           "bytes": 7240
         },
         {
           "role": "ownership-540ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-540ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-540ma.ehto",
           "sha256": "c42f0851fb690e38b80404fce98977840aed4dab1eec0f7045832001ea06e39e",
           "bytes": 15152
         },
         {
           "role": "ownership-540ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-540ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-540ma.json",
           "sha256": "fc3e4376d72ad8d4fdef6de033ea4c2fdf4d870da43f512c56582aa9e3a7049a",
           "bytes": 7241
         },
         {
           "role": "ownership-55ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-55ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-55ma.ehto",
           "sha256": "4c281e35dcef6d9d8157d5ef17e73478b475206c4fec43baf58280e7402ecc56",
           "bytes": 38120
         },
         {
           "role": "ownership-55ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-55ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-55ma.json",
           "sha256": "3def22d885edf8e877d54a7189452e8ad9ef18f1a23dd8a998354e1c899be07e",
           "bytes": 10011
         },
         {
           "role": "ownership-5ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-5ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-5ma.ehto",
           "sha256": "69dca5dec58ef855df3a20c41e203140e6e25ae84d6b2019c1fc137d7507803b",
           "bytes": 49784
         },
         {
           "role": "ownership-5ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-5ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-5ma.json",
           "sha256": "ddfdfa9fdd999f448c845b412ec7bbdd434f23e77088208a3f30d1b792378f26",
           "bytes": 14304
         },
         {
           "role": "ownership-60ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-60ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-60ma.ehto",
           "sha256": "26c05b229ec80d4a26937850998467557dbb0886aa1e6d229f49b4d7267e4331",
           "bytes": 39032
         },
         {
           "role": "ownership-60ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-60ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-60ma.json",
           "sha256": "eebdaf335f792be6449b88c94cb5c84720a31f7739821c9736e8ecc4af00f891",
           "bytes": 9702
         },
         {
           "role": "ownership-65ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-65ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-65ma.ehto",
           "sha256": "7cdaf287f4e221858db8b954d97a9c838f03af0aa984086fb8558245d5fd7ffc",
           "bytes": 39560
         },
         {
           "role": "ownership-65ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-65ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-65ma.json",
           "sha256": "0138e82d34c2d8c5ba0835d4a25ac866a25b10448262ece7229678990ced26a4",
           "bytes": 9704
         },
         {
           "role": "ownership-70ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-70ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-70ma.ehto",
           "sha256": "0c2be4ed413c23be0dc551eb7885ed26d35b2a2d7f981a7d391274f48e9ff936",
           "bytes": 41636
         },
         {
           "role": "ownership-70ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-70ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-70ma.json",
           "sha256": "5f69e450c9ce4f20ab82e1590ebc77edeacccd90fbabed5c44be4de82f5a570f",
           "bytes": 10332
         },
         {
           "role": "ownership-75ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-75ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-75ma.ehto",
           "sha256": "dd6cd4c06d09cd41348f6aabf5ce36ae515434445c61e4f2d0a80566bf162632",
           "bytes": 39500
         },
         {
           "role": "ownership-75ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-75ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-75ma.json",
           "sha256": "5f4d628416f4dde35d3fe59b280b5bcf2f4d9cc8ba8de297733c9b324f30717c",
           "bytes": 10330
         },
         {
           "role": "ownership-80ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-80ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-80ma.ehto",
           "sha256": "77d4a27d817f0cd56ada5de29c2cff3d699614ca65a29856711ce51eb3918b29",
           "bytes": 37796
         },
         {
           "role": "ownership-80ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-80ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-80ma.json",
           "sha256": "56967031e2c55c7b92ffd53adcddeded6545a963acec8fb2295575fae16cf172",
           "bytes": 10015
         },
         {
           "role": "ownership-85ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-85ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-85ma.ehto",
           "sha256": "87a5e7fbc9f82939d69db494e9be9b5cd1704618df65b5b1ade6c131c7291c48",
           "bytes": 34568
         },
         {
           "role": "ownership-85ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-85ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-85ma.json",
           "sha256": "8a26d613e2ac592415f126732931c8e4d022d3bcec031045be700eabf050ff8a",
           "bytes": 9703
         },
         {
           "role": "ownership-90ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-90ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-90ma.ehto",
           "sha256": "006969bd0f31480412c1fe6567c6a9c28eb4d766aeffceac83fa33063860d514",
           "bytes": 30680
         },
         {
           "role": "ownership-90ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-90ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-90ma.json",
           "sha256": "ea4661d0fa66d5923244c3c3cf0567a2d256c030906d8e655c1ff8e4d662d5b3",
           "bytes": 8759
         },
         {
           "role": "ownership-95ma.ehto",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-95ma.ehto",
+          "path": "data/reconstruction/cao-v2.4/ownership-95ma.ehto",
           "sha256": "6d0ff602607d8d6d24d6762224021a8971979891cdad5f4f52f0f978a94b1f63",
           "bytes": 30248
         },
         {
           "role": "ownership-95ma.json",
-          "path": "public/data/reconstruction/cao-v2.4/ownership-95ma.json",
+          "path": "data/reconstruction/cao-v2.4/ownership-95ma.json",
           "sha256": "f6c7a98d0feec1097d403a8df612b691ec9e957b99f565b6e483d33c9c36b9bc",
           "bytes": 8447
         }
       ]
     }
   },
-  "scratchCacheBytes": 24193239
+  "scratchCacheBytes": 28848507
 }

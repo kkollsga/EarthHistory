@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage native Cao coastline patches; public promotion is a separate gate."""
+"""Stage native Cao continental-outline patches; public promotion is a separate gate."""
 
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ OUT = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1"
 )
-SOURCE = "shapes_coasts.gpmlz"
-SOURCE_SHA = "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
+SOURCE = "shapes_continents.gpmlz"
+SOURCE_SHA = "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616"
 ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 ROTATION_SHAS = (
     "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
@@ -88,7 +88,7 @@ def main():
                 directions.extend(point.to_xyz() for point in ring)
                 ring_records.append({"offset": offset, "count": len(ring)})
             source_id = str(feature.get_feature_id())
-            patch_id = f"cao-coast:{source_id}:{feature_order}:{geometry_order}"
+            patch_id = f"cao-continent:{source_id}:{feature_order}:{geometry_order}"
             oldest, youngest = feature.get_valid_time()
             patch = {
                 "patchId": patch_id,
@@ -111,7 +111,7 @@ def main():
                 "interiorDirection": list(geometry.get_interior_centroid().to_xyz()),
                 "surfaceEvidence": {
                     "kind": "unknown",
-                    "reason": "Cao model-derived coastline-class geometry is not a dated exposed-land or height observation",
+                    "reason": "Cao continental-outline model geometry is not a dated exposed-land or height observation",
                 },
                 "heightDatum": {
                     "kind": "neutral-display-synthesis",
@@ -190,7 +190,7 @@ def main():
             accepted += 1
     final_meta = {
         "schemaVersion": 1,
-        "classification": "staged Cao source-native coastline-class patches; not exposed-land or topography",
+        "classification": "staged Cao source-native continental-outline patches; not exposed-land or topography",
         "frame": {
             "modelId": "cao-et-al-2024",
             "modelVersion": "2.4",

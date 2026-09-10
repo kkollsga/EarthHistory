@@ -54,24 +54,28 @@ describe("native Cao package v2", () => {
     const runtime = new CaoReconstructionRuntime(manifest, fetcher);
     const prepared = await runtime.request(227.5).prepared;
     expect(prepared.display).toEqual({ youngerAgeMa: 225, olderAgeMa: 230, fraction: 0.5 });
-    expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_500);
+    expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_200);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.motionPalette.entryCount * 11);
-    expect(prepared.batches).toHaveLength(1);
+    expect(prepared.batches).toHaveLength(2);
     // Complete authored rotation collection recovers the previously omitted
     // North American and Amazonian source geometry.
-    expect(prepared.batches[0]!.vertexCount).toBe(149_492);
-    const geometry = prepared.batches[0]!.createStaticGeometryCopy();
-    expect(geometry.referenceDirections).toHaveLength(prepared.batches[0]!.vertexCount * 3);
-    expect(Object.values(geometry).reduce((sum, array) => sum + array.byteLength, 0))
-      .toBe(prepared.batches[0]!.staticGeometryBytes);
+    expect(prepared.batches.map((batch) => batch.batchId)).toEqual(["batch-shelf", "batch-land"]);
+    expect(prepared.batches[0]!.vertexCount).toBe(153_904);
+    expect(prepared.batches[1]!.vertexCount).toBe(149_492);
+    for (const batch of prepared.batches) {
+      const geometry = batch.createStaticGeometryCopy();
+      expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
+      expect(Object.values(geometry).reduce((sum, array) => sum + array.byteLength, 0))
+        .toBe(batch.staticGeometryBytes);
+    }
     const resource = createCaoFoundationGeometryResource(prepared, {
-      // The renderer reservation includes 20,036 country-line vertices in
-      // addition to the 149,492 land vertices.
-      maxBatches: 4, maxVertices: 170_000, maxTriangles: 250_000,
-      maxRetainedSourceBytes: 32_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
+      // Shelf + land meshes plus 20,036 country-line vertices.
+      maxBatches: 4, maxVertices: 400_000, maxTriangles: 600_000,
+      maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
-    expect(resource.batches[0]!.vertexCount).toBe(prepared.batches[0]!.vertexCount);
+    expect(resource.batches.map((batch) => batch.vertexCount))
+      .toEqual(prepared.batches.map((batch) => batch.vertexCount));
     resource.dispose();
     expect(prepared.batches[0]!.createDisplayControlsCopy().displayHeightStart).toEqual({ kind: "uniform", value: 0 });
     expect(prepared.charts.some((chart) => chart.support.kind === "supported")).toBe(true);

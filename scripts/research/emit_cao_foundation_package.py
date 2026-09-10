@@ -300,13 +300,13 @@ def main():
                     ],
                     "limitations": [
                         "native Cao foundation; surface exposure remains unknown",
-                        "Cao coastline-class model geometry is not observed exposed land",
+                        "Cao continental-outline model geometry is not observed exposed land",
                         "physical height unknown; 400 m is render-only shell separation",
                     ],
                 },
                 "surfaceEvidence": {
                     "kind": "unknown",
-                    "reason": "native Cao coastline-class geometry; exposed-land and height evidence unavailable",
+                    "reason": "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
                 },
             }
         )
@@ -432,7 +432,7 @@ def main():
             "binary": asset(palette_path),
         },
         "checkpoints": checkpoints,
-        "scope": "native Cao coastline-class model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
+        "scope": "native Cao continental-outline model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
     }
     manifest_path = OUT / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")) + "\n")
@@ -462,7 +462,7 @@ def main():
     coverage = {"schemaVersion": 1, "sourceTriangulatedParts": sum(p["status"] == "supported" for p in meta["patches"]),
                 "exportedCharts": len(charts), "omittedParts": omissions, "activeChartCounts": active_counts,
                 "maximumActiveCharts": max(active_counts.values()),
-                "limitations": ["coastline-class geometry is not exposed-land evidence",
+                "limitations": ["continental-outline geometry is not exposed-land evidence",
                                 "strict motion is complete for every triangulated source part in the 0-540 Ma domain", "17 source rings remain line-only"]}
     (OUT / "compiler-coverage.json").write_text(json.dumps(coverage, separators=(",", ":")) + "\n")
     stage = sum(p.stat().st_size for p in STAGE.rglob("*") if p.is_file())

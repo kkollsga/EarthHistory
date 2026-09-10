@@ -515,8 +515,8 @@ export class GlobeScene {
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend),
-      { maxBatches: 512, maxVertices: 300_000, maxTriangles: 400_000,
-        maxRetainedSourceBytes: 24 * 1024 * 1024, maxTextureSize: maximumTextureSize,
+      { maxBatches: 512, maxVertices: 400_000, maxTriangles: 600_000,
+        maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );
 

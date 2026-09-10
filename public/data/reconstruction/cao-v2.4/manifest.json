@@ -1,1 +1,802 @@
-{"schemaVersion":2,"packageId":"cao-v2.4-foundation-v1","revision":"cao-foundation-v1","frame":{"modelId":"cao-et-al-2024","modelVersion":"2.4","absoluteFrameId":"palaeomagnetic","anchorPlateId":0,"axisConvention":"gplates-x0e-y90e-znorth","rotationSha256":"80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f","topologySha256":"411bd3e5e5a2004ea42792a5c1be11942a46b52e3657efdb06507c147fbfdf1a"},"ageDomainMa":{"youngest":0,"oldest":540},"core":{"url":"core.json","bytes":6964710,"sha256":"db3648b121275533ae2a27556f5faca94181ba6d9d936639e41ee1439b5a0a9e"},"motionPalette":{"id":"cao-v2.4-shared-motion-v1","catalog":{"url":"motion-palette.json","bytes":1029340,"sha256":"fedeb703536e9254c4c29e506b7366801ee18992797594e28a12ec415477a594"},"binary":{"url":"motion-palette.bin","bytes":4314892,"sha256":"ef41ed521b6b52d55200f11e3d0f1c3442180b17c8f113c9b2c8288b7c4bd76d"}},"checkpoints":[{"ageMa":0.0,"url":"checkpoint-0ma.json","bytes":1205,"sha256":"5899a77d71a10d4c0c30587f46de6da6a4b73e1e2c5bda44bca6eb6ff2c580a6","transitiveBytes":234397},{"ageMa":5.0,"url":"checkpoint-5ma.json","bytes":1205,"sha256":"2d372de7afe9d254073e02345466965ce34aa1c457d56e342aad72ff5acea7ec","transitiveBytes":204407},{"ageMa":10.0,"url":"checkpoint-10ma.json","bytes":1212,"sha256":"7698ed1305bbc5f071d905f5d3e50d2bc585810021a93c40cc105a44fe7e2dc0","transitiveBytes":191086},{"ageMa":15.0,"url":"checkpoint-15ma.json","bytes":1211,"sha256":"1dcdb6097062f20072db9780f08da13346efec9cf7c05b890328814172490a9c","transitiveBytes":175960},{"ageMa":20.0,"url":"checkpoint-20ma.json","bytes":1211,"sha256":"89885e4d7dbb21eedb7eb017a76cd722234cb5d6c25b599c5a2b0f8da8a5f9c5","transitiveBytes":172478},{"ageMa":25.0,"url":"checkpoint-25ma.json","bytes":1211,"sha256":"d0ff6fdd444db6dbbeb147c9ad58f9f8f7104d6d3cfc98503cbe086e1447b313","transitiveBytes":171204},{"ageMa":30.0,"url":"checkpoint-30ma.json","bytes":1212,"sha256":"0a43be08642257a4b19027c5e594e7d9183b087db909a7de26ab82a1d172e5eb","transitiveBytes":184340},{"ageMa":35.0,"url":"checkpoint-35ma.json","bytes":1211,"sha256":"cfd15eba4541d638d179beb773643b5544883eeec76be8f95aa31874347b3ef7","transitiveBytes":179494},{"ageMa":40.0,"url":"checkpoint-40ma.json","bytes":1211,"sha256":"1aa4a84668bb384d787049a78fd363d395870457652089ab494022e95be38c12","transitiveBytes":171406},{"ageMa":45.0,"url":"checkpoint-45ma.json","bytes":1211,"sha256":"9e7b5210c9d74e6639ebe52c890ee17f8208f5570ba89050003618a8b2182d55","transitiveBytes":154922},{"ageMa":50.0,"url":"checkpoint-50ma.json","bytes":1210,"sha256":"81d69334f8e6926b6959afca78910327c940518a9985bf222be51b4afd811cfd","transitiveBytes":141473},{"ageMa":55.0,"url":"checkpoint-55ma.json","bytes":1211,"sha256":"7a96ddfd47b9d7ab544fc8dcd92bdb949943a807b331d0d93bbc97c005ff4aa3","transitiveBytes":150533},{"ageMa":60.0,"url":"checkpoint-60ma.json","bytes":1210,"sha256":"aeccf15f69df89b88071a685b85df74047623ebb87f25aad2c4e0b5f49202b01","transitiveBytes":151564},{"ageMa":65.0,"url":"checkpoint-65ma.json","bytes":1210,"sha256":"c756e5a00189f03e3a6a1ed6de15ce9e3b7c820e2c30c7bcff985968a4093f59","transitiveBytes":152386},{"ageMa":70.0,"url":"checkpoint-70ma.json","bytes":1211,"sha256":"4f41f3172e07d71ce0c6ae055511e5626da551cd83fc3320e8b210454f256af6","transitiveBytes":158213},{"ageMa":75.0,"url":"checkpoint-75ma.json","bytes":1211,"sha256":"3a32cf97b796a9558e23081f833ad1f16c061ddcf38c4444a90c41df60caa7bf","transitiveBytes":156142},{"ageMa":80.0,"url":"checkpoint-80ma.json","bytes":1211,"sha256":"f91a6604103a02de572ef5be07035a4d0d80c14a2735a9c412d7bd5f7870903b","transitiveBytes":151098},{"ageMa":85.0,"url":"checkpoint-85ma.json","bytes":1210,"sha256":"dcc4b59baa1244e25e5de4adba7e96cc36f2ee2c876737f6c5128ba8ac98e398","transitiveBytes":148373},{"ageMa":90.0,"url":"checkpoint-90ma.json","bytes":1210,"sha256":"baef465bc4f937f0241371ab5859b549e569b709aa055e48679a336c3560e527","transitiveBytes":132726},{"ageMa":95.0,"url":"checkpoint-95ma.json","bytes":1210,"sha256":"0981605a4d3cff1bbb22fe254a0605c3a0a1e2adbe111a8e6fd1c8b6de7905d4","transitiveBytes":130278},{"ageMa":100.0,"url":"checkpoint-100ma.json","bytes":1217,"sha256":"638bc8ab96e66b7a8743d833fd1e682c2a523ccb21ec2c6004a9841bc0145b1e","transitiveBytes":134791},{"ageMa":105.0,"url":"checkpoint-105ma.json","bytes":1217,"sha256":"82f8cb0d3b9a4563564bbdf6b4bf23f80b2be090605074bd21e86849c74ad4da","transitiveBytes":130815},{"ageMa":110.0,"url":"checkpoint-110ma.json","bytes":1217,"sha256":"9bc362fd42b3bd09e36bd1f7a36e4bad5af9ca3ce6a8d87f54f9213e98c7ef93","transitiveBytes":129909},{"ageMa":115.0,"url":"checkpoint-115ma.json","bytes":1217,"sha256":"d657aab979e3a0f03bbef0a43f89974ef4a25380ee8afaa8e4bc2c8f5fd180c5","transitiveBytes":126304},{"ageMa":120.0,"url":"checkpoint-120ma.json","bytes":1217,"sha256":"13d3ab85e91434b782cf56f6c3e5d86caed53832cbf848f0fd5883c7a98feeda","transitiveBytes":132544},{"ageMa":125.0,"url":"checkpoint-125ma.json","bytes":1217,"sha256":"b4f263ed47e5151bbc2f63d49b9b49547504ea6e212ad342667818d43ee9a26b","transitiveBytes":146495},{"ageMa":130.0,"url":"checkpoint-130ma.json","bytes":1217,"sha256":"9f0ba266092938e1ec2c0eb86dcef94c8323d7cd706ed83504f0a0f3392e180a","transitiveBytes":149453},{"ageMa":135.0,"url":"checkpoint-135ma.json","bytes":1217,"sha256":"30a9c90ab8f273cd9e7f09f4698d44aea061beed62b0bfd229c7d13d19a74099","transitiveBytes":149977},{"ageMa":140.0,"url":"checkpoint-140ma.json","bytes":1217,"sha256":"0ccfba4b7c4e83706d3fb7ccb1bd3d8f8ebe31b50093b7525216d19072c47ced","transitiveBytes":142471},{"ageMa":145.0,"url":"checkpoint-145ma.json","bytes":1217,"sha256":"f02a579f9d9e004469f718b2512719968a231f3e2c44c81275cf738c0bd13756","transitiveBytes":130716},{"ageMa":150.0,"url":"checkpoint-150ma.json","bytes":1217,"sha256":"3e80a6b72d03d1e6e237d91488c968354433f18734b90bf1f2c4da220e69e37c","transitiveBytes":116234},{"ageMa":155.0,"url":"checkpoint-155ma.json","bytes":1217,"sha256":"134b82174290d6c32bf519817c2900e88110f57886d57bf3ee4219ca04a26d99","transitiveBytes":111509},{"ageMa":160.0,"url":"checkpoint-160ma.json","bytes":1217,"sha256":"a7aaa50208dd8abf4edbd8edf2b6c0ecf3759210a310b853407b87a87cecb87a","transitiveBytes":103243},{"ageMa":165.0,"url":"checkpoint-165ma.json","bytes":1216,"sha256":"083938d40daef980a7ee5b7d44ee33ca22b70895467d012d822e807c039523b3","transitiveBytes":88054},{"ageMa":170.0,"url":"checkpoint-170ma.json","bytes":1216,"sha256":"36ab3afff900c876ca444ae783233bcb86125dba6670b88b9e64819f8ce8a2dc","transitiveBytes":87520},{"ageMa":175.0,"url":"checkpoint-175ma.json","bytes":1216,"sha256":"d114e12c89df1ac0e7212e09c10cb128076d1289892fcd790378aad4b0b043bd","transitiveBytes":84009},{"ageMa":180.0,"url":"checkpoint-180ma.json","bytes":1216,"sha256":"b8a52ee3cd4366c90417496a543dd76dca962a593b88ad37d0a6ab4ff4c7dc36","transitiveBytes":72634},{"ageMa":185.0,"url":"checkpoint-185ma.json","bytes":1216,"sha256":"9a28f6054613a5f5a1661c84a169ad52dbb960dbe326173d6bb8152a7b10a314","transitiveBytes":77344},{"ageMa":190.0,"url":"checkpoint-190ma.json","bytes":1216,"sha256":"8ef14837d44d7eac602dd8c76af35a078798e92b8f18ebbe4cf81ec6fc57054c","transitiveBytes":78245},{"ageMa":195.0,"url":"checkpoint-195ma.json","bytes":1216,"sha256":"c97b3bde46802aedd570455a8a04e5433a5d589f682d79a8269c5008d7c977bb","transitiveBytes":67218},{"ageMa":200.0,"url":"checkpoint-200ma.json","bytes":1216,"sha256":"15e17bd3b997b41adf07a16a1677af4c7cbb79c77f1e272ae733abd4652a369d","transitiveBytes":61334},{"ageMa":205.0,"url":"checkpoint-205ma.json","bytes":1216,"sha256":"5eaab5d42da73a149620cda1265818b89559f3339d4938edea9d8ad5d84c31ba","transitiveBytes":54298},{"ageMa":210.0,"url":"checkpoint-210ma.json","bytes":1216,"sha256":"95130b63d679814807b7a83f7f534bbf8d5d36ac7c3efccc9cb4fb738b6c9b04","transitiveBytes":54978},{"ageMa":215.0,"url":"checkpoint-215ma.json","bytes":1216,"sha256":"1689cbbb54200fc62436b403f85562325ea7382292164d3bd443c5188449092b","transitiveBytes":55393},{"ageMa":220.0,"url":"checkpoint-220ma.json","bytes":1216,"sha256":"8df28f5058b68e7c4d228d30d0adca6670c0a685bb83a7499f8fbb7db9b2ab5d","transitiveBytes":55394},{"ageMa":225.0,"url":"checkpoint-225ma.json","bytes":1216,"sha256":"9c34232cbbdb4b08aa63fbaaea375eba0c1ff9172de993c29716aed819afecd5","transitiveBytes":55425},{"ageMa":230.0,"url":"checkpoint-230ma.json","bytes":1216,"sha256":"2a4b179140ed23ec8fd2009f08e6aea3c9c6b3e33465fcf592e9c8149c113494","transitiveBytes":55993},{"ageMa":235.0,"url":"checkpoint-235ma.json","bytes":1216,"sha256":"872232801c84b9835d3b0c0526d5bec0b9488190dddba352fc737cb5473a8297","transitiveBytes":59940},{"ageMa":240.0,"url":"checkpoint-240ma.json","bytes":1216,"sha256":"14feda8d2ecfb34896aa0431430e5f6a507f70ea27f0536e41606b90030ca0d8","transitiveBytes":59984},{"ageMa":245.0,"url":"checkpoint-245ma.json","bytes":1216,"sha256":"69bdfa47c26c7b8d6f7ae84619842bd062eac7b65b84b58968448c1b6282d40a","transitiveBytes":56417},{"ageMa":250.0,"url":"checkpoint-250ma.json","bytes":1216,"sha256":"dfb6353437e94ca94f3f36c2eb0e3b1f3b7912d108a4628a826ff7ebb7771236","transitiveBytes":56492},{"ageMa":255.0,"url":"checkpoint-255ma.json","bytes":1215,"sha256":"6b178c392cadc7eadf19c45af18fc4ff19d7246a9e1448be5447bd95eb7bbe3e","transitiveBytes":55882},{"ageMa":260.0,"url":"checkpoint-260ma.json","bytes":1215,"sha256":"644f4b19ec31bc08e14630b53ab3a51bba8c4bc65cc8e2e63b6726690ee165fc","transitiveBytes":53499},{"ageMa":265.0,"url":"checkpoint-265ma.json","bytes":1215,"sha256":"4a05793d369f33dc5a30fca0720b292b837ee17eececc62ff0acf9c59e01e1b7","transitiveBytes":61719},{"ageMa":270.0,"url":"checkpoint-270ma.json","bytes":1216,"sha256":"7fd59806b61daff9d0f09b89c1e8c5d81ce44762c1c85cc3f6ac58c2c108dbfb","transitiveBytes":65852},{"ageMa":275.0,"url":"checkpoint-275ma.json","bytes":1215,"sha256":"f4252e6127283ac1827ad68495337cb9e321d8ab5f79020f3291d8379e5f0440","transitiveBytes":58614},{"ageMa":280.0,"url":"checkpoint-280ma.json","bytes":1215,"sha256":"a33a5e0182e377f6214b4d0f5fe7391bbf6aac3d9d5ff64d0d1ba7989002bd7a","transitiveBytes":56459},{"ageMa":285.0,"url":"checkpoint-285ma.json","bytes":1215,"sha256":"427f893b285cc7421c3feb1084d1ee818e8c0400fe92e6f6095c752b79eeaf32","transitiveBytes":56478},{"ageMa":290.0,"url":"checkpoint-290ma.json","bytes":1215,"sha256":"981a62de2b671a7d184352ff518a008050e9c8574ae3061d1739b5bd59616f7e","transitiveBytes":56454},{"ageMa":295.0,"url":"checkpoint-295ma.json","bytes":1215,"sha256":"71030165e99b668bf678f272a8497425bcdd97baf590f3bc40a25119f7438a7b","transitiveBytes":56426},{"ageMa":300.0,"url":"checkpoint-300ma.json","bytes":1215,"sha256":"f9b014b1ddb469cea417ca6d9f201f56e3ad49631f9a644cfbf83ccb20a9ea25","transitiveBytes":56164},{"ageMa":305.0,"url":"checkpoint-305ma.json","bytes":1215,"sha256":"56a8e5545745e8af38db0363d805b137740dc7862a615be9533a9f5e80b3694e","transitiveBytes":59781},{"ageMa":310.0,"url":"checkpoint-310ma.json","bytes":1215,"sha256":"2b20da8afcf5543cf8155914de99506abe1509399542aa0f209248801638fbe4","transitiveBytes":59420},{"ageMa":315.0,"url":"checkpoint-315ma.json","bytes":1216,"sha256":"743b56d8139350c1cced09168d4c9a40fe7cad55cd2bbb68aef94e06005efa9b","transitiveBytes":69466},{"ageMa":320.0,"url":"checkpoint-320ma.json","bytes":1216,"sha256":"8c0d9e3939ab10e5bbb98d4f71ebf78c387f5cb19a522aacfe5f854e80c45d8f","transitiveBytes":79212},{"ageMa":325.0,"url":"checkpoint-325ma.json","bytes":1216,"sha256":"c54efde565da2a795a60c42c01af7aa54e9ba31f653142b1368fb46e7d60b1d4","transitiveBytes":81758},{"ageMa":330.0,"url":"checkpoint-330ma.json","bytes":1216,"sha256":"aecf6420c19084383b59492e6e03d6d04b9ea7f5d301a1b15fcf509112d15472","transitiveBytes":78207},{"ageMa":335.0,"url":"checkpoint-335ma.json","bytes":1216,"sha256":"a6df571138803091f3c11fa0da67c69a0c05a66adb0353520b030b870bebd733","transitiveBytes":83525},{"ageMa":340.0,"url":"checkpoint-340ma.json","bytes":1216,"sha256":"30cf150046677af1a597831222804e4dc2139d747d9e3e3677cc936360c79115","transitiveBytes":79477},{"ageMa":345.0,"url":"checkpoint-345ma.json","bytes":1216,"sha256":"69ee0c4ad3ff30691b17dfdb928dcf5513ebdaf7fef40f113a9894e84a06c791","transitiveBytes":80500},{"ageMa":350.0,"url":"checkpoint-350ma.json","bytes":1216,"sha256":"c27a686889bfe625d1e76b472b5eaf51bbd1e6fa578e62418583203b0fd65409","transitiveBytes":79508},{"ageMa":355.0,"url":"checkpoint-355ma.json","bytes":1216,"sha256":"1a22115f33d05cc8ecf1334aed5f4f913982d126911350f84bffcb77a38e9841","transitiveBytes":80935},{"ageMa":360.0,"url":"checkpoint-360ma.json","bytes":1216,"sha256":"1744019d730a5e16e6b04ce914c08d2cbf2e97a265269239c5159056fa5b5ab9","transitiveBytes":68595},{"ageMa":365.0,"url":"checkpoint-365ma.json","bytes":1216,"sha256":"a7666649009695a046164fd836dc3919ee947e04d8484e0a68e472ff6c491561","transitiveBytes":66969},{"ageMa":370.0,"url":"checkpoint-370ma.json","bytes":1216,"sha256":"55ca19c2e4254e7b2f1d921ebc82e1d94e64ecfbd70acd2fed17057f74555295","transitiveBytes":66039},{"ageMa":375.0,"url":"checkpoint-375ma.json","bytes":1216,"sha256":"5c083c62dd905e2ec0cfa9e0c357ed6918bf5843db974f042bc657804ee35900","transitiveBytes":68294},{"ageMa":380.0,"url":"checkpoint-380ma.json","bytes":1216,"sha256":"c726b0e9962713d68975a9b2f32f66802d672d0529b9afe1bb6f03bdc22fdbd4","transitiveBytes":69026},{"ageMa":385.0,"url":"checkpoint-385ma.json","bytes":1216,"sha256":"f88cebbadf5f186698c80306e2abc06c5e317da3d0d2ae6bc848d17f04310179","transitiveBytes":75996},{"ageMa":390.0,"url":"checkpoint-390ma.json","bytes":1216,"sha256":"dd74379a40cdc83cd7000ad8bf50892f84f81f6a47ba8377dbf98de9cb9af884","transitiveBytes":74803},{"ageMa":395.0,"url":"checkpoint-395ma.json","bytes":1215,"sha256":"64fe1fa704aee4838b471d7a5ddc699863f85ac41ca5e5cbb5508cf94d38c4cc","transitiveBytes":63604},{"ageMa":400.0,"url":"checkpoint-400ma.json","bytes":1215,"sha256":"d3271a50b8c0a15c6be5a36a64d0a4f727a26fbdaa8e4c80eb8de0e669c843e9","transitiveBytes":65187},{"ageMa":405.0,"url":"checkpoint-405ma.json","bytes":1215,"sha256":"be94e661c4dbeb038846290054fb4a5f9899d41d7f538f974b4b6fe21f7f53ae","transitiveBytes":58935},{"ageMa":410.0,"url":"checkpoint-410ma.json","bytes":1215,"sha256":"da830c5be247152b4f583da89b72938e8b60674e66a53912816cc94c1fa75a58","transitiveBytes":58972},{"ageMa":415.0,"url":"checkpoint-415ma.json","bytes":1216,"sha256":"262dbd7391dffe9d0e0bd314652976ae31a369b2232d14be3f98d9db6e6d8660","transitiveBytes":59352},{"ageMa":420.0,"url":"checkpoint-420ma.json","bytes":1216,"sha256":"e37082caeca74d3b45f51c295cd377f559e7bffa909149b174911bcc91a3b27d","transitiveBytes":59737},{"ageMa":425.0,"url":"checkpoint-425ma.json","bytes":1216,"sha256":"d76616afd0a85748b8b8d3d4d36c7cd2e33256189e8070872c299044cce3b299","transitiveBytes":62000},{"ageMa":430.0,"url":"checkpoint-430ma.json","bytes":1216,"sha256":"7d3fdc22f7b91d93467cfbc17715b258c490c17a069b8a550229663f94fc886c","transitiveBytes":62797},{"ageMa":435.0,"url":"checkpoint-435ma.json","bytes":1216,"sha256":"1def585778c3b39e0e7858d2b55bebffbe0eb00c5665c8087026c4c243bfd96a","transitiveBytes":71123},{"ageMa":440.0,"url":"checkpoint-440ma.json","bytes":1216,"sha256":"ce174e0ae367b452e2e3b948dcb20da03a382b387c6b320eb1c501f9d671e16f","transitiveBytes":71689},{"ageMa":445.0,"url":"checkpoint-445ma.json","bytes":1216,"sha256":"36d91dadc1046b178b8a1a186bd9757b34b503d50ecbe96461875bbf9be75c7e","transitiveBytes":81504},{"ageMa":450.0,"url":"checkpoint-450ma.json","bytes":1216,"sha256":"7bcb19311503f133ec6dded2d9116c035a56d77982a1c6c2ebfe2ec8dc32e8f9","transitiveBytes":81611},{"ageMa":455.0,"url":"checkpoint-455ma.json","bytes":1216,"sha256":"4ab3b74f16fc0d1e5e4fb2eb8b4e9f9fef079839a338a36c5b7760d1a2d33b4b","transitiveBytes":86345},{"ageMa":460.0,"url":"checkpoint-460ma.json","bytes":1216,"sha256":"fd697fb35a70f6361adfaf8b88f52590726e98410368d2370de7c7c85fe78469","transitiveBytes":85167},{"ageMa":465.0,"url":"checkpoint-465ma.json","bytes":1216,"sha256":"56f8276361a0b0b164bd28beb8def22c17a2eb658ba734ee552fae26a76e559f","transitiveBytes":89248},{"ageMa":470.0,"url":"checkpoint-470ma.json","bytes":1216,"sha256":"ca961a554e87ee5feceebc00a99d3cfcf3ead54df6c65c0a809d07c3b5c4cf22","transitiveBytes":89837},{"ageMa":475.0,"url":"checkpoint-475ma.json","bytes":1216,"sha256":"2b5cf351ef527fe9f182745a15a43366260919f4f7d4a7871f510d3719acafff","transitiveBytes":102292},{"ageMa":480.0,"url":"checkpoint-480ma.json","bytes":1216,"sha256":"abbf0808aaad327c2eba36a2a7d5a8f43a80f456a3c7bab81ae05bfcf48f0334","transitiveBytes":105625},{"ageMa":485.0,"url":"checkpoint-485ma.json","bytes":1216,"sha256":"c00749167df6c41ab7fad00e6a1afcbbda8bf983ce3965b91db1d71f084178d6","transitiveBytes":106138},{"ageMa":490.0,"url":"checkpoint-490ma.json","bytes":1216,"sha256":"6c76629142881c9fee0710ba498a497d45552f4b896dc2cbeebd83cbef352a00","transitiveBytes":109023},{"ageMa":495.0,"url":"checkpoint-495ma.json","bytes":1216,"sha256":"87d17a1e80b67a1fe953eedc156e019902c7dfc0027edea3730eea756102cc56","transitiveBytes":100097},{"ageMa":500.0,"url":"checkpoint-500ma.json","bytes":1216,"sha256":"b6e5eebfa76779cecf07f47fe8b970f5113c8fe7fda82b5035df1e1f1de67735","transitiveBytes":99908},{"ageMa":505.0,"url":"checkpoint-505ma.json","bytes":1216,"sha256":"a99605fcd11f361d104dedbbcfa78be71653a2fbe3b35fc45a96d0c18bbae3c8","transitiveBytes":86903},{"ageMa":510.0,"url":"checkpoint-510ma.json","bytes":1216,"sha256":"e3727a7527851dd9bc1476d6132ed97ce42253ffa0a11b214577e2f41de1aa69","transitiveBytes":88917},{"ageMa":515.0,"url":"checkpoint-515ma.json","bytes":1216,"sha256":"8643621b69afd47053672f3d103838c24b93fd1ec4e6ad6b6fc925e522cbbdd8","transitiveBytes":87153},{"ageMa":520.0,"url":"checkpoint-520ma.json","bytes":1216,"sha256":"514748285944cf252a8c29651f786cbbc05bc02e785fddd8b164bb78194cef6d","transitiveBytes":86864},{"ageMa":525.0,"url":"checkpoint-525ma.json","bytes":1216,"sha256":"77b84dbe23921a3a48d875921c40955b7fb540259a09b3e712feeff929fe9e62","transitiveBytes":87927},{"ageMa":530.0,"url":"checkpoint-530ma.json","bytes":1216,"sha256":"a7de43454bbb19c8b2d53247255902d590ae71b88fa65791e0df5e956776c8e4","transitiveBytes":88541},{"ageMa":535.0,"url":"checkpoint-535ma.json","bytes":1216,"sha256":"6ab5fd8064c91d912911080867bcb0f6b9a2ca89c3d99f33e51a674499d29f5d","transitiveBytes":87882},{"ageMa":540.0,"url":"checkpoint-540ma.json","bytes":1216,"sha256":"beba4257a33dbb6e1a9843c3261a4f9d009af467b0438bf4a3211bf2542209c5","transitiveBytes":87775}],"scope":"native Cao coastline-class model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown"}
+{
+  "schemaVersion": 2,
+  "packageId": "cao-v2.4-foundation-v1",
+  "revision": "cao-foundation-v1",
+  "frame": {
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "absoluteFrameId": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "axisConvention": "gplates-x0e-y90e-znorth",
+    "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "topologySha256": "411bd3e5e5a2004ea42792a5c1be11942a46b52e3657efdb06507c147fbfdf1a"
+  },
+  "ageDomainMa": {
+    "youngest": 0,
+    "oldest": 540
+  },
+  "core": {
+    "url": "core.json",
+    "bytes": 8640432,
+    "sha256": "1a39773ef9fcf83c15a4280b748c0600a8872b6c3810f0dc7e1f9c9c891b8b09"
+  },
+  "motionPalette": {
+    "id": "cao-v2.4-shared-motion-v1",
+    "catalog": {
+      "url": "motion-palette.json",
+      "bytes": 1324372,
+      "sha256": "6e97dc30ee7481301dd67d2e020e9469d91586291179a80ee41b70fc4799c92c"
+    },
+    "binary": {
+      "url": "motion-palette.bin",
+      "bytes": 4718272,
+      "sha256": "61306d51d1e51240a95e9368bfbdf8cf81e1d21697df2727a0df3b9e00a4d673"
+    }
+  },
+  "checkpoints": [
+    {
+      "ageMa": 0.0,
+      "url": "checkpoint-0ma.json",
+      "bytes": 1300,
+      "sha256": "e10a9ea60c25fff47ed84297b729890c6341f6d1ffdf4feac7ea42060584da52",
+      "transitiveBytes": 234492
+    },
+    {
+      "ageMa": 5.0,
+      "url": "checkpoint-5ma.json",
+      "bytes": 1300,
+      "sha256": "83daf5cf8ae533555f79a784e76b43dbc589ac5ac3f0af52014199a566fad8ed",
+      "transitiveBytes": 204502
+    },
+    {
+      "ageMa": 10.0,
+      "url": "checkpoint-10ma.json",
+      "bytes": 1307,
+      "sha256": "753c0ef5824511ebab0642bb7f98536d73a5c50644c24a72dc6a128d0dc6a893",
+      "transitiveBytes": 191181
+    },
+    {
+      "ageMa": 15.0,
+      "url": "checkpoint-15ma.json",
+      "bytes": 1306,
+      "sha256": "4ce1e6cb1815e92ea5b7d783d3495811f5ebd5f59eb30f7783499c55f548b59a",
+      "transitiveBytes": 176055
+    },
+    {
+      "ageMa": 20.0,
+      "url": "checkpoint-20ma.json",
+      "bytes": 1306,
+      "sha256": "5587375ea5d465f4a9cc8a2c8d8878a6f8c3086063e55b9cd957c2894d71718c",
+      "transitiveBytes": 172573
+    },
+    {
+      "ageMa": 25.0,
+      "url": "checkpoint-25ma.json",
+      "bytes": 1306,
+      "sha256": "6c65e6cac950496f20c892ef7f68475fcfb3b2a1f59a6a9c65f6fc60c31ba2db",
+      "transitiveBytes": 171299
+    },
+    {
+      "ageMa": 30.0,
+      "url": "checkpoint-30ma.json",
+      "bytes": 1307,
+      "sha256": "be19a4f45697fdb042f686bc7c9995d40696ea298e080e9207c64f3d60d2cdaa",
+      "transitiveBytes": 184435
+    },
+    {
+      "ageMa": 35.0,
+      "url": "checkpoint-35ma.json",
+      "bytes": 1306,
+      "sha256": "bfc50a512b586d64e2634108d90449901a30f1647692cc1712ab374f4000986a",
+      "transitiveBytes": 179589
+    },
+    {
+      "ageMa": 40.0,
+      "url": "checkpoint-40ma.json",
+      "bytes": 1306,
+      "sha256": "0a19aeaf92b68bbd9bca0f10d3a4cb11293a0a17cc2352b6fd43c7ade4256b40",
+      "transitiveBytes": 171501
+    },
+    {
+      "ageMa": 45.0,
+      "url": "checkpoint-45ma.json",
+      "bytes": 1306,
+      "sha256": "4117c1ae2584771b880e02a07edb1fafc19dc780828b93426719ae53c4d1ede8",
+      "transitiveBytes": 155017
+    },
+    {
+      "ageMa": 50.0,
+      "url": "checkpoint-50ma.json",
+      "bytes": 1305,
+      "sha256": "47f1820a48a0488cf1618bbd699ef70f3d9c579073422719d57f099adac6ecfc",
+      "transitiveBytes": 141568
+    },
+    {
+      "ageMa": 55.0,
+      "url": "checkpoint-55ma.json",
+      "bytes": 1306,
+      "sha256": "df00829f77087ad32a9159b530ed20f595ddf475b50923465eead209bf50f328",
+      "transitiveBytes": 150628
+    },
+    {
+      "ageMa": 60.0,
+      "url": "checkpoint-60ma.json",
+      "bytes": 1305,
+      "sha256": "1cc870e5975e100b0c8b1cf7a29a6030758a70eb7882cc2af94464fdf4ff972e",
+      "transitiveBytes": 151659
+    },
+    {
+      "ageMa": 65.0,
+      "url": "checkpoint-65ma.json",
+      "bytes": 1305,
+      "sha256": "64e058bc819367768e990a808c43961cafa27bacaba06912121a6f1541e6ab39",
+      "transitiveBytes": 152481
+    },
+    {
+      "ageMa": 70.0,
+      "url": "checkpoint-70ma.json",
+      "bytes": 1306,
+      "sha256": "a96f56a7188bcdee859c0bbd25a2c783757a54dcd79d322a9131a3929e187459",
+      "transitiveBytes": 158308
+    },
+    {
+      "ageMa": 75.0,
+      "url": "checkpoint-75ma.json",
+      "bytes": 1306,
+      "sha256": "d54b4116c52c7ab73d3778b2308ab9bcf1815697a9897ec1cfe1fd6bfe6f7adb",
+      "transitiveBytes": 156237
+    },
+    {
+      "ageMa": 80.0,
+      "url": "checkpoint-80ma.json",
+      "bytes": 1306,
+      "sha256": "25cbbb00a984c32d99d08721449dde9a3b1101b8b6d14ca64b6a6049c1d75197",
+      "transitiveBytes": 151193
+    },
+    {
+      "ageMa": 85.0,
+      "url": "checkpoint-85ma.json",
+      "bytes": 1305,
+      "sha256": "abb258dd5f5fef20d1e3d46f9200e28fba9d056cf5a50dafee8a5da9d409991b",
+      "transitiveBytes": 148468
+    },
+    {
+      "ageMa": 90.0,
+      "url": "checkpoint-90ma.json",
+      "bytes": 1305,
+      "sha256": "0c18fa25fb62753afa0ab488fbaefb0f1996556b8a42c4faa49583480d07c3b2",
+      "transitiveBytes": 132821
+    },
+    {
+      "ageMa": 95.0,
+      "url": "checkpoint-95ma.json",
+      "bytes": 1305,
+      "sha256": "8ca8f8b81ec40cc06980a1834251f2521f9fe0c50c995900517b1f0647e1531a",
+      "transitiveBytes": 130373
+    },
+    {
+      "ageMa": 100.0,
+      "url": "checkpoint-100ma.json",
+      "bytes": 1312,
+      "sha256": "3393176c06874dceb0a358a5be10336e049d6b3e792db9a0d51169ce778f9919",
+      "transitiveBytes": 134886
+    },
+    {
+      "ageMa": 105.0,
+      "url": "checkpoint-105ma.json",
+      "bytes": 1312,
+      "sha256": "fc1a0a9ec0f7a048cbe61235227622e49d9fc966ab02b8a1107e8ef6e820f59c",
+      "transitiveBytes": 130910
+    },
+    {
+      "ageMa": 110.0,
+      "url": "checkpoint-110ma.json",
+      "bytes": 1312,
+      "sha256": "a3c55ac2a7b9f51e5934e60304d7fbe34e5b6ae8886f704785c85d5d1c15e3c9",
+      "transitiveBytes": 130004
+    },
+    {
+      "ageMa": 115.0,
+      "url": "checkpoint-115ma.json",
+      "bytes": 1312,
+      "sha256": "62b164b14305103385c7ba67608a7cc17b9675e1f646315158a42048d5811ca2",
+      "transitiveBytes": 126399
+    },
+    {
+      "ageMa": 120.0,
+      "url": "checkpoint-120ma.json",
+      "bytes": 1312,
+      "sha256": "588293bd12fa436bc9ac9bee8c5b075eead1d7e9df709a2d4122d0c3b3d534de",
+      "transitiveBytes": 132639
+    },
+    {
+      "ageMa": 125.0,
+      "url": "checkpoint-125ma.json",
+      "bytes": 1312,
+      "sha256": "7ba1745b423a8b09bc30a250d71a15dc20a4b0e0dc5570fb45047443b825808e",
+      "transitiveBytes": 146590
+    },
+    {
+      "ageMa": 130.0,
+      "url": "checkpoint-130ma.json",
+      "bytes": 1312,
+      "sha256": "2c7b734e8c1f71533c9249ad76fdc0c9e88165384e267296148e2f421c17852c",
+      "transitiveBytes": 149548
+    },
+    {
+      "ageMa": 135.0,
+      "url": "checkpoint-135ma.json",
+      "bytes": 1312,
+      "sha256": "b3af25c20ba3f0fae0fe16c1802f094afa0f1d4214685604f7e0a2afe55ca016",
+      "transitiveBytes": 150072
+    },
+    {
+      "ageMa": 140.0,
+      "url": "checkpoint-140ma.json",
+      "bytes": 1312,
+      "sha256": "c87cb71e736db841c9165f561f4e3069c03d8611a9802a9e2d0839441394d2e3",
+      "transitiveBytes": 142566
+    },
+    {
+      "ageMa": 145.0,
+      "url": "checkpoint-145ma.json",
+      "bytes": 1312,
+      "sha256": "40cf4055b080d65680fccf884656468724d4662fd69fb7dd8038472c240d6bba",
+      "transitiveBytes": 130811
+    },
+    {
+      "ageMa": 150.0,
+      "url": "checkpoint-150ma.json",
+      "bytes": 1312,
+      "sha256": "acbb0b98e9c0b047d5b3ce120a7cddc4fc4b5dfa2408aeab8b529acb6535e5d9",
+      "transitiveBytes": 116329
+    },
+    {
+      "ageMa": 155.0,
+      "url": "checkpoint-155ma.json",
+      "bytes": 1312,
+      "sha256": "8b042b909dea9144757e404f3edbd8ccc8d460c92180f24682ea11e7c496247d",
+      "transitiveBytes": 111604
+    },
+    {
+      "ageMa": 160.0,
+      "url": "checkpoint-160ma.json",
+      "bytes": 1312,
+      "sha256": "d47e814ab721a6697e14bcf3cf4e4d1af649fba44f4c0712013123d4959ab8bc",
+      "transitiveBytes": 103338
+    },
+    {
+      "ageMa": 165.0,
+      "url": "checkpoint-165ma.json",
+      "bytes": 1311,
+      "sha256": "edef98d743c56b7c1522ddb084d20899215d54bafbf4ca28a6fe888008dcb660",
+      "transitiveBytes": 88149
+    },
+    {
+      "ageMa": 170.0,
+      "url": "checkpoint-170ma.json",
+      "bytes": 1311,
+      "sha256": "3b36ad0f83c6f04d5b398c885c89f5d2467f0413f7bf92c702b7aacaefc73fff",
+      "transitiveBytes": 87615
+    },
+    {
+      "ageMa": 175.0,
+      "url": "checkpoint-175ma.json",
+      "bytes": 1311,
+      "sha256": "4218902eeb95f2ecdbb192b1d6e2140a88beb5d7f6a08e194b71246946e94843",
+      "transitiveBytes": 84104
+    },
+    {
+      "ageMa": 180.0,
+      "url": "checkpoint-180ma.json",
+      "bytes": 1311,
+      "sha256": "eb1d0baccc4e6850b9f37970fdc210fc50dc7c1a53ef3bacbfd26b99c1f83b82",
+      "transitiveBytes": 72729
+    },
+    {
+      "ageMa": 185.0,
+      "url": "checkpoint-185ma.json",
+      "bytes": 1311,
+      "sha256": "45838efc1db4ca8a765c63a2a258672d1859960a6493cd1064bfc695565f6f29",
+      "transitiveBytes": 77439
+    },
+    {
+      "ageMa": 190.0,
+      "url": "checkpoint-190ma.json",
+      "bytes": 1311,
+      "sha256": "b577b2b47f1975df94047fd9b1ab6947d544a6b2e2c29927364155616466176f",
+      "transitiveBytes": 78340
+    },
+    {
+      "ageMa": 195.0,
+      "url": "checkpoint-195ma.json",
+      "bytes": 1311,
+      "sha256": "35932cd4b98fc53f4e63b3237d0b663984713e708fafc6db94e680d7e9b512c7",
+      "transitiveBytes": 67313
+    },
+    {
+      "ageMa": 200.0,
+      "url": "checkpoint-200ma.json",
+      "bytes": 1311,
+      "sha256": "2b7c5700f6805adae30bacfecdf989855fac190962cd52f377a5682049ed9dae",
+      "transitiveBytes": 61429
+    },
+    {
+      "ageMa": 205.0,
+      "url": "checkpoint-205ma.json",
+      "bytes": 1311,
+      "sha256": "50f4e1d2fa871b4aada205a23087d32bff9d553e33ba2b82dd18f29d6e56cbed",
+      "transitiveBytes": 54393
+    },
+    {
+      "ageMa": 210.0,
+      "url": "checkpoint-210ma.json",
+      "bytes": 1311,
+      "sha256": "0f025b0fc9a8426527956781edc14e934041729349530a1ac8e6ac30fc53ec12",
+      "transitiveBytes": 55073
+    },
+    {
+      "ageMa": 215.0,
+      "url": "checkpoint-215ma.json",
+      "bytes": 1311,
+      "sha256": "4abab2e2ebdc26690da7b972c2a5d0027f580b636e673c9ae3f977e13bfc5778",
+      "transitiveBytes": 55488
+    },
+    {
+      "ageMa": 220.0,
+      "url": "checkpoint-220ma.json",
+      "bytes": 1311,
+      "sha256": "500fede71af15679ea1bbfd0b7edba9eb3b4452ecad22789c4ee2beaabc662f0",
+      "transitiveBytes": 55489
+    },
+    {
+      "ageMa": 225.0,
+      "url": "checkpoint-225ma.json",
+      "bytes": 1311,
+      "sha256": "076e180834779f1cde9f6b045218cf2281f2fa4eceaa0c93137cd8001c050727",
+      "transitiveBytes": 55520
+    },
+    {
+      "ageMa": 230.0,
+      "url": "checkpoint-230ma.json",
+      "bytes": 1311,
+      "sha256": "06bb574783ee9e2218526d57ef0aeec5452e337c9acf5568a24f64cc2ce508fc",
+      "transitiveBytes": 56088
+    },
+    {
+      "ageMa": 235.0,
+      "url": "checkpoint-235ma.json",
+      "bytes": 1311,
+      "sha256": "546ef5fd1c2944f9e74a6421eab9ba152f48a685fdc4ef4b642ab9e479b8d7fd",
+      "transitiveBytes": 60035
+    },
+    {
+      "ageMa": 240.0,
+      "url": "checkpoint-240ma.json",
+      "bytes": 1311,
+      "sha256": "8443beff9e83a5cef18e2d6baf76caa6c8e32a9cedad78e742ecc61418235b77",
+      "transitiveBytes": 60079
+    },
+    {
+      "ageMa": 245.0,
+      "url": "checkpoint-245ma.json",
+      "bytes": 1311,
+      "sha256": "df264924a67ff0d6826500c9829de121ee7347c9a1a1e70be0430efc6149cd43",
+      "transitiveBytes": 56512
+    },
+    {
+      "ageMa": 250.0,
+      "url": "checkpoint-250ma.json",
+      "bytes": 1311,
+      "sha256": "dacb1735f1124c6c73c42ac83aef55d3c0807784c8111742346c95d8982d92f0",
+      "transitiveBytes": 56587
+    },
+    {
+      "ageMa": 255.0,
+      "url": "checkpoint-255ma.json",
+      "bytes": 1310,
+      "sha256": "563b670fc7edfb07236ad09eecd4efbcc842ff47792556e860d130bf1af4c5fd",
+      "transitiveBytes": 55977
+    },
+    {
+      "ageMa": 260.0,
+      "url": "checkpoint-260ma.json",
+      "bytes": 1310,
+      "sha256": "48552222a4b5e6dd6dd989f727507ce5ca161b31c870a4bfd817b113a86329df",
+      "transitiveBytes": 53594
+    },
+    {
+      "ageMa": 265.0,
+      "url": "checkpoint-265ma.json",
+      "bytes": 1310,
+      "sha256": "64a12faa9d3448ae2a3d2c568759e07f623c963be186808a99a71a8770547fb3",
+      "transitiveBytes": 61814
+    },
+    {
+      "ageMa": 270.0,
+      "url": "checkpoint-270ma.json",
+      "bytes": 1311,
+      "sha256": "b3d2c32e1e328df5a457edc0a4e1dbf1d2d4d07d29e2578f803ce046e5ae2f6f",
+      "transitiveBytes": 65947
+    },
+    {
+      "ageMa": 275.0,
+      "url": "checkpoint-275ma.json",
+      "bytes": 1310,
+      "sha256": "b7e50bc155863e6aaa7230ccec5b4137fac0ca5979f01c0f87d057af38370085",
+      "transitiveBytes": 58709
+    },
+    {
+      "ageMa": 280.0,
+      "url": "checkpoint-280ma.json",
+      "bytes": 1310,
+      "sha256": "04ef29548129697a7cc1e5c43524a575b888cddfeeec0c331d94c903b7845f91",
+      "transitiveBytes": 56554
+    },
+    {
+      "ageMa": 285.0,
+      "url": "checkpoint-285ma.json",
+      "bytes": 1310,
+      "sha256": "cf9f4d22cbb685a201ae01fba4d0f53794f13c244dd9730458f3aeae1489ed14",
+      "transitiveBytes": 56573
+    },
+    {
+      "ageMa": 290.0,
+      "url": "checkpoint-290ma.json",
+      "bytes": 1310,
+      "sha256": "b8d6c1032adec6f87f4c3b9d76c77871e60a79c1d874c8077ec0af73b9d5cdb0",
+      "transitiveBytes": 56549
+    },
+    {
+      "ageMa": 295.0,
+      "url": "checkpoint-295ma.json",
+      "bytes": 1310,
+      "sha256": "4c68280700cba149aa164e4cc7da513c8f7958494741aea1cba1052265734788",
+      "transitiveBytes": 56521
+    },
+    {
+      "ageMa": 300.0,
+      "url": "checkpoint-300ma.json",
+      "bytes": 1310,
+      "sha256": "b30793291854b4ce2a7cb78101b466e069cfa1d9dee1b8a0e0aca481dcb82da8",
+      "transitiveBytes": 56259
+    },
+    {
+      "ageMa": 305.0,
+      "url": "checkpoint-305ma.json",
+      "bytes": 1310,
+      "sha256": "2329aafb9565401f32337c6d4036e47b877b4a9d85a57184e95ad768e8091f48",
+      "transitiveBytes": 59876
+    },
+    {
+      "ageMa": 310.0,
+      "url": "checkpoint-310ma.json",
+      "bytes": 1310,
+      "sha256": "18085708d2e02c028985c9c6c5b5627ddbf3dd95c1a9bf956d4aa2e0a2de5ea0",
+      "transitiveBytes": 59515
+    },
+    {
+      "ageMa": 315.0,
+      "url": "checkpoint-315ma.json",
+      "bytes": 1311,
+      "sha256": "45bda005bfea013cccb3a96ff74c54a95744e0d1bc5ebcf12cfe86f43600d4e4",
+      "transitiveBytes": 69561
+    },
+    {
+      "ageMa": 320.0,
+      "url": "checkpoint-320ma.json",
+      "bytes": 1311,
+      "sha256": "82a2114b4219ac6b6cc99fe19d85f91df5267869d524dcfc4603d24b56b8bd45",
+      "transitiveBytes": 79307
+    },
+    {
+      "ageMa": 325.0,
+      "url": "checkpoint-325ma.json",
+      "bytes": 1311,
+      "sha256": "684ecab43146851dd43096ac1bd4d011de57caadfa258956dce482e1a29601d6",
+      "transitiveBytes": 81853
+    },
+    {
+      "ageMa": 330.0,
+      "url": "checkpoint-330ma.json",
+      "bytes": 1311,
+      "sha256": "5b9cd1a0291e8bf96471684a607219c040c1edf3f60136840da890c65d5ff5c5",
+      "transitiveBytes": 78302
+    },
+    {
+      "ageMa": 335.0,
+      "url": "checkpoint-335ma.json",
+      "bytes": 1311,
+      "sha256": "a993fa2993012dea714e41c11722d3e1d292900e3e2ca3d2168f4d5eda23e083",
+      "transitiveBytes": 83620
+    },
+    {
+      "ageMa": 340.0,
+      "url": "checkpoint-340ma.json",
+      "bytes": 1311,
+      "sha256": "4ee59cf5d7cfff38eb01fc88f158287d979842ce7d04c7d90474f58ee5592240",
+      "transitiveBytes": 79572
+    },
+    {
+      "ageMa": 345.0,
+      "url": "checkpoint-345ma.json",
+      "bytes": 1311,
+      "sha256": "f252f19bdef91d902f78b292a0fd0bd6f4b756eea6ff984a2e403fbd21369c8b",
+      "transitiveBytes": 80595
+    },
+    {
+      "ageMa": 350.0,
+      "url": "checkpoint-350ma.json",
+      "bytes": 1311,
+      "sha256": "09ef010bd7a12174bcd41a5760b69175571605182aac4253d5667e39939238fa",
+      "transitiveBytes": 79603
+    },
+    {
+      "ageMa": 355.0,
+      "url": "checkpoint-355ma.json",
+      "bytes": 1311,
+      "sha256": "1851e516fa55cc61b6773549dc0655bf9f057612d11aba1d60b6208a2d912788",
+      "transitiveBytes": 81030
+    },
+    {
+      "ageMa": 360.0,
+      "url": "checkpoint-360ma.json",
+      "bytes": 1311,
+      "sha256": "9a957cbd5511f2ba11b012961424cc1c0c190238afd6aca3ef52bcba8d2f7212",
+      "transitiveBytes": 68690
+    },
+    {
+      "ageMa": 365.0,
+      "url": "checkpoint-365ma.json",
+      "bytes": 1311,
+      "sha256": "b8ae14aed0db86d971e1f3fc73ae02d8aa0f87d2f8fdfe922ba507bc0dc5d06e",
+      "transitiveBytes": 67064
+    },
+    {
+      "ageMa": 370.0,
+      "url": "checkpoint-370ma.json",
+      "bytes": 1311,
+      "sha256": "48f96f04b69a64370a1c571854ed0416682a80bf1491e2967d0452bbbe153d0d",
+      "transitiveBytes": 66134
+    },
+    {
+      "ageMa": 375.0,
+      "url": "checkpoint-375ma.json",
+      "bytes": 1311,
+      "sha256": "29316a8952927b5ba6d72bfa263410d3507d76bab859b193bfd849de95ee2079",
+      "transitiveBytes": 68389
+    },
+    {
+      "ageMa": 380.0,
+      "url": "checkpoint-380ma.json",
+      "bytes": 1311,
+      "sha256": "9115d709f3cc9c83b5fdd15214a68799f875f5e959962dc1c57f76cf18ab9998",
+      "transitiveBytes": 69121
+    },
+    {
+      "ageMa": 385.0,
+      "url": "checkpoint-385ma.json",
+      "bytes": 1311,
+      "sha256": "9a1f819c5f21522b8a1823bb0d1a206ed7fa9ebaee0d54cfb46482c878643284",
+      "transitiveBytes": 76091
+    },
+    {
+      "ageMa": 390.0,
+      "url": "checkpoint-390ma.json",
+      "bytes": 1311,
+      "sha256": "d2c597005d6fb6ceb2cfde3eace41d1bd21c66bdfd5058935e46a90f6d21973c",
+      "transitiveBytes": 74898
+    },
+    {
+      "ageMa": 395.0,
+      "url": "checkpoint-395ma.json",
+      "bytes": 1310,
+      "sha256": "e61758ffaba5e4b94f37c1c4908d0480d3181e506f3f1ea2b31b7ee25ee7afe1",
+      "transitiveBytes": 63699
+    },
+    {
+      "ageMa": 400.0,
+      "url": "checkpoint-400ma.json",
+      "bytes": 1310,
+      "sha256": "17b068eaab78998623a22792934d34fa4fb5be9ab4bf445be08b3dd8cee88245",
+      "transitiveBytes": 65282
+    },
+    {
+      "ageMa": 405.0,
+      "url": "checkpoint-405ma.json",
+      "bytes": 1310,
+      "sha256": "f674beafedfe37168df57556cb1a444ceaa492a3628ad3704e330261dd2a5760",
+      "transitiveBytes": 59030
+    },
+    {
+      "ageMa": 410.0,
+      "url": "checkpoint-410ma.json",
+      "bytes": 1310,
+      "sha256": "ae292cc14aa011242e43398d6d6bc1b457535075ed1dfab1a6df79488fc90a3f",
+      "transitiveBytes": 59067
+    },
+    {
+      "ageMa": 415.0,
+      "url": "checkpoint-415ma.json",
+      "bytes": 1311,
+      "sha256": "be5f41019a764495e13900d381d56a89bb023706a57859b5872bef54a54f00ea",
+      "transitiveBytes": 59447
+    },
+    {
+      "ageMa": 420.0,
+      "url": "checkpoint-420ma.json",
+      "bytes": 1311,
+      "sha256": "f238585d0064649b21e3d51ced750cdf3abbf2ddbe00469a966589b615656dd2",
+      "transitiveBytes": 59832
+    },
+    {
+      "ageMa": 425.0,
+      "url": "checkpoint-425ma.json",
+      "bytes": 1311,
+      "sha256": "4145b00bfd794d3ad7a9726004343d07377e987fca57a19eafbe1573534c81d3",
+      "transitiveBytes": 62095
+    },
+    {
+      "ageMa": 430.0,
+      "url": "checkpoint-430ma.json",
+      "bytes": 1311,
+      "sha256": "9a2750ac99963fb2d53b8371eebe3e183a75a118f34056880c343b6670d8b956",
+      "transitiveBytes": 62892
+    },
+    {
+      "ageMa": 435.0,
+      "url": "checkpoint-435ma.json",
+      "bytes": 1311,
+      "sha256": "c3dc2552b9cebfb0549acf0c793b3fdc2bc8822fb6d6c87f88e00e2a76210206",
+      "transitiveBytes": 71218
+    },
+    {
+      "ageMa": 440.0,
+      "url": "checkpoint-440ma.json",
+      "bytes": 1311,
+      "sha256": "c51be57f5a9c5c831f7556aa23c5870a259545b0bd9b0180a3b42a3bdcab239a",
+      "transitiveBytes": 71784
+    },
+    {
+      "ageMa": 445.0,
+      "url": "checkpoint-445ma.json",
+      "bytes": 1311,
+      "sha256": "48d6b436d007900c21ab45979676873d71e0bfa0c81ddb25f86df0f8d46f2a95",
+      "transitiveBytes": 81599
+    },
+    {
+      "ageMa": 450.0,
+      "url": "checkpoint-450ma.json",
+      "bytes": 1311,
+      "sha256": "86ffff04c779e925faece2b67380307b171dab98ccb305db8c1cda7a12077af8",
+      "transitiveBytes": 81706
+    },
+    {
+      "ageMa": 455.0,
+      "url": "checkpoint-455ma.json",
+      "bytes": 1311,
+      "sha256": "99b1793216210f77e145a1f6c9967498c8493fcca2031ae01ff6544016aa4131",
+      "transitiveBytes": 86440
+    },
+    {
+      "ageMa": 460.0,
+      "url": "checkpoint-460ma.json",
+      "bytes": 1311,
+      "sha256": "7401dd4d84869c55099ce84bd9b1a6a6ba1c6c40081fdfd9ad136d5913247d2f",
+      "transitiveBytes": 85262
+    },
+    {
+      "ageMa": 465.0,
+      "url": "checkpoint-465ma.json",
+      "bytes": 1311,
+      "sha256": "acc10280118fa79b02221c5def36cebb2cbbea763e5696aeddfa5f9c813866b0",
+      "transitiveBytes": 89343
+    },
+    {
+      "ageMa": 470.0,
+      "url": "checkpoint-470ma.json",
+      "bytes": 1311,
+      "sha256": "bb3689ee02915533387e732f9112889d50ea6cfe6fa60cb17f007c1980e42e0a",
+      "transitiveBytes": 89932
+    },
+    {
+      "ageMa": 475.0,
+      "url": "checkpoint-475ma.json",
+      "bytes": 1311,
+      "sha256": "3dff5ecf9c4993b262c31d8a36140a39592387f814bbf8f21f829d34a4b5ec51",
+      "transitiveBytes": 102387
+    },
+    {
+      "ageMa": 480.0,
+      "url": "checkpoint-480ma.json",
+      "bytes": 1311,
+      "sha256": "c75bcb1b8194074e042dd1adffb83fdc40abb3aa94467fcd858a490432d4cac9",
+      "transitiveBytes": 105720
+    },
+    {
+      "ageMa": 485.0,
+      "url": "checkpoint-485ma.json",
+      "bytes": 1311,
+      "sha256": "7e8c942b3e72afe0e02291c1de9b4a6a61517ec4b40a33e432ae96561d9a4114",
+      "transitiveBytes": 106233
+    },
+    {
+      "ageMa": 490.0,
+      "url": "checkpoint-490ma.json",
+      "bytes": 1311,
+      "sha256": "2b58696ee982bec98cd1541bd6788eedbd2def8c702da3613b731a4d57ef33f6",
+      "transitiveBytes": 109118
+    },
+    {
+      "ageMa": 495.0,
+      "url": "checkpoint-495ma.json",
+      "bytes": 1311,
+      "sha256": "625255295935d0b326fdb07abc141f04caa6c75ab2b1ac8ea849694acc82f8dc",
+      "transitiveBytes": 100192
+    },
+    {
+      "ageMa": 500.0,
+      "url": "checkpoint-500ma.json",
+      "bytes": 1311,
+      "sha256": "34b11887056aa42bb36bb2e2ff9a307d549c83ef210a42bf67828d73fbd25a5c",
+      "transitiveBytes": 100003
+    },
+    {
+      "ageMa": 505.0,
+      "url": "checkpoint-505ma.json",
+      "bytes": 1311,
+      "sha256": "97dc90de2e33ff0fac248539be930876a70f4dec3beaa1c93a1f69a53e2d565c",
+      "transitiveBytes": 86998
+    },
+    {
+      "ageMa": 510.0,
+      "url": "checkpoint-510ma.json",
+      "bytes": 1311,
+      "sha256": "724056bbbc769d13c0a30027fd7c6c2c9da165949a35411715aa96def77b895d",
+      "transitiveBytes": 89012
+    },
+    {
+      "ageMa": 515.0,
+      "url": "checkpoint-515ma.json",
+      "bytes": 1311,
+      "sha256": "5602b2d67933f01b65951184ef0409ab1a6ab367ce69be4d4c39022856f66df2",
+      "transitiveBytes": 87248
+    },
+    {
+      "ageMa": 520.0,
+      "url": "checkpoint-520ma.json",
+      "bytes": 1311,
+      "sha256": "cc8fb7f3bfe696b348c04c79c1eb4de46b70364684f53bf7aa5a4051af19dbfb",
+      "transitiveBytes": 86959
+    },
+    {
+      "ageMa": 525.0,
+      "url": "checkpoint-525ma.json",
+      "bytes": 1311,
+      "sha256": "e69f641a977e1aa59b5bf87b7e4c83d86b7328d3015ea2957ac12bfc91bd77a3",
+      "transitiveBytes": 88022
+    },
+    {
+      "ageMa": 530.0,
+      "url": "checkpoint-530ma.json",
+      "bytes": 1311,
+      "sha256": "7104fe1913b9a5867355c3e030ecfc56bec82252f7e48f57f5e4893489863fd9",
+      "transitiveBytes": 88636
+    },
+    {
+      "ageMa": 535.0,
+      "url": "checkpoint-535ma.json",
+      "bytes": 1311,
+      "sha256": "76ee673156b727e17044fe8d259413a76ec612ab568ae74aeb841ab230c05159",
+      "transitiveBytes": 87977
+    },
+    {
+      "ageMa": 540.0,
+      "url": "checkpoint-540ma.json",
+      "bytes": 1311,
+      "sha256": "176085a95c9135050b850b5bfc3a92cbb1df4187d65b0602d3b8ec8116506fd4",
+      "transitiveBytes": 87870
+    }
+  ],
+  "scope": "native Cao coastline-class model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown | Layered: continents=shallow-marine under coasts=land; country outlines=locators."
+}

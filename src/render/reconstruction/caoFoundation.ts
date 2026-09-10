@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DoubleSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
+import { DoubleSide, FrontSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
 import type Node from "three/src/nodes/core/Node.js";
 import type UniformNode from "three/src/nodes/core/UniformNode.js";
 import { attribute, float, int, ivec2, step, textureLoad, uniform, vec3 } from "three/tsl";
@@ -30,9 +30,16 @@ import { intersectRayTriangle } from "./picking";
 import type { Vec3Tuple } from "./bounds";
 
 /** Display separation only; source physical height remains zero/unknown. */
+export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 80;
 export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 400;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
+
+export function caoFoundationShellOffsetMetres(batchId: string): number {
+  if (batchId === "batch-shelf") return CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES;
+  if (batchId === "batch-land" || batchId === "batch-0") return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
+  return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
+}
 export const CAO_FOUNDATION_PALETTE_TEXEL_WIDTH = 256;
 
 type PreparedCaoLineGeometryCopy = ReturnType<
@@ -397,6 +404,8 @@ export function createCaoFoundationMaterial(
   display: PreparedCaoDisplayControlsCopy,
   displayFractionValue: number,
   verticalExaggerationValue: number,
+  shellOffsetMetres: number = CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+  appearance: "land" | "shelf" = "land",
 ): CaoFoundationMaterialGraph {
   const displayHeightStart = display.displayHeightStart.kind === "uniform"
     ? float(display.displayHeightStart.value) : attribute<"float">("displayHeightStartMetres", "float");
@@ -404,25 +413,52 @@ export function createCaoFoundationMaterial(
     ? float(display.displayHeightEnd.value) : attribute<"float">("displayHeightEndMetres", "float");
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
     displayFractionValue, verticalExaggerationValue, displayHeightStart,
-    displayHeightEnd, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES);
-  const material = new MeshStandardNodeMaterial({ side: DoubleSide, roughness: 0.82, metalness: 0 });
+    displayHeightEnd, shellOffsetMetres);
+  // Shelf plates light up brighter than the MeshPhysical globe ocean; keep them
+  // front-faced, rougher, and slightly dimmed so they sit near deep-sea tone.
+  const material = new MeshStandardNodeMaterial({
+    side: appearance === "shelf" ? FrontSide : DoubleSide,
+    roughness: appearance === "shelf" ? 0.94 : 0.82,
+    metalness: 0,
+  });
   material.positionNode = pose.position;
   material.normalNode = pose.direction;
-  material.colorNode = display.baseColor.kind === "uniform"
-    ? vec3(...display.baseColor.value) : attribute<"vec3">("color", "vec3");
+  if (display.baseColor.kind === "uniform") {
+    const [r, g, b] = display.baseColor.value;
+    const dim = appearance === "shelf" ? 0.58 : 1;
+    material.colorNode = vec3(r * dim, g * dim, b * dim);
+  } else {
+    material.colorNode = attribute<"vec3">("color", "vec3");
+  }
   return Object.freeze({ material, displayFraction: pose.displayFraction,
     verticalExaggeration: pose.verticalExaggeration });
 }
+
+export type CaoFoundationCountryLineStyle = "stroke" | "underlay";
 
 export function createCaoFoundationCountryLineMaterial(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
   displayFractionValue: number,
+  style: CaoFoundationCountryLineStyle = "stroke",
 ): CaoFoundationLineMaterialGraph {
+  // Underlay sits slightly lower; main stroke above. Soft slate beats near-black
+  // 1px hairlines, which alias hard on the globe (WebGL linewidth is effectively 1).
+  const shellOffset = style === "underlay"
+    ? CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120
+    : CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
-    displayFractionValue, 1, float(0), float(0), CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
-  const material = new LineBasicNodeMaterial({ color: 0x739a91, transparent: true,
-    opacity: 0.78, depthTest: true, depthWrite: false });
+    displayFractionValue, 1, float(0), float(0), shellOffset);
+  const material = new LineBasicNodeMaterial({
+    transparent: true,
+    opacity: style === "underlay" ? 0.34 : 0.72,
+    depthTest: true,
+    depthWrite: false,
+  });
+  // Muted ink — stronger than the first soft pass, still not near-black hairlines.
+  material.colorNode = style === "underlay"
+    ? vec3(0.1, 0.12, 0.15)
+    : vec3(0.14, 0.17, 0.2);
   material.positionNode = pose.position;
   return Object.freeze({ material, displayFraction: pose.displayFraction });
 }
@@ -930,15 +966,18 @@ function createPublicationResource(
           || display.baseColor.kind !== "uniform") {
         throw new Error("Cao foundation v1 requires uniform placeholder height/color controls");
       }
+      const shellOffset = caoFoundationShellOffsetMetres(batch.batchId);
+      const appearance = batch.batchId === "batch-shelf" ? "shelf" as const : "land" as const;
       const graph = createCaoFoundationMaterial(paletteTexture, packed.width, display,
-        revision.display.fraction, verticalExaggeration);
+        revision.display.fraction, verticalExaggeration, shellOffset, appearance);
       materials.push(graph.material);
       verticalExaggerations.push(graph.verticalExaggeration);
       const mesh = new THREE.Mesh(batch.geometry, graph.material);
       // Source batches do not yet carry qualified moving interval bounds.
       // Drawing all foundation batches preserves coverage until those arrive.
       mesh.frustumCulled = false;
-      mesh.renderOrder = 1;
+      // Shelf under land so coasts land colour wins where they overlap.
+      mesh.renderOrder = batch.batchId === "batch-shelf" ? 1 : 2;
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
@@ -947,15 +986,18 @@ function createPublicationResource(
       if (!prepared || prepared.batchId !== batch.batchId) {
         throw new Error("Cao country line batch order/identity changed");
       }
-      const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
-        revision.display.fraction);
-      materials.push(graph.material);
-      const lines = new THREE.LineSegments(batch.geometry, graph.material);
-      lines.frustumCulled = false;
-      lines.renderOrder = 3;
-      lines.userData.overlayLayer = "borders";
-      lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
-      group.add(lines);
+      for (const style of ["underlay", "stroke"] as const) {
+        const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
+          revision.display.fraction, style);
+        materials.push(graph.material);
+        const lines = new THREE.LineSegments(batch.geometry, graph.material);
+        lines.frustumCulled = false;
+        lines.renderOrder = style === "underlay" ? 3 : 4;
+        lines.userData.overlayLayer = "borders";
+        lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
+        lines.userData.countryLineStyle = style;
+        group.add(lines);
+      }
     }
     const nativeBoundary = createNativeBoundaryObject(revision);
     if (nativeBoundary.object !== null && nativeBoundary.geometry !== null

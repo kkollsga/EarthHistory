@@ -1,3 +1,13 @@
+export {
+  PALEODEM_AGES,
+  nearestPaleodemAge,
+  resolvePaleodemAgeBracket,
+  decodePaleodemElevation,
+  fetchPaleodemElevation,
+  type PaleodemAgeBracket,
+  type PaleodemElevationAsset,
+} from "./paleodem";
+
 export { pointOfInterestIncludesAge, pointsOfInterest, sources, timeSlices } from "./catalog";
 export { modernLandscapePresets } from "./landscape-presets";
 export { environmentForAge } from "./environment";

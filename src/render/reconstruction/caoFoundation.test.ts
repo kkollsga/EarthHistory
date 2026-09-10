@@ -93,12 +93,12 @@ describe("Cao foundation renderer boundary", () => {
     const revision = await runtime.request(0).prepared;
     const packageLimits = {
       ...limits,
-      maxVertices: 300_000,
-      maxTriangles: 400_000,
-      maxRetainedSourceBytes: 24 * 1024 * 1024,
+      maxVertices: 400_000,
+      maxTriangles: 600_000,
+      maxRetainedSourceBytes: 48 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(1);
+    expect(resource.batches).toHaveLength(2);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
@@ -190,7 +190,7 @@ describe("Cao foundation renderer boundary", () => {
     const group = new Group();
     const surface = new CaoFoundationSurfaceRenderer(group, retirement, limits);
     const diagnostics = surface.publish(revision, 8);
-    expect(diagnostics).toMatchObject({ drawCount: 3, countryLineBatches: 1,
+    expect(diagnostics).toMatchObject({ drawCount: 4, countryLineBatches: 1,
       countryLineSegments: 1, nativeBoundarySegments: 1, nativeBoundarySourceAgeMa: 0,
       topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0 });
     expect(surface.identifyTopology([1, 0, 0])).toEqual({ kind: "instantaneous-owner",
