@@ -45,6 +45,8 @@ def check(root: Path, max_mb: float, max_file_mb: float) -> int:
     errors: list[str] = []
     public_data = root / "public" / "data"
     dist = root / "dist"
+    notice_path = root / "THIRD_PARTY_NOTICES.md"
+    dist_notice = dist / "THIRD_PARTY_NOTICES.md"
     manifest_path = public_data / "manifest.json"
     if not manifest_path.is_file():
         print("check-app-artifacts: FAIL: public/data/manifest.json is missing")
@@ -73,6 +75,13 @@ def check(root: Path, max_mb: float, max_file_mb: float) -> int:
         errors.append("dist copy missing: dist/data/manifest.json")
     elif sha256(dist_manifest) != sha256(manifest_path):
         errors.append("dist copy differs: dist/data/manifest.json")
+
+    if not notice_path.is_file():
+        errors.append("THIRD_PARTY_NOTICES.md is missing")
+    elif not dist_notice.is_file():
+        errors.append("dist copy missing: dist/THIRD_PARTY_NOTICES.md")
+    elif sha256(dist_notice) != sha256(notice_path):
+        errors.append("dist copy differs: dist/THIRD_PARTY_NOTICES.md")
 
     for relative, record in declared.items():
         path = root / relative
@@ -136,6 +145,10 @@ def self_test() -> int:
         (built / "fixture.json").write_bytes(payload)
         (root / "dist" / "index.html").write_text('<script src="./assets/app.js"></script>')
         (assets / "app.js").write_text("export {}")
+        notice = root / "THIRD_PARTY_NOTICES.md"
+        dist_notice = root / "dist" / "THIRD_PARTY_NOTICES.md"
+        notice.write_text("Canonical third-party notices\n")
+        dist_notice.write_bytes(notice.read_bytes())
         manifest = {
             "inputs": {
                 "fixture": {
@@ -163,10 +176,19 @@ def self_test() -> int:
             print("check-app-artifacts self-test: FAIL: artifact budget violation passed")
             return 1
         (assets / "oversize.bin").unlink()
+        dist_notice.unlink()
+        if check(root, 1, 1) != 1:
+            print("check-app-artifacts self-test: FAIL: missing third-party notices passed")
+            return 1
+        dist_notice.write_text("Mismatched third-party notices\n")
+        if check(root, 1, 1) != 1:
+            print("check-app-artifacts self-test: FAIL: mismatched third-party notices passed")
+            return 1
+        dist_notice.write_bytes(notice.read_bytes())
         if check(root, 1, 1) != 0:
             print("check-app-artifacts self-test: FAIL: restored fixture did not pass")
             return 1
-    print("check-app-artifacts self-test: expected checksum, URL, and budget failures observed")
+    print("check-app-artifacts self-test: expected checksum, URL, notice, and budget failures observed")
     return 0
 
 

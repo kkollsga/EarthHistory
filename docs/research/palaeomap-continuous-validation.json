@@ -2535,5 +2535,20 @@
       "publication": "not yet performed"
     },
     "broadCoverageReuse": "Earlier4b955 full224-unit/24-browser/345-asset run retained for unaffected behavior; candidate requires its own deterministic and focused checks."
+  },
+  "releasePackagingFollowup": {
+    "version": "0.1.2",
+    "date": "2026-09-10",
+    "reason": "The Pages archive lacked the canonical third-party notices. Main CI also revealed a marginal aggregate country-test timeout.",
+    "notice": "Build copies canonical THIRD_PARTY_NOTICES.md; artifact checker proves existence and byte equality with missing/mismatched failure controls.",
+    "noticeSha256": "b467440c10f0bfb33587bc19bbb881f00fdf555f0c0d4b27ba5af079de4bbe55",
+    "countryTests": "Exact109-age catalog plus109 per-age ordinary/exaggerated budget checks; unchanged assertions and default timeout. Catalog mutation proved failure.",
+    "makeGateExitCode": 0,
+    "testFiles": 36,
+    "unitTests": 336,
+    "scientificAssets": 345,
+    "artifactBytes": 49490067,
+    "rendererSha256": "7e1690fe4aab317ec8369557a7bbd6beaf0ec67da67acbdd452dce5c5daecc03",
+    "browserEvidenceReuse": "Same renderer and data as the accepted zero-error Atlantic and430/420WebGPU captures and focused3-browser suite; no browser rerun for packaging/test-only changes."
   }
 }
