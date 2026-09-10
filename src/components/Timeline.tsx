@@ -33,7 +33,7 @@ interface TimelineProps {
   ageMa: number;
   geographicSourceAgeMa?: number;
   geographicSourceAgeBracketMa?: readonly [number, number];
-  /** Live Cao package domain; Precambrian range extends at least to this oldest age. */
+  /** Live Cao package domain; Precambrian oldest bound extends at least to this age. */
   caoAgeDomainMa?: readonly [number, number];
   slices: TimeSlice[];
   playing: boolean;
@@ -142,10 +142,11 @@ export function Timeline({
   const [chaptersWidth, setChaptersWidth] = useState(() => window.innerWidth - 92);
   const chapterDeepMax = Math.max(PHANEROZOIC_MAX_MA, ...slices.map((slice) => slice.ageMa));
   const caoOldest = caoAgeDomainMa?.[1] ?? 0;
-  // Precambrian scrubber spans ICS base-Cambrian through the greater of authored
-  // deep-time chapters and the live Cao package oldest age (never invented).
+  // Precambrian range mode keeps a deep-time scrubber from the greater of authored
+  // deep-time chapters and the live Cao package oldest age (never invented) all the
+  // way to today (0 Ma), so Phanerozoic ages stay reachable without leaving the mode.
   const precambrianMaxAge = Math.max(chapterDeepMax, caoOldest, PHANEROZOIC_MAX_MA);
-  const rangeMin = scaleMode === "phanerozoic" ? 0 : PHANEROZOIC_MAX_MA;
+  const rangeMin = 0;
   const rangeMax = scaleMode === "phanerozoic" ? PHANEROZOIC_MAX_MA : precambrianMaxAge;
   const span = Math.max(1e-9, rangeMax - rangeMin);
   const linear = scaleMode === "phanerozoic";
@@ -186,14 +187,17 @@ export function Timeline({
 
   const chooseScale = (next: ScaleMode) => {
     setScaleMode(next);
+    // Leaving Precambrian for Phanerozoic clamps ages older than the ICS bound;
+    // entering Precambrian keeps the current age so the scrubber can still reach today.
     if (next === "phanerozoic" && ageMa > PHANEROZOIC_MAX_MA) onAgeChange(PHANEROZOIC_MAX_MA);
-    else if (next === "precambrian" && ageMa < PHANEROZOIC_MAX_MA) onAgeChange(PHANEROZOIC_MAX_MA);
   };
 
   const handlePercent = sliderPosition(ageMa) / 10;
-  const majorBands = scaleMode === "phanerozoic" ? ERA_BOUNDARIES : EON_BOUNDARIES.filter(
-    (unit) => unit.oldest > PHANEROZOIC_MAX_MA - 1e-9,
-  );
+  const majorBands = scaleMode === "phanerozoic"
+    ? ERA_BOUNDARIES
+    : EON_BOUNDARIES.filter(
+      (unit) => unit.youngest < rangeMax + 1e-9 && unit.oldest > rangeMin - 1e-9,
+    );
 
   return (
     <section className="timeline" aria-label="Geological timeline">
@@ -235,7 +239,7 @@ export function Timeline({
         </div>
         <span className="timeline-direction">{scaleMode === "phanerozoic"
           ? `Linear ${formatAge(PHANEROZOIC_MAX_MA)}–present`
-          : `Nonlinear Precambrian to ${formatAge(precambrianMaxAge)}`}</span>
+          : `Nonlinear ${formatAge(precambrianMaxAge)}–present`}</span>
       </div>
 
       <div className="timeline-track-wrap">
@@ -283,7 +287,7 @@ export function Timeline({
       </div>
       <div
         className={`geological-bands ${scaleMode}`}
-        aria-label={scaleMode === "phanerozoic" ? "Geological eras and periods" : "Precambrian geological eons"}
+        aria-label={scaleMode === "phanerozoic" ? "Geological eras and periods" : "Geological eons through deep time"}
       >
         <div className="geological-band major-band">
         {majorBands.map((unit) => {

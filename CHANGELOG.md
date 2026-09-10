@@ -10,9 +10,9 @@ All notable changes to EarthHistory will be recorded here.
   palette between display knots, retargeting the published foundation in place
   instead of waiting for discrete prepare snaps. Adjacent checkpoints are
   prefetched only as a bounded aid on top of that interpolation.
-- Timeline ranges are Phanerozoic (ICS 538.8–0 Ma) and Precambrian (older than
-  538.8 Ma through authored deep-time chapters and the live Cao package domain);
-  the Recent Earth range is removed.
+- Timeline ranges are Phanerozoic (ICS 538.8–0 Ma) and Precambrian (authored
+  deep-time / live Cao oldest through today at 0 Ma), so Precambrian mode can
+  still scrub forward through the Phanerozoic; the Recent Earth range is removed.
 - Age-domain gating and continuous play follow the live package `ageDomainMa`
   (cao-v2.4 currently declares 0–540 Ma) rather than hard-coded ceilings.
 - Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 109 native
@@ -26,6 +26,10 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Precambrian timeline range again spans deep time through today (0 Ma): the
+  scrubber is no longer clamped to ages older than ICS 538.8 Ma, and switching
+  into Precambrian mode keeps the current age instead of jumping to the Cambrian
+  base.
 - Stop flooding `history.replaceState` on every continuous age tick while
   scrubbing or playing; coalesce explorer hash sync (~4 Hz) so Chromium does
   not throttle navigation IPC and hang the tab, while globe motion still

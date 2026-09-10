@@ -21,16 +21,19 @@ describe("Timeline ranges", () => {
     expect(visible.some((slice) => slice.id === "d")).toBe(false);
   });
 
-  it("keeps Precambrian chapter picks at or older than the Phanerozoic bound", () => {
-    const visible = selectVisibleChapters(slices, 2500, 1200, 720, false, PHANEROZOIC_MAX_MA);
-    expect(visible.every((slice) => slice.ageMa >= PHANEROZOIC_MAX_MA - 1e-9)).toBe(true);
-    expect(visible.some((slice) => slice.id === "a")).toBe(false);
+  it("lets Precambrian range mode include present through deep-time chapters", () => {
+    const visible = selectVisibleChapters(slices, 2500, 1200, 720, false, 0);
+    expect(visible.some((slice) => slice.id === "a")).toBe(true);
+    expect(visible.some((slice) => slice.id === "d" || slice.id === "e")).toBe(true);
+    expect(visible.every((slice) => slice.ageMa >= 0 && slice.ageMa <= 2500)).toBe(true);
   });
 
-  it("round-trips nonlinear slider mapping for deep Precambrian spans", () => {
-    const span = 2500 - PHANEROZOIC_MAX_MA;
-    const age = 720 - PHANEROZOIC_MAX_MA;
+  it("round-trips nonlinear slider mapping for deep Precambrian spans from today", () => {
+    const span = 2500;
+    const age = 720;
     const slider = ageToSlider(age, span);
     expect(sliderToAge(slider, span)).toBeCloseTo(age, 6);
+    expect(sliderToAge(0, span)).toBeCloseTo(0, 6);
+    expect(sliderToAge(1000, span)).toBeCloseTo(span, 6);
   });
 });

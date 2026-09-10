@@ -87,6 +87,25 @@ test("labels editorial geography outside the live Cao package domain", async ({ 
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "unsupported-editorial-uniform");
   await expect(page.locator("#timeline-scale")).toContainText("Precambrian");
   await expect(page.locator("#timeline-scale option[value='recent']")).toHaveCount(0);
+  await expect(page.locator(".timeline-direction")).toContainText("present");
+});
+
+test("keeps Precambrian scrubber from deep time through today", async ({ page }) => {
+  await page.goto("./");
+  await waitForCao(page);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
+  await page.locator("#timeline-scale").selectOption("precambrian");
+  await expect(page.locator("#timeline-scale")).toHaveValue("precambrian");
+  // Switching into Precambrian must not jump away from today.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
+  await expect(page.locator("#geological-age")).toHaveValue("0");
+  await page.locator("#geological-age").fill("1000");
+  await expect.poll(async () => Number(await page.locator("#geological-age").inputValue())).toBe(1000);
+  const deepLabel = await page.locator(".timeline-handle-label").innerText();
+  expect(deepLabel).not.toMatch(/Today/i);
+  await page.locator("#geological-age").fill("0");
+  await expect(page.locator(".timeline-handle-label")).toHaveText("Today");
+  await waitForCao(page);
 });
 
 test("keeps layers usable and labels unavailable seafloor data", async ({ page }) => {
