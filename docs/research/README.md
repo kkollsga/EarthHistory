@@ -5,12 +5,18 @@ usable datasets, limitations, candidate methods and later validation targets.
 The shipped data authority is `public/data/manifest.json`; a research memo is
 not evidence that a candidate dataset entered the application.
 
+The Cao foundation adoption record describes the current implementation.
+Earlier PALEOMAP, crosswalk, relief and prototype reports preserve the evidence
+from those experiments and previous releases; their implementation and test
+claims do not describe the replacement engine.
+
 The user wants a beautiful, realistically lit orbital Earth with regional zoom, using NASA WorldWind as a visual reference. The timeline spans formation/Hadean to today. Regional interests include basin development and infill, burial and petroleum-system maturation, volcanic margins, and rifts. Modern-country reference outlines and cited points of interest accompany the scientific layers.
 
 Latest scope clarification: aerial basin views are sufficient; detailed subsurface/thermal tools are deferred. Runtime performance and independence from live data APIs are required. Ship compact scientific controls and perform most procedural visual synthesis in the frontend, balancing scientific fidelity and performance. Offline work curates and normalizes controls rather than requiring full-resolution pre-rendered world assets. Earlier detailed basin studies remain background research.
 
 | Memo | What it resolves |
 | --- | --- |
+| [Cao foundation adoption](reconstruction-cao-foundation-adoption.md) | Current native Cao scope, source semantics, actual-app integration evidence and remaining acceptance work |
 | [Palaeomap accuracy study](palaeomap-accuracy-study.md) | Integrated source assessment, native time slices, plate/frame compatibility, 3D relief, climate, memory budgets and phased migration |
 | [Continuous-coordinate validation](palaeomap-continuous-validation.json) | Implemented shared coordinates and natural materials, final full-gate results, repeated production measurements, preserved rejected probes and scientific/readiness limitations |
 | [Caledonian geological test](palaeomap-caledonian-test.md) | Material-following native elevation and equal-view captures: broad orogenic relief is present; collapse and direct modern-remnant attribution remain unresolved |
@@ -18,7 +24,7 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 | [Static-continent crosswalk validation](palaeomap-static-crosswalk-validation.json) | Corrected child-fragment conversion coverage, exact round trips, coast-mask disagreement and conservative default-view stop result |
 | [Plate foundation audit](palaeomap-plate-foundation.md) | Pinned GPlates model data, actual boundary feature types, polarity, reconstruction frames and acquisition evidence |
 | [Palaeogeography and relief](palaeomap-geography-relief.md) | Cao categories, quantitative PALEOMAP DEMs, actual source ages, NOAA limitations and palaeoclimate controls |
-| [Current palaeomap runtime audit](palaeomap-runtime-audit.md) | Existing source loss, renderer/camera behavior, cache ownership and implementation checks |
+| [Previous palaeomap runtime audit](palaeomap-runtime-audit.md) | Previous engine's source loss, renderer/camera behavior, cache ownership and implementation checks |
 | [North Sea regional controls](palaeomap-north-sea.md) | Acquired NSTA facies/structural packages, OGL evidence, CRS and regional-restoration limits |
 | [Tectonics and paleogeography](tectonics-and-paleogeography.md) | Plate models through 1.8 Ga, elevation reconstructions, reference-frame compatibility, country fragments, and regional structural datasets |
 | [Climate, biomes and points of interest](biomes-climate-and-points-of-interest.md) | Climate and environmental inputs, evolutionary constraints on vegetation, drainage limitations, and candidate cited event records |

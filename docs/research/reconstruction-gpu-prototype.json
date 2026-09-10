@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 2,
+  "recordedUtc": "2026-09-10T13:11:32.326Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "logicalCpuCount": 10,
+    "cpuModel": "Apple M4",
+    "loadAverageBefore": [
+      1.48046875,
+      1.708984375,
+      1.78466796875
+    ],
+    "freeMemoryBytesBefore": 55246848,
+    "totalMemoryBytes": 17179869184,
+    "browser": "152.0.7977.83",
+    "build": "Vite production build served by static preview",
+    "headless": true
+  },
+  "scope": "synthetic representative material patch; not an accepted global reconstruction dataset or full-app performance result",
+  "limits": {
+    "childBytes": 1205446,
+    "childCapBytes": 8388608,
+    "parentBytes": 24225224,
+    "parentCapBytes": 33554432,
+    "additionCapBytes": 2097152
+  },
+  "cases": [
+    {
+      "requestedBackend": "webgpu",
+      "actualBackend": "iN",
+      "isWebGPUBackend": true,
+      "mutation": null,
+      "accepted": true,
+      "oraclePoints": 66,
+      "maxAngularErrorRad": 6.214830454213442e-06,
+      "maxRadialError": 6.590325440924971e-08,
+      "programsBefore": 2,
+      "programsAfter": 2,
+      "representative": {
+        "vertexCount": 1089,
+        "triangleCount": 1552,
+        "trackedPatchBufferBytes": 101388,
+        "bvhBytes": 38912,
+        "bvhMedianMs": 1.399999976158142,
+        "lodMedianMs": 0,
+        "sparsePickMedianMs": 0.10000002384185791,
+        "renderSubmissionCallP95Ms": 0.10000002384185791,
+        "candidateHit": 1009,
+        "lodSelectionDiagnosticTriangles": 1552,
+        "fixedMeshStitchFanCount": 2,
+        "coloredPixelCount": 132,
+        "inactiveColoredPixelCount": 0,
+        "retainedBeforeRetirement": 101388,
+        "retainedAfterRetirement": 0,
+        "pendingAfterRetirement": 0,
+        "disposed": true,
+        "reuseSameResource": true
+      },
+      "deviceValidationError": null,
+      "webglError": 0
+    },
+    {
+      "requestedBackend": "webgl2",
+      "actualBackend": "FA",
+      "isWebGPUBackend": false,
+      "mutation": null,
+      "accepted": true,
+      "oraclePoints": 66,
+      "maxAngularErrorRad": 6.214830454213442e-06,
+      "maxRadialError": 6.425279241994986e-08,
+      "programsBefore": 2,
+      "programsAfter": 2,
+      "representative": {
+        "vertexCount": 1089,
+        "triangleCount": 1552,
+        "trackedPatchBufferBytes": 101388,
+        "bvhBytes": 38912,
+        "bvhMedianMs": 1.399999976158142,
+        "lodMedianMs": 0,
+        "sparsePickMedianMs": 0.10000002384185791,
+        "renderSubmissionCallP95Ms": 0.10000002384185791,
+        "candidateHit": 1009,
+        "lodSelectionDiagnosticTriangles": 1552,
+        "fixedMeshStitchFanCount": 2,
+        "coloredPixelCount": 132,
+        "inactiveColoredPixelCount": 0,
+        "retainedBeforeRetirement": 101388,
+        "retainedAfterRetirement": 0,
+        "pendingAfterRetirement": 0,
+        "disposed": true,
+        "reuseSameResource": true
+      },
+      "deviceValidationError": null,
+      "webglError": 0
+    },
+    {
+      "requestedBackend": "webgpu",
+      "actualBackend": "iN",
+      "isWebGPUBackend": true,
+      "mutation": "axis",
+      "accepted": true,
+      "oraclePoints": 66,
+      "maxAngularErrorRad": 1.8038373209564016,
+      "maxRadialError": 1.0061078326017991e-07,
+      "programsBefore": 2,
+      "programsAfter": 2,
+      "representative": {
+        "vertexCount": 1089,
+        "triangleCount": 1552,
+        "trackedPatchBufferBytes": 101388,
+        "bvhBytes": 38912,
+        "bvhMedianMs": 1.399999976158142,
+        "lodMedianMs": 0,
+        "sparsePickMedianMs": 0.10000002384185791,
+        "renderSubmissionCallP95Ms": 0.10000002384185791,
+        "candidateHit": 1009,
+        "lodSelectionDiagnosticTriangles": 1552,
+        "fixedMeshStitchFanCount": 2,
+        "coloredPixelCount": 132,
+        "inactiveColoredPixelCount": 0,
+        "retainedBeforeRetirement": 101388,
+        "retainedAfterRetirement": 0,
+        "pendingAfterRetirement": 0,
+        "disposed": true,
+        "reuseSameResource": true
+      },
+      "deviceValidationError": null,
+      "webglError": 0
+    },
+    {
+      "requestedBackend": "webgpu",
+      "actualBackend": "iN",
+      "isWebGPUBackend": true,
+      "mutation": "lifecycle",
+      "accepted": true,
+      "oraclePoints": 66,
+      "maxAngularErrorRad": 6.214830454213442e-06,
+      "maxRadialError": 6.590325440924971e-08,
+      "programsBefore": 2,
+      "programsAfter": 2,
+      "representative": {
+        "vertexCount": 1089,
+        "triangleCount": 1552,
+        "trackedPatchBufferBytes": 101388,
+        "bvhBytes": 38912,
+        "bvhMedianMs": 1.399999976158142,
+        "lodMedianMs": 0,
+        "sparsePickMedianMs": 0.10000002384185791,
+        "renderSubmissionCallP95Ms": 0.10000002384185791,
+        "candidateHit": 1009,
+        "lodSelectionDiagnosticTriangles": 1552,
+        "fixedMeshStitchFanCount": 2,
+        "coloredPixelCount": 132,
+        "inactiveColoredPixelCount": 132,
+        "retainedBeforeRetirement": 101388,
+        "retainedAfterRetirement": 0,
+        "pendingAfterRetirement": 0,
+        "disposed": true,
+        "reuseSameResource": true
+      },
+      "deviceValidationError": null,
+      "webglError": 0
+    }
+  ],
+  "failures": [],
+  "externalEvidence": [
+    {
+      "file": "result.json",
+      "bytes": 123934,
+      "sha256": "52187cf82cda0d18e6787e52c708a860a76700184a914777532bb89fdb2c590f"
+    },
+    {
+      "file": "webgpu.vertex.txt",
+      "bytes": 32515,
+      "sha256": "0b5f2203d65c8921d2737912284db6ef53776a7b8d979ea53ff0cc2a7c8ab3e4"
+    },
+    {
+      "file": "webgpu.fragment.txt",
+      "bytes": 1041,
+      "sha256": "f25e76ed27827ae505e7e4b61f50def00e582cd165f41aa6756887878c1a9fc4"
+    },
+    {
+      "file": "webgl2.vertex.txt",
+      "bytes": 27969,
+      "sha256": "e207598aa2bbceebd13048ad7220f01f3b64d7bc496db52debe4653b5d0797c7"
+    },
+    {
+      "file": "webgl2.fragment.txt",
+      "bytes": 1273,
+      "sha256": "eaa015a771e6c1bb67de24d75a0a194dac4eb1104b52e0001b49816a75dd6868"
+    },
+    {
+      "file": "webgpu-axis-mutation.vertex.txt",
+      "bytes": 32627,
+      "sha256": "c4a7303802fcc38be5650c9183e7fb7b7d8137cc52e4edf662e17e376a46c0f4"
+    },
+    {
+      "file": "webgpu-axis-mutation.fragment.txt",
+      "bytes": 1041,
+      "sha256": "d0f6c0bf36c1576d683f6ebd8cc20dfdc748131f17744346a5ff098419b5dbe9"
+    },
+    {
+      "file": "webgpu-lifecycle-mutation.vertex.txt",
+      "bytes": 32515,
+      "sha256": "0b5f2203d65c8921d2737912284db6ef53776a7b8d979ea53ff0cc2a7c8ab3e4"
+    },
+    {
+      "file": "webgpu-lifecycle-mutation.fragment.txt",
+      "bytes": 1041,
+      "sha256": "f25e76ed27827ae505e7e4b61f50def00e582cd165f41aa6756887878c1a9fc4"
+    },
+    {
+      "file": "spatial-index-unit-r1-mutation.log",
+      "bytes": 1790,
+      "sha256": "ce0636005e863ff7110e18f0a0dee87a3caa84495c77f2510d92d4a1a87a42e0"
+    },
+    {
+      "file": "patch-lod-coverage-r1-mutation.log",
+      "bytes": 1182,
+      "sha256": "4baa6d01642f13061021fd3496e933cdabae09688ebbd2bfaecbe995032a2543"
+    },
+    {
+      "file": "frame-immutability-r1-mutation.log",
+      "bytes": 1245,
+      "sha256": "e26160aef47826acebd9800edff54bbc782cab251d5bb2d3e8968a508138f233"
+    },
+    {
+      "file": "frame-allocation-preflight-r1-mutation.log",
+      "bytes": 1299,
+      "sha256": "5faf4b0afd58614ec57f907a5854ac7b6942c22f8e0f4593eab11d1dc26782bb"
+    },
+    {
+      "file": "publication-age-r1-mutation.log",
+      "bytes": 1215,
+      "sha256": "d7b066783d99f2352f2c75c8074a8ad0c2969e440890769cab707df134297c19"
+    },
+    {
+      "file": "renderer-focused-restored.log",
+      "bytes": 211,
+      "sha256": "1d2f11246d71af3c024668fb3d8ac58c2d9596371a37bbb86a3d13950ea18fa1"
+    },
+    {
+      "file": "renderer-typecheck-restored.log",
+      "bytes": 58,
+      "sha256": "ee372a392e054eac202798721a3a1058553a88a446f414ba65c50711568cf195"
+    },
+    {
+      "file": "runner-restored.log",
+      "bytes": 8464,
+      "sha256": "d1a77fa74144d871feb426b17598bb95ab3eb89b356eeea19b95cf5b71d3e541"
+    }
+  ]
+}

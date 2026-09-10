@@ -1,0 +1,292 @@
+{
+  "method": "pygplates.resolve_topologies then PolygonOnSphere.is_point_in_polygon; results list all containing resolved topological boundaries, so overlap remains explicit",
+  "interiorConvention": "native pyGPlates resolved polygon, exterior with authored interior rings; ring orientation alone does not authorize the antipodal complement",
+  "ages": {
+    "0": {
+      "resolvedPolygonCount": 46,
+      "points": [
+        {
+          "label": "north-polar",
+          "longitude": 0,
+          "latitude": 89.5,
+          "matches": [
+            {
+              "topologyId": "GPlates-21d28d2e-b303-4ef6-8594-f6490b3b3b41",
+              "plateId": 101
+            }
+          ]
+        },
+        {
+          "label": "south-polar",
+          "longitude": 0,
+          "latitude": -89.5,
+          "matches": [
+            {
+              "topologyId": "GPlates-a93abfbd-99fd-4a8b-86fe-20d273cccc0f",
+              "plateId": 802
+            }
+          ]
+        },
+        {
+          "label": "dateline-north",
+          "longitude": 179.5,
+          "latitude": 30,
+          "matches": [
+            {
+              "topologyId": "GPlates-effa26d9-d2b4-42e8-9398-fb57245d6646",
+              "plateId": 901
+            }
+          ]
+        },
+        {
+          "label": "dateline-south",
+          "longitude": -179.5,
+          "latitude": -30,
+          "matches": [
+            {
+              "topologyId": "GPlates-8692d64e-fbdb-4723-ab67-efc63b6919da",
+              "plateId": 801
+            }
+          ]
+        },
+        {
+          "label": "greenwich-equator",
+          "longitude": 0,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-ebfc87fc-4d08-425a-870b-f0b81e0fff0f",
+              "plateId": 701
+            }
+          ]
+        },
+        {
+          "label": "west-equator",
+          "longitude": -60,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-49c33a05-31be-4689-88be-672e8fb785c9",
+              "plateId": 201
+            }
+          ]
+        },
+        {
+          "label": "east-equator",
+          "longitude": 60,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-7912ebf1-a726-4c16-82f4-c711f117ccab",
+              "plateId": 709
+            }
+          ]
+        },
+        {
+          "label": "pacific-north",
+          "longitude": -150,
+          "latitude": 45,
+          "matches": [
+            {
+              "topologyId": "GPlates-effa26d9-d2b4-42e8-9398-fb57245d6646",
+              "plateId": 901
+            }
+          ]
+        },
+        {
+          "label": "pacific-south",
+          "longitude": 150,
+          "latitude": -45,
+          "matches": [
+            {
+              "topologyId": "GPlates-8692d64e-fbdb-4723-ab67-efc63b6919da",
+              "plateId": 801
+            }
+          ]
+        },
+        {
+          "label": "high-north",
+          "longitude": 45,
+          "latitude": 75,
+          "matches": [
+            {
+              "topologyId": "GPlates-f81ccbac-5048-4853-ad73-1d61dd0aca23",
+              "plateId": 301
+            }
+          ]
+        },
+        {
+          "label": "high-south",
+          "longitude": -45,
+          "latitude": -75,
+          "matches": [
+            {
+              "topologyId": "GPlates-a93abfbd-99fd-4a8b-86fe-20d273cccc0f",
+              "plateId": 802
+            }
+          ]
+        },
+        {
+          "label": "asia-mid",
+          "longitude": 120,
+          "latitude": 30,
+          "matches": [
+            {
+              "topologyId": "GPlates-f81ccbac-5048-4853-ad73-1d61dd0aca23",
+              "plateId": 301
+            }
+          ]
+        }
+      ]
+    },
+    "450": {
+      "resolvedPolygonCount": 20,
+      "points": [
+        {
+          "label": "north-polar",
+          "longitude": 0,
+          "latitude": 89.5,
+          "matches": [
+            {
+              "topologyId": "GPlates-02524160-5457-48bd-8446-76a83649c628",
+              "plateId": 902
+            }
+          ]
+        },
+        {
+          "label": "south-polar",
+          "longitude": 0,
+          "latitude": -89.5,
+          "matches": [
+            {
+              "topologyId": "GPlates-8211521b-902c-4358-a7f2-a14d3e2fa1e0",
+              "plateId": 701
+            }
+          ]
+        },
+        {
+          "label": "dateline-north",
+          "longitude": 179.5,
+          "latitude": 30,
+          "matches": [
+            {
+              "topologyId": "GPlates-44e7952e-7ed4-49d6-ab88-2f3194d4663f",
+              "plateId": 919
+            }
+          ]
+        },
+        {
+          "label": "dateline-south",
+          "longitude": -179.5,
+          "latitude": -30,
+          "matches": [
+            {
+              "topologyId": "GPlates-8211521b-902c-4358-a7f2-a14d3e2fa1e0",
+              "plateId": 701
+            }
+          ]
+        },
+        {
+          "label": "greenwich-equator",
+          "longitude": 0,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-02fa21e2-51b2-45c9-a9ad-c2e9652419a2",
+              "plateId": 401
+            }
+          ]
+        },
+        {
+          "label": "west-equator",
+          "longitude": -60,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-9d745676-d12a-4aac-82e9-607c95c79dc1",
+              "plateId": 302
+            }
+          ]
+        },
+        {
+          "label": "east-equator",
+          "longitude": 60,
+          "latitude": 0,
+          "matches": [
+            {
+              "topologyId": "GPlates-c6362332-7f3d-491c-a0fc-f65b6639dd6f",
+              "plateId": 926
+            }
+          ]
+        },
+        {
+          "label": "pacific-north",
+          "longitude": -150,
+          "latitude": 45,
+          "matches": [
+            {
+              "topologyId": "GPlates-44e7952e-7ed4-49d6-ab88-2f3194d4663f",
+              "plateId": 919
+            }
+          ]
+        },
+        {
+          "label": "pacific-south",
+          "longitude": 150,
+          "latitude": -45,
+          "matches": [
+            {
+              "topologyId": "GPlates-8211521b-902c-4358-a7f2-a14d3e2fa1e0",
+              "plateId": 701
+            }
+          ]
+        },
+        {
+          "label": "high-north",
+          "longitude": 45,
+          "latitude": 75,
+          "matches": [
+            {
+              "topologyId": "GPlates-02524160-5457-48bd-8446-76a83649c628",
+              "plateId": 902
+            }
+          ]
+        },
+        {
+          "label": "high-south",
+          "longitude": -45,
+          "latitude": -75,
+          "matches": [
+            {
+              "topologyId": "GPlates-8211521b-902c-4358-a7f2-a14d3e2fa1e0",
+              "plateId": 701
+            }
+          ]
+        },
+        {
+          "label": "asia-mid",
+          "longitude": 120,
+          "latitude": 30,
+          "matches": [
+            {
+              "topologyId": "GPlates-c6362332-7f3d-491c-a0fc-f65b6639dd6f",
+              "plateId": 926
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "validation": {
+    "date": "2026-09-10",
+    "referenceImplementation": "pyGPlates 1.0",
+    "model": "Cao et al. 2024 v2.4",
+    "sourceUrl": "https://doi.org/10.5281/zenodo.13628813",
+    "packageManifestSha256": "7611a27b912e96f0c1a052a87f6b836a52bbb855da0095d7da37816b37b92cdc",
+    "queryImplementationSha256": "ff73e21a61ac369b744fa37c137b38b2281242e1a61f51926cee1960e828bf3d",
+    "queryCount": 24,
+    "exactPlateAndTopologyMatches": 24,
+    "mismatches": 0,
+    "scope": "Deterministic exact-checkpoint spot checks, not exhaustive global coverage or persistent ocean lineage validation."
+  }
+}

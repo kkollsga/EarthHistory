@@ -1,0 +1,155 @@
+{
+  "binary": {
+    "bytes": 712,
+    "quaternionEncoding": "float32-wxyz",
+    "sha256": "dbd63b76fa6eb8f8cf331a028e944377cde394b16e2e6b74069ef565f638cd46",
+    "timeEncoding": "uint32-micro-ma"
+  },
+  "chartId": "cao-fragment-69702",
+  "chartRevision": "cao-rigid-chart-v1",
+  "citation": "Cao et al. 2024 model release 2.4, doi:10.5281/zenodo.13628813",
+  "compiledUtc": "2026-09-10",
+  "fragmentOrCohortId": "cao-fragment-69702",
+  "frame": {
+    "absoluteFrameId": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "axisConvention": "gplates-x0e-y90e-znorth",
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "rotationSha256": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
+    "topologySha256": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4"
+  },
+  "id": "cao-motion-0-5-v1",
+  "license": "CC-BY-4.0",
+  "materialId": "cao-material-69702",
+  "plateId": 69702,
+  "referenceAgeMa": 5.0,
+  "retrievedUtc": "2026-09-09T13:26:07Z",
+  "schemaVersion": 1,
+  "scope": "Synthetic address on one source-valid rigid fragment; not a global material catalog.",
+  "sourceIds": [
+    "cao-2024-v2.4-zenodo-13628813"
+  ],
+  "sourceIntervals": [
+    {
+      "kind": "smooth-motion",
+      "oldestAgeMa": 5,
+      "youngestAgeMa": 0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 0.0,
+      "youngestAgeMa": 0.0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 0.2,
+      "youngestAgeMa": 0.2
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 0.52,
+      "youngestAgeMa": 0.52
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 0.6,
+      "youngestAgeMa": 0.6
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 0.8,
+      "youngestAgeMa": 0.8
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 1.0,
+      "youngestAgeMa": 1.0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 1.2,
+      "youngestAgeMa": 1.2
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 1.8,
+      "youngestAgeMa": 1.8
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 1.9,
+      "youngestAgeMa": 1.9
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 2.0,
+      "youngestAgeMa": 2.0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 2.6,
+      "youngestAgeMa": 2.6
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 2.9,
+      "youngestAgeMa": 2.9
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.0,
+      "youngestAgeMa": 3.0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.1,
+      "youngestAgeMa": 3.1
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.28,
+      "youngestAgeMa": 3.28
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.3,
+      "youngestAgeMa": 3.3
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.5,
+      "youngestAgeMa": 3.5
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 3.6,
+      "youngestAgeMa": 3.6
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 4.0,
+      "youngestAgeMa": 4.0
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 4.2,
+      "youngestAgeMa": 4.2
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 4.5,
+      "youngestAgeMa": 4.5
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 4.6,
+      "youngestAgeMa": 4.6
+    },
+    {
+      "kind": "source-knot",
+      "oldestAgeMa": 5.0,
+      "youngestAgeMa": 5.0
+    }
+  ]
+}

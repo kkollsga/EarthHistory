@@ -3,11 +3,10 @@ import type {
   GlobeStats,
   LayerVisibility,
   LonLat,
-  TemporalCountryReferences,
-  TemporalSurface,
   WorldSnapshot,
 } from "../data";
 import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
+import type { MaterialAddress, PreparedCaoRevision } from "../reconstruction";
 
 export interface FocusTarget {
   kind: SpatialFocusKind;
@@ -26,16 +25,12 @@ export interface PeriodCoordinateRenderState {
 }
 
 export interface GlobeViewProps {
+  caoRevision?: PreparedCaoRevision | null;
   snapshot: WorldSnapshot | null;
-  temporalSurface?: TemporalSurface;
-  temporalCountries?: TemporalCountryReferences;
-  temporalPoiCoordinates?: Readonly<Record<string, LonLat>>;
-  temporalPoiAgeMa?: number;
-  temporalEnvironment?: WorldSnapshot["environment"];
   layers: LayerVisibility;
   selectedPoiId: string | null;
   onSelectPoi: (id: string) => void;
-  onSelectSurface: (coordinates: LonLat) => void;
+  onSelectSurface: (coordinates: LonLat, address?: MaterialAddress) => void;
   onStats?: (stats: GlobeStats) => void;
   onPeriodCoordinateState?: (state: PeriodCoordinateRenderState) => void;
   focusTarget: FocusTarget | null;
@@ -43,39 +38,11 @@ export interface GlobeViewProps {
   autoRotate?: boolean;
   quality?: "auto" | "high" | "low";
   verticalExaggeration?: number;
-  surfaceMode?: "surface" | "seafloor";
-}
-
-function temporalApplicationKey(
-  surface: TemporalSurface | undefined,
-  snapshot: WorldSnapshot | null,
-  environment: WorldSnapshot["environment"] | undefined,
-): string {
-  const resolvedEnvironment = environment ?? snapshot?.environment;
-  return [
-    surface?.intervalId ?? snapshot?.id ?? "none",
-    surface?.fraction ?? 0,
-    surface?.requestedAgeMa ?? snapshot?.requestedAgeMa ?? snapshot?.ageMa ?? 0,
-    resolvedEnvironment?.iceLatitude ?? 90,
-    resolvedEnvironment?.vegetation ?? 0,
-    resolvedEnvironment?.temperatureC ?? "",
-    resolvedEnvironment?.stage ?? "",
-    resolvedEnvironment?.oceanCoverage ?? "",
-    resolvedEnvironment?.cloudCover ?? "",
-    resolvedEnvironment?.atmosphereOpacity ?? "",
-    resolvedEnvironment?.haze ?? "",
-    resolvedEnvironment?.iceIntensity ?? "",
-    resolvedEnvironment?.biomeStage ?? "",
-  ].join("|");
 }
 
 export function GlobeView({
+  caoRevision = null,
   snapshot,
-  temporalSurface,
-  temporalCountries,
-  temporalPoiCoordinates,
-  temporalPoiAgeMa,
-  temporalEnvironment,
   layers,
   selectedPoiId,
   onSelectPoi,
@@ -87,20 +54,13 @@ export function GlobeView({
   autoRotate = true,
   quality = "auto",
   verticalExaggeration = 8,
-  surfaceMode = "surface",
 }: GlobeViewProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<GlobeScene | null>(null);
-  const installedSnapshotKey = useRef<string | null>(null);
-  const appliedTemporalKey = useRef<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const latestProps = useRef({
+    caoRevision,
     snapshot,
-    temporalSurface,
-    temporalCountries,
-    temporalPoiCoordinates,
-    temporalPoiAgeMa,
-    temporalEnvironment,
     layers,
     selectedPoiId,
     onSelectPoi,
@@ -112,15 +72,10 @@ export function GlobeView({
     autoRotate,
     quality,
     verticalExaggeration,
-    surfaceMode,
   });
   latestProps.current = {
+    caoRevision,
     snapshot,
-    temporalSurface,
-    temporalCountries,
-    temporalPoiCoordinates,
-    temporalPoiAgeMa,
-    temporalEnvironment,
     layers,
     selectedPoiId,
     onSelectPoi,
@@ -132,7 +87,6 @@ export function GlobeView({
     autoRotate,
     quality,
     verticalExaggeration,
-    surfaceMode,
   };
 
   useEffect(() => {
@@ -140,7 +94,6 @@ export function GlobeView({
     if (mount === null) return;
     let active = true;
     let created: GlobeScene | null = null;
-    let coordinateObserver: MutationObserver | null = null;
     void GlobeScene.create(mount, onSelectPoi, onSelectSurface, onStats, quality)
       .then((scene) => {
         if (!active) {
@@ -149,59 +102,17 @@ export function GlobeView({
         }
         created = scene;
         sceneRef.current = scene;
-        const canvas = mount.querySelector("canvas");
-        if (canvas !== null) {
-          const publishCoordinateState = () => {
-            const numeric = (name: string) => {
-              const raw = canvas.getAttribute(name);
-              if (raw === null) return undefined;
-              const value = Number(raw);
-              return Number.isFinite(value) ? value : undefined;
-            };
-            const rawStatus = canvas.getAttribute("data-period-coordinate-status");
-            latestProps.current.onPeriodCoordinateState?.({
-              status: rawStatus === "loading" || rawStatus === "updating" || rawStatus === "ready" ||
-                  rawStatus === "unsupported" || rawStatus === "error" ? rawStatus : null,
-              requestedAgeMa: numeric("data-period-coordinate-requested-age-ma"),
-              stagedAgeMa: numeric("data-period-coordinate-staged-age-ma"),
-              displayedAgeMa: numeric("data-period-coordinate-displayed-age-ma"),
-              resolvedVertices: numeric("data-period-coordinate-resolved-vertices"),
-              unsupportedVertices: numeric("data-period-coordinate-unsupported-vertices"),
-            });
-          };
-          coordinateObserver = new MutationObserver(publishCoordinateState);
-          coordinateObserver.observe(canvas, { attributes: true, attributeFilter: [
-            "data-period-coordinate-status", "data-period-coordinate-requested-age-ma",
-            "data-period-coordinate-staged-age-ma",
-            "data-period-coordinate-displayed-age-ma", "data-period-coordinate-resolved-vertices",
-            "data-period-coordinate-unsupported-vertices",
-          ] });
-          publishCoordinateState();
-        }
+        scene.setCaoFoundationStateCallback((state) => latestProps.current.onPeriodCoordinateState?.({
+          status: state.status,
+          requestedAgeMa: state.requestedAgeMa ?? undefined,
+          displayedAgeMa: state.displayedAgeMa ?? undefined,
+          resolvedVertices: state.resolvedVertices,
+        }));
         const current = latestProps.current;
         scene.setCallbacks(current.onSelectPoi, current.onSelectSurface, current.onStats);
-        scene.setSurfaceMode(current.surfaceMode);
         scene.setVerticalExaggeration(current.verticalExaggeration);
-        scene.setSnapshot(current.snapshot);
-        installedSnapshotKey.current = current.temporalSurface?.intervalId ?? current.snapshot?.id ?? null;
-        scene.setTemporalFraction(
-          current.temporalSurface?.fraction ?? 0,
-          current.temporalSurface?.requestedAgeMa ?? current.snapshot?.requestedAgeMa ?? current.snapshot?.ageMa ?? 0,
-          current.temporalEnvironment ?? current.snapshot?.environment ?? {
-            iceLatitude: 90,
-            vegetation: 0,
-          },
-        );
-        appliedTemporalKey.current = temporalApplicationKey(
-          current.temporalSurface,
-          current.snapshot,
-          current.temporalEnvironment,
-        );
-        scene.setTemporalCountries(current.temporalCountries);
-        scene.setTemporalPois(
-          current.temporalPoiCoordinates,
-          current.temporalPoiAgeMa ?? current.snapshot?.requestedAgeMa ?? current.snapshot?.ageMa ?? 0,
-        );
+        scene.setPreparedCaoRevision(current.caoRevision);
+        scene.setEditorialSnapshot(current.snapshot);
         scene.setLayers(current.layers);
         scene.setSelectedPoi(current.selectedPoiId);
         scene.setAutoRotate(current.autoRotate);
@@ -216,6 +127,7 @@ export function GlobeView({
       })
       .catch((error: unknown) => {
         if (active) {
+          latestProps.current.caoRevision?.release();
           mount.dataset.rendererError =
             error instanceof Error ? error.message : "Unable to initialize the globe";
           setRenderError(mount.dataset.rendererError);
@@ -230,7 +142,7 @@ export function GlobeView({
       });
     return () => {
       active = false;
-      coordinateObserver?.disconnect();
+      created?.setCaoFoundationStateCallback(undefined);
       created?.dispose();
       if (sceneRef.current === created) sceneRef.current = null;
     };
@@ -244,32 +156,20 @@ export function GlobeView({
 
   useEffect(() => {
     const scene = sceneRef.current;
-    if (scene === null) return;
-    const nextKey = temporalSurface?.intervalId ?? snapshot?.id ?? null;
-    if (installedSnapshotKey.current !== nextKey) {
-      scene.setSnapshot(snapshot);
-      installedSnapshotKey.current = nextKey;
+    if (scene === null) {
+      return () => {
+        // A superseded revision that never reached a scene still owns a
+        // runtime lease. release() is idempotent for the renderer handoff.
+        if (sceneRef.current === null) caoRevision?.release();
+      };
     }
-    const nextTemporalKey = temporalApplicationKey(temporalSurface, snapshot, temporalEnvironment);
-    if (appliedTemporalKey.current === nextTemporalKey) return;
-    scene.setTemporalFraction(
-      temporalSurface?.fraction ?? 0,
-      temporalSurface?.requestedAgeMa ?? snapshot?.requestedAgeMa ?? snapshot?.ageMa ?? 0,
-      temporalEnvironment ?? snapshot?.environment ?? { iceLatitude: 90, vegetation: 0 },
-    );
-    appliedTemporalKey.current = nextTemporalKey;
-  }, [snapshot, temporalEnvironment, temporalSurface]);
+    scene.setPreparedCaoRevision(caoRevision);
+    return undefined;
+  }, [caoRevision]);
 
   useEffect(() => {
-    sceneRef.current?.setTemporalCountries(temporalCountries);
-  }, [temporalCountries]);
-
-  useEffect(() => {
-    sceneRef.current?.setTemporalPois(
-      temporalPoiCoordinates,
-      temporalPoiAgeMa ?? snapshot?.requestedAgeMa ?? snapshot?.ageMa ?? 0,
-    );
-  }, [snapshot?.ageMa, snapshot?.requestedAgeMa, temporalPoiAgeMa, temporalPoiCoordinates]);
+    sceneRef.current?.setEditorialSnapshot(snapshot);
+  }, [snapshot]);
 
   useEffect(() => {
     sceneRef.current?.setLayers(layers);
@@ -295,10 +195,6 @@ export function GlobeView({
     if (focusTarget === null) sceneRef.current?.clearFocus();
     else sceneRef.current?.focus(focusTarget.coordinates, focusTarget.distance, focusTarget.kind);
   }, [focusTarget]);
-
-  useEffect(() => {
-    sceneRef.current?.setSurfaceMode(surfaceMode);
-  }, [surfaceMode]);
 
   useEffect(() => {
     if (resetNonce !== undefined) sceneRef.current?.resetCamera();

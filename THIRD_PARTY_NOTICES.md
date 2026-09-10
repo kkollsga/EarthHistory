@@ -5,6 +5,30 @@ below apply only to the identified third-party software and datasets.
 
 ## Runtime data
 
+- **Earth's tectonic and plate boundary evolution over 1.8 billion years,
+  Cao et al. (2024), model v2.4** —
+  [Zenodo record 13628813](https://doi.org/10.5281/zenodo.13628813), licensed
+  under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  EarthHistory derives triangulated model geography, sampled rotations, exact
+  resolved topology and typed directed boundaries from the palaeomagnetic
+  reconstruction anchored to plate 0. Geometry refinement, compact encoding,
+  motion interpolation and reference binding are EarthHistory processing.
+  Unsupported geometry and motion remain explicit. Native model polygons are
+  not promoted to observed shorelines or calibrated elevations. The data
+  license is separate from GPlates/pyGPlates software licenses.
+- **Natural Earth 1:110m Admin 0 countries** —
+  [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
+  domain. EarthHistory subdivides and binds present-day reference lines to Cao
+  plate coordinates offline, retaining ambiguity and validity limitations.
+  These reference lines do not represent historical political borders.
+
+## Historical data and research
+
+The notices below document data and methods used in earlier implementations
+or research. They do not identify additional data authorities in the native
+Cao foundation. The current asset manifest determines what is redistributed;
+earlier published versions retain their own asset sets and attribution.
+
 - **PALEOMAP Paleodigital Elevation Models of the Phanerozoic, v2** — Scotese
   and Wright (2018), [Zenodo record 5460860](https://doi.org/10.5281/zenodo.5460860),
   licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
@@ -17,16 +41,6 @@ below apply only to the identified third-party software and datasets.
   present-day political-reference features with pyGPlates; they do not represent
   historical borders. A compact rotation and continental-partition derivative
   also supports material-registered movement between elevation source ages.
-- **Earth's tectonic and plate boundary evolution over 1.8 billion years,
-  Cao et al. (2024), model v2.4** —
-  [Zenodo record 13628813](https://doi.org/10.5281/zenodo.13628813), licensed
-  under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-  EarthHistory derives quantized continental fragments, rotations, resolved
-  topologies and typed boundaries from the paleomagnetic reconstruction,
-  anchored to plate 0. Coarse ocean lifecycle controls, continental conversion,
-  temporal curve interpolation and displayed boundary morphology are
-  EarthHistory processing or inference, with unsupported cases retained.
-  The model's data license is separate from GPlates/pyGPlates software licenses.
 - **Improving global paleogeography since the late Paleozoic using paleobiology** —
   Cao et al. (2017), [Biogeosciences 14 (2017)](https://doi.org/10.5194/bg-14-5425-2017),
   official EarthByte GPlates 2.3 Paleogeography package, licensed under
@@ -38,9 +52,6 @@ below apply only to the identified third-party software and datasets.
   [Nature 359, 123–129](https://doi.org/10.1038/359123a0). Citation and numerical
   model only; no paper text, figures or third-party implementation is bundled.
   Its application to ancient oceans is an explicitly identified inference.
-- **Natural Earth 1:110m land and Admin 0 countries** —
-  [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
-  domain. The 0 Ma overlay derives from the project GeoJSON distributions.
 - **Köppen–Geiger climate classification v2, 1991–2020** — Beck et al.
   (2023), [Scientific Data 10, 724](https://doi.org/10.1038/s41597-023-02549-6)
   and [Figshare dataset](https://doi.org/10.6084/m9.figshare.21937571), released
@@ -74,7 +85,6 @@ The installed dependency versions are recorded exactly in `package-lock.json`.
 | React / React DOM | 19.2.8 | MIT | https://react.dev/ |
 | Three.js | 0.185.1 | MIT | https://threejs.org/ |
 | Lucide React | 1.42.0 | ISC | https://lucide.dev/ |
-| simplex-noise | 4.0.3 | MIT | https://github.com/jwagner/simplex-noise.js |
 | Vite | 8.2.2 | MIT | https://vite.dev/ |
 | Vitest | 5.0.0 | MIT | https://vitest.dev/ |
 | TypeScript | 7.0.2 | Apache-2.0 | https://www.typescriptlang.org/ |

@@ -1,0 +1,178 @@
+{
+  "frame": "PALEOMAP native reconstruction frame; anchor plate 0",
+  "interpretation": "Neither set nor their union is a complete uniquely owned whole-Earth partition at all sampled ages; strict-circuit omissions are reported separately from geometric gaps.",
+  "researchDate": "2026-09-10",
+  "results": [
+    {
+      "ageMa": 0.0,
+      "combinedMaximumOverlapCount": 4,
+      "combinedOwnershipPointCounts": {
+        "multiple": 1404,
+        "uncovered": 0,
+        "unique": 1081
+      },
+      "sets": {
+        "ocean": {
+          "activePlateIdCount": 154,
+          "activeReconstructedFeatures": 15111,
+          "maximumOverlapCount": 2,
+          "ownershipPointCounts": {
+            "multiple": 4,
+            "uncovered": 1081,
+            "unique": 1400
+          },
+          "polygonGeometries": 15111,
+          "strictCircuitMissingPlateIds": [
+            110,
+            112,
+            113,
+            198,
+            257,
+            311,
+            413,
+            617,
+            750,
+            754,
+            899
+          ]
+        },
+        "plate": {
+          "activePlateIdCount": 223,
+          "activeReconstructedFeatures": 486,
+          "maximumOverlapCount": 2,
+          "ownershipPointCounts": {
+            "multiple": 4,
+            "uncovered": 0,
+            "unique": 2481
+          },
+          "polygonGeometries": 484,
+          "strictCircuitMissingPlateIds": [
+            110,
+            112,
+            113,
+            198,
+            257,
+            408,
+            413,
+            631,
+            671
+          ]
+        }
+      }
+    },
+    {
+      "ageMa": 450.0,
+      "combinedMaximumOverlapCount": 3,
+      "combinedOwnershipPointCounts": {
+        "multiple": 32,
+        "uncovered": 1739,
+        "unique": 714
+      },
+      "sets": {
+        "ocean": {
+          "activePlateIdCount": 33,
+          "activeReconstructedFeatures": 351,
+          "maximumOverlapCount": 1,
+          "ownershipPointCounts": {
+            "multiple": 0,
+            "uncovered": 2477,
+            "unique": 8
+          },
+          "polygonGeometries": 351,
+          "strictCircuitMissingPlateIds": [
+            311,
+            754
+          ]
+        },
+        "plate": {
+          "activePlateIdCount": 67,
+          "activeReconstructedFeatures": 77,
+          "maximumOverlapCount": 3,
+          "ownershipPointCounts": {
+            "multiple": 27,
+            "uncovered": 1741,
+            "unique": 717
+          },
+          "polygonGeometries": 75,
+          "strictCircuitMissingPlateIds": []
+        }
+      }
+    },
+    {
+      "ageMa": 540.0,
+      "combinedMaximumOverlapCount": 3,
+      "combinedOwnershipPointCounts": {
+        "multiple": 55,
+        "uncovered": 1725,
+        "unique": 705
+      },
+      "sets": {
+        "ocean": {
+          "activePlateIdCount": 33,
+          "activeReconstructedFeatures": 351,
+          "maximumOverlapCount": 1,
+          "ownershipPointCounts": {
+            "multiple": 0,
+            "uncovered": 2475,
+            "unique": 10
+          },
+          "polygonGeometries": 351,
+          "strictCircuitMissingPlateIds": [
+            311,
+            754
+          ]
+        },
+        "plate": {
+          "activePlateIdCount": 67,
+          "activeReconstructedFeatures": 77,
+          "maximumOverlapCount": 2,
+          "ownershipPointCounts": {
+            "multiple": 46,
+            "uncovered": 1725,
+            "unique": 714
+          },
+          "polygonGeometries": 75,
+          "strictCircuitMissingPlateIds": []
+        }
+      }
+    }
+  ],
+  "runtime": {
+    "pyGPlatesVersion": "1.0.0",
+    "temporaryExtractionMaximumBytes": 10485760,
+    "temporaryExtractionOwner": "system TemporaryDirectory; deleted on runner exit"
+  },
+  "sample": {
+    "agesMa": [
+      0.0,
+      450.0,
+      540.0
+    ],
+    "latitudeDegrees": "-87..87 step 5",
+    "longitudeDegrees": "-177..177 step 5",
+    "pointCount": 2485,
+    "warning": "regular latitude-longitude point counts are a coarse coverage falsification, not spherical area fractions"
+  },
+  "schemaVersion": 1,
+  "source": {
+    "archiveSha256": "aee07c0d0159864f7a058cbf1591263ae4ee1413ccd2ec96a76cbb60ab7c6079",
+    "license": "CC-BY-4.0",
+    "members": {
+      "ocean": {
+        "path": "3a. PALEOMAP Global Plate Model for Paleogeographic Reconstructions v.19o_r1d/Scotese_OceansOnly.gpmlz",
+        "sha256": "781e3d06c2e36ba889228ec067ee69eb30e1b16227c23d8b22a753589cdb8562"
+      },
+      "plate": {
+        "path": "3a. PALEOMAP Global Plate Model for Paleogeographic Reconstructions v.19o_r1d/Scotese_Plate_Polygons__forPgeog_v19o_v240506.gpml",
+        "sha256": "0a07008e2bdc23d8cfd37623a74e0eb31d336fa2c5d311a8d493b05bc4746e74"
+      },
+      "rotation": {
+        "path": "3a. PALEOMAP Global Plate Model for Paleogeographic Reconstructions v.19o_r1d/Scotese_Plate_Model_forPgeog_v19o_r1d_v240506a.rot",
+        "sha256": "61f5ff155925126530569f4af6b0d5fca2ef52f771fce720928c1c996863c768"
+      }
+    },
+    "record": "https://doi.org/10.5281/zenodo.10659112",
+    "retrievalDate": "2026-09-09",
+    "version": "v19o_r1d/v24221"
+  }
+}

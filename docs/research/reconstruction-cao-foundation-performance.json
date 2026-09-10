@@ -1,0 +1,372 @@
+{
+  "date": "2026-09-10",
+  "scope": "Production static build, fresh contexts at 0 and 450 Ma; local server, not a WAN benchmark. JS heap excludes driver/GPU and worker memory. Serialized source-byte ledgers are not heap measurements.",
+  "distMiB": 27.92,
+  "previousDistMiB": 47.2,
+  "browser": "152.0.7977.83",
+  "series": {
+    "previous": {
+      "policy": {
+        "purpose": "Production old-app anchor for native Cao integration, same machine and fixed scenes",
+        "agesMa": [
+          0,
+          450
+        ],
+        "repeats": 3,
+        "backend": "webgl2",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "settleMs": 2500,
+        "stopRule": "Report readiness failure after30s; no indefinite retries. No performance claim from submission timing alone. Compare retained byte ledgers separately from JS heap and GPU estimates.",
+        "limitBytes": 2097152,
+        "owner": "coordinator",
+        "buildIndexSha256": "0f21db2e49bdaf1ebcd7a8f8ac5a85e45d9e18c2ece18070d05acedd7539d4c8",
+        "machine": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "cpus": 10,
+          "loadBefore": [
+            1.45751953125,
+            1.56396484375,
+            1.6416015625
+          ],
+          "freeMemoryBefore": 284016640
+        },
+        "writtenBeforeMeasurement": "2026-09-10T13:37:33.712Z"
+      },
+      "rows": [
+        {
+          "ageMa": 0,
+          "repeat": 0,
+          "readyMs": 1206,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 156
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 60240994,
+            "totalJSHeapSize": 85310810
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 118
+          },
+          "dataDecodedBytes": 1531173,
+          "dataTransferBytes": 628423,
+          "errors": [],
+          "byteLedger": {}
+        },
+        {
+          "ageMa": 0,
+          "repeat": 1,
+          "readyMs": 797,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.7,
+            "samples": 169
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 60412859,
+            "totalJSHeapSize": 84786531
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 118
+          },
+          "dataDecodedBytes": 1531173,
+          "dataTransferBytes": 628423,
+          "errors": [],
+          "byteLedger": {}
+        },
+        {
+          "ageMa": 0,
+          "repeat": 2,
+          "readyMs": 783,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 170
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 60438366,
+            "totalJSHeapSize": 84786534
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 118
+          },
+          "dataDecodedBytes": 1531173,
+          "dataTransferBytes": 628423,
+          "errors": [],
+          "byteLedger": {}
+        },
+        {
+          "ageMa": 450,
+          "repeat": 0,
+          "readyMs": 1116,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.7,
+            "samples": 171
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 56234190,
+            "totalJSHeapSize": 91366910
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 16
+          },
+          "dataDecodedBytes": 1078729,
+          "dataTransferBytes": 410649,
+          "errors": [],
+          "byteLedger": {}
+        },
+        {
+          "ageMa": 450,
+          "repeat": 1,
+          "readyMs": 1115,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 171
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 68707933,
+            "totalJSHeapSize": 99028389
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 16
+          },
+          "dataDecodedBytes": 1078729,
+          "dataTransferBytes": 410649,
+          "errors": [],
+          "byteLedger": {}
+        },
+        {
+          "ageMa": 450,
+          "repeat": 2,
+          "readyMs": 1111,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 173
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 68798207,
+            "totalJSHeapSize": 99290531
+          },
+          "rendererMemory": {
+            "geometries": 113,
+            "textures": 16
+          },
+          "dataDecodedBytes": 1078729,
+          "dataTransferBytes": 410649,
+          "errors": [],
+          "byteLedger": {}
+        }
+      ]
+    },
+    "caoFoundation": {
+      "policy": {
+        "purpose": "Full native Cao production comparison with recorded old-app controls",
+        "agesMa": [
+          0,
+          450
+        ],
+        "repeats": 3,
+        "backend": "webgl2",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "settleMs": 2500,
+        "stopRule": "Report readiness failure after30s; no indefinite retries. No performance claim from submission timing alone. Compare retained byte ledgers separately from JS heap and GPU estimates.",
+        "limitBytes": 2097152,
+        "owner": "coordinator",
+        "buildIndexSha256": "e6f57132d1dbb0ccf473c1e828d7ac2acd690455db14adf289345aed82b60a07",
+        "machine": {
+          "platform": "darwin",
+          "arch": "arm64",
+          "cpus": 10,
+          "loadBefore": [
+            1.873046875,
+            3.38134765625,
+            2.970703125
+          ],
+          "freeMemoryBefore": 909475840
+        },
+        "writtenBeforeMeasurement": "2026-09-10T15:23:34.878Z"
+      },
+      "rows": [
+        {
+          "ageMa": 0,
+          "repeat": 0,
+          "readyMs": 595,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 158
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 48400233,
+            "totalJSHeapSize": 76838537
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 17515386,
+          "dataTransferBytes": 7345137,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17497015,
+            "caoFoundationPublicationBytes": 467339,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        },
+        {
+          "ageMa": 0,
+          "repeat": 1,
+          "readyMs": 395,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 111
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 48487009,
+            "totalJSHeapSize": 76314185
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 17515386,
+          "dataTransferBytes": 7345137,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17497015,
+            "caoFoundationPublicationBytes": 467339,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        },
+        {
+          "ageMa": 0,
+          "repeat": 2,
+          "readyMs": 405,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.7,
+            "samples": 111
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 48238630,
+            "totalJSHeapSize": 76576310
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 12
+          },
+          "dataDecodedBytes": 17515386,
+          "dataTransferBytes": 7345137,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17497015,
+            "caoFoundationPublicationBytes": 467339,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        },
+        {
+          "ageMa": 450,
+          "repeat": 0,
+          "readyMs": 408,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 111
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 44301529,
+            "totalJSHeapSize": 75950245
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 17362600,
+          "dataTransferBytes": 7285075,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17344229,
+            "caoFoundationPublicationBytes": 342678,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        },
+        {
+          "ageMa": 450,
+          "repeat": 1,
+          "readyMs": 391,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 111
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 44135637,
+            "totalJSHeapSize": 76736737
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 17362600,
+          "dataTransferBytes": 7285075,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17344229,
+            "caoFoundationPublicationBytes": 342678,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        },
+        {
+          "ageMa": 450,
+          "repeat": 2,
+          "readyMs": 432,
+          "frameTimeMs": {
+            "p50": 16.7,
+            "p95": 16.8,
+            "samples": 109
+          },
+          "jsHeap": {
+            "usedJSHeapSize": 44339004,
+            "totalJSHeapSize": 76212380
+          },
+          "rendererMemory": {
+            "geometries": 16,
+            "textures": 11
+          },
+          "dataDecodedBytes": 17362600,
+          "dataTransferBytes": 7285075,
+          "errors": [],
+          "byteLedger": {
+            "caoFoundationStaticBytes": 10326240,
+            "caoFoundationSourceBytes": 17344229,
+            "caoFoundationPublicationBytes": 342678,
+            "caoFoundationPendingRetirementBytes": 0
+          }
+        }
+      ]
+    }
+  },
+  "appJavascriptSha256": "91bf5bd9beaab2507b3d66e047b823860f77a256ec727c9590a89a8f5fae6763"
+}
