@@ -171,7 +171,7 @@ export function evaluateCaoMotionFrame(
     values[offset + 10] = values[offset + 9];
     return Object.freeze({ chartId: chart.chartId, chartRevision: chart.chartRevision,
       materialId: chart.materialId, fragmentOrCohortId: chart.fragmentOrCohortId,
-      role: chart.role, support, evidence: chart.evidence, poseQuaternion,
+      role: chart.role, support, evidence: chart.evidence, surfaceEvidence: chart.surfaceEvidence, poseQuaternion,
       inversePoseQuaternion: inverseQuaternion(numberScalarOps, poseQuaternion) });
   });
   const activeOverrideIds = new Set(activeOverrides.map((override) => override.overrideId));
@@ -204,6 +204,7 @@ export function evaluateCaoMotionFrame(
         ...source.evidence.limitations,
         "Natural Earth 1:110m reference segment is gated by its source-domain match; the 12 km corridor is line-approximation tolerance, not geological positional accuracy",
       ]) }),
+      surfaceEvidence: source.surfaceEvidence,
       poseQuaternion: source.poseQuaternion,
       inversePoseQuaternion: source.inversePoseQuaternion,
     }));
@@ -314,6 +315,11 @@ export function evaluateCaoMotionFrame(
   const materialCorrectionIdentity = manifest.materialCorrections
     ? `${manifest.materialCorrections.id}@${manifest.materialCorrections.catalog.sha256}` : null;
   const materialCorrections: PreparedMaterialCorrections = Object.freeze({
+    observedActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+      && chart.evidence.correction?.phase === "observed-exposed-land").length,
+    classifiedShallowMarineActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+      && chart.surfaceEvidence.kind === "classified"
+      && chart.surfaceEvidence.surfaceClass === "shallow-marine").length,
     qualifiedActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
       && chart.evidence.correction?.phase === "source-qualified-material").length,
     uncertainActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
@@ -326,7 +332,9 @@ export function evaluateCaoMotionFrame(
         .includes(chart.evidence.correction?.poseStatus ?? "")).length,
     overriddenNativeCharts: overriddenNativeChartIds.size,
     activeSourceIds: Object.freeze([...new Set(charts.filter((chart) => chart.support.kind === "supported"
-      && chart.evidence.correction !== undefined).flatMap((chart) => chart.evidence.sourceIds))].sort()),
+      && (chart.evidence.correction !== undefined || (chart.surfaceEvidence.kind === "classified"
+        && chart.surfaceEvidence.surfaceClass === "shallow-marine")))
+      .flatMap((chart) => chart.evidence.sourceIds))].sort()),
     correctionIds: Object.freeze([...(foundation.correctionCatalog?.correctionIds ?? [])]),
   });
   return Object.freeze({

@@ -41,6 +41,7 @@ export interface MaterialLifecycle {
 /** Geographic/surface evidence is independent of whether material can move. */
 export type SurfaceEvidenceState =
   | { kind: "classified"; surfaceClass: "land" | "shallow-marine" | "deep-marine"; sourceIds: readonly string[] }
+  | { kind: "observed"; surfaceClass: "land"; sourceIds: readonly string[]; reason: string }
   | { kind: "unknown"; reason: string };
 
 export interface MotionSample { ageMicroMa: number; quaternion: QuaternionWxyz }

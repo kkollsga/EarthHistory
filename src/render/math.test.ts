@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import {
   angularDistanceDegrees,
   lonLatToVector3,
   pointInRing,
   resolveDetailMode,
   vector3ToLonLat,
+  worldToGlobeLocalDirection,
 } from "./math";
 import { requestedRendererBackend } from "./GlobeScene";
 
@@ -38,6 +40,22 @@ describe("spherical render math", () => {
     expect(resolveDetailMode(2.5, "regional")).toBe("regional");
     expect(resolveDetailMode(2.5, "coarse")).toBe("coarse");
     expect(resolveDetailMode(2.66, "regional")).toBe("coarse");
+  });
+
+  it("maps a world-space focus back into the rotated globe for its marker", () => {
+    const localDirection = lonLatToVector3([31, 74]);
+    const globeQuaternion = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 0, 1),
+      THREE.MathUtils.degToRad(-13.5),
+    );
+    const worldDirection = localDirection.clone().applyQuaternion(globeQuaternion);
+
+    expect(worldToGlobeLocalDirection(worldDirection, globeQuaternion).toArray()).toEqual([
+      expect.closeTo(localDirection.x, 10),
+      expect.closeTo(localDirection.y, 10),
+      expect.closeTo(localDirection.z, 10),
+    ]);
+    expect(worldDirection.angleTo(localDirection)).toBeGreaterThan(0.05);
   });
 
   it("exposes a deterministic WebGL2 compatibility route", () => {

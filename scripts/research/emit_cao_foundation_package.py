@@ -355,7 +355,7 @@ def main(out: Path | None = None, stage: Path | None = None):
                     "limitations": [
                         "native Cao foundation; surface exposure remains unknown",
                         evidence_limitation,
-                        "physical height unknown; 400 m is render-only shell separation",
+                        "physical height unknown; renderer-only shell offsets are not source elevation",
                     ],
                 },
                 "surfaceEvidence": {

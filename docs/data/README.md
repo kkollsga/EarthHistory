@@ -46,11 +46,12 @@ continental crust or shallow seas. The compiler reports unsupported geometry
 and motion rather than repairing them with invented outlines.
 
 Physical height is currently unknown and represented by a uniform zero
-placeholder. A 400 m rendering offset keeps the triangulated land shell above
-the ocean shell. It is a visual separation, not source elevation, and is applied
-after physical height exaggeration. Mountains, surveyed bathymetry, shallow-sea
-extent and calibrated historical climate are further detail work. Surface and
-seafloor controls cannot supply depths absent from the package.
+placeholder. Render-only shells place shelf context 400 m and land/material
+geometry 800 m above the ocean sphere. The separation clears planar triangle
+chord sag and keeps land above shelf context; it is not source elevation and is
+applied after physical height exaggeration. Mountains, surveyed bathymetry,
+shallow-sea extent and calibrated historical climate are further detail work.
+Surface and seafloor controls cannot supply depths absent from the package.
 
 Native tectonic boundary assets preserve source feature types, directed
 geometry, polarity and ordered adjacent plate/topology identities, with

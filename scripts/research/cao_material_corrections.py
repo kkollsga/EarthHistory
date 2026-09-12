@@ -101,6 +101,21 @@ def require_age(value, path: str) -> float:
 
 def feature_phase_intervals(feature: dict, path: str) -> list[tuple[str, float, float]]:
     """Return display phases while keeping material support separate from pose confidence."""
+    surface_phases = feature.get("phaseLifecycles")
+    if surface_phases is not None:
+        rows = []
+        for phase in ("observed", "qualified", "model-pose", "formation"):
+            lifecycle = surface_phases.get(phase)
+            if lifecycle is None:
+                continue
+            valid = require_dict(lifecycle, f"{path}.phaseLifecycles.{phase}").get("validTimeMa")
+            valid = require_dict(valid, f"{path}.phaseLifecycles.{phase}.validTimeMa")
+            rows.append((phase,
+                         require_age(valid.get("youngest"), f"{path}.phaseLifecycles.{phase}.youngest"),
+                         require_age(valid.get("oldest"), f"{path}.phaseLifecycles.{phase}.oldest")))
+        if not rows:
+            fail(f"{path}.phaseLifecycles", "must contain a display interval")
+        return rows
     replacement = feature.get("replacementPhaseLifecycles")
     if replacement is not None:
         rows = []
@@ -462,6 +477,21 @@ def validate_native_layer_evidence(core: dict) -> None:
             "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
         ),
     }
+    shelf_contract_paths = (
+        CORRECTIONS / "barents-shelf/lifecycle-contract.json",
+        CORRECTIONS / "cao-shelf-422/lifecycle-contract.json",
+    )
+    shelf_contracts = [json.loads(path.read_text()) for path in shelf_contract_paths if path.is_file()]
+    repaired_shelf_ids = {
+        row["chartId"] for contract in shelf_contracts for row in contract["charts"]
+    }
+    shelf_surface_reasons = {
+        contract["semantics"]["surfaceEvidence"]["reason"] for contract in shelf_contracts
+    }
+    repaired_shelf_limitation = (
+        "Cao continental-outline model geometry with same-identity lifecycle from "
+        "COBfile_1800_0.gpml; water depth and exposure remain unknown"
+    )
     counts = {prefix: 0 for prefix in expected}
     for chart in core.get("charts", []):
         prefix = next((candidate for candidate in expected if chart.get("chartId", "").startswith(candidate)), None)
@@ -469,8 +499,13 @@ def validate_native_layer_evidence(core: dict) -> None:
             continue
         counts[prefix] += 1
         limitation, reason = expected[prefix]
-        if (limitation not in chart.get("evidence", {}).get("limitations", [])
-                or chart.get("surfaceEvidence", {}).get("reason") != reason):
+        actual = (chart.get("evidence", {}).get("limitations", []),
+                  chart.get("surfaceEvidence", {}).get("reason"))
+        baseline_valid = limitation in actual[0] and actual[1] == reason
+        repaired_valid = (chart.get("chartId") in repaired_shelf_ids
+                          and repaired_shelf_limitation in actual[0]
+                          and actual[1] in shelf_surface_reasons)
+        if not baseline_valid and not repaired_valid:
             fail(chart.get("chartId", "native Cao chart"),
                  "source-collection layer and evidence label disagree")
     if any(count == 0 for count in counts.values()):
@@ -506,6 +541,10 @@ def validate_chart_binding_partition(chart: dict) -> None:
 
 
 def validate_generated_catalog(manifests: list[dict]) -> None:
+    import regional_iceland_correction as iceland
+
+    iceland_manifest = json.loads(iceland.MANIFEST.read_text())
+    iceland.validate_document(iceland_manifest)
     package_path = ROOT / "public/data/reconstruction/cao-v2.4/manifest.json"
     package = json.loads(package_path.read_text())
     core_path = package_path.parent / require_string(package.get("core", {}).get("url"),
@@ -528,7 +567,8 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
         for row in document.get("nativeChartOverrides", []):
             raw_overrides.append((override_path, row))
     expected_ids = sorted({*(manifest["correctionId"] for manifest in manifests),
-                           *(row["correctionId"] for _, row in raw_overrides)})
+                           *(row["correctionId"] for _, row in raw_overrides),
+                           iceland_manifest["correctionId"]})
     if catalog.get("schemaVersion") != 1 or catalog.get("id") != descriptor.get("id") \
             or catalog.get("correctionIds") != expected_ids:
         fail("material correction catalog", "regional correction identity set mismatch")
@@ -585,6 +625,10 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
                             or angular_degrees(witness.get("expectedDirectionAt411Ma", []),
                                                lon_lat_direction(expected_411["expectedLonLat"])) > 1e-5):
                         fail(witness_id, "generated pose does not match its independent pyGPlates witness")
+    iceland.validate_generated_catalog(iceland_manifest, catalog)
+    expected_chart_ids.update(chart["chartId"] for chart in catalog.get("charts", [])
+                              if chart.get("evidence", {}).get("correction", {}).get("correctionId")
+                              == iceland.CORRECTION_ID)
     emitted_overrides = {row.get("overrideId"): row for row in catalog.get("nativeChartOverrides", [])}
     if len(emitted_overrides) != len(raw_overrides):
         fail("material correction catalog.nativeChartOverrides", "override identity set mismatch")

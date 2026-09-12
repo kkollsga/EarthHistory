@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "correctionId": "earthhistory-regional-barents-shelf-lifecycle-v1",
+  "model": {
+    "id": "cao-et-al-2024",
+    "version": "2.4",
+    "record": "https://doi.org/10.5281/zenodo.13628813",
+    "license": "CC BY 4.0",
+    "retrievalDate": "2026-09-09",
+    "frame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    }
+  },
+  "sources": {
+    "compiledShelfCollection": {
+      "member": "shapes_continents.gpmlz",
+      "bytes": 1243843,
+      "sha256": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616"
+    },
+    "lifecycleAuthority": {
+      "member": "COBfile_1800_0.gpml",
+      "bytes": 14423254,
+      "sha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd"
+    }
+  },
+  "semantics": {
+    "appearance": "shelf",
+    "meaning": "Cao model continental-outline shelf context",
+    "surfaceEvidence": {
+      "kind": "unknown",
+      "reason": "the Cao closed continental boundary does not establish water depth, exposed land, or a palaeoshoreline"
+    },
+    "physicalHeight": "unknown; the existing shelf shell offset remains render-only"
+  },
+  "sourceLifecycleMa": {
+    "youngest": 0,
+    "oldest": 600,
+    "oldestInclusive": true
+  },
+  "motionExtensionMa": {
+    "youngest": 505,
+    "oldest": 600,
+    "angularErrorLimitRad": 0.00001
+  },
+  "charts": [
+    {
+      "chartId": "cao-continent:GPlates-12d36765-58ee-488d-9383-4a58fd55080c:323:0",
+      "sourceFeatureId": "GPlates-12d36765-58ee-488d-9383-4a58fd55080c",
+      "name": "East Svalbard, Northern Europe",
+      "plateId": 311,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 74,
+      "sourceVertexCount": 35,
+      "sourceGeometryFloat64XyzSha256": "f43a2326e16e6f164373951b3f2f3fb7191f5d5b0726f6770963075461f86d17",
+      "witnessReferenceLongitudeLatitude": [31.16324416906489, 76.98529747418236]
+    },
+    {
+      "chartId": "cao-continent:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:460:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "name": "East Svalbard",
+      "plateId": 311,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 539,
+      "sourceVertexCount": 23,
+      "sourceGeometryFloat64XyzSha256": "e69027e2af295fe34b219c010e63b78c3f840524e10713002ee6263426dd5e17",
+      "witnessReferenceLongitudeLatitude": [24.455138172957703, 79.01287207949157]
+    },
+    {
+      "chartId": "cao-continent:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:356:0",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "name": "West Svalbard",
+      "plateId": 309,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 543,
+      "sourceVertexCount": 51,
+      "sourceGeometryFloat64XyzSha256": "dc51ad9cdc975a6c8aa898941c3b3381d3ae1263e0dcbd1eebcae1afce808b75",
+      "witnessReferenceLongitudeLatitude": [16.284884638354438, 76.52768520321726]
+    }
+  ],
+  "explicitExclusions": [
+    {
+      "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+      "name": "Novaya-Semya",
+      "reason": "the lifecycle authority and compiled shelf collection both end at 410 Ma"
+    },
+    {
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "name": "Barentsia (Franz Josef Land)",
+      "reason": "the lifecycle authority and compiled shelf collection both end at 410 Ma"
+    }
+  ]
+}

@@ -145,6 +145,33 @@ const fetcher: StaticAssetFetcher = async (url, signal) => {
 };
 
 describe("native Cao package v2", () => {
+  it("keeps Iceland's modern observation and pale material within their exact evidence ages", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
+      ReconstructionPackageManifestV2;
+    const runtime = new CaoReconstructionRuntime(manifest, fetcher);
+    const expected = new Map<number, number>([
+      [0, 2], [0.001, 8], [0.021, 8], [0.8, 4], [1, 4], [3.3, 4],
+      [5, 2], [16.3, 2], [16.300001, 0], [20, 0],
+    ]);
+    for (const [ageMa, expectedActive] of expected) {
+      const revision = await runtime.request(ageMa).prepared;
+      const iceland = revision.charts.filter((chart) => chart.support.kind === "supported"
+        && chart.evidence.correction?.correctionId === "earthhistory-regional-iceland-surface-v1");
+      expect(iceland).toHaveLength(expectedActive);
+      expect(revision.materialCorrections.observedActiveCharts).toBe(ageMa === 0 ? 2 : 0);
+      expect(revision.materialCorrections.classifiedShallowMarineActiveCharts)
+        .toBe(ageMa === 0 ? 2 : 0);
+      expect(revision.materialCorrections.activeSourceIds
+        .includes("natural-earth-bathymetry-10m-l0-k200-v4.1.0")).toBe(ageMa === 0);
+      if (ageMa > 0) {
+        expect(iceland.every((chart) => chart.evidence.correction?.poseStatus === "model-inference"
+          && chart.evidence.correction?.phase !== "observed-exposed-land")).toBe(true);
+      }
+      revision.release();
+    }
+    runtime.dispose();
+  });
+
   it("activates derived material strictly beyond native and qualified evidence boundaries", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
     const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
@@ -153,10 +180,12 @@ describe("native Cao package v2", () => {
     for (const ageMa of [0, 0.001, 1, 50, 100, 165, 410, 410 + 1e-7, 410 + 1e-6,
       430, 430 + 1e-7, 540] as const) {
       const revision = await runtime.request(ageMa).prepared;
-      const active = (phase: "source-qualified-material" | "uncertain-continuation" | "formation-uncertain") =>
+      const active = (phase: "observed-exposed-land" | "source-qualified-material" |
+        "uncertain-continuation" | "formation-uncertain") =>
         catalog.charts.filter((chart) => chart.evidence.correction?.phase === phase
           && evaluateLifecycleSupport(chart.lifecycle, ageMa) === null).length;
       expect(revision.materialCorrections).toMatchObject({
+        observedActiveCharts: active("observed-exposed-land"),
         qualifiedActiveCharts: active("source-qualified-material"),
         uncertainActiveCharts: active("uncertain-continuation"),
         formationUncertainActiveCharts: active("formation-uncertain"),
@@ -213,24 +242,28 @@ describe("native Cao package v2", () => {
     expect(prepared.display).toEqual({ youngerAgeMa: 225, olderAgeMa: 230, fraction: 0.5 });
     expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_200);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.motionPalette.entryCount * 11);
-    expect(prepared.batches).toHaveLength(4);
+    expect(prepared.batches).toHaveLength(5);
     // Complete authored rotation collection recovers the previously omitted
     // North American and Amazonian source geometry.
     expect(prepared.batches.map((batch) => batch.batchId)).toEqual([
-      "batch-shelf", "batch-land", "material-correction-qualified", "material-correction-uncertain",
+      "batch-shelf", "batch-land", "material-correction-observed",
+      "material-correction-qualified", "material-correction-uncertain",
     ]);
-    expect(prepared.batches[0]!.vertexCount).toBe(153_904);
+    expect(prepared.batches[0]!.vertexCount).toBe(156_252);
     expect(prepared.batches[1]!.vertexCount).toBe(149_492);
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(322_442);
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(486_333);
+    expect(prepared.batches[2]).toMatchObject({
+      batchId: "material-correction-observed", vertexCount: 502, triangleCount: 536,
+    });
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(361_829);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(521_541);
     expect(prepared.lineBatches).toHaveLength(1);
     // The layered origin/main package owns this country batch. Its four fewer
     // segments than the pre-merge correction checkpoint predate correction remapping.
     expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 20_028, segmentCount: 10_014 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(342_470);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(381_857);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(496_347);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(531_555);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -238,8 +271,9 @@ describe("native Cao package v2", () => {
         .toBe(batch.staticGeometryBytes);
     }
     const resource = createCaoFoundationGeometryResource(prepared, {
-      // Layered shelf/land and both bounded correction meshes.
-      maxBatches: 5, maxVertices: 400_000, maxTriangles: 600_000,
+      // Layered shelf/land and bounded correction meshes.
+      // Five spatial batches plus the country-reference line batch.
+      maxBatches: 6, maxVertices: 400_000, maxTriangles: 600_000,
       maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
@@ -253,6 +287,7 @@ describe("native Cao package v2", () => {
     expect(prepared.materialCorrections.correctionIds).toEqual([
       "earthhistory-regional-barents-material-v1",
       "earthhistory-regional-canada-franklinian-material-v1",
+      "earthhistory-regional-iceland-surface-v1",
       "earthhistory-regional-pearya-pericratonic-scenario-v1",
       "earthhistory-regional-svalbard-material-v1",
       "earthhistory-regional-western-laurentia-material-v1",

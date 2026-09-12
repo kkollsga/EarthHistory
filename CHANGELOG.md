@@ -2,6 +2,37 @@
 
 All notable changes to EarthHistory will be recorded here.
 
+## [Unreleased]
+
+## [0.1.5] - 2026-09-13
+
+### Changed
+
+- Replace the permanent surface footer with a compact, expandable map key that
+  keeps live status visible, uses one land color, and lists evidence categories
+  separately.
+
+### Fixed
+
+- Restore Iceland at 0 Ma from a regional-scale 1:50m observed land outline
+  and show only bounded model-pose volcanic material at older supported ages,
+  split across the Cao North America–Eurasia ridge without treating 16.3 Ma as
+  island birth.
+- Add a public-domain Natural Earth 1:10m generalized 0–200 m shallow-marine
+  context around modern Iceland, active only at exactly 0 Ma, and keep shelf
+  and land meshes clear and ordered with measured display-only shell bounds.
+- Restore three Barents and Svalbard shelf polygons at 422 Ma using their
+  matching Cao source lifetimes through 600 Ma; water depth remains unknown.
+- Restore six European and Avalonian shelf lifecycles across the 410–420 Ma
+  source cutoffs, using matching Cao boundary geometry and motion validated
+  through 600 Ma.
+- Make the timeline easier to acquire and drag on touch screens with a larger
+  hit area, immediate thumb feedback, stable endpoint mapping and safe gesture
+  cancellation.
+- Make a locked position visible against light land and dark water with a
+  small, steady dual-contrast ring and center dot, place it at the selected
+  globe position, and preserve the user's current zoom when the lock is selected.
+
 ## [0.1.4] - 2026-09-12
 
 ### Added

@@ -67,6 +67,16 @@ check-dev-docs:
 check-corrections:
 	@python3 scripts/research/cao_material_corrections.py --self-test
 	@python3 scripts/research/cao_material_corrections.py
+	@python3 scripts/research/validate_regional_barents_shelf.py --self-test
+	@python3 scripts/research/validate_regional_barents_shelf.py
+	@python3 scripts/research/validate_cao_shelf_lifecycle_422.py --self-test
+	@python3 scripts/research/validate_cao_shelf_lifecycle_422.py
+	@python3 scripts/research/regional_iceland_correction.py --self-test --runtime
+	@python3 scripts/research/regional_iceland_correction.py --runtime
+	@python3 scripts/research/regional_iceland_shelf_correction.py --self-test
+	@python3 scripts/research/regional_iceland_shelf_correction.py
+	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
+	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
 
 # R4: Vite/TypeScript caches have a named owner and explicit bound.
 check-build-cache:

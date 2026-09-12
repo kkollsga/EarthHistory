@@ -18,12 +18,14 @@ quaternion endpoints, fractions and lifecycle activation. Present day follows
 the same path and precision as every other compiled age. Source gaps deactivate
 unsupported material; they do not receive identity motion.
 
-The physical height placeholder is zero/unknown. A separate 400 metre shell
-separation prevents refined planar triangles from sinking below the ocean
-sphere. It participates in picking and bounds, but is not physical relief and
-is not multiplied by visual exaggeration. Calibrated relief, bathymetry and
-historical biome detail are deferred. Older chapters use editorial globe
-uniforms through this same scene, with native geography explicitly unavailable.
+The physical height placeholder is zero/unknown. Separate render-only shells
+place shelf context 400 metres and land/material geometry 800 metres above the
+ocean sphere. They prevent refined planar triangles from sinking below the
+ocean and keep land above shelf context. The offsets participate in picking and
+bounds, but are not physical relief and are not multiplied by visual
+exaggeration. Calibrated relief, bathymetry and historical biome detail are
+deferred. Older chapters use editorial globe uniforms through this same scene,
+with native geography explicitly unavailable.
 
 Publication owns the matching geometry, palette, sparse picking state and
 native overlay state. Replacement and teardown release prepared-state leases

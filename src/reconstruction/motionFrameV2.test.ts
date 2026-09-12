@@ -110,6 +110,11 @@ describe("continuous Cao motion frames", () => {
     for (const frame of frames) {
       const supported = (phase: string) => frame.charts.filter((chart) => chart.support.kind === "supported"
         && chart.evidence.correction?.phase === phase).length;
+      expect(frame.materialCorrections.observedActiveCharts).toBe(supported("observed-exposed-land"));
+      expect(frame.materialCorrections.classifiedShallowMarineActiveCharts).toBe(frame.charts.filter(
+        (chart) => chart.support.kind === "supported" && chart.surfaceEvidence.kind === "classified"
+          && chart.surfaceEvidence.surfaceClass === "shallow-marine",
+      ).length);
       expect(frame.materialCorrections.qualifiedActiveCharts).toBe(supported("source-qualified-material"));
       expect(frame.materialCorrections.uncertainActiveCharts).toBe(supported("uncertain-continuation"));
       expect(frame.materialCorrections.formationUncertainActiveCharts).toBe(supported("formation-uncertain"));

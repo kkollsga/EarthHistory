@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "version": "1",
+  "correctionId": "earthhistory-cao-shelf-lifecycle-422-v1",
+  "model": {
+    "id": "cao-et-al-2024",
+    "version": "2.4",
+    "record": "https://doi.org/10.5281/zenodo.13628813",
+    "license": "CC BY 4.0",
+    "retrievalDate": "2026-09-09",
+    "frame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    }
+  },
+  "sources": {
+    "compiledShelfCollection": {
+      "member": "shapes_continents.gpmlz",
+      "bytes": 1243843,
+      "sha256": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616"
+    },
+    "lifecycleAuthority": {
+      "member": "COBfile_1800_0.gpml",
+      "bytes": 14423254,
+      "sha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd"
+    }
+  },
+  "semantics": {
+    "appearance": "shelf",
+    "meaning": "Cao model continental-outline shelf context",
+    "surfaceEvidence": {
+      "kind": "unknown",
+      "reason": "the Cao closed continental boundary does not establish water depth, exposed land, or a palaeoshoreline"
+    },
+    "physicalHeight": "unknown; the shelf shell offset remains render-only"
+  },
+  "sourceLifecycleMa": {
+    "youngest": 0,
+    "oldest": 600,
+    "oldestInclusive": true
+  },
+  "motionExtensionMa": {
+    "youngest": 410,
+    "oldest": 600,
+    "angularErrorLimitRad": 1e-05,
+    "partiallyReusedNativePalettePlateIds": [
+      305,
+      374,
+      375
+    ],
+    "newEntryYoungestMaByPlate": {
+      "108": 420,
+      "319": 410,
+      "374": 505,
+      "375": 505
+    }
+  },
+  "charts": [
+    {
+      "chartId": "cao-continent:GPlates-fd2d6d46-84a5-4585-b133-a32d057d0b2c:286:0",
+      "sourceFeatureId": "GPlates-fd2d6d46-84a5-4585-b133-a32d057d0b2c",
+      "name": "Moldanumbia",
+      "plateId": 305,
+      "sourceFeatureType": "PassiveContinentalBoundary",
+      "compiledChartIndex": 858,
+      "compiledOldestMa": 420.0,
+      "sourceVertexCount": 84,
+      "sourceGeometryFloat64XyzSha256": "60177b023b9cf8dd24fa20fd6d606f492345b5259d69faf9a949abccc9a84a68",
+      "witnessReferenceLongitudeLatitude": [
+        9.028490799375218,
+        48.012319866576476
+      ]
+    },
+    {
+      "chartId": "cao-continent:GPlates-de080982-882f-4fab-8101-2425107ed7e5:287:0",
+      "sourceFeatureId": "GPlates-de080982-882f-4fab-8101-2425107ed7e5",
+      "name": "Armorica",
+      "plateId": 305,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 763,
+      "compiledOldestMa": 420.0,
+      "sourceVertexCount": 87,
+      "sourceGeometryFloat64XyzSha256": "7d73da0ed796ce6d4fc0da97335d3af2d6b5bd24b9d462e82f5ec864fbaa8f7c",
+      "witnessReferenceLongitudeLatitude": [
+        -3.8659865551606614,
+        48.42410643443812
+      ]
+    },
+    {
+      "chartId": "cao-continent:GPlates-3667155e-ba7e-4f5b-8764-94eb2b6bcba3:360:0",
+      "sourceFeatureId": "GPlates-3667155e-ba7e-4f5b-8764-94eb2b6bcba3",
+      "name": "Perunica",
+      "plateId": 374,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 207,
+      "compiledOldestMa": 420.0,
+      "sourceVertexCount": 37,
+      "sourceGeometryFloat64XyzSha256": "73abaf8100130eee392b94ac30fe517e3dbb9eb8a3d03205239703fffce70065",
+      "witnessReferenceLongitudeLatitude": [
+        14.463488753044297,
+        49.56296154430925
+      ]
+    },
+    {
+      "chartId": "cao-continent:GPlates-7063f2f2-fd11-4561-a6c3-40d3d280e731:369:0",
+      "sourceFeatureId": "GPlates-7063f2f2-fd11-4561-a6c3-40d3d280e731",
+      "name": "Saxothuringia",
+      "plateId": 375,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 391,
+      "compiledOldestMa": 420.0,
+      "sourceVertexCount": 52,
+      "sourceGeometryFloat64XyzSha256": "fed3bf57c11a126a952431c3ab160c256e2368d26fb96467e0d2ace9b1065d28",
+      "witnessReferenceLongitudeLatitude": [
+        11.096073452393355,
+        50.32058870621445
+      ]
+    },
+    {
+      "chartId": "cao-continent:GPlates-1ac35adf-3386-4031-9e1b-c608d0650da1:691:0",
+      "sourceFeatureId": "GPlates-1ac35adf-3386-4031-9e1b-c608d0650da1",
+      "name": "Strandja (Moesia)",
+      "plateId": 319,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 100,
+      "compiledOldestMa": 410.0,
+      "sourceVertexCount": 49,
+      "sourceGeometryFloat64XyzSha256": "99fd3ca819eb5d87ce123bf343fff16fce9064e09f30d0e8bbc8c2e27ced6f71",
+      "witnessReferenceLongitudeLatitude": [
+        26.846253262040893,
+        43.738343997607394
+      ]
+    },
+    {
+      "chartId": "cao-continent:GPlates-3df921ec-114e-4cf0-a495-3bd0761a3156:724:0",
+      "sourceFeatureId": "GPlates-3df921ec-114e-4cf0-a495-3bd0761a3156",
+      "name": "Avalonia (Avalon/Acadia)",
+      "plateId": 108,
+      "sourceFeatureType": "ClosedContinentalBoundary",
+      "compiledChartIndex": 232,
+      "compiledOldestMa": 420.0,
+      "sourceVertexCount": 15,
+      "sourceGeometryFloat64XyzSha256": "4e38c7b47ec8936419717be688ba96f7bf41fe8ed4385be070e231900fdeb14d",
+      "witnessReferenceLongitudeLatitude": [
+        -46.96080573192933,
+        51.23171549268187
+      ]
+    }
+  ],
+  "scope": {
+    "investigatedAgesMa": [
+      0,
+      409,
+      410,
+      410.000001,
+      411,
+      420,
+      422
+    ],
+    "excludedPolicy": "Only the six exact-geometry COB-superset omissions still inactive at 422 Ma after the three-chart Barents repair are changed. Reverse lifecycle mismatches and other ages remain unchanged pending separate regional review."
+  }
+}

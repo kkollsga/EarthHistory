@@ -15,6 +15,14 @@ async function openMenu(page: Page) {
   await expect(page.getByRole("menu", { name: "Explore tools" })).toBeVisible();
 }
 
+async function openSurfaceInfo(page: Page) {
+  const details = page.locator(".surface-info");
+  if (!await details.evaluate((element) => element.hasAttribute("open"))) {
+    await details.locator("summary").click();
+  }
+  await expect(details).toHaveAttribute("open", "");
+}
+
 async function setContinuousAge(page: Page, ageMa: number) {
   await page.locator("#timeline-scale").selectOption("phanerozoic");
   const rawValue = await page.locator("#geological-age").evaluate((element, age) => {
@@ -31,7 +39,7 @@ async function setContinuousAge(page: Page, ageMa: number) {
     const value = document.querySelector<HTMLCanvasElement>(
       "canvas[aria-label='Interactive three-dimensional Earth']",
     )?.dataset.caoFoundationRequestedAgeMa;
-    return value !== undefined && Math.abs(Number(value) - age) <= 1e-6;
+    return value !== undefined && Math.abs(Number(value) - age) <= 1e-8;
   }, ageMa, { timeout: 20_000 });
 }
 
@@ -78,6 +86,42 @@ test("supports the TSL WebGL2 fallback", { tag: "@ci" }, async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("locks a global surface position without changing zoom", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./");
+  await waitForCao(page);
+  await page.locator("#landscape-jump").selectOption("amazon-rainforest");
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "place");
+  const box = await globe(page).boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  for (let index = 0; index < 8; index += 1) await page.mouse.wheel(0, 220);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
+    .toBeGreaterThan(3);
+  const distance = Number(await globe(page).getAttribute("data-camera-distance"));
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "area");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "true");
+  await expect(page.getByTestId("location-lock")).toContainText(/Location locked/);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(distance, 3);
+  await expect.poll(async () => {
+    const xRaw = await globe(page).getAttribute("data-focus-marker-offset-x-px");
+    const yRaw = await globe(page).getAttribute("data-focus-marker-offset-y-px");
+    if (xRaw === null || yRaw === null) return Number.POSITIVE_INFINITY;
+    const x = Number(xRaw);
+    const y = Number(yRaw);
+    return Number.isFinite(x) && Number.isFinite(y)
+      ? Math.hypot(x, y) : Number.POSITIVE_INFINITY;
+  }).toBeLessThanOrEqual(1);
+  await page.getByRole("button", { name: "Unlock" }).click();
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(distance, 3);
+});
+
 test("distinguishes exact native checkpoints from continuous motion", async ({ page }) => {
   await page.goto("./#age=450");
   await waitForCao(page);
@@ -105,27 +149,27 @@ test("activates cited material corrections across exact evidence boundaries", as
   await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
   await expect(globe(page)).toHaveAttribute("data-cao-model-inferred-pose-charts", "10");
 
-  await page.goto("./#age=410.0000001");
-  await page.reload();
+  await setContinuousAge(page, 410.0000001);
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
   await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "15");
   await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
-  await expect(page.getByText(/Ochre: source-supported material footprint/)).toBeVisible();
+  await openSurfaceInfo(page);
+  await expect(page.locator(".surface-evidence-key")).toContainText("Source-qualified material");
 
-  await page.goto("./#age=430");
-  await page.reload();
+  await page.locator("#source-age-jump").selectOption("430");
   await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "430");
   await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "14");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "1");
 
-  await page.goto("./#age=430.0000001");
-  await page.reload();
+  await setContinuousAge(page, 430.0000001);
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
   await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
-  await expect(page.getByText(/Gray: continued material with older pose uncertainty/)).toBeVisible();
+  await openSurfaceInfo(page);
+  await expect(page.locator(".surface-evidence-key")).toContainText("Model-inferred or uncertain material");
   await openMenu(page);
   await page.getByRole("menuitem", { name: "Sources" }).click();
   await expect(page.getByRole("link", { name: /simplified tectonic assemblage map/ })).toBeVisible();
@@ -159,7 +203,8 @@ test("withholds a failed checkpoint and recovers without stale land", async ({ p
   await waitForCao(page);
   const geometryIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
   await page.locator("#source-age-jump").selectOption("450");
-  await expect(page.getByText(/Cao reconstruction unavailable · surface withheld/)).toBeVisible();
+  await expect(page.locator(".surface-info summary")).toContainText("Surface withheld");
+  await expect(page.getByText(/Cao reconstruction unavailable · surface withheld/)).not.toBeVisible();
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "waiting");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-anchor-markers", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-anchor-age-ma", "");
@@ -220,14 +265,109 @@ test("labels editorial geography outside the live Cao package domain", async ({ 
 test("clears correction legend state outside the live Cao package domain", async ({ page }) => {
   await page.goto("./#age=411");
   await waitForCao(page);
-  await expect(page.getByText(/Ochre: source-supported material footprint/)).toBeVisible();
+  await openSurfaceInfo(page);
+  await expect(page.locator(".surface-evidence-key")).toContainText("Source-qualified material");
   await page.locator("#chapter-jump").selectOption("moon-forming-scenario");
   await expect(page.locator(".geography-age").first()).toContainText("Outside compiled domain");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "unsupported");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-draw-count", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-overridden-native-charts", "0");
-  await expect(page.getByText(/Ochre: source-supported material footprint/)).toHaveCount(0);
-  await expect(page.getByText(/Gray: continued material with older pose uncertainty/)).toHaveCount(0);
+  await expect(page.locator(".surface-evidence-key")).toContainText("No regional material correction evidence active");
+});
+
+test("labels observed modern land only at the exact present", async ({ page }) => {
+  await page.goto("./");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-observed-material-charts", "2");
+  await expect(globe(page)).toHaveAttribute("data-cao-classified-shallow-marine-charts", "2");
+  await openSurfaceInfo(page);
+  await expect(page.locator(".surface-evidence-key")).toContainText("Observed modern land");
+  await expect(page.locator(".surface-evidence-key")).toContainText("Modern Iceland shelf · generalized 0–200 m class");
+
+  await setContinuousAge(page, 0.001);
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-observed-material-charts", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-classified-shallow-marine-charts", "0");
+  await openSurfaceInfo(page);
+  await expect(page.locator(".surface-evidence-key")).not.toContainText("Observed modern land");
+  await expect(page.locator(".surface-evidence-key")).not.toContainText("Modern Iceland shelf");
+});
+
+test("keeps the mobile map key compact and gives the timeline a touch-sized drag target", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./#age=411");
+  await waitForCao(page);
+  const info = page.locator(".surface-info");
+  const summary = info.locator("summary");
+  await expect(info).not.toHaveAttribute("open", "");
+  const summaryBox = await summary.boundingBox();
+  expect(summaryBox).not.toBeNull();
+  expect(summaryBox!.height).toBeGreaterThanOrEqual(44);
+  expect(summaryBox!.height).toBeLessThanOrEqual(46);
+  await expect(page.getByText("Land uses one display color. Evidence categories are listed separately.")).not.toBeVisible();
+  await openSurfaceInfo(page);
+  await expect(page.getByText("Land uses one display color. Evidence categories are listed separately.")).toBeVisible();
+  await expect(page.getByText("Land", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Source-qualified material/)).toBeVisible();
+  await expect(page.getByText(/exposure unknown/).first()).toBeVisible();
+
+  const range = page.locator("#geological-age");
+  const touchStyle = await range.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { height: Number.parseFloat(style.height), touchAction: style.touchAction };
+  });
+  expect(touchStyle.height).toBeGreaterThanOrEqual(44);
+  expect(touchStyle.touchAction).toBe("none");
+});
+
+test("keeps touch scrubbing stable at the thumb and releases its local draft", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+  await waitForCao(page);
+  const range = page.locator("#geological-age");
+  const geometry = await range.evaluate((element) => {
+    const input = element as HTMLInputElement & {
+      setPointerCapture(pointerId: number): void;
+      hasPointerCapture(pointerId: number): boolean;
+      releasePointerCapture(pointerId: number): void;
+    };
+    input.setPointerCapture = () => undefined;
+    input.hasPointerCapture = () => false;
+    input.releasePointerCapture = () => undefined;
+    const rect = input.getBoundingClientRect();
+    return { left: rect.left, width: rect.width, thumbRadius: 9.5 };
+  });
+  const dispatchPointer = async (
+    type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel" | "lostpointercapture",
+    pointerId: number,
+    clientX: number,
+    isPrimary = true,
+  ) => range.dispatchEvent(type, { pointerId, pointerType: "touch", isPrimary, clientX });
+  const sliderCenter = (position: number) => geometry.left + geometry.thumbRadius
+    + (geometry.width - geometry.thumbRadius * 2) * position / 1000;
+
+  await dispatchPointer("pointerdown", 41, sliderCenter(0));
+  expect(Number(await range.inputValue())).toBeCloseTo(0, 6);
+  await dispatchPointer("pointerdown", 42, sliderCenter(1000), false);
+  expect(Number(await range.inputValue())).toBeCloseTo(0, 6);
+  await dispatchPointer("pointermove", 41, sliderCenter(500));
+  await expect.poll(async () => Number(await range.inputValue())).toBeCloseTo(500, 3);
+  await dispatchPointer("pointercancel", 41, sliderCenter(500));
+  await expect.poll(async () => Number(await range.inputValue())).toBeCloseTo(500, 3);
+
+  await page.locator(".context-toggle").click();
+  await page.locator("#chapter-jump").selectOption("silurian");
+  await expect(range).toHaveAttribute("aria-valuetext", "430 Ma");
+  const silurianPosition = Number(await range.inputValue());
+  await dispatchPointer("pointerdown", 43, sliderCenter(silurianPosition));
+  expect(Number(await range.inputValue())).toBeCloseTo(silurianPosition, 3);
+  await dispatchPointer("pointermove", 43, sliderCenter(750));
+  await expect.poll(async () => Number(await range.inputValue())).toBeCloseTo(750, 3);
+  await dispatchPointer("lostpointercapture", 43, sliderCenter(750));
+  await expect.poll(async () => Number(await range.inputValue())).toBeCloseTo(750, 3);
+  await page.locator("#chapter-jump").selectOption("present");
+  await expect(range).toHaveAttribute("aria-valuetext", "Today");
+  expect(Number(await range.inputValue())).toBeCloseTo(0, 6);
 });
 
 test("keeps Precambrian scrubber from deep time through today", async ({ page }) => {
@@ -304,6 +444,7 @@ test("retains a material address through an unsupported age and reacquires witho
   // the second ray hits the same known Amazonian land through the native mesh.
   await page.mouse.click(center.x, center.y);
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  const distanceBeforeLock = Number(await globe(page).getAttribute("data-camera-distance"));
   await page.mouse.click(center.x, center.y);
   await expect.poll(() =>
     new URLSearchParams(new URL(page.url()).hash.slice(1)).get("material"),
@@ -312,7 +453,11 @@ test("retains a material address through an unsupported age and reacquires witho
   expect(material).not.toBeNull();
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "area");
   await expect(globe(page)).toHaveAttribute("data-focus-marker", "true");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker-style", "steady-ring-dot");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker-size-px", "18");
   await expect(page.getByTestId("location-lock")).toContainText(/Location locked/);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(distanceBeforeLock, 3);
   await page.mouse.move(center.x, center.y);
   for (let index = 0; index < 4; index++) await page.mouse.wheel(0, -220);
   await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
@@ -336,6 +481,8 @@ test("retains a material address through an unsupported age and reacquires witho
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
   await expect(globe(page)).toHaveAttribute("data-focus-marker", "false");
   await expect(page.getByTestId("location-lock")).toHaveCount(0);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-distance")))
+    .toBeCloseTo(distance, 3);
 });
 
 test("keeps the menu and modal keyboard accessible", async ({ page }) => {

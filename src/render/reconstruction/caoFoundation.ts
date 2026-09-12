@@ -30,8 +30,8 @@ import { intersectRayTriangle } from "./picking";
 import type { Vec3Tuple } from "./bounds";
 
 /** Display separation only; source physical height remains zero/unknown. */
-export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 80;
-export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 400;
+export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 400;
+export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 800;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
 
@@ -117,6 +117,8 @@ export interface CaoFoundationDiagnostics {
   readonly staticGeometryIdentity: string | null;
   readonly materialCorrectionIdentity: string | null;
   readonly materialCorrections: Readonly<{
+    observedActiveCharts: number;
+    classifiedShallowMarineActiveCharts: number;
     qualifiedActiveCharts: number;
     uncertainActiveCharts: number;
     formationUncertainActiveCharts: number;
@@ -260,10 +262,11 @@ function createChartSpatialIndex(
   ranges: PreparedCaoRevision["batches"][number]["chartTriangleRanges"],
   triangleCount: number,
   chartCount: number,
+  shellOffsetMetres: number,
 ): { chartRanges: Uint32Array; chartBounds: Float32Array } {
   const chartRanges = new Uint32Array(ranges.length * 4);
   const chartBounds = new Float32Array(ranges.length * 6);
-  const shellRadius = 1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES;
+  const shellRadius = 1 + shellOffsetMetres / EARTH_RADIUS_METRES;
   let coveredTriangles = 0;
   for (let rangeIndex = 0; rangeIndex < ranges.length; rangeIndex += 1) {
     const range = ranges[rangeIndex]!;
@@ -556,7 +559,8 @@ export function createCaoFoundationGeometryResource(
         + source.indices.byteLength;
       trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, gpuBytes, "Cao tracked GPU");
       const spatial = createChartSpatialIndex(source, prepared.chartTriangleRanges,
-        prepared.triangleCount, revision.charts.length);
+        prepared.triangleCount, revision.charts.length,
+        caoFoundationShellOffsetMetres(prepared.batchId));
       retainedCpuBytes = safeAdd(retainedCpuBytes,
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
       resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
@@ -1324,6 +1328,8 @@ export class CaoFoundationSurfaceRenderer {
       staticGeometryIdentity: this.staticGeometry?.key ?? null,
       materialCorrectionIdentity: current?.resources.materialCorrectionIdentity ?? null,
       materialCorrections: current?.resources.materialCorrections ?? Object.freeze({
+        observedActiveCharts: 0,
+        classifiedShallowMarineActiveCharts: 0,
         qualifiedActiveCharts: 0,
         uncertainActiveCharts: 0,
         formationUncertainActiveCharts: 0,

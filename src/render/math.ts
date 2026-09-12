@@ -25,6 +25,13 @@ export function vector3ToLonLat(vector: THREE.Vector3): LonLat {
   ];
 }
 
+export function worldToGlobeLocalDirection(
+  worldDirection: THREE.Vector3,
+  globeQuaternion: THREE.Quaternion,
+): THREE.Vector3 {
+  return worldDirection.clone().applyQuaternion(globeQuaternion.clone().invert()).normalize();
+}
+
 export function normalizeLongitude(longitude: number): number {
   return ((longitude + 540) % 360) - 180;
 }

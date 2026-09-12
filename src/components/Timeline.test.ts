@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PHANEROZOIC_MAX_MA, selectVisibleChapters, sliderToAge, ageToSlider } from "./Timeline";
+import { PHANEROZOIC_MAX_MA, pointerClientXToSlider, selectVisibleChapters,
+  sliderToAge, sliderToPointerClientX, ageToSlider } from "./Timeline";
 import type { TimeSlice } from "../data";
 
 const slices: TimeSlice[] = [
@@ -35,5 +36,21 @@ describe("Timeline ranges", () => {
     expect(sliderToAge(slider, span)).toBeCloseTo(age, 6);
     expect(sliderToAge(0, span)).toBeCloseTo(0, 6);
     expect(sliderToAge(1000, span)).toBeCloseTo(span, 6);
+  });
+
+  it("maps a touch position across the full slider and clamps outside its hit area", () => {
+    expect(pointerClientXToSlider(29.5, 20, 350)).toBe(0);
+    expect(pointerClientXToSlider(195, 20, 350)).toBe(500);
+    expect(pointerClientXToSlider(360.5, 20, 350)).toBe(1000);
+    expect(pointerClientXToSlider(-30, 20, 350)).toBe(0);
+    expect(pointerClientXToSlider(420, 20, 350)).toBe(1000);
+    expect(pointerClientXToSlider(100, 20, 19)).toBe(0);
+  });
+
+  it("round-trips the native thumb centers without an initial-drag jump", () => {
+    for (const position of [0, 237.25, 500, 812.75, 1000]) {
+      const center = sliderToPointerClientX(position, 20, 350);
+      expect(pointerClientXToSlider(center, 20, 350)).toBeCloseTo(position, 9);
+    }
   });
 });

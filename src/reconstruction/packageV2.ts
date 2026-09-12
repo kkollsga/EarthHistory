@@ -36,7 +36,8 @@ export interface MaterialChartEvidence {
   readonly limitations: readonly string[];
   readonly correction?: {
     readonly correctionId: string;
-    readonly phase: "source-qualified-material" | "uncertain-continuation" | "formation-uncertain";
+    readonly phase: "observed-exposed-land" | "source-qualified-material" |
+      "uncertain-continuation" | "formation-uncertain";
     readonly materialStatus?: "supported" | "native-source-supported-age-unknown" | "formation-uncertain";
     readonly poseStatus?: "source-qualified" | "model-inference" | "native-target-only" | "uncertain-continuation";
     readonly materialOriginRangeMa?: readonly [number, number];
@@ -312,7 +313,10 @@ export function validateMaterialCorrectionCatalogV1(
     const correction = chart.evidence.correction;
     const phase = correction?.phase;
     const lifecycle = chart.lifecycle.validTimeMa;
-    const phaseBoundsValid = phase === "formation-uncertain"
+    const phaseBoundsValid = phase === "observed-exposed-land"
+      ? lifecycle.youngest === 0 && lifecycle.oldest === 0
+        && chart.lifecycle.youngestExclusive !== true && chart.lifecycle.oldestExclusive !== true
+      : phase === "formation-uncertain"
       ? lifecycle.oldest > lifecycle.youngest
         && chart.lifecycle.youngestExclusive === true
         && correction?.materialStatus === "formation-uncertain"
@@ -329,14 +333,20 @@ export function validateMaterialCorrectionCatalogV1(
     if (chart.role !== "model-geography" || chart.evidence.status !== "derived-overlay"
         || !correction || !catalog.correctionIds.includes(correction.correctionId)
         || !phaseBoundsValid
-        || chart.surfaceEvidence.kind !== "unknown"
-        || (phase !== "source-qualified-material" && chart.lifecycle.youngestExclusive !== true)
+        || (phase === "observed-exposed-land"
+          ? chart.surfaceEvidence.kind !== "observed"
+            || chart.surfaceEvidence.surfaceClass !== "land"
+            || chart.surfaceEvidence.sourceIds.length === 0
+          : chart.surfaceEvidence.kind !== "unknown")
+        || (phase !== "source-qualified-material" && phase !== "observed-exposed-land"
+          && chart.lifecycle.youngestExclusive !== true)
         || (phase === "source-qualified-material"
           && !["supported", "native-source-supported-age-unknown"].includes(correction.materialStatus ?? "")
           && chart.lifecycle.youngestExclusive !== true)
         || chart.geometryReferenceAgeMa !== 0
         || chart.sourceFeatureTypes.length !== 1
-        || !["EarthHistorySourceQualifiedMaterialCorrection", "EarthHistoryDomainFragmentReplacement"]
+        || !["EarthHistorySourceQualifiedMaterialCorrection", "EarthHistoryDomainFragmentReplacement",
+          "EarthHistoryObservedModernLandCorrection", "EarthHistoryVolcanicIslandMaterialCorrection"]
           .includes(chart.sourceFeatureTypes[0]!)) {
       throw new Error("invalid derived material correction chart");
     }
