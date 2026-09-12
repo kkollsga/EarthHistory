@@ -577,6 +577,18 @@
       "measurementRowsRetained": true,
       "stopFailure": false,
       "knownInterference": false
+    },
+    {
+      "attempt": 7,
+      "outcome": "rejected-remote-workflow",
+      "classification": "ci-smoke-assertion-transport-timeout",
+      "reason": "GitHub Actions run 34712827409 failed its sole @ci smoke after the globe was ready at 18.811 s: six valid serial CDP-backed assertion reads each took about 4.1 s, and the final 322442-vertex value returned at 47.590 s after the 47.026 s test timeout.",
+      "measurementRowsRetained": true,
+      "stopFailure": false,
+      "knownInterference": false,
+      "workflowUrl": "https://github.com/kkollsga/EarthHistory/actions/runs/34712827409",
+      "headSha": "7066203531ec8611efeff032142e1e00a0fc9d51",
+      "disposition": "Batch the same six post-ready DOM reads into one page.evaluate while preserving their exact assertions, the 20 s readiness wait, and the 45 s test timeout. This changes only the browser test harness."
     }
   ],
   "conformingGeometryEvidence": {
@@ -2591,6 +2603,24 @@
       "pairedCaptures": "9/9",
       "captureErrors": 0,
       "visualReview": "accepted"
+    },
+    "remoteCiHarnessRecovery": {
+      "failedRun": "https://github.com/kkollsga/EarthHistory/actions/runs/34712827409",
+      "failedHeadSha": "7066203531ec8611efeff032142e1e00a0fc9d51",
+      "diagnosis": "The application was ready in 18.811 s and all returned values were valid, including 322442 vertices; serial CDP reads completed at 47.590 s after the 47.026 s test timeout.",
+      "change": "Read the same six post-ready values in one page.evaluate; runtime, limits, assertions, and production bytes are unchanged.",
+      "mutationChecks": [
+        "chapter-count mutation rejected",
+        "geography-support mutation rejected"
+      ],
+      "restoredFocusedCiSmoke": {
+        "durationSeconds": 17.2,
+        "tests": "2/2"
+      },
+      "typecheck": "pass",
+      "diffCheck": "pass",
+      "hardwareMeasurementRepeated": false,
+      "hardwareEvidenceReason": "Runtime and production entry SHA-256 b5e4d73c7160f6bc05ccf833dcca08e1ae1fed6ec06a8df14dba0f28aa519612 are unchanged."
     }
   }
 }

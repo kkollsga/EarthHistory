@@ -242,6 +242,22 @@ history therefore retains the 15/17 full-gate failure and uses the focused
 recovery plus final deterministic gate as the post-fix evidence; it does not
 claim a second blanket full-gate pass.
 
+
+The first remote Pages validation at commit
+`7066203531ec8611efeff032142e1e00a0fc9d51` then failed only its `@ci` smoke in
+[GitHub Actions run 34712827409](https://github.com/kkollsga/EarthHistory/actions/runs/34712827409).
+The trace shows the globe ready at 18.811 seconds and every returned value valid,
+including 322,442 vertices. Six serial CDP-backed assertion reads each took
+about 4.1 seconds, so the final valid value returned at 47.590 seconds after the
+47.026-second test timeout. The harness now reads those same six post-ready DOM
+values in one `page.evaluate`; their exact assertions, 20-second readiness wait,
+and 45-second test timeout remain unchanged. Chapter-count and geography-support
+mutations each failed, the restored two-case `@ci` smoke passed in 17.2 seconds,
+and typecheck and diff checks passed. This is a test-transport change: runtime,
+limits, production bytes, and entry SHA-256
+`b5e4d73c7160f6bc05ccf833dcca08e1ae1fed6ec06a8df14dba0f28aa519612`
+are unchanged, so the hardware measurement was not repeated.
+
 The frozen production artifact was then compared on Apple M4 Metal with the
 exact upstream native-data manifest, core, and motion-palette bytes pinned at
 commit `6af9bd9ca7836adb58eb658d37b2f7743b9de68c`. Both sides used the same final

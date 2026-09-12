@@ -47,14 +47,25 @@ test("loads one local Cao reconstruction and the complete chapter picker", { tag
   });
   await page.goto("./");
   await waitForCao(page);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
-  await expect(page.locator("#chapter-jump option")).toHaveCount(37);
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-model-pose-material");
-  await expect(globe(page)).toHaveAttribute("data-cao-overridden-native-charts", "2");
-  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-model-inferred-pose-charts")))
-    .toBeGreaterThan(0);
-  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-vertices")))
-    .toBeGreaterThan(100_000);
+  const snapshot = await page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>(
+      "canvas[aria-label='Interactive three-dimensional Earth']",
+    );
+    return {
+      heading: document.querySelector("h1")?.textContent?.trim(),
+      chapterCount: document.querySelectorAll("#chapter-jump option").length,
+      geographySupport: canvas?.dataset.caoFoundationGeographySupport,
+      overriddenNativeCharts: canvas?.dataset.caoOverriddenNativeCharts,
+      modelInferredPoseCharts: Number(canvas?.dataset.caoModelInferredPoseCharts),
+      foundationVertices: Number(canvas?.dataset.caoFoundationVertices),
+    };
+  });
+  expect(snapshot.heading).toBe("Present day");
+  expect(snapshot.chapterCount).toBe(37);
+  expect(snapshot.geographySupport).toBe("cao-plus-model-pose-material");
+  expect(snapshot.overriddenNativeCharts).toBe("2");
+  expect(snapshot.modelInferredPoseCharts).toBeGreaterThan(0);
+  expect(snapshot.foundationVertices).toBeGreaterThan(100_000);
   expect(external).toEqual(new Set());
   expect(failures).toEqual([]);
 });
