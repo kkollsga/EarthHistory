@@ -1,0 +1,379 @@
+{
+  "attribution": "Cao et al. (2024) model release 2.4; Merdith et al. (2021); U.S. Geological Survey, Lund et al. (2015); Reed and Bush (2005)",
+  "baseline": {
+    "coordinateFrame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "411bd3e5e5a2004ea42792a5c1be11942a46b52e3657efdb06507c147fbfdf1a"
+    },
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "sourceCollection": "shapes_coasts.gpmlz",
+    "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
+  },
+  "correctionId": "earthhistory-regional-western-laurentia-material-v1",
+  "features": [
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "western-laurentia-qualified-material-plate-154",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "western-laurentia-qualified-material-plate-154",
+        "path": "western-laurentia-qualified-material-plate-154-v3.geojson",
+        "sha256": "92d0becd4cc76027d8efaa141e8051a316aa76151a14e8f3f6cf803e13b83db1"
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 154,
+        "referenceWitness": {
+          "presentLonLat": [
+            -116.51123007919554,
+            50.937054905518124
+          ],
+          "pygplatesExpectedPoses": [
+            {
+              "ageMa": 410.0,
+              "expectedLonLat": [
+                -87.4339714922671,
+                -12.847281897209305
+              ]
+            },
+            {
+              "ageMa": 410.1,
+              "expectedLonLat": [
+                -87.57242738126556,
+                -12.751871453043941
+              ]
+            },
+            {
+              "ageMa": 411.0,
+              "expectedLonLat": [
+                -88.80885441465264,
+                -11.883106668632902
+              ]
+            },
+            {
+              "ageMa": 430.0,
+              "expectedLonLat": [
+                -111.69498127395637,
+                9.688736039015039
+              ]
+            },
+            {
+              "ageMa": 540.0,
+              "expectedLonLat": [
+                -152.72035646105576,
+                10.998959304094825
+              ]
+            }
+          ]
+        },
+        "sourceOrHypothesis": "the aCOB intersection was evaluated at 411 Ma and normalized into the exact plate-154 target reference coordinates; DS898 old-basement clips use their present coordinates; carrying both with the target circuit is explicit uncertain model output"
+      },
+      "rejectionConditions": [
+        "the geometry extends outside the exact Cao target or retains an area independently mapped by DS898 as post-410 crust",
+        "the excluded native-target remainder is described as absent material rather than unsupported same-plate continuation",
+        "the correction is described as ancient coast, palaeotopography, or known exposure",
+        "the plate-101 aCOB geometry is posed directly as if it shared the target plate's reference coordinates"
+      ],
+      "sourceIds": [
+        "cao-2024-v2.4-laurentia-acob",
+        "usgs-ds898-basement-domains",
+        "usgs-national-atlas-geology48"
+      ],
+      "sourceUnitSelection": {
+        "basementReconciliation": {
+          "acobBeforeBasementReconciliationKm2": 454243.0140371057,
+          "acobRemovedByYoungerBasementVetoKm2": 14316.05556075262,
+          "oldBasementAddedOutsideVetoedAcobKm2": 92.89204050126946,
+          "reconciledCandidateKm2": 440019.8505168541
+        },
+        "candidateAreaKm2": 436858.22658854804,
+        "containmentGuardMetres": 100.0,
+        "excluded": [
+          {
+            "count": 1,
+            "reason": "the portion of the younger native target outside the authored Laurentia aCOB is later margin material and is not continued on the same plate"
+          }
+        ],
+        "included": [
+          {
+            "agePeriod": "410.1-1070 Ma authored validity",
+            "reason": "the independently authored Laurentia aCOB overlaps the exact Laurentia Parautochthon target in the Cao frame after mapped younger crust is vetoed",
+            "unitId": "GPlates-a11dc09a-42de-4b11-a6ce-d30baae64ce4"
+          },
+          {
+            "agePeriod": "3500-3200 Ma",
+            "reason": "USGS DS898 maps the Wyoming basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:12"
+          },
+          {
+            "agePeriod": "2670-2650 Ma",
+            "reason": "USGS DS898 maps the Pend Oreille basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:13"
+          },
+          {
+            "agePeriod": "3300-2600 Ma",
+            "reason": "USGS DS898 maps the Medicine Hat basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:14"
+          },
+          {
+            "agePeriod": "1670 Ma",
+            "reason": "USGS DS898 maps the Farmington-Selway basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:16"
+          },
+          {
+            "agePeriod": "1870 Ma",
+            "reason": "USGS DS898 maps the Wallace basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:17"
+          },
+          {
+            "agePeriod": "1870-1790 Ma",
+            "reason": "USGS DS898 maps the Great Falls basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:18"
+          },
+          {
+            "agePeriod": "780-500 Ma",
+            "reason": "USGS DS898 maps the Kootenay basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:19"
+          },
+          {
+            "agePeriod": "Middle Proterozoic",
+            "geoCode": "Y",
+            "reason": "all previously accepted mapped old-rock exposure lies within this larger aCOB-qualified mask",
+            "unitId": "Y"
+          }
+        ],
+        "insetMetres": 1000.0,
+        "qualificationAgeMa": 411.0,
+        "rawIntersectionKm2": 470969.35220228205,
+        "simplificationToleranceMetres": 2000.0,
+        "sourceCoordinateReferenceSystem": "Cao v2.4 spherical palaeomagnetic frame at 411 Ma"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "basement or aCOB material extent does not establish shoreline, relief, or subaerial exposure"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "ac2c856f6d5c6f7d8893356f7679b7682c2d45759a908eac08c32acbdcd408e5",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-79e80d97-d4aa-4269-8507-d50c8193a298:503:0",
+          "plateId": 154,
+          "sourceFeatureId": "GPlates-79e80d97-d4aa-4269-8507-d50c8193a298",
+          "sourceFeatureOrder": 503
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at every reconstructed age",
+        "spatial": "modeled aCOB and rigid-block intersection reconciled against 1:5,000,000 interpreted basement domains; local deformation and the excluded younger-margin remainder are unresolved",
+        "temporal": "aCOB begins at 410.1 Ma; display immediately older than 410 interpolates across the model's 0.1 Ma handoff"
+      }
+    },
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "western-laurentia-qualified-material-plate-1731",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "western-laurentia-qualified-material-plate-1731",
+        "path": "western-laurentia-qualified-material-plate-1731-v3.geojson",
+        "sha256": "becf75a54d18e8d4a72efdf68563438abd5535352f6b408c9950c3bef4a04292"
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 1731,
+        "referenceWitness": {
+          "presentLonLat": [
+            -116.1084804174418,
+            43.56843678684035
+          ],
+          "pygplatesExpectedPoses": [
+            {
+              "ageMa": 410.0,
+              "expectedLonLat": [
+                -93.77859450659862,
+                -16.945922844217616
+              ]
+            },
+            {
+              "ageMa": 410.1,
+              "expectedLonLat": [
+                -93.92084931071278,
+                -16.840728437679164
+              ]
+            },
+            {
+              "ageMa": 411.0,
+              "expectedLonLat": [
+                -95.19024055369388,
+                -15.884883165833068
+              ]
+            },
+            {
+              "ageMa": 430.0,
+              "expectedLonLat": [
+                -118.65796862830172,
+                7.057052175144309
+              ]
+            },
+            {
+              "ageMa": 540.0,
+              "expectedLonLat": [
+                -160.17414522553204,
+                12.012302054210132
+              ]
+            }
+          ]
+        },
+        "sourceOrHypothesis": "exact target intersections with independently pre-410 DS898 basement use present coordinates; carrying them with Cao plate 1731 is explicit uncertain model output"
+      },
+      "rejectionConditions": [
+        "the geometry extends outside the exact Cao target or retains an area independently mapped by DS898 as post-410 crust",
+        "the excluded native-target remainder is described as absent material rather than unsupported same-plate continuation",
+        "the correction is described as ancient coast, palaeotopography, or known exposure",
+        "the plate-101 aCOB geometry is posed directly as if it shared the target plate's reference coordinates"
+      ],
+      "sourceIds": [
+        "usgs-ds898-basement-domains"
+      ],
+      "sourceUnitSelection": {
+        "basementReconciliation": {
+          "acobBeforeBasementReconciliationKm2": 102407.60465147762,
+          "acobRemovedByYoungerBasementVetoKm2": 81879.76734322583,
+          "finalAuthority": "exact target intersection with independently pre-410 DS898 basement",
+          "oldBasementAddedOutsideVetoedAcobKm2": 2053.5761333963665,
+          "reconciledCandidateKm2": 22581.413441648176
+        },
+        "candidateAreaKm2": 22464.058815755983,
+        "containmentGuardMetres": 100.0,
+        "excluded": [
+          {
+            "count": 1,
+            "reason": "the portion of the younger native target outside the authored Laurentia aCOB is later margin material and is not continued on the same plate"
+          }
+        ],
+        "included": [
+          {
+            "agePeriod": "2670-2650 Ma",
+            "reason": "USGS DS898 maps the Pend Oreille basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:13"
+          },
+          {
+            "agePeriod": "2700-2600 Ma",
+            "reason": "USGS DS898 maps the Grouse Creek basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:15"
+          },
+          {
+            "agePeriod": "1670 Ma",
+            "reason": "USGS DS898 maps the Farmington-Selway basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:16"
+          },
+          {
+            "agePeriod": "1870 Ma",
+            "reason": "USGS DS898 maps the Wallace basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:17"
+          },
+          {
+            "agePeriod": "1870-1790 Ma",
+            "reason": "USGS DS898 maps the Great Falls basement domain within the exact target and its crust predates 410 Ma",
+            "unitId": "DS898:18"
+          }
+        ],
+        "insetMetres": 1000.0,
+        "qualificationAgeMa": 411.0,
+        "rawIntersectionKm2": 106933.2190100188,
+        "simplificationToleranceMetres": 2000.0,
+        "sourceCoordinateReferenceSystem": "Cao v2.4 spherical palaeomagnetic frame at 411 Ma"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "basement or aCOB material extent does not establish shoreline, relief, or subaerial exposure"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "0a498dd8a7772af9ed8a531f02c71335c64510a8d60d5f84d5a8a46769eda894",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+          "plateId": 1731,
+          "sourceFeatureId": "GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a",
+          "sourceFeatureOrder": 490
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at every reconstructed age",
+        "spatial": "modeled aCOB and rigid-block intersection reconciled against 1:5,000,000 interpreted basement domains; local deformation and the excluded younger-margin remainder are unresolved",
+        "temporal": "selected DS898 basement predates 540 Ma; its domain-scale age does not date every point or constrain local deformation"
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceAssets": [
+    {
+      "attribution": "Cao et al. (2024) model release 2.4; older continent-ocean boundary lineage from Merdith et al. (2021)",
+      "bytes": 14423254,
+      "citation": "Cao et al. (2024), model release 2.4, COBfile_1800_0.gpml, Laurentia aCOB feature",
+      "evidenceRole": "continental-or-crustal-extent",
+      "license": "CC BY 4.0",
+      "publicationOrVersionDate": "2024-09-02",
+      "retrievedAt": "2026-09-09",
+      "sha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd",
+      "sourceId": "cao-2024-v2.4-laurentia-acob",
+      "url": "https://doi.org/10.5281/zenodo.13628813"
+    },
+    {
+      "attribution": "Source: U.S. Geological Survey, Reed and Bush (2005), Generalized Geologic Map of the Conterminous United States, version 2.0.",
+      "bytes": 8160886,
+      "citation": "Reed, J.C., Jr., and Bush, C.A. (2005), Generalized Geologic Map of the Conterminous United States, version 2.0, USGS National Atlas",
+      "evidenceRole": "geological-unit-extent",
+      "license": "USGS-authored United States Government data; generally public domain under 17 USC 105; source-scale and warranty caveats retained",
+      "publicationOrVersionDate": "2005-12",
+      "retrievedAt": "2026-09-12",
+      "sha256": "51d27b0068cf08f173a97c6557668e8665445638aedaf929d69e825bf8cd9555",
+      "sourceId": "usgs-national-atlas-geology48",
+      "url": "https://pubs.usgs.gov/atlas/geologic/48States/48States_shape.ZIP"
+    },
+    {
+      "attribution": "U.S. Geological Survey Data Series 898, Lund et al. (2015)",
+      "bytes": 725411,
+      "citation": "Lund et al. (2015), Basement domain map of the conterminous United States and Alaska, USGS Data Series 898",
+      "evidenceRole": "continental-or-crustal-extent",
+      "license": "USGS-authored United States Government data; generally public domain under 17 USC 105; source-scale and warranty caveats retained",
+      "publicationOrVersionDate": "2015",
+      "retrievedAt": "2026-09-12",
+      "sha256": "007b035b494f84e6a34465971c6b876d65952f77d9be0fdb88bb617756333052",
+      "sourceId": "usgs-ds898-basement-domains",
+      "url": "https://doi.org/10.3133/ds898"
+    }
+  ],
+  "version": "3.0.0-candidate"
+}

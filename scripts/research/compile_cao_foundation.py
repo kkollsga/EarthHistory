@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pygplates
 
+from cao_material_corrections import staged_geometry_hash
+
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = (
     ROOT.parent
@@ -222,6 +224,8 @@ def main():
         },
         "patches": triangulated["patches"],
     }
+    for patch in final_meta["patches"]:
+        patch["geometrySha256"] = staged_geometry_hash(patch, raw)
     final_bytes = (json.dumps(final_meta, separators=(",", ":")) + "\n").encode()
     if len(final_bytes) > 8 * 1024 * 1024:
         raise SystemExit("metadata single-file cap")

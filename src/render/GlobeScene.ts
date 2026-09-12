@@ -658,7 +658,24 @@ export class GlobeScene {
       dataset.caoFoundationTopologyOwnershipSourceAgeMa =
         diagnostics.topologyOwnershipSourceAgeMa === null
           ? "" : String(diagnostics.topologyOwnershipSourceAgeMa);
-      dataset.caoFoundationGeographySupport = "native-cao-foundation";
+      const correctionState = diagnostics.materialCorrections;
+      dataset.caoFoundationGeographySupport = correctionState.formationUncertainActiveCharts > 0
+        ? "cao-plus-formation-range-material"
+        : correctionState.uncertainActiveCharts > 0
+        ? correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-and-uncertain-material"
+          : "cao-plus-uncertain-material"
+        : correctionState.modelInferredPoseActiveCharts > 0
+          ? "cao-plus-model-pose-material"
+        : correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-material"
+          : "native-cao-foundation";
+      dataset.caoMaterialCorrectionIdentity = diagnostics.materialCorrectionIdentity ?? "";
+      dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
+      dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
+      dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
+      dataset.caoModelInferredPoseCharts = String(correctionState.modelInferredPoseActiveCharts);
+      dataset.caoOverriddenNativeCharts = String(correctionState.overriddenNativeCharts);
       dataset.surfaceStatus = "updating";
       dataset.surfaceMode = "surface";
       this.onCaoFoundationState?.({ status: "updating",

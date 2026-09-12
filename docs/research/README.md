@@ -17,6 +17,14 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 | Memo | What it resolves |
 | --- | --- |
 | [Cao foundation adoption](reconstruction-cao-foundation-adoption.md) | Current native Cao scope, source semantics, actual-app integration evidence and remaining acceptance work |
+| [Regional material model lineage](regional-material-model-lineage.md) | Documented 410 Ma reconstruction junction, coastline versus continental coverage, and additional native COB candidates |
+| [Regional material correction review](regional-material-corrections-review.md) | Independent review of the five regional material inputs, guarded native replacements, lifecycle and identity checks, mutation evidence, and current validation status |
+| [Regional material correction performance](regional-material-corrections-performance.json) | Prewritten stop rules, failed software diagnostic, rejected concurrency experiment, and final matched WebGPU/WebGL2 hardware evidence |
+| [Regional Svalbard material correction](regional-svalbard-correction.md) | NPI CC BY 4.0 source acquisition, age-qualified onshore material mask, Cao 309/311 pose uncertainty, compact geometry, overlap and coverage limits |
+| [Regional Barents material correction](regional-barents-correction.md) | GSC Arctic-map Timan, Novaya Zemlya and Franz Josef Land substrate inference, regional age evidence, Cao pose, native-overlap sweep, and explicit residual classes |
+| [Regional Canada Franklinian correction](regional-canada-franklinian-correction.md) | Source-bounded Franklinian and Laurentian substrate material across the Canadian Arctic, with explicit 410–540 Ma confidence phases |
+| [Regional Pearya correction](regional-pearya-correction.md) | Separate disputed Pearya and Laurentian-affinity fragments, shared exact targets, pose scenarios, and unresolved residuals |
+| [Regional Western Laurentia correction](regional-western-laurentia-correction.md) | Older-material masks plus source-domain replacements for exact western native charts, including formation ranges and retained unknown-age source semantics |
 | [Palaeomap accuracy study](palaeomap-accuracy-study.md) | Integrated source assessment, native time slices, plate/frame compatibility, 3D relief, climate, memory budgets and phased migration |
 | [Continuous-coordinate validation](palaeomap-continuous-validation.json) | Implemented shared coordinates and natural materials, final full-gate results, repeated production measurements, preserved rejected probes and scientific/readiness limitations |
 | [Caledonian geological test](palaeomap-caledonian-test.md) | Material-following native elevation and equal-view captures: broad orogenic relief is present; collapse and direct modern-remnant attribution remain unresolved |

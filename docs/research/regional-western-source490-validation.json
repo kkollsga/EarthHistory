@@ -1,0 +1,686 @@
+{
+  "ageSnapshots": [
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement(additive-owner)",
+        "Chilliwack"
+      ],
+      "ageMa": 540.0,
+      "formationUncertainDomains": [
+        "Chilliwack"
+      ],
+      "visibleFraction": 0.051433207999514605,
+      "visibleKm2": 23455.094488900966
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement(additive-owner)",
+        "Wrangellia",
+        "Chilliwack"
+      ],
+      "ageMa": 410.001,
+      "formationUncertainDomains": [
+        "Wrangellia",
+        "Chilliwack"
+      ],
+      "visibleFraction": 0.060153786866563135,
+      "visibleKm2": 27431.941535394093
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Coast plutonic complex",
+        "Methow",
+        "Methow",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 410.0,
+      "formationUncertainDomains": [
+        "Wrangellia",
+        "Chilliwack"
+      ],
+      "visibleFraction": 0.10666474414563382,
+      "visibleKm2": 48642.34120092019
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Coast plutonic complex",
+        "Methow",
+        "Methow",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 400.0,
+      "formationUncertainDomains": [
+        "Wrangellia",
+        "Chilliwack"
+      ],
+      "visibleFraction": 0.10666474414563382,
+      "visibleKm2": 48642.34120092019
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Methow",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 365.0,
+      "formationUncertainDomains": [
+        "Western Quesnellia",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Wrangellia",
+        "Stikinia",
+        "Chilliwack",
+        "Quesnellia"
+      ],
+      "visibleFraction": 0.3196781681324284,
+      "visibleKm2": 145782.8887448677
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 250.0,
+      "formationUncertainDomains": [
+        "Western Quesnellia",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Stikinia",
+        "Bridge River",
+        "Bridge River",
+        "Cadwallader",
+        "Chilliwack",
+        "Quesnellia"
+      ],
+      "visibleFraction": 0.62527756949939,
+      "visibleKm2": 285145.4351153235
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 100.0,
+      "formationUncertainDomains": [
+        "Franciscan"
+      ],
+      "visibleFraction": 0.8295857059254284,
+      "visibleKm2": 378316.1089097566
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 50.0,
+      "formationUncertainDomains": [
+        "Cascadia"
+      ],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 25.0,
+      "formationUncertainDomains": [
+        "Cascadia"
+      ],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 5.0,
+      "formationUncertainDomains": [
+        "Cascadia"
+      ],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 1.0,
+      "formationUncertainDomains": [
+        "Cascadia"
+      ],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 0.001,
+      "formationUncertainDomains": [
+        "Cascadia"
+      ],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    },
+    {
+      "activeDomains": [
+        "qualified-pre-410-basement",
+        "Western Quesnellia",
+        "Okanogan",
+        "Golconda-Roberts Mountain",
+        "Shoofly-Olds Ferry",
+        "Calaveras-Baker",
+        "Foothills-Wallowa",
+        "Franciscan",
+        "Siletzia",
+        "Cascadia",
+        "Bridge River",
+        "Cache Creek",
+        "Wrangellia",
+        "Coast plutonic complex",
+        "Shuksan",
+        "Coast plutonic complex",
+        "Methow",
+        "Stikinia",
+        "Bridge River",
+        "Methow",
+        "Bridge River",
+        "Cadwallader",
+        "Methow",
+        "Harrison",
+        "Chilliwack",
+        "Quesnellia",
+        "outside-USGS-and-Northern-Cordillera-coverage"
+      ],
+      "ageMa": 0.0,
+      "formationUncertainDomains": [],
+      "visibleFraction": 0.9999867912221245,
+      "visibleKm2": 456024.144478586
+    }
+  ],
+  "northernCordilleraSource": {
+    "bytes": 260694,
+    "catalog": "https://open.canada.ca/data/en/dataset/16d06638-87a8-40a4-8550-910370d2fd76",
+    "citation": "Colpron, M., Nelson, J.L., and collaborators; BC Geological Survey and Yukon Geological Survey, revised through 2015",
+    "evidenceRole": "terrane footprint, affinity, tectonic setting, and broad stratigraphic/plutonic age; not basement formation or plate motion",
+    "license": "Open Government Licence - Canada",
+    "positionalAccuracy": "about 1 km for British Columbia and Yukon; about 5 km for Alaska",
+    "retrievedAt": "2026-09-12",
+    "scale": "about 1:5,000,000",
+    "service": "https://mapservices.gov.yk.ca/arcgis/rest/services/GeoYukon/GY_Geological/MapServer/14",
+    "sha256": "8e003e86ecc3b14ce3420afc5cf9bdd6a7f3a9362e6791ad7ffc7117cea45329",
+    "title": "Northern Cordillera terrane compilation"
+  },
+  "northernCordilleraTerranes": [
+    {
+      "affinity": "E Panthalassa/Tethyan",
+      "ageRange": "Mississippian to Late Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 359.0,
+      "name": "Bridge River",
+      "objectId": 20,
+      "sourceOldestMa": 359.0,
+      "terrane": "BR"
+    },
+    {
+      "affinity": "E Panthalassa/Tethyan",
+      "ageRange": "Mississippian to Early Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 359.0,
+      "name": "Cache Creek",
+      "objectId": 37,
+      "sourceOldestMa": 359.0,
+      "terrane": "CC"
+    },
+    {
+      "affinity": "NE Panthalassa",
+      "ageRange": "Devonian to Middle Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 419.0,
+      "name": "Wrangellia",
+      "objectId": 36,
+      "sourceOldestMa": 419.0,
+      "terrane": "WR"
+    },
+    {
+      "affinity": "W North America",
+      "ageRange": "Jurassic to Eocene",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Coast plutonic complex",
+      "objectId": 41,
+      "sourceOldestMa": 201.0,
+      "terrane": "CPC"
+    },
+    {
+      "affinity": "E Pacific",
+      "ageRange": "Late Jurassic to Early Cretaceous",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 163.0,
+      "name": "Shuksan",
+      "objectId": 16,
+      "sourceOldestMa": 163.0,
+      "terrane": "SH"
+    },
+    {
+      "affinity": "W North America",
+      "ageRange": "Jurassic to Eocene",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Coast plutonic complex",
+      "objectId": 11,
+      "sourceOldestMa": 201.0,
+      "terrane": "CPC"
+    },
+    {
+      "affinity": "peri-Laurentia",
+      "ageRange": "Permian to Early Cretaceous",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Methow",
+      "objectId": 25,
+      "sourceOldestMa": 299.0,
+      "terrane": "MT"
+    },
+    {
+      "affinity": "peri-Laurentian",
+      "ageRange": "Late Devonian to Early Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 383.0,
+      "name": "Stikinia",
+      "objectId": 94,
+      "sourceOldestMa": 383.0,
+      "terrane": "ST"
+    },
+    {
+      "affinity": "E Panthalassa/Tethyan",
+      "ageRange": "Mississippian to Late Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 359.0,
+      "name": "Bridge River",
+      "objectId": 18,
+      "sourceOldestMa": 359.0,
+      "terrane": "BR"
+    },
+    {
+      "affinity": "peri-Laurentia",
+      "ageRange": "Permian to Early Cretaceous",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Methow",
+      "objectId": 15,
+      "sourceOldestMa": 299.0,
+      "terrane": "MT"
+    },
+    {
+      "affinity": "E Panthalassa/Tethyan",
+      "ageRange": "Mississippian to Late Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 359.0,
+      "name": "Bridge River",
+      "objectId": 14,
+      "sourceOldestMa": 359.0,
+      "terrane": "BR"
+    },
+    {
+      "affinity": "peri-Laurentia",
+      "ageRange": "Permian to Early Cretaceous",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 299.0,
+      "name": "Cadwallader",
+      "objectId": 21,
+      "sourceOldestMa": 299.0,
+      "terrane": "CD"
+    },
+    {
+      "affinity": "peri-Laurentia",
+      "ageRange": "Permian to Early Cretaceous",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Methow",
+      "objectId": 23,
+      "sourceOldestMa": 299.0,
+      "terrane": "MT"
+    },
+    {
+      "affinity": "N Panthalassa/E Pacific",
+      "ageRange": "Middle Triassic to Early Cretaceous",
+      "disposition": "preserve-native",
+      "effectiveLifecycleOldestMa": 410.0,
+      "name": "Harrison",
+      "objectId": 13,
+      "sourceOldestMa": 247.0,
+      "terrane": "HA"
+    },
+    {
+      "affinity": "peri-Laurentia/Caledonian?",
+      "ageRange": "Neoproterozoic to Early Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 540.0,
+      "name": "Chilliwack",
+      "objectId": 10,
+      "sourceOldestMa": 1000.0,
+      "terrane": "CK"
+    },
+    {
+      "affinity": "peri-Laurentian",
+      "ageRange": "Late Devonian to Early Jurassic",
+      "disposition": "origin-age-gated",
+      "effectiveLifecycleOldestMa": 383.0,
+      "name": "Quesnellia",
+      "objectId": 38,
+      "sourceOldestMa": 383.0,
+      "terrane": "QN"
+    }
+  ],
+  "oldMaterial": {
+    "areaAt411Km2": 22464.058815755983,
+    "fractionAt411": 0.04956445402642512,
+    "geometryAsset": "western-laurentia-qualified-material-plate-1731-v3.geojson",
+    "geometrySha256": "becf75a54d18e8d4a72efdf68563438abd5535352f6b408c9950c3bef4a04292",
+    "rawOldDs898IntersectionKm2": 22582.00483263121
+  },
+  "policy": {
+    "material": "the old baseline persists through the native interval and has one separate additive owner older than 410; DS898 and Northern Cordillera clips appear within possible formation bounds; the remaining unmapped residual keeps its authored native lifecycle",
+    "originVersusAssembly": "DS898 crust-formation ages gate material. Northern Cordillera ages gate only juvenile/oceanic/arc/accretionary domains; Coast plutonic complex and Methow/Harrison basin ages describe intrusion or cover, so those clips retain native support with unknown substrate age.",
+    "pose": "all clips retain Cao plate-1731 motion as an explicit uncertain partition-level inference",
+    "surfaceEvidence": "unknown"
+  },
+  "presentTargetOutsideUnionCoordinateArea": 1.6050359400983306e-08,
+  "presentUnionOutsideTargetCoordinateArea": 0.0,
+  "presentUnionSymmetricDifferenceKm2": 0.00014428700503621024,
+  "rejectionConditions": [
+    "the complete source490 polygon appears at 410 Ma",
+    "post-410 basement survives where it merely overlaps the older aCOB",
+    "domain-wide age intervals are presented as exact simultaneous formation",
+    "the target-partition pose is presented as independent local palaeomagnetic evidence"
+  ],
+  "residualTriangulationRepair": {
+    "droppedAreaKm2": 0.00014428700576358836,
+    "droppedComponentCount": 6,
+    "droppedSourcePartIndexes": [
+      12,
+      15,
+      17,
+      18,
+      19,
+      22
+    ],
+    "keptComponentCount": 17,
+    "minimumComponentAreaM2": 100.0,
+    "presentUnionToleranceKm2": 0.001,
+    "rawComponentCount": 23,
+    "reason": "six sub-100 m2 overlay slivers collapsed under float32 spherical triangulation; removing them preserves the inherited native lifecycle within a 0.001 km2 union tolerance",
+    "withinTolerance": true
+  },
+  "schemaVersion": 1,
+  "status": "source-qualified-native-mask-required",
+  "target": {
+    "originalValidTimeMa": {
+      "oldest": 410,
+      "youngest": null
+    },
+    "patchId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+    "plateId": 1731,
+    "sourceFeatureName": "Purcell Mountains North America Craton",
+    "sourceFeatureOrder": 490
+  },
+  "youngerDomains": [
+    {
+      "crustAge": "385-175 Ma",
+      "crustType": "Oceanic arc",
+      "domain": "Western Quesnellia",
+      "fid": 20
+    },
+    {
+      "crustAge": "320-250 Ma",
+      "crustType": "Oceanic arc",
+      "domain": "Okanogan",
+      "fid": 21
+    },
+    {
+      "crustAge": "380-350 Ma",
+      "crustType": "Accretionary wedge",
+      "domain": "Golconda-Roberts Mountain",
+      "fid": 34
+    },
+    {
+      "crustAge": "365-187 Ma",
+      "crustType": "Oceanic arc",
+      "domain": "Shoofly-Olds Ferry",
+      "fid": 35
+    },
+    {
+      "crustAge": "315-215 Ma",
+      "crustType": "Accretionary wedge",
+      "domain": "Calaveras-Baker",
+      "fid": 36
+    },
+    {
+      "crustAge": "280-165 Ma",
+      "crustType": "Oceanic arc",
+      "domain": "Foothills-Wallowa",
+      "fid": 37
+    },
+    {
+      "crustAge": "165-50 Ma",
+      "crustType": "Accretionary wedge",
+      "domain": "Franciscan",
+      "fid": 39
+    },
+    {
+      "crustAge": "60-50 Ma",
+      "crustType": "Oceanic basin",
+      "domain": "Siletzia",
+      "fid": 40
+    },
+    {
+      "crustAge": "50-0 Ma",
+      "crustType": "Accretionary wedge",
+      "domain": "Cascadia",
+      "fid": 41
+    }
+  ]
+}

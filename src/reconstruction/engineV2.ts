@@ -3,12 +3,45 @@ import { packageFrameIdentity } from "./identity";
 import { selectPaletteMotionSubsegment } from "./palette";
 import { CaoCheckpointStore, loadVerifiedCaoFoundation } from "./loaderV2";
 import type { StaticAssetFetcher } from "./assetLoader";
-import { immutableReconstructionPackageManifestV2, type ReconstructionPackageManifestV2 } from "./packageV2";
+import { immutableReconstructionPackageManifestV2, type NativeChartOverrideV1,
+  type ReconstructionPackageManifestV2 } from "./packageV2";
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoRevision } from "./facadeV2";
 import type { SupportState } from "./types";
 import { inverseQuaternion, numberScalarOps, rotateDirection, slerpQuaternion,
   type UnitDirection } from "./arithmetic";
 import type { MaterialAddress, MaterialPose } from "./types";
+import type { DecodedCaoSpatialBatch } from "./spatialV2";
+
+function radialDirectionIntersectsTriangle(
+  direction: readonly [number, number, number],
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+  c: readonly [number, number, number],
+): boolean {
+  const subtract = (left: readonly number[], right: readonly number[]) =>
+    [left[0]! - right[0]!, left[1]! - right[1]!, left[2]! - right[2]!] as const;
+  const cross = (left: readonly number[], right: readonly number[]) => [
+    left[1]! * right[2]! - left[2]! * right[1]!,
+    left[2]! * right[0]! - left[0]! * right[2]!,
+    left[0]! * right[1]! - left[1]! * right[0]!,
+  ] as const;
+  const dot = (left: readonly number[], right: readonly number[]) =>
+    left[0]! * right[0]! + left[1]! * right[1]! + left[2]! * right[2]!;
+  const origin = direction.map((value) => 2 * value);
+  const ray = direction.map((value) => -value);
+  const edge1 = subtract(b, a);
+  const edge2 = subtract(c, a);
+  const p = cross(ray, edge2);
+  const determinant = dot(edge1, p);
+  if (Math.abs(determinant) < 1e-12) return false;
+  const inverse = 1 / determinant;
+  const offset = subtract(origin, a);
+  const u = dot(offset, p) * inverse;
+  const q = cross(offset, edge1);
+  const v = dot(ray, q) * inverse;
+  const distance = dot(edge2, q) * inverse;
+  return u >= -1e-8 && v >= -1e-8 && u + v <= 1 + 1e-8 && distance >= 0 && distance <= 2;
+}
 
 export class CaoReconstructionRuntime {
   private serial = 0;
@@ -29,7 +62,8 @@ export class CaoReconstructionRuntime {
         + this.manifest.motionPalette.binary.bytes
         + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + [...foundation.lineBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
-        + (foundation.core.anchorCatalog?.bytes ?? 0);
+        + (foundation.core.anchorCatalog?.bytes ?? 0)
+        + (this.manifest.materialCorrections?.catalog.bytes ?? 0);
     }).catch(() => {});
     void this.foundation.catch(() => {});
   }
@@ -92,10 +126,27 @@ export class CaoReconstructionRuntime {
     const ownershipLayer = exactCheckpoint ? youngerLoaded.ownership : null;
     const displayFraction = younger.ageMa === older.ageMa ? 0
       : (requestedAgeMa - younger.ageMa) / (older.ageMa - younger.ageMa);
-    const values = new Float32Array(foundation.core.charts.length * PREPARED_MOTION_PALETTE_STRIDE);
+    const allOverrides = foundation.correctionCatalog?.nativeChartOverrides ?? [];
+    const countrySegmentDescriptors = allOverrides.flatMap((override) =>
+      override.dependentConsumers.countrySegmentBindings.map((binding) => {
+        const sourceChartIndex = foundation.core.charts.findIndex(
+          (chart) => chart.chartId === binding.sourceCountryChartId,
+        );
+        if (sourceChartIndex < 0) throw new Error("native replacement country source chart is missing");
+        return Object.freeze({ override, binding, sourceChartIndex });
+      }));
+    const values = new Float32Array(
+      (foundation.core.charts.length + countrySegmentDescriptors.length) * PREPARED_MOTION_PALETTE_STRIDE,
+    );
     const segments = new Map([...foundation.paletteEntries].map(([entryId, entry]) =>
       [entryId, selectPaletteMotionSubsegment(entry, requestedAgeMa)] as const));
-    const charts = foundation.core.charts.map((chart, chartIndex) => {
+    const activeOverrides = allOverrides
+      .filter((override) => evaluateLifecycleSupport(override.suppression, requestedAgeMa) === null);
+    const overriddenNativeChartIds = new Set(activeOverrides.map((override) => override.nativeChart.chartId));
+    const overriddenCountryChartIds = new Set(activeOverrides.flatMap(
+      (override) => override.dependentConsumers.sourceCountryChartIds,
+    ));
+    const baseCharts = foundation.core.charts.map((chart, chartIndex) => {
       const bindings = chart.motionBindings ?? (chart.motionBinding ? [{ ...chart.motionBinding,
         validTimeMa: chart.lifecycle.validTimeMa }] : []);
       const matches = bindings.filter((binding) => requestedAgeMa >= binding.validTimeMa.youngest
@@ -105,7 +156,10 @@ export class CaoReconstructionRuntime {
       const entry = selected && foundation.paletteEntries.get(selected.entryId);
       const segment = entry && segments.get(selected!.entryId);
       const lifecycle = evaluateLifecycleSupport(chart.lifecycle, requestedAgeMa);
-      const support: SupportState = lifecycle ?? (segment
+      const support: SupportState = overriddenNativeChartIds.has(chart.chartId)
+          || overriddenCountryChartIds.has(chart.chartId)
+        ? { kind: "inactive", reason: "replaced" }
+        : lifecycle ?? (segment
         ? { kind: "supported", method: "compiled-rigid" }
         : { kind: "unsupported", reason: "missing-motion" });
       const offset = chartIndex * PREPARED_MOTION_PALETTE_STRIDE;
@@ -125,7 +179,89 @@ export class CaoReconstructionRuntime {
         role: chart.role, support, evidence: chart.evidence, poseQuaternion,
         inversePoseQuaternion: inverseQuaternion(numberScalarOps, poseQuaternion) });
     });
-    const identity = `${this.manifest.packageId}@${this.manifest.revision}:${requestId}`;
+    const activeOverrideIds = new Set(activeOverrides.map((override) => override.overrideId));
+    const charts = [...baseCharts];
+    for (const [descriptorIndex, descriptor] of countrySegmentDescriptors.entries()) {
+      const source = baseCharts[descriptor.sourceChartIndex]!;
+      const supportedByEveryNearestDomain = descriptor.binding.domainFragmentOrCohortIds.every((fragmentId) =>
+        baseCharts.some((chart) => chart.fragmentOrCohortId === fragmentId
+          && descriptor.override.replacementChartIds.includes(chart.chartId)
+          && chart.support.kind === "supported"));
+      const support: SupportState = activeOverrideIds.has(descriptor.override.overrideId)
+        ? supportedByEveryNearestDomain
+          ? { kind: "supported", method: "compiled-rigid" }
+          : { kind: "inactive", reason: "replaced" }
+        : source.support;
+      const chartIndex = foundation.core.charts.length + descriptorIndex;
+      const sourceOffset = descriptor.sourceChartIndex * PREPARED_MOTION_PALETTE_STRIDE;
+      const targetOffset = chartIndex * PREPARED_MOTION_PALETTE_STRIDE;
+      values.set(values.subarray(sourceOffset, sourceOffset + PREPARED_MOTION_PALETTE_STRIDE), targetOffset);
+      values[targetOffset + 9] = support.kind === "supported" ? 1 : 0;
+      values[targetOffset + 10] = values[targetOffset + 9];
+      charts.push(Object.freeze({
+        chartId: `country-segment:${descriptor.override.overrideId}:${descriptor.binding.batchId}:${descriptor.binding.segmentIndex}`,
+        chartRevision: `${source.chartRevision}+${foundation.correctionCatalog?.version ?? "native"}`,
+        materialId: source.materialId,
+        fragmentOrCohortId: `${source.fragmentOrCohortId}:segment:${descriptor.binding.segmentIndex}`,
+        role: source.role,
+        support,
+        evidence: Object.freeze({ ...source.evidence, limitations: Object.freeze([
+          ...source.evidence.limitations,
+          "Natural Earth 1:110m reference segment is gated by its source-domain match; the 12 km corridor is line-approximation tolerance, not geological positional accuracy",
+        ]) }),
+        poseQuaternion: source.poseQuaternion,
+        inversePoseQuaternion: source.inversePoseQuaternion,
+      }));
+    }
+    const replacementTriangleRanges = new Map<number, {
+      batch: DecodedCaoSpatialBatch;
+      firstTriangle: number;
+      triangleCount: number;
+    }[]>();
+    const allReplacementChartIndices = new Set(allOverrides.flatMap((override) =>
+      override.replacementChartIds.map((chartId) => foundation.core.charts.findIndex((chart) =>
+        chart.chartId === chartId))));
+    for (const batch of foundation.spatialBatches.values()) {
+      for (const range of batch.chartTriangleRanges) {
+        if (!allReplacementChartIndices.has(range.chartIndex)) continue;
+        const records = replacementTriangleRanges.get(range.chartIndex) ?? [];
+        records.push({ batch, firstTriangle: range.firstTriangle, triangleCount: range.triangleCount });
+        replacementTriangleRanges.set(range.chartIndex, records);
+      }
+    }
+    const replacementChartsContainingDirection = (
+      override: NativeChartOverrideV1,
+      direction: UnitDirection,
+    ): Set<number> => {
+      const candidateIndices = new Set(override.replacementChartIds.map((chartId) =>
+        charts.findIndex((chart) => chart.chartId === chartId)).filter((chartIndex) =>
+        chartIndex >= 0 && charts[chartIndex]?.support.kind === "supported"));
+      const containing = new Set<number>();
+      for (const chartIndex of candidateIndices) {
+        for (const range of replacementTriangleRanges.get(chartIndex) ?? []) {
+          const { batch } = range;
+          const triangleEnd = (range.firstTriangle + range.triangleCount) * 3;
+          for (let triangle = range.firstTriangle * 3; triangle < triangleEnd; triangle += 3) {
+            const first = batch.indices[triangle]!;
+            const at = (vertex: number) => {
+              const offset = vertex * 3;
+              return [batch.referenceDirections[offset]!, batch.referenceDirections[offset + 1]!,
+                batch.referenceDirections[offset + 2]!] as const;
+            };
+            if (radialDirectionIntersectsTriangle(direction, at(first),
+              at(batch.indices[triangle + 1]!), at(batch.indices[triangle + 2]!))) {
+              containing.add(chartIndex);
+            }
+          }
+        }
+      }
+      return containing;
+    };
+    const materialCorrectionIdentity = this.manifest.materialCorrections
+      ? `${this.manifest.materialCorrections.id}@${this.manifest.materialCorrections.catalog.sha256}` : null;
+    const combinedRevision = materialCorrectionIdentity
+      ? `${this.manifest.revision}+${materialCorrectionIdentity}` : this.manifest.revision;
+    const identity = `${this.manifest.packageId}@${combinedRevision}:${requestId}`;
     let payload: typeof foundation | null = foundation;
     let motionValues: Float32Array | null = values;
     let boundaryPoints = boundaryLayer?.points ?? null;
@@ -133,17 +269,23 @@ export class CaoReconstructionRuntime {
     const requirePayload = () => { if (!payload) throw new Error("Cao prepared revision released"); return payload; };
     const batches = foundation.core.spatialBatches.map((descriptor) => {
       const geometry = foundation.spatialBatches.get(descriptor.batchId)!;
-      const youngerControl = younger.batchControls.find((control) => control.batchId === descriptor.batchId)!;
-      const olderControl = older.batchControls.find((control) => control.batchId === descriptor.batchId)!;
-      const display = (control: typeof youngerControl) => control.state.kind === "uniform"
-        ? Object.freeze({ kind: "uniform" as const, value: control.state.displayHeightMetres })
+      const youngerControl = younger.batchControls.find((control) => control.batchId === descriptor.batchId);
+      const olderControl = older.batchControls.find((control) => control.batchId === descriptor.batchId);
+      const youngerState = youngerControl?.state ?? (descriptor.staticDisplayControl
+        ? { kind: "uniform" as const, ...descriptor.staticDisplayControl } : undefined);
+      const olderState = olderControl?.state ?? (descriptor.staticDisplayControl
+        ? { kind: "uniform" as const, ...descriptor.staticDisplayControl } : undefined);
+      if (!youngerState || !olderState) throw new Error("Cao batch lacks display controls");
+      const display = (control: typeof youngerState) => control.kind === "uniform"
+        ? Object.freeze({ kind: "uniform" as const, value: control.displayHeightMetres })
         : (() => { throw new Error("per-vertex Cao checkpoint state preparation is not implemented"); })();
-      const color = youngerControl.state.kind === "uniform" && olderControl.state.kind === "uniform"
-        ? Object.freeze({ kind: "uniform" as const, value: youngerControl.state.baseColorRgb })
+      const color = youngerState.kind === "uniform" && olderState.kind === "uniform"
+        ? Object.freeze({ kind: "uniform" as const, value: youngerState.baseColorRgb })
         : (() => { throw new Error("per-vertex Cao checkpoint color preparation is not implemented"); })();
       return Object.freeze({ batchId: descriptor.batchId,
         staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
         vertexCount: descriptor.vertexCount, triangleCount: descriptor.triangleCount,
+        nativePrecedence: descriptor.overlapPolicy === "native-visual-and-picking-precedence",
         // Renderer copy excludes the EHGB header. Two narrowed chart-index
         // arrays together equal the source u32 chart-index storage.
         staticGeometryBytes: geometry.byteLength - 32
@@ -155,23 +297,32 @@ export class CaoReconstructionRuntime {
             seamIds: new Uint32Array(current.seamIds), preparedEntryIndices: narrow
               ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices),
             materialChartIndices: narrow ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices) }; },
-        createDisplayControlsCopy: () => { requirePayload(); return { displayHeightStart: display(youngerControl),
-          displayHeightEnd: display(olderControl), baseColor: color }; },
+        createDisplayControlsCopy: () => { requirePayload(); return { displayHeightStart: display(youngerState),
+          displayHeightEnd: display(olderState), baseColor: color }; },
       });
     });
     const lineBatches = (foundation.core.lineBatches ?? []).map((descriptor) => {
       const geometry = foundation.lineBatches.get(descriptor.batchId)!;
-      const narrow = foundation.core.charts.length <= 65_535;
+      const narrow = charts.length <= 65_535;
+      const remapped = new Uint32Array(geometry.vertexChartIndices);
+      for (const [segmentChartOffset, segment] of countrySegmentDescriptors.entries()) {
+        if (segment.binding.batchId !== descriptor.batchId) continue;
+        const left = geometry.lineIndices[segment.binding.segmentIndex * 2]!;
+        const right = geometry.lineIndices[segment.binding.segmentIndex * 2 + 1]!;
+        const chartIndex = foundation.core.charts.length + segmentChartOffset;
+        remapped[left] = chartIndex;
+        remapped[right] = chartIndex;
+      }
       return Object.freeze({ batchId: descriptor.batchId,
-        staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
+        staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`
+          + (countrySegmentDescriptors.length ? ":source-domain-segments-v1" : ""),
         vertexCount: descriptor.vertexCount, segmentCount: descriptor.segmentCount,
         staticGeometryBytes: geometry.byteLength - 32 + (narrow ? 0 : descriptor.vertexCount * 4),
         createStaticGeometryCopy: () => { const current = requirePayload().lineBatches.get(descriptor.batchId)!;
           return Object.freeze({ referenceDirections: new Float32Array(current.referenceDirections),
             lineIndices: new Uint32Array(current.lineIndices), preparedEntryIndices: narrow
-              ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices),
-            materialChartIndices: narrow
-              ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices) }); },
+              ? new Uint16Array(remapped) : new Uint32Array(remapped),
+            materialChartIndices: narrow ? new Uint16Array(remapped) : new Uint32Array(remapped) }); },
       });
     });
     const release = () => {
@@ -194,6 +345,15 @@ export class CaoReconstructionRuntime {
         localCoordinate: Object.freeze({ kind: "chart-direction" as const,
           directionAtReference: Object.freeze([...directionAtReference]) as UnitDirection }) });
     };
+    const replacementChartForDirection = (nativeChartId: string,
+      direction: UnitDirection): number | null => {
+      const override = foundation.correctionCatalog?.nativeChartOverrides?.find(
+        (candidate) => candidate.nativeChart.chartId === nativeChartId,
+      );
+      if (!override || !overriddenNativeChartIds.has(nativeChartId)) return null;
+      const containing = replacementChartsContainingDirection(override, direction);
+      return containing.size === 1 ? [...containing][0]! : null;
+    };
     const resolveAddress = (address: MaterialAddress): MaterialPose => {
       requirePayload();
       const chart = charts.find((candidate) => candidate.chartId === address.chartId);
@@ -205,6 +365,16 @@ export class CaoReconstructionRuntime {
           || Math.abs(Math.hypot(...direction) - 1) > 2e-6) {
         return Object.freeze({ address, requestedAgeMa, direction: null,
           support: { kind: "unsupported" as const, reason: "invalid-address" as const } });
+      }
+      if (chart.support.kind === "inactive" && chart.support.reason === "replaced") {
+        const replacementIndex = replacementChartForDirection(chart.chartId, direction);
+        if (replacementIndex !== null) {
+          const replacement = charts[replacementIndex]!;
+          const replacementAddress = addressForChartDirection(replacementIndex, direction);
+          return Object.freeze({ address: replacementAddress, requestedAgeMa,
+            direction: rotateDirection(numberScalarOps, replacement.poseQuaternion, direction),
+            support: replacement.support });
+        }
       }
       return Object.freeze({ address, requestedAgeMa,
         direction: chart.support.kind === "supported"
@@ -241,15 +411,33 @@ export class CaoReconstructionRuntime {
         reason: exactCheckpoint ? "source-absent" as const : "fractional-topology-unqualified" as const });
     this.leases.set(identity, release);
     return Object.freeze({ identity, requestId, packageId: this.manifest.packageId,
-      packageRevision: this.manifest.revision, requestedAgeMa, frameIdentity: packageFrameIdentity(this.manifest.frame),
+      packageRevision: combinedRevision, materialCorrectionIdentity,
+      materialCorrections: Object.freeze({
+        qualifiedActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+          && chart.evidence.correction?.phase === "source-qualified-material").length,
+        uncertainActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+          && chart.evidence.correction?.phase === "uncertain-continuation").length,
+        formationUncertainActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+          && chart.evidence.correction?.phase === "formation-uncertain").length,
+        modelInferredPoseActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+          && chart.evidence.correction?.phase === "source-qualified-material"
+          && ["model-inference", "native-target-only"]
+            .includes(chart.evidence.correction?.poseStatus ?? "")).length,
+        overriddenNativeCharts: overriddenNativeChartIds.size,
+        activeSourceIds: Object.freeze([...new Set(charts.filter((chart) => chart.support.kind === "supported"
+          && chart.evidence.correction !== undefined).flatMap((chart) => chart.evidence.sourceIds))].sort()),
+        correctionIds: Object.freeze([...(foundation.correctionCatalog?.correctionIds ?? [])]),
+      }),
+      requestedAgeMa, frameIdentity: packageFrameIdentity(this.manifest.frame),
       display: Object.freeze({ youngerAgeMa: younger.ageMa, olderAgeMa: older.ageMa, fraction: displayFraction }),
       motionPalette: Object.freeze({ stride: PREPARED_MOTION_PALETTE_STRIDE,
-        entryCount: foundation.core.charts.length, createValuesCopy: () => { requirePayload();
+        entryCount: charts.length, createValuesCopy: () => { requirePayload();
           if (!motionValues) throw new Error("Cao prepared revision released"); return new Float32Array(motionValues); } }),
       batches: Object.freeze(batches), lineBatches: Object.freeze(lineBatches), nativeBoundary,
       topologyOwnership, charts: Object.freeze(charts), anchorIds,
       activeSourceBytes: this.manifest.core.bytes + this.manifest.motionPalette.catalog.bytes
-        + this.manifest.motionPalette.binary.bytes + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
+        + this.manifest.motionPalette.binary.bytes + (this.manifest.materialCorrections?.catalog.bytes ?? 0)
+        + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + [...foundation.lineBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + (foundation.core.anchorCatalog?.bytes ?? 0)
         + youngerAsset.transitiveBytes

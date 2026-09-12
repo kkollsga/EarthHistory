@@ -1,0 +1,97 @@
+{
+  "nativeChartOverrides": [
+    {
+      "correctionId": "earthhistory-regional-western-source450-native-v1",
+      "nativeChart": {
+        "chartId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0",
+        "chartRevision": "cao-foundation-v1",
+        "fragmentOrCohortId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0",
+        "materialId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0"
+      },
+      "nativeTarget": {
+        "geometryOrder": 0,
+        "geometrySha256": "79accc3d7a55391c5bc250dd144ded02a53254ed50ac2a5a371946330507d2fa",
+        "patchId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0",
+        "plateId": 176,
+        "sourceCollection": "shapes_coasts.gpmlz",
+        "sourceCollectionSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+        "sourceFeatureId": "GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42",
+        "sourceFeatureOrder": 450
+      },
+      "operation": "domain-fragment-replacement",
+      "overrideId": "western-source450-domain-fragment-replacement-v1",
+      "reason": "the East Klamath-labelled chart is a modern California basement mosaic; only 9.07% of its DS898-mapped basement predates 410 Ma, and the mapped Eastern Klamath terrane has zero overlap",
+      "replacementAsset": {
+        "bytes": 61539,
+        "path": "western-source450-domain-tiles-v1.geojson",
+        "sha256": "9eba4e3389505128329e0049f21dc2a482211fe72448cb5055ee789ffe51b398"
+      },
+      "replacementPolicy": {
+        "materialOriginRange": "per-feature",
+        "materialStatusIntervals": "per-feature",
+        "pose": "Cao plate 176 partition motion, explicit model inference",
+        "presentUnion": "exact native target in reference-coordinate topology",
+        "surfaceEvidence": "unknown"
+      },
+      "sourceIds": [
+        "usgs-ds898-basement-domains",
+        "usgs-ofr2012-1228-redding-map",
+        "cao-2024-v2.4"
+      ],
+      "suppression": {
+        "validTimeMa": {
+          "oldest": 410.0,
+          "youngest": 0.0
+        }
+      }
+    },
+    {
+      "correctionId": "earthhistory-regional-western-source490-native-v1",
+      "nativeChart": {
+        "chartId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+        "chartRevision": "cao-foundation-v1",
+        "fragmentOrCohortId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+        "materialId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0"
+      },
+      "nativeTarget": {
+        "geometryOrder": 0,
+        "geometrySha256": "0a498dd8a7772af9ed8a531f02c71335c64510a8d60d5f84d5a8a46769eda894",
+        "patchId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+        "plateId": 1731,
+        "sourceCollection": "shapes_coasts.gpmlz",
+        "sourceCollectionSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+        "sourceFeatureId": "GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a",
+        "sourceFeatureOrder": 490
+      },
+      "operation": "domain-fragment-replacement",
+      "overrideId": "western-source490-domain-fragment-replacement-v1",
+      "reason": "the Purcell-labelled chart includes large independently mapped post-410 US and Canadian terranes; the replacement retains the qualified old baseline and admits DS898 and Northern Cordillera domains by source age",
+      "replacementAsset": {
+        "bytes": 197202,
+        "path": "western-source490-domain-tiles-v1.geojson",
+        "sha256": "9c7aab6fde85cc77cb6ee7af0dd7d7c616bb791bcdfbaec3c41b6582862a37de"
+      },
+      "replacementPolicy": {
+        "materialOriginRange": "per-feature",
+        "materialStatusIntervals": "per-feature",
+        "pose": "Cao plate 1731 partition motion, explicit model inference",
+        "presentUnion": "native target within 0.001 km2 after removing six untriangulatable sub-100 m2 overlay slivers",
+        "surfaceEvidence": "unknown"
+      },
+      "sourceIds": [
+        "usgs-ds898-basement-domains",
+        "northern-cordillera-terranes",
+        "cao-2024-v2.4-laurentia-acob",
+        "cao-2024-v2.4"
+      ],
+      "suppression": {
+        "validTimeMa": {
+          "oldest": 410.0,
+          "youngest": 0.0
+        }
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "version": "1.0.0-candidate"
+}

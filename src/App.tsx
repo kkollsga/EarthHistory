@@ -641,7 +641,7 @@ export default function App() {
   };
 
   const activeSourceIds = new Set(ageMa <= 540
-    ? ["cao-plate-model-2024-v2-4"]
+    ? ["cao-plate-model-2024-v2-4", ...(caoRevision?.materialCorrections.activeSourceIds ?? [])]
     : contextSnapshot?.sourceIds ?? []);
   const snapshotSources = sources.filter((source) => activeSourceIds.has(source.id));
   const poiSources = sources.filter((source) => selectedPoi?.sourceIds.includes(source.id));
@@ -744,6 +744,19 @@ export default function App() {
             <span role="status">Cao reconstruction unavailable · surface withheld</span>
           )}
           {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
+          {((caoRevision?.materialCorrections.qualifiedActiveCharts ?? 0)
+            - (caoRevision?.materialCorrections.modelInferredPoseActiveCharts ?? 0)) > 0 && (
+            <span className="material-key material-key-qualified">Ochre: source-supported material footprint · cited reconstruction pose · exposure unknown</span>
+          )}
+          {(caoRevision?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: source-supported material footprint · partition pose uncertain · exposure unknown</span>
+          )}
+          {(caoRevision?.materialCorrections.uncertainActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: continued material with older pose uncertainty · exposure unknown</span>
+          )}
+          {(caoRevision?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: possible domain-scale formation footprint · extent, pose, and exposure uncertain</span>
+          )}
           Height data unknown <strong>{verticalExaggeration}× reserved</strong>
         </div>
       </section>
@@ -773,10 +786,19 @@ export default function App() {
             Geography source <strong>{ageMa > 540 ? "Outside compiled domain · editorial scene" :
               caoRevision === null ? "Awaiting native Cao package" :
               caoRevision.display.youngerAgeMa === caoRevision.display.olderAgeMa
-                ? `${caoRevision.display.youngerAgeMa} Ma native Cao checkpoint`
-                : `${caoRevision.display.youngerAgeMa}–${caoRevision.display.olderAgeMa} Ma native Cao controls`}</strong>
+                ? `${caoRevision.display.youngerAgeMa} Ma native Cao checkpoint${
+                  caoRevision.materialCorrections.qualifiedActiveCharts > 0 ? " + qualified material masks" : ""}${
+                  caoRevision.materialCorrections.modelInferredPoseActiveCharts > 0 ? " + uncertain partition poses" : ""}${
+                  caoRevision.materialCorrections.uncertainActiveCharts > 0 ? " + uncertain continuations" : ""}`
+                  + `${caoRevision.materialCorrections.formationUncertainActiveCharts > 0 ? " + formation-range scenarios" : ""}`
+                : `${caoRevision.display.youngerAgeMa}–${caoRevision.display.olderAgeMa} Ma native Cao controls${
+                  caoRevision.materialCorrections.qualifiedActiveCharts > 0 ? " + qualified material masks" : ""}${
+                  caoRevision.materialCorrections.modelInferredPoseActiveCharts > 0 ? " + uncertain partition poses" : ""}${
+                  caoRevision.materialCorrections.uncertainActiveCharts > 0 ? " + uncertain continuations" : ""}${
+                  caoRevision.materialCorrections.formationUncertainActiveCharts > 0 ? " + formation-range scenarios" : ""}`}</strong>
           </p>
-          <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · source-qualified coverage</strong></p>
+          <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · source-qualified material corrections</strong></p>
+          {ageMa <= 540 && <p className="geography-age">Coverage meaning <strong>Unmapped material is unavailable evidence, not confirmed ocean; corrected masks do not claim exposure or coastline</strong></p>}
           <p className="chapter-copy">{chapter.description}</p>
           {scenarioLike && <span className="scenario-label"><Aperture size={13} /> Illustrative scene · geography unresolved</span>}
 
@@ -964,7 +986,7 @@ export default function App() {
       </Modal>
 
       <Modal open={panel === "sources"} title="Sources & provenance" eyebrow={contextSnapshot ? `${contextSnapshot.label} reconstruction` : "Scientific record"} onClose={closePanel}>
-        <p className="modal-intro">Each reconstruction distinguishes source evidence from interpolation and visual synthesis. These references support the current chapter.</p>
+        <p className="modal-intro">Each reconstruction distinguishes source evidence from interpolation and visual synthesis. These references support the current rendered view.</p>
         <div className="source-list">
           {(snapshotSources.length ? snapshotSources : sources).map((source) => <SourceLink key={source.id} source={source} />)}
         </div>

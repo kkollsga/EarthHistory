@@ -1,4 +1,4 @@
-.PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs \
+.PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs check-corrections \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
 	prune-build-cache sync-agents
 
@@ -10,6 +10,7 @@ DIST_MAX_FILE_MB ?= 8
 # The explicit sub-makes keep build and artifact inspection ordered under -j.
 gate:
 	@$(MAKE) check-dev-docs
+	@$(MAKE) check-corrections
 	@$(MAKE) check-build-cache
 	@$(MAKE) check-agents
 	@$(MAKE) typecheck
@@ -22,6 +23,7 @@ gate:
 # CI has no gitignored skill authority; keep the mirror check in the local gate.
 gate-ci:
 	@$(MAKE) check-dev-docs
+	@$(MAKE) check-corrections
 	@$(MAKE) check-build-cache
 	@$(MAKE) typecheck
 	@$(MAKE) test
@@ -61,6 +63,10 @@ test-e2e-ci:
 # R4: local state is gitignored, so only a local gate can enforce its bound.
 check-dev-docs:
 	@python3 scripts/check_dev_docs.py --max-mb "$(DEV_DOCS_MAX_MB)"
+
+check-corrections:
+	@python3 scripts/research/cao_material_corrections.py --self-test
+	@python3 scripts/research/cao_material_corrections.py
 
 # R4: Vite/TypeScript caches have a named owner and explicit bound.
 check-build-cache:

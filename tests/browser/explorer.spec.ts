@@ -29,7 +29,10 @@ test("loads one local Cao reconstruction and the complete chapter picker", { tag
   await waitForCao(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
   await expect(page.locator("#chapter-jump option")).toHaveCount(37);
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "native-cao-foundation");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-model-pose-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-overridden-native-charts", "2");
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-model-inferred-pose-charts")))
+    .toBeGreaterThan(0);
   await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-vertices")))
     .toBeGreaterThan(100_000);
   expect(external).toEqual(new Set());
@@ -49,6 +52,9 @@ test("distinguishes exact native checkpoints from continuous motion", async ({ p
   await page.goto("./#age=450");
   await waitForCao(page);
   await expect(page.locator(".geography-age").first()).toContainText("450 Ma native Cao checkpoint");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "1");
   await expect(page.locator("#source-age-jump")).toHaveValue("450");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "450");
 
@@ -58,6 +64,43 @@ test("distinguishes exact native checkpoints from continuous motion", async ({ p
   await expect(page.locator(".geography-age").first()).toContainText("450–455 Ma native Cao controls");
   await expect(page.locator("#source-age-jump")).toHaveValue("interpolated");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "");
+});
+
+test("activates cited material corrections across exact evidence boundaries", async ({ page }) => {
+  await page.goto("./#age=410");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "10");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
+  await expect(globe(page)).toHaveAttribute("data-cao-model-inferred-pose-charts", "10");
+
+  await page.goto("./#age=410.0000001");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "15");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
+  await expect(page.getByText(/Ochre: source-supported material footprint/)).toBeVisible();
+
+  await page.goto("./#age=430");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "14");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "1");
+
+  await page.goto("./#age=430.0000001");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
+  await expect(page.getByText(/Gray: continued material with older pose uncertainty/)).toBeVisible();
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: "Sources" }).click();
+  await expect(page.getByRole("link", { name: /simplified tectonic assemblage map/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Geology, Svalbard/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Generalized Geologic Map/ })).toBeVisible();
 });
 
 test("withholds a failed checkpoint and recovers without stale land", async ({ page }) => {

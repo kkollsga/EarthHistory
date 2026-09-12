@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { BufferAttribute, Group, IntType } from "three";
+import { BufferAttribute, Group, IntType, Mesh } from "three";
 import {
   CaoReconstructionRuntime,
   type PreparedCaoRevision,
@@ -23,7 +23,9 @@ function fixture(entryCount = 2): PreparedCaoRevision {
   for (let entry = 0; entry < entryCount; entry += 1) {
     values.set([1, 0, 0, 0, 1, 0, 0, 0, 0.5, 1, 1], entry * 11);
   }
-  const referenceDirections = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  const referenceDirections = new Float32Array([
+    ...gplatesLonLat(-0.5, -0.5), ...gplatesLonLat(0.5, -0.5), ...gplatesLonLat(0, 0.5),
+  ]);
   const indices = new Uint32Array([0, 1, 2]);
   const seamIds = new Uint32Array(3);
   const preparedEntryIndices = new Uint16Array([0, 0, 0]);
@@ -33,11 +35,15 @@ function fixture(entryCount = 2): PreparedCaoRevision {
     .reduce((sum, array) => sum + array.byteLength, 0);
   return {
     identity: "cao@r1:0", requestId: 1, packageId: "cao", packageRevision: "r1",
+    materialCorrectionIdentity: null,
+    materialCorrections: { qualifiedActiveCharts: 0, uncertainActiveCharts: 0,
+      formationUncertainActiveCharts: 0, modelInferredPoseActiveCharts: 0,
+      overriddenNativeCharts: 0, activeSourceIds: [], correctionIds: [] },
     requestedAgeMa: 0, frameIdentity: "cao-frame",
     display: { youngerAgeMa: 0, olderAgeMa: 5, fraction: 0 },
     motionPalette: { stride: 11, entryCount, createValuesCopy: () => new Float32Array(values) },
     batches: [{ batchId: "global", staticGeometryIdentity: "global@1", vertexCount: 3,
-      triangleCount: 1, staticGeometryBytes: byteLength,
+      triangleCount: 1, staticGeometryBytes: byteLength, nativePrecedence: false,
       chartTriangleRanges: [{ chartIndex: 0, firstTriangle: 0, triangleCount: 1 }],
       createStaticGeometryCopy: () => ({ referenceDirections: new Float32Array(referenceDirections),
         indices: new Uint32Array(indices), seamIds: new Uint32Array(seamIds),
@@ -93,12 +99,14 @@ describe("Cao foundation renderer boundary", () => {
     const revision = await runtime.request(0).prepared;
     const packageLimits = {
       ...limits,
-      maxVertices: 300_000,
-      maxTriangles: 400_000,
+      maxVertices: 190_000,
+      // Conforming correction tessellation measures 245,164 primitives and
+      // prevents source-supported triangles from sagging through the ocean.
+      maxTriangles: 246_000,
       maxRetainedSourceBytes: 24 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(1);
+    expect(resource.batches).toHaveLength(3);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
@@ -141,6 +149,79 @@ describe("Cao foundation renderer boundary", () => {
     expect(resource.trackedGpuBufferBytes).toBeGreaterThan(0);
     expect((resource.batches[0]!.geometry.getAttribute("preparedEntryIndex") as BufferAttribute).gpuType)
       .toBe(IntType);
+    resource.dispose();
+  });
+
+  it("gives visible native material draw and pick precedence across unequal tessellation", () => {
+    const base = fixture(3);
+    const makeBatch = (batchId: string, points: readonly (readonly [number, number])[],
+      chartIndex: number, nativePrecedence: boolean) => {
+      const directions = new Float32Array(points.flatMap(([lon, lat]) => gplatesLonLat(lon, lat)));
+      const indices = new Uint32Array([0, 1, 2]);
+      const seamIds = new Uint32Array(3);
+      const entries = new Uint16Array([chartIndex, chartIndex, chartIndex]);
+      const bytes = directions.byteLength + indices.byteLength + seamIds.byteLength + 2 * entries.byteLength;
+      return { batchId, staticGeometryIdentity: `${batchId}@1`, vertexCount: 3,
+        triangleCount: 1, staticGeometryBytes: bytes, nativePrecedence,
+        chartTriangleRanges: [{ chartIndex, firstTriangle: 0, triangleCount: 1 }],
+        createStaticGeometryCopy: () => ({ referenceDirections: new Float32Array(directions),
+          indices: new Uint32Array(indices), seamIds: new Uint32Array(seamIds),
+          preparedEntryIndices: new Uint16Array(entries), materialChartIndices: new Uint16Array(entries) }),
+        createDisplayControlsCopy: () => ({ displayHeightStart: { kind: "uniform" as const, value: 0 },
+          displayHeightEnd: { kind: "uniform" as const, value: 0 },
+          baseColor: { kind: "uniform" as const, value: [0.4, 0.4, 0.3] as const } }) };
+    };
+    const chart = (chartId: string) => ({ ...base.charts[0]!, chartId, chartRevision: "1",
+      materialId: chartId, fragmentOrCohortId: chartId });
+    const revision = { ...base,
+      batches: [
+        makeBatch("native-coarse", [[-0.5, -0.5], [0.5, -0.5], [0, 0.5]], 0, false),
+        makeBatch("native-far", [[160, -20], [-160, -20], [180, 20]], 1, false),
+        makeBatch("correction-fine", [[-0.05, -0.05], [0.05, -0.05], [0, 0.05]], 2, true),
+      ], charts: [chart("native-coarse"), chart("native-far"), chart("correction")],
+    } satisfies PreparedCaoRevision;
+    const resource = createCaoFoundationGeometryResource(revision, limits);
+    const identityPoses = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0,
+      1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
+    const overlap = intersectCaoFoundationSurface(resource,
+      { chartPoses: identityPoses, chartActive: new Uint8Array([1, 0, 1]) },
+      [3, 0, 0], [-1, 0, 0]);
+    expect(overlap?.batchId).toBe("native-coarse");
+    const grazing = intersectCaoFoundationSurface(resource,
+      { chartPoses: identityPoses, chartActive: new Uint8Array([1, 0, 1]) },
+      [3, 0, -0.004], [-1, 0, 0]);
+    expect(grazing?.batchId).toBe("native-coarse");
+    const farSideOnly = intersectCaoFoundationSurface(resource,
+      { chartPoses: identityPoses, chartActive: new Uint8Array([0, 1, 1]) },
+      [3, 0, 0], [-1, 0, 0]);
+    expect(farSideOnly?.batchId).toBe("correction-fine");
+
+    // A grazing ray can hit both the front and occluded side of the globe while
+    // both hit positions still have a positive dot product with the camera.
+    const nearLimbRevision = { ...base,
+      batches: [
+        makeBatch("native-occluded-positive-dot", [[86.78, -1], [88.78, -1], [87.78, 1]], 0, false),
+        makeBatch("correction-front-limb", [[54.44, -0.5], [55.44, -0.5], [54.94, 0.5]], 1, true),
+      ], charts: [chart("native-occluded-positive-dot"), chart("correction-front-limb")],
+    } satisfies PreparedCaoRevision;
+    const nearLimbResource = createCaoFoundationGeometryResource(nearLimbRevision, limits);
+    const nearLimbHit = intersectCaoFoundationSurface(nearLimbResource,
+      { chartPoses: identityPoses.subarray(0, 16), chartActive: new Uint8Array([1, 1]) },
+      [3, 0, 0], [-Math.sqrt(1 - 0.32 ** 2), 0, -0.32]);
+    expect(nearLimbHit?.batchId).toBe("correction-front-limb");
+
+    const group = new Group();
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 1_000_000);
+    const surface = new CaoFoundationSurfaceRenderer(group, retirement, limits);
+    surface.publish(revision, 8);
+    const meshes = group.children[0]!.children.filter((child): child is Mesh => child instanceof Mesh);
+    expect(meshes.map((mesh) => {
+      if (Array.isArray(mesh.material)) throw new Error("Cao surface mesh unexpectedly has multiple materials");
+      return [mesh.renderOrder, mesh.material.depthWrite, mesh.material.depthTest];
+    }))
+      .toEqual([[1, true, true], [1, true, true], [0.9, false, true]]);
+    surface.disposeForRendererTeardown();
+    nearLimbResource.dispose();
     resource.dispose();
   });
 
@@ -262,21 +343,18 @@ describe("Cao foundation renderer boundary", () => {
 
   it("inverse-picks the same rigid 400 m shell triangles and skips inactive charts", () => {
     const resource = createCaoFoundationGeometryResource(fixture(), limits);
-    const root = 1 / Math.sqrt(3);
-    const rayOrigin = [root * 3, root * 3, -root * 3] as const;
-    const rayDirection = [-root, -root, root] as const;
+    const rayOrigin = [3, 0, 0] as const;
+    const rayDirection = [-1, 0, 0] as const;
     const poses = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0]);
     const hit = intersectCaoFoundationSurface(resource,
       { chartPoses: poses, chartActive: new Uint8Array([1]) }, rayOrigin, rayDirection);
     expect(hit).toMatchObject({ batchId: "global", chartIndex: 0, triangleIndex: 0 });
     expect(hit?.position.every(Number.isFinite)).toBe(true);
     const halfSqrt = Math.SQRT1_2;
-    const rotatedDirection = [-root, root, -root] as const;
     const rotated = intersectCaoFoundationSurface(resource,
       { chartPoses: new Float32Array([halfSqrt, 0, 0, halfSqrt, halfSqrt, 0, 0, -halfSqrt]),
         chartActive: new Uint8Array([1]) },
-      rotatedDirection.map((value) => value * 3) as [number, number, number],
-      rotatedDirection.map((value) => -value) as [number, number, number]);
+      [0, 0, -3], [0, 0, 1]);
     expect(rotated).toMatchObject({ chartIndex: 0, triangleIndex: 0 });
     expect(intersectCaoFoundationSurface(resource,
       { chartPoses: poses, chartActive: new Uint8Array([0]) }, rayOrigin, rayDirection)).toBeNull();

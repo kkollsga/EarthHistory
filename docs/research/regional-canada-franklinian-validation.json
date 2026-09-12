@@ -1,0 +1,535 @@
+{
+  "candidate": "earthhistory-regional-canada-franklinian-material-v1",
+  "cohorts": [
+    {
+      "candidateAreaKm2": 91445.29619981514,
+      "candidateAreaSteradians": 0.002262919504834038,
+      "candidateCoordinateCount": 1556,
+      "candidatePolygonCount": 20,
+      "continentalBoundaryAddedDomains": {
+        "classified": [
+          {
+            "areaKm2": 2523.079061281172,
+            "domainLevel1": "ice",
+            "domainLevel2": "ice",
+            "domainLevel3": "ice"
+          },
+          {
+            "areaKm2": 894.1160565320552,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Parry Islands fold belt, Canrobert fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 877.6232515573032,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 333.8594841739837,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "western Sverdrup Basin",
+            "domainLevel3": "Sedimentary basin"
+          },
+          {
+            "areaKm2": 211.11831752382406,
+            "domainLevel1": "Arctic Ocean",
+            "domainLevel2": "Mackenzie Delta, Beaufort Sea, Arctic Coastal Plain",
+            "domainLevel3": "Continental shelf"
+          }
+        ],
+        "mappedUnionAreaKm2": 4839.796171068332,
+        "unmappedAreaKm2": 236.39528973410168
+      },
+      "continentalBoundaryNovelAreaSteradians": 0.00012402403366573722,
+      "continentalBoundarySupportAreaSteradians": 0.0015216304904801525,
+      "finalOutsideInsetKm2": 2032.0105711556619,
+      "finalOutsideQualifiedSourceKm2": 0,
+      "finalOutsideTargetKm2": 0,
+      "mappedUnitCandidateAreaKm2": 87599.5105779934,
+      "mappedUnitSimplificationAreaChangeFraction": 0.012074962328726676,
+      "mappedUnitSimplifiedOutsideSourceFraction": 0.02319659730685916,
+      "mappedUnitSimplifiedOutsideSourceKm2": 2032.0105711556619,
+      "maximumPoseResidualKm411To540": 0.0,
+      "pearyaOverlapKm2": 0,
+      "plateId": 120,
+      "projectedVsSphericalSupportFractionResidual": 1.2678622746120638e-06,
+      "rawSelectedClippedAreaKm2": 88670.19990148448,
+      "residualDomains": {
+        "classified": [
+          {
+            "areaKm2": 7448.254359280377,
+            "domainLevel1": "ice",
+            "domainLevel2": "ice",
+            "domainLevel3": "ice"
+          },
+          {
+            "areaKm2": 1417.3951543314442,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 85.39177011127691,
+            "domainLevel1": "Arctic Ocean",
+            "domainLevel2": "Mackenzie Delta, Beaufort Sea, Arctic Coastal Plain",
+            "domainLevel3": "Continental shelf"
+          },
+          {
+            "areaKm2": 5.682436961138835,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 4.005144959408032,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "western Sverdrup Basin",
+            "domainLevel3": "Sedimentary basin"
+          }
+        ],
+        "mappedUnionAreaKm2": 8960.728865643636,
+        "unmappedAreaKm2": 148.82283811048913
+      },
+      "selectedClippedAreaByEvidenceTierKm2": {
+        "direct-ancient-unit": 731.0418433291246,
+        "younger-cover-substrate-inference": 87939.15805815539
+      },
+      "selectedUnionVsTierSumOverlapResidualKm2": 3.0517578125e-11,
+      "sphericalTargetAreaSupportFractionAt411": 0.9108353718581906,
+      "targetAreaKm2": 100397.03302655854,
+      "targetAreaSteradians": 0.002484444033192812,
+      "targetAreaSupportFractionAt411": 0.9108366397204652,
+      "targetChartCount": 18
+    },
+    {
+      "candidateAreaKm2": 33836.09244512066,
+      "candidateAreaSteradians": 0.0008373593215984521,
+      "candidateCoordinateCount": 383,
+      "candidatePolygonCount": 10,
+      "continentalBoundaryAddedDomains": {
+        "classified": [
+          {
+            "areaKm2": 9692.80976384284,
+            "domainLevel1": "ice",
+            "domainLevel2": "ice",
+            "domainLevel3": "ice"
+          },
+          {
+            "areaKm2": 5080.804161632331,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 569.4304690354193,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          }
+        ],
+        "mappedUnionAreaKm2": 15343.044394510629,
+        "unmappedAreaKm2": 250.58403246904246
+      },
+      "continentalBoundaryNovelAreaSteradians": 0.00037966089342811316,
+      "continentalBoundarySupportAreaSteradians": 0.0007838265038171421,
+      "finalOutsideInsetKm2": 975.7647294922282,
+      "finalOutsideQualifiedSourceKm2": 0,
+      "finalOutsideTargetKm2": 0,
+      "mappedUnitCandidateAreaKm2": 18787.533912955205,
+      "mappedUnitSimplificationAreaChangeFraction": 0.08801203522341368,
+      "mappedUnitSimplifiedOutsideSourceFraction": 0.051936817999267915,
+      "mappedUnitSimplifiedOutsideSourceKm2": 975.7647294922282,
+      "maximumPoseResidualKm411To540": 0.0,
+      "pearyaOverlapKm2": 0,
+      "plateId": 122,
+      "projectedVsSphericalSupportFractionResidual": 1.4331360901009838e-05,
+      "rawSelectedClippedAreaKm2": 20600.637989293715,
+      "residualDomains": {
+        "classified": [
+          {
+            "areaKm2": 4510.343647676339,
+            "domainLevel1": "ice",
+            "domainLevel2": "ice",
+            "domainLevel3": "ice"
+          },
+          {
+            "areaKm2": 2138.634221202801,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 38.95602632879924,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          }
+        ],
+        "mappedUnionAreaKm2": 6687.9338952079315,
+        "unmappedAreaKm2": 79.7438037023046
+      },
+      "selectedClippedAreaByEvidenceTierKm2": {
+        "direct-ancient-unit": 9411.99524409681,
+        "younger-cover-substrate-inference": 11188.642745196888
+      },
+      "selectedUnionVsTierSumOverlapResidualKm2": -1.9073486328125e-11,
+      "sphericalTargetAreaSupportFractionAt411": 0.8357766379350635,
+      "targetAreaKm2": 40483.91725699403,
+      "targetAreaSteradians": 0.001001893668226117,
+      "targetAreaSupportFractionAt411": 0.8357909692959645,
+      "targetChartCount": 3
+    },
+    {
+      "candidateAreaKm2": 42577.0991757023,
+      "candidateAreaSteradians": 0.0010536437246058128,
+      "candidateCoordinateCount": 1458,
+      "candidatePolygonCount": 22,
+      "continentalBoundaryAddedDomains": {
+        "classified": [
+          {
+            "areaKm2": 145.92379826123303,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          }
+        ],
+        "mappedUnionAreaKm2": 145.92379826123303,
+        "unmappedAreaKm2": 45.318361474533056
+      },
+      "continentalBoundaryNovelAreaSteradians": 4.6642754845116485e-06,
+      "continentalBoundarySupportAreaSteradians": 0.0001851039654803266,
+      "finalOutsideInsetKm2": 1492.6307306530027,
+      "finalOutsideQualifiedSourceKm2": 0,
+      "finalOutsideTargetKm2": 0,
+      "mappedUnitCandidateAreaKm2": 43317.284390389286,
+      "mappedUnitSimplificationAreaChangeFraction": 0.039089541127932705,
+      "mappedUnitSimplifiedOutsideSourceFraction": 0.03445808645807375,
+      "mappedUnitSimplifiedOutsideSourceKm2": 1492.6307306530027,
+      "maximumPoseResidualKm411To540": 0.0,
+      "pearyaOverlapKm2": 0,
+      "plateId": 123,
+      "projectedVsSphericalSupportFractionResidual": 1.5798820836354643e-05,
+      "rawSelectedClippedAreaKm2": 45079.418160601395,
+      "residualDomains": {
+        "classified": [
+          {
+            "areaKm2": 15065.150630502068,
+            "domainLevel1": "ice",
+            "domainLevel2": "ice",
+            "domainLevel3": "ice"
+          },
+          {
+            "areaKm2": 3536.7409916242136,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 1238.6256581473847,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          }
+        ],
+        "mappedUnionAreaKm2": 19840.517280273674,
+        "unmappedAreaKm2": 432.30974523156425
+      },
+      "selectedClippedAreaByEvidenceTierKm2": {
+        "direct-ancient-unit": 3597.2779797129206,
+        "younger-cover-substrate-inference": 41482.140180889466
+      },
+      "selectedUnionVsTierSumOverlapResidualKm2": 9.918212890625e-10,
+      "sphericalTargetAreaSupportFractionAt411": 0.6824208987826523,
+      "targetAreaKm2": 62389.81479926299,
+      "targetAreaSteradians": 0.0015439792750857606,
+      "targetAreaSupportFractionAt411": 0.6824366976034887,
+      "targetChartCount": 7
+    },
+    {
+      "candidateAreaKm2": 45795.878332552275,
+      "candidateAreaSteradians": 0.0011333203015522209,
+      "candidateCoordinateCount": 292,
+      "candidatePolygonCount": 16,
+      "continentalBoundaryAddedDomains": {
+        "classified": [
+          {
+            "areaKm2": 1792.206499698864,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Parry Islands fold belt, Canrobert fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 117.89260953785661,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 96.95467393652054,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Boothia uplift, Cornwallis fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 51.95567695159825,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "western Sverdrup Basin",
+            "domainLevel3": "Sedimentary basin"
+          },
+          {
+            "areaKm2": 49.75027113179036,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "eastern Sverdrup Basin, Eurekan Orogen",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 19.663116336385258,
+            "domainLevel1": "Arctic Ocean",
+            "domainLevel2": "Mackenzie Delta, Beaufort Sea, Arctic Coastal Plain",
+            "domainLevel3": "Continental shelf"
+          }
+        ],
+        "mappedUnionAreaKm2": 2128.4228475930154,
+        "unmappedAreaKm2": 398.17611438919835
+      },
+      "continentalBoundaryNovelAreaSteradians": 6.188165634091192e-05,
+      "continentalBoundarySupportAreaSteradians": 0.001133320907144686,
+      "finalOutsideInsetKm2": 486.66144905120353,
+      "finalOutsideQualifiedSourceKm2": 0,
+      "finalOutsideTargetKm2": 0,
+      "mappedUnitCandidateAreaKm2": 43768.67972416417,
+      "mappedUnitSimplificationAreaChangeFraction": 0.02711338573750004,
+      "mappedUnitSimplifiedOutsideSourceFraction": 0.011118942863211922,
+      "mappedUnitSimplifiedOutsideSourceKm2": 486.66144905120353,
+      "maximumPoseResidualKm411To540": 0.0,
+      "pearyaOverlapKm2": 0,
+      "plateId": 141,
+      "projectedVsSphericalSupportFractionResidual": -2.1373436620564235e-07,
+      "rawSelectedClippedAreaKm2": 44988.46945010459,
+      "residualDomains": {
+        "classified": [
+          {
+            "areaKm2": 0.005294154322771781,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Parry Islands fold belt, Canrobert fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 0.0010048080467470546,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Ellesmere-North Greenland fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          },
+          {
+            "areaKm2": 9.097041914947933e-05,
+            "domainLevel1": "Innuitian region, North Greenland",
+            "domainLevel2": "Boothia uplift, Cornwallis fold belt",
+            "domainLevel3": "Orogen, fold-thrust belt, folded region"
+          }
+        ],
+        "mappedUnionAreaKm2": 0.006389932788668148,
+        "unmappedAreaKm2": 0.004420975083390339
+      },
+      "selectedClippedAreaByEvidenceTierKm2": {
+        "direct-ancient-unit": 3312.3208044389903,
+        "younger-cover-substrate-inference": 41676.148645665664
+      },
+      "selectedUnionVsTierSumOverlapResidualKm2": 6.103515625e-11,
+      "sphericalTargetAreaSupportFractionAt411": 0.999999465646673,
+      "targetAreaKm2": 45795.91259191089,
+      "targetAreaSteradians": 0.0011333209071460182,
+      "targetAreaSupportFractionAt411": 0.9999992519123068,
+      "targetChartCount": 16
+    }
+  ],
+  "endpointChecks": [
+    {
+      "ageMa": 410.0,
+      "continentalBoundarySourceActive": false,
+      "correctionActive": false,
+      "nativeTargetsActive": true
+    },
+    {
+      "ageMa": 410.001,
+      "basis": "0.1 Ma seam-bridge inference from the adjacent modeled extent",
+      "continentalBoundarySourceActive": false,
+      "correctionActive": true,
+      "nativeTargetsActive": false
+    },
+    {
+      "ageMa": 410.099999,
+      "basis": "0.1 Ma seam-bridge inference from the adjacent modeled extent",
+      "continentalBoundarySourceActive": false,
+      "correctionActive": true,
+      "nativeTargetsActive": false
+    },
+    {
+      "ageMa": 410.1,
+      "continentalBoundarySourceActive": true,
+      "correctionActive": true,
+      "nativeTargetsActive": false
+    },
+    {
+      "ageMa": 410.100001,
+      "continentalBoundarySourceActive": true,
+      "correctionActive": true,
+      "nativeTargetsActive": false
+    }
+  ],
+  "limits": [
+    "per-cohort area fractions use CGM 80 Lambert projected areas at the present-day clipping stage",
+    "regional before/after coverage uses one local Lambert azimuthal equal-area denominator at each tested age",
+    "younger cover units witness an inferred older Laurentian substrate, not the age or exposure of the mapped surface rock",
+    "the mapped-unit boundary is simplified at source scale and the complete candidate is target clipped; it is not a reconstruction of an ancient coastline or complete crustal extent",
+    "the Laurentia aCOB feature begins at 410.1 Ma; its contribution from just older than 410 through 410.1 Ma is explicitly a 0.1 Ma seam-bridge inference",
+    "Cao motion agreement is computational because the source microplate relations are frozen; it is not independent paleogeographic evidence"
+  ],
+  "method": {
+    "continentalBoundaryReferenceAgeBridgeMa": 0.1,
+    "continentalBoundarySourceYoungestMa": 410.1,
+    "insetMetres": 0.0,
+    "olderUncertainIntervalMa": [
+      430,
+      540
+    ],
+    "qualificationIntervalMa": [
+      410,
+      430
+    ],
+    "referenceAgeMa": 410.0,
+    "simplificationToleranceMetres": 5000.0
+  },
+  "nativeCoverage": [
+    {
+      "ageMa": 410.0,
+      "candidateOverlapWithNativeKm2": 202358.8105206563,
+      "candidateWithinTargetKm2": 202358.81052065795,
+      "combinedCoverageAfterFraction": 0.9999999999999951,
+      "combinedCoverageAfterKm2": 237773.17671010236,
+      "nativeCoverageBeforeFraction": 0.9999999999999901,
+      "nativeCoverageBeforeKm2": 237773.17671010116,
+      "novelCoverageAddedKm2": 1.190185546875e-09,
+      "unionTargetAreaKm2": 237773.17671010352
+    },
+    {
+      "ageMa": 410.001,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202358.81241928617,
+      "combinedCoverageAfterFraction": 0.8510581948783859,
+      "combinedCoverageAfterKm2": 202358.81241928617,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202358.81241928617,
+      "unionTargetAreaKm2": 237773.17889313403
+    },
+    {
+      "ageMa": 410.099999,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202359.0024398358,
+      "combinedCoverageAfterFraction": 0.8510582121526582,
+      "combinedCoverageAfterKm2": 202359.00243983587,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202359.00243983587,
+      "unionTargetAreaKm2": 237773.39734257545
+    },
+    {
+      "ageMa": 410.1,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202359.00244177642,
+      "combinedCoverageAfterFraction": 0.8510582121528354,
+      "combinedCoverageAfterKm2": 202359.00244177636,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202359.00244177636,
+      "unionTargetAreaKm2": 237773.39734480603
+    },
+    {
+      "ageMa": 410.100001,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202359.00244371546,
+      "combinedCoverageAfterFraction": 0.8510582121530128,
+      "combinedCoverageAfterKm2": 202359.00244371546,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202359.00244371546,
+      "unionTargetAreaKm2": 237773.39734703492
+    },
+    {
+      "ageMa": 411.0,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202360.92697440073,
+      "combinedCoverageAfterFraction": 0.8510584317798423,
+      "combinedCoverageAfterKm2": 202360.92697440076,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202360.92697440076,
+      "unionTargetAreaKm2": 237775.5973243784
+    },
+    {
+      "ageMa": 430.0,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202549.50760146824,
+      "combinedCoverageAfterFraction": 0.8510752200384232,
+      "combinedCoverageAfterKm2": 202549.5076014683,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202549.5076014683,
+      "unionTargetAreaKm2": 237992.48624854084
+    },
+    {
+      "ageMa": 540.0,
+      "candidateOverlapWithNativeKm2": 0.0,
+      "candidateWithinTargetKm2": 202363.55653205243,
+      "combinedCoverageAfterFraction": 0.8510598559867907,
+      "combinedCoverageAfterKm2": 202363.55653205243,
+      "nativeCoverageBeforeFraction": 0.0,
+      "nativeCoverageBeforeKm2": 0.0,
+      "novelCoverageAddedKm2": 202363.55653205243,
+      "unionTargetAreaKm2": 237778.2891632399
+    }
+  ],
+  "schemaVersion": 1,
+  "source": {
+    "aggregateHashEncoding": "earthhistory-cgm80-selected-members-v1",
+    "aggregateSha256": "892101fe7caa9fafac8c87a5d50f27328a1534533bad321d5f63c882bc185a0b",
+    "completePalaeomapStudyBytes": 3710809787,
+    "completePalaeomapStudyMaximumBytes": 4294967296,
+    "completionSourceAcquisitionMaximumBytes": 134217728,
+    "completionSourceAggregateSha256": "f8a919cc5bc70a772abed6643ccffbd1b0cfcbdadc291ff9c445d8cd9ac8b125",
+    "completionSourceOwnedDirectoryBytes": 26717391,
+    "completionSourceRetainedMemberBytes": 26714227,
+    "directoryMaximumBytes": 134217728,
+    "fullRepositoryBundleAcquired": false,
+    "ownedSourceDirectoryBytes": 129978816,
+    "retainedMemberBytes": 129974488,
+    "sourceAcquisitionMaximumBytes": 134217728
+  },
+  "status": "source-qualified-candidate",
+  "summary": {
+    "candidateAreaKm2": 213654.36615319038,
+    "candidateCoordinateCount": 3689,
+    "candidateReferenceAreaSteradians": 0.00500768818337205,
+    "candidateSphericalCrossCohortOverlapKm2": 11347.05500982648,
+    "candidateSphericalPolygonUnionAreaKm2": 203260.82711347437,
+    "pearyaOverlapKm2": 0,
+    "referenceEqualAreaUnion": {
+      "candidateCohortSumKm2": 213655.50363826173,
+      "candidateCrossCohortOverlapKm2": 11296.546264528992,
+      "candidateUnionKm2": 202358.95737373273,
+      "candidateUnionSupportFraction": 0.8510588123253765,
+      "targetCohortSumKm2": 249069.724074125,
+      "targetCrossCohortOverlapKm2": 11296.5473640213,
+      "targetUnionKm2": 237773.1767101037
+    },
+    "sphericalPolygonUnionSupportFractionDiagnostic": 0.8510566904662419,
+    "targetAreaKm2": 249066.67767472647,
+    "targetAreaSupportFractionAt411": 0.8578199546718028,
+    "targetChartCount": 44,
+    "targetReferenceAreaSteradians": 0.005884082975281757,
+    "targetSphericalCrossCohortOverlapKm2": 11347.06471688531,
+    "targetSphericalPolygonUnionAreaKm2": 238833.4753612244
+  }
+}

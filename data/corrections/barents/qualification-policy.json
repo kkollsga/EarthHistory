@@ -1,0 +1,49 @@
+{
+  "geometry": {
+    "insetMetres": 1500,
+    "maximumNativeCoastOverlapFractionAtSampleAges": 0.0001,
+    "maximumOutputVertices": 8000,
+    "maximumOutsideQualifiedSourceSquareMetres": 1,
+    "maximumOutsideTargetSquareMetres": 1,
+    "nativeOverlapGuardMetres": 500,
+    "nativeOverlapPolicy": {
+      "allowedNovayaNativeFeatureIds": [
+        "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2"
+      ],
+      "default": "subtract guarded overlap with active native coast material across the complete 5 Ma sweep",
+      "novaya": "preserve the complete guarded source-qualified mask; where Kara Block later overlaps, the shared renderer draws correction first without depth writes and gives visible native material visual and picking precedence"
+    },
+    "simplifyMetres": 500
+  },
+  "measurement": {
+    "earthRadiusMetres": 6371008.8,
+    "projection": "spherical Lambert azimuthal equal-area centred at 40E, 75N"
+  },
+  "nativeDeduplicationAgesMa": "410.001 Ma, 411 Ma, every 5 Ma from 415 through 540 inclusive, and 430.001 Ma",
+  "recordedSequence": "An exploratory screen measured approximate source/target areas and six overlap ages before this file existed. The thresholds and stop rule were then frozen before the reproducible compiler and expanded 5 Ma overlap sweep generated the tracked candidate. This is not a preregistered measurement. After the shared renderer overlap-precedence design was accepted, the Novaya candidate was regenerated from the already measured guarded source mask without the conservative all-age Kara subtraction.",
+  "schemaVersion": 2,
+  "sourceSelection": {
+    "franzJosefIncludedDomains": [
+      "Svalbard, Barents Shelf"
+    ],
+    "iceRule": "ice records are admitted only when they intersect a Novaya Zemlya or Franz Josef Land Cao target; ice supplies footprint, while cited regional geology supplies the inferred older substrate",
+    "novayaIncludedDomains": [
+      "Pai-Khoi, Novaya Zemlya",
+      "Urals folded region"
+    ],
+    "timanDirectOldDomains": [
+      "Urals folded region"
+    ],
+    "timanDirectOldMinimumYoungestAgeMa": 542,
+    "timanIncludedDomains": [
+      "Russian Plate",
+      "Timan fold belt",
+      "Timan fold belt, Pechora Plate"
+    ],
+    "timanWesternContinentalMarginDomains": [
+      "Urals foredeep, Western Ural Mountains"
+    ]
+  },
+  "stopRule": "Reject a cohort if its guarded geometry is empty, exceeds either source/target containment tolerance, lacks a strict Cao pose through 540 Ma, or has an active-native overlap outside the named Novaya/Kara renderer-precedence exception.",
+  "writtenBeforeMeasurement": false
+}

@@ -42,6 +42,7 @@ export interface PreparedCaoSpatialBatch {
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly staticGeometryBytes: number;
+  readonly nativePrecedence: boolean;
   /** Contiguous source-index ranges used to build one reference-space BVH per material chart. */
   readonly chartTriangleRanges: readonly Readonly<{
     chartIndex: number;
@@ -84,6 +85,16 @@ export interface PreparedCaoRevision {
   readonly requestId: number;
   readonly packageId: string;
   readonly packageRevision: string;
+  readonly materialCorrectionIdentity: string | null;
+  readonly materialCorrections: Readonly<{
+    qualifiedActiveCharts: number;
+    uncertainActiveCharts: number;
+    formationUncertainActiveCharts: number;
+    modelInferredPoseActiveCharts: number;
+    overriddenNativeCharts: number;
+    activeSourceIds: readonly string[];
+    correctionIds: readonly string[];
+  }>;
   readonly requestedAgeMa: number;
   readonly frameIdentity: string;
   readonly display: Readonly<{

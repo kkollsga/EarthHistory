@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 3,
+  "recordedAt": "2026-09-12T17:31:43.233Z",
+  "scope": "Complete Cao v2.4 regional material-correction union at the 410 Ma source boundary after conforming correction-mesh subdivision",
+  "codeIdentity": {
+    "branch": "codex/410-ma-regional-corrections",
+    "commit": null,
+    "workingTreeNote": "User-authorized uncommitted working tree; no commit was requested.",
+    "productionIndex": "dist/index.html",
+    "productionIndexSha256": "6180020b910be5dbffcc91354608e849e1bfc05bd12810b058cfff35728e14b9",
+    "productionEntry": "dist/assets/index-DMgiI6_2.js",
+    "productionEntrySha256": "ac500f32687688276b0d79e949db56c8e857e36de9459c3b50aa10a17ddecfb1",
+    "caoPackageManifest": "dist/data/reconstruction/cao-v2.4/manifest.json",
+    "caoPackageManifestSha256": "272778a1014373f483865e819083305aa012beee7f03e9f221a9f88f783f8371",
+    "correctionCatalog": "dist/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
+    "correctionCatalogSha256": "17c377d61694e304d99c071b9afb8db836dc4a782102e105999001602c3b08d7"
+  },
+  "machine": {
+    "operatingSystem": "Darwin 25.6.0 arm64",
+    "device": "Apple M4 Mac mini",
+    "logicalCpuCount": 10,
+    "totalMemoryBytes": 17179869184,
+    "browser": "Google Chrome 152.0.7977.83",
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+    "skiaBackend": "GraphiteDawnMetal",
+    "measuredBackends": [
+      "webgpu",
+      "webgl2"
+    ],
+    "softwareRendererFromPriorDiagnostic": "ANGLE Vulkan SwiftShader Device (LLVM 10.0.0)"
+  },
+  "stopRules": {
+    "coldReady": "Reject when candidate median exceeds baseline median by more than max(250 ms, 20%).",
+    "relativeCadence": "Reject when candidate steady cadence is below 90% of baseline.",
+    "absoluteCadence": "Reject production readiness below 30 fps, equivalent to frame-time p50 above 33.33 ms.",
+    "landGeometry": "Reject above 180000 land vertices or 240000 land triangles.",
+    "aggregateGeometry": "Reject above 190000 aggregate vertices or 246000 foundation-triangle plus country-line primitives.",
+    "aggregateDefinition": "Aggregate vertices are foundation vertices plus renderer-reported country-line vertices; aggregate primitives are foundation triangles plus renderer-reported country-line segments.",
+    "aggregateRevision": "The prior 241000-primitive bound is retained with the rejected visual candidate. The 246000 bound was approved before final measurement from quantified conforming-subdivision counts; cold, cadence, land-geometry, and byte guards were unchanged."
+  },
+  "priorEvidence": {
+    "initialSoftwareDiagnostic": {
+      "configuration": "Headless installed Chrome, SwiftShader, production Vite preview, five alternating native-only/candidate runs at 411 Ma.",
+      "baselineReadyMedianMs": 2378,
+      "candidateReadyMedianMs": 3270,
+      "native410ReadyMedianMs": 3280,
+      "readyDeltaMs": 892,
+      "readyRatio": 1.3751,
+      "coldReadyStop": "fail",
+      "absoluteCadenceStop": "not-qualified-on-software-renderer",
+      "interpretation": "Preserved diagnostic failure; it is not hardware production evidence."
+    },
+    "rejectedParallelReadExperiment": {
+      "configuration": "Headless SwiftShader profile and five-repeat follow-up on an experimental concurrent second-stage loader.",
+      "baselineReadyMedianMs": 1548.6,
+      "candidateReadyMedianMs": 1662.8,
+      "readyDeltaMs": 114.2,
+      "readyRatio": 1.0737,
+      "disposition": "reverted",
+      "reason": "Independent review found missing sibling cancellation after terminal verification failure and no bound on Promise.all fan-out or aggregate concurrent bytes."
+    },
+    "priorThreeRegionHardwareMeasurement": {
+      "configuration": "Final sequential loader; headed installed Chrome; production Vite preview; fresh context per run; 1280x720 DPR1; at least 120 renderer samples; five alternating-order native-only/candidate WebGPU runs at 411 Ma, two native 410 Ma anchors, and two forced-WebGL2 candidate runs.",
+      "webgpu": {
+        "baseline411ReadyMs": [
+          397.6,
+          400.5,
+          382.1,
+          382.2,
+          396.0
+        ],
+        "candidate411ReadyMs": [
+          447.9,
+          415.6,
+          435.5,
+          416.9,
+          409.4
+        ],
+        "native410ReadyMs": [
+          405.2,
+          406.5
+        ],
+        "baselineReadyMedianMs": 396.0,
+        "candidateReadyMedianMs": 416.9,
+        "native410ReadyMedianMs": 405.2,
+        "readyDeltaMs": 20.9,
+        "readyRatio": 1.0528,
+        "baselineFrameP50MedianMs": 16.7,
+        "candidateFrameP50MedianMs": 16.7,
+        "native410FrameP50MedianMs": 16.7,
+        "candidateFrameP95Ms": [
+          18.7,
+          18.7,
+          18.7,
+          18.7,
+          18.7
+        ],
+        "relativeCadenceRatio": 1.0,
+        "coldReadyStop": "pass",
+        "relativeCadenceStop": "pass",
+        "absoluteCadenceStop": "pass"
+      },
+      "forcedWebgl2": {
+        "candidate411ReadyMs": [
+          506.7,
+          482.6
+        ],
+        "candidateFrameP50Ms": [
+          16.7,
+          16.7
+        ],
+        "candidateFrameP95Ms": [
+          18.7,
+          18.7
+        ],
+        "actualBackend": "webgl2",
+        "compatibilityCheck": "pass"
+      },
+      "renderedCandidate": {
+        "qualifiedCharts": 7,
+        "uncertainCharts": 0,
+        "meshVertices": 159282,
+        "totalVertexLedgerIncludingCountryLines": 179318,
+        "totalPrimitiveLedger": 230331,
+        "geometryStop": "pass"
+      },
+      "disposition": "Historical three-region evidence, superseded by the complete correction union."
+    },
+    "rejectedVisualCandidate": {
+      "build": {
+        "productionIndexSha256": "6180020b910be5dbffcc91354608e849e1bfc05bd12810b058cfff35728e14b9",
+        "productionEntrySha256": "ac500f32687688276b0d79e949db56c8e857e36de9459c3b50aa10a17ddecfb1",
+        "caoPackageManifestSha256": "1221dc19684a4431bb2af9bc42e60a9902c700ebea2d7b84ef35f5c96303301b",
+        "correctionCatalogSha256": "fca4bbebba0aa8cd16f26acd1a4b6e237710e2830a70013b314f3aa790ff738b"
+      },
+      "baseline411ReadyMedianMs": 376.5,
+      "candidate411ReadyMedianMs": 418.1,
+      "readyDeltaMs": 41.6,
+      "baseline411FrameP50MedianMs": 16.7,
+      "candidate411FrameP50MedianMs": 16.7,
+      "landVertices": 166159,
+      "landTriangles": 230424,
+      "aggregateVertices": 186195,
+      "aggregatePrimitives": 240442,
+      "quantitativeStopsUnderHistorical241000PrimitiveBound": "pass",
+      "visualStop": "fail",
+      "failure": "Before refinement, the global audit found 559 of 17307 correction triangles submerged and a 10.9304-degree maximum edge. The examined Franciscan witness triangles had edges up to 3.27355 degrees: triangle 8436 at (-120.3826, 48.0323) lay 242.9 m below the ocean, and triangles 8443/8446 lay 1353.1/1037.8 m below.",
+      "rawPerformanceJsonSha256": "498de89cbb9bf76082ed64a48686f4de334ff247ce502fcbe6d242df4ebca81b",
+      "disposition": "Rejected and preserved as historical failed-visual-candidate evidence."
+    }
+  },
+  "runHistory": [
+    {
+      "attempt": 1,
+      "outcome": "not-published",
+      "classification": "harness-publication-failure",
+      "reason": "EXDEV cross-device rename from /tmp staging to the workspace capture directory",
+      "measurementRowsRetained": false,
+      "stopFailure": false,
+      "knownInterference": false,
+      "artifactEffect": "performance JSON remained unchanged; prior JPG captures were removed before the failed transfer; nine candidate-only staging images remained in /tmp"
+    },
+    {
+      "attempt": 2,
+      "outcome": "published-rejected",
+      "classification": "visual-stop-failure",
+      "reason": "The global audit found 559 of 17307 correction triangles submerged and a 10.9304-degree maximum edge; examined Franciscan witness edges reached 3.27355 degrees and produced the visible Western voids despite the 400 m shell.",
+      "measurementRowsRetained": true,
+      "stopFailure": true,
+      "knownInterference": false,
+      "performanceJsonSha256": "498de89cbb9bf76082ed64a48686f4de334ff247ce502fcbe6d242df4ebca81b"
+    },
+    {
+      "attempt": 3,
+      "outcome": "not-published",
+      "classification": "harness-capture-stop-failure",
+      "reason": "The first Barents capture requested camera distance 1.85 while also requiring runtime regional detail, whose boundary is 1.5; waitForFunction timed out.",
+      "measurementRowsRetained": false,
+      "stopFailure": true,
+      "knownInterference": false,
+      "artifactEffect": "Timing rows existed only in process memory; no performance JSON or final images were published."
+    },
+    {
+      "attempt": 4,
+      "outcome": "published",
+      "classification": "conforming-triangulation-final-run",
+      "reason": "All correction triangle edges are conformingly subdivided below one degree and radial-clearance validated; the Barents view uses the corrected transformed center at the supported 1.5 regional boundary.",
+      "measurementRowsRetained": true,
+      "stopFailure": false,
+      "knownInterference": false
+    }
+  ],
+  "conformingGeometryEvidence": {
+    "qualifiedBatch": {
+      "vertices": 7850,
+      "triangles": 9291,
+      "maximumEdgeDegrees": 0.996656,
+      "minimumDisplayedRadius": 1.00002395
+    },
+    "uncertaintyBatch": {
+      "vertices": 11196,
+      "triangles": 12738,
+      "maximumEdgeDegrees": 0.999583,
+      "minimumDisplayedRadius": 1.000023129
+    },
+    "correctionTriangles": 22029,
+    "submergedCorrectionTriangles": 0,
+    "minimumClearanceMetres": 147.356,
+    "method": "Conforming shared-edge midpoint bisection to at most one degree followed by exact closest-point radial-clearance validation after float32 encoding."
+  },
+  "finalHardwareMeasurement": {
+    "configuration": "Headed installed Chrome; production Vite preview; fresh reduced-motion context per run; 1280x720 DPR1; five alternating-order candidate/control runs at 411 Ma; correction catalog stripped for the true 410 and 411 controls; separate candidate 410 anchor; two forced-WebGL2 candidate checks; 120 renderer diagnostic samples per performance run; nine same-age, same-camera baseline/candidate comparison images, including paired modern 0/0.001 and a transformed-footprint older-gray view.",
+    "webgpu": {
+      "baseline411ReadyMs": [
+        389.8,
+        381.1,
+        389.5,
+        387.3,
+        394.3
+      ],
+      "candidate411ReadyMs": [
+        464.2,
+        449.6,
+        429.7,
+        430.6,
+        434.4
+      ],
+      "baseline411ReadyMedianMs": 389.5,
+      "candidate411ReadyMedianMs": 434.4,
+      "readyDeltaMs": 44.9,
+      "readyRatio": 1.1153,
+      "baseline411FrameP50Ms": [
+        16.7,
+        16.7,
+        16.7,
+        16.7,
+        16.7
+      ],
+      "candidate411FrameP50Ms": [
+        16.7,
+        16.7,
+        16.7,
+        16.7,
+        16.7
+      ],
+      "baseline411FrameP95Ms": [
+        18.7,
+        18.7,
+        18.7,
+        18.7,
+        18.7
+      ],
+      "candidate411FrameP95Ms": [
+        18.7,
+        18.7,
+        18.7,
+        18.7,
+        18.7
+      ],
+      "baseline411SampleCounts": [
+        172,
+        175,
+        173,
+        173,
+        173
+      ],
+      "candidate411SampleCounts": [
+        171,
+        169,
+        171,
+        171,
+        169
+      ],
+      "baseline411FrameP50MedianMs": 16.7,
+      "candidate411FrameP50MedianMs": 16.7,
+      "relativeCadenceRatio": 1,
+      "baseline410ReadyMs": 395.6,
+      "candidate410ReadyMs": 440.7,
+      "baseline410FrameP50Ms": 16.7,
+      "candidate410FrameP50Ms": 16.7,
+      "actualBackend": "webgpu",
+      "coldReadyStop": "pass",
+      "relativeCadenceStop": "pass",
+      "absoluteCadenceStop": "pass"
+    },
+    "forcedWebgl2": {
+      "candidate411ReadyMs": [
+        515.9,
+        501.7
+      ],
+      "candidateFrameP50Ms": [
+        16.7,
+        16.7
+      ],
+      "candidateFrameP95Ms": [
+        18.7,
+        18.7
+      ],
+      "actualBackend": "webgl2",
+      "backendRunsPassing": "2/2",
+      "compatibilityCheck": "pass"
+    },
+    "correctionActivation": {
+      "baseline411": {
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "overriddenNativeCharts": 0
+      },
+      "candidate411": {
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "overriddenNativeCharts": 0
+      },
+      "baseline410": {
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "overriddenNativeCharts": 0
+      },
+      "candidate410": {
+        "qualifiedCharts": 10,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "overriddenNativeCharts": 2
+      }
+    },
+    "renderedCandidate411": {
+      "foundationSpatialBatches": 3,
+      "countryReferenceLineBatches": 1,
+      "totalRendererBatches": 4,
+      "landMeshVertices": 168538,
+      "landMeshTriangles": 235146,
+      "countryLineVertices": 20036,
+      "countryLineSegments": 10018,
+      "aggregateVertexLedger": "168538 + 20036 = 188574",
+      "aggregatePrimitiveLedger": "235146 + 10018 = 245164",
+      "aggregateVertices": 188574,
+      "aggregatePrimitives": 245164,
+      "landGeometryStop": "pass",
+      "aggregateGeometryStop": "pass"
+    },
+    "allStops": "pass"
+  },
+  "captures": {
+    "directory": "dev-docs/temp/age-410-corrections/browser",
+    "count": 9,
+    "pngCount": 0,
+    "boundedArtifactPolicy": "Nine final JPEGs replace earlier owned PNG/JPEG captures. make check-dev-docs keeps the full dev-docs tree within 50 MiB.",
+    "pairMeaning": "Every file is a same-age, same-camera stripped-catalog baseline/candidate comparison.",
+    "files": [
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/western-409.jpg",
+        "sha256": "3e1f1a3f2f6d8514c094c4bbb63fa39c29414b281f064f21b65b0417f5ee065a",
+        "kind": "paired-baseline-candidate",
+        "region": "regionalWestern",
+        "ageMa": 409,
+        "center": [
+          -91,
+          -15
+        ],
+        "baselineCamera": {
+          "longitude": -91,
+          "latitude": -15,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -91,
+          "latitude": -15,
+          "distance": 1.3482
+        },
+        "visualFinding": "Western geometry remains continuous across the matched pair; qualified replacement behavior remains bounded to its active state."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/western-411.jpg",
+        "sha256": "8eeac85ecb60cc8c7bf7452e9aa882c0e90d0795158721a27c3eb61dcaefda77",
+        "kind": "paired-baseline-candidate",
+        "region": "regionalWestern",
+        "ageMa": 411,
+        "center": [
+          -91,
+          -15
+        ],
+        "baselineCamera": {
+          "longitude": -91,
+          "latitude": -15,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -91,
+          "latitude": -15,
+          "distance": 1.3482
+        },
+        "visualFinding": "The former angular/trapezoid water voids are closed after conforming correction-triangle subdivision."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/canada-pearya-409.jpg",
+        "sha256": "0c4729a5a44af7b329a3014104018d9695cc27edcbcf9675cfeaf1cb767a35b2",
+        "kind": "paired-baseline-candidate",
+        "region": "CanadaPearya",
+        "ageMa": 409,
+        "center": [
+          -60.5,
+          3
+        ],
+        "baselineCamera": {
+          "longitude": -60.5,
+          "latitude": 3.0001,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -60.5,
+          "latitude": 3,
+          "distance": 1.3482
+        },
+        "visualFinding": "Matched pair retains the native younger-side reconstruction while showing the correction-specific transition without triangular holes."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/canada-pearya-411.jpg",
+        "sha256": "e55e5ef231bcdfdf4806392da99d7b012f0c3344d3cbc84ecd18dae939a055cd",
+        "kind": "paired-baseline-candidate",
+        "region": "CanadaPearya",
+        "ageMa": 411,
+        "center": [
+          -60.5,
+          3
+        ],
+        "baselineCamera": {
+          "longitude": -60.5,
+          "latitude": 3,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -60.5,
+          "latitude": 3,
+          "distance": 1.3482
+        },
+        "visualFinding": "The source-supported Canadian and Pearya continuation is visible in the candidate and absent from the stripped-catalog baseline."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/barents-svalbard-409.jpg",
+        "sha256": "2ac503dd0c84f6354d6ac2f44c052dd0279fca5614c82869373fbe113ff03628",
+        "kind": "paired-baseline-candidate",
+        "region": "BarentsSvalbard",
+        "ageMa": 409,
+        "center": [
+          -46,
+          5
+        ],
+        "baselineCamera": {
+          "longitude": -46,
+          "latitude": 5,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -46,
+          "latitude": 5,
+          "distance": 1.3482
+        },
+        "visualFinding": "Recentered transformed-bound pair shows the younger-side native reconstruction consistently."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/barents-svalbard-411.jpg",
+        "sha256": "3c587887928eea5049fbfda54e2d90389d429b8701e4078c79b7c835f7d66c26",
+        "kind": "paired-baseline-candidate",
+        "region": "BarentsSvalbard",
+        "ageMa": 411,
+        "center": [
+          -46,
+          5
+        ],
+        "baselineCamera": {
+          "longitude": -46,
+          "latitude": 5,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -46,
+          "latitude": 5,
+          "distance": 1.3482
+        },
+        "visualFinding": "Recentered transformed-bound pair visibly contains Svalbard, Franz Josef Land, Novaya Zemlya, and Timan correction regions."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/western-modern-0.jpg",
+        "sha256": "acd865360a394f40a7295ae4a67a9ae4a7c50bf45c9db315537118adb769107b",
+        "kind": "paired-baseline-candidate",
+        "region": "regionalWesternModern",
+        "ageMa": 0,
+        "center": [
+          -118,
+          48
+        ],
+        "baselineCamera": {
+          "longitude": -118,
+          "latitude": 48,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -118,
+          "latitude": 48,
+          "distance": 1.3482
+        },
+        "visualFinding": "Matched baseline/candidate shows continuous land under the gray replacement; the former central and lower blue holes are closed."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/western-modern-0p001.jpg",
+        "sha256": "5c55f824a7c0ac66c2f39599a5528f10a60fcc1b0307e9d55f8f8cc3838b3e29",
+        "kind": "paired-baseline-candidate",
+        "region": "regionalWesternModern",
+        "ageMa": 0.001,
+        "center": [
+          -118,
+          48
+        ],
+        "baselineCamera": {
+          "longitude": -118,
+          "latitude": 48,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -117.9998,
+          "latitude": 48,
+          "distance": 1.3482
+        },
+        "visualFinding": "The pale sea is present in both baseline and candidate; it is not a correction regression. The gray replacement remains continuous."
+      },
+      {
+        "path": "dev-docs/temp/age-410-corrections/browser/older-gray-430p001.jpg",
+        "sha256": "fc73d6dfb97d21c4dd19956d60d90a819e51493d86b9e176e7ac9c7964f9084b",
+        "kind": "paired-baseline-candidate",
+        "region": "olderGrayNovaya",
+        "ageMa": 430.001,
+        "center": [
+          -63.4,
+          13.5
+        ],
+        "baselineCamera": {
+          "longitude": -63.4,
+          "latitude": 13.5,
+          "distance": 1.3482
+        },
+        "candidateCamera": {
+          "longitude": -63.4,
+          "latitude": 13.5,
+          "distance": 1.3482
+        },
+        "visualFinding": "Candidate gray uncertain Novaya footprint is visible at its transformed centroid and absent from the stripped-catalog baseline."
+      }
+    ]
+  },
+  "rawEvidence": {
+    "performanceJson": "dev-docs/temp/age-410-corrections/performance-hardware.json",
+    "performanceJsonSha256": "9de9b82045e1566e429915a37d2409f651aeda2cb848667cb6741cefdf2cb29a",
+    "persistedTimingRows": "/tmp/earthhistory-final-timing-rows.json",
+    "persistedTimingRowsSha256": "0a3a87877a67897b86135d663c899245d6a58ede5786680fb747dcb2c894ad0b",
+    "harness": "/tmp/earthhistory-correction-hardware-matched.mjs",
+    "harnessSha256": "fcfced5fb79e10cee1766a6beff43bd53d7825fb4676102b63c7f8ac3444727c",
+    "finalGateFull": {
+      "log": "/tmp/earthhistory-final-gate-full.log",
+      "exitCode": 0,
+      "deterministicFiles": 24,
+      "deterministicTests": 98,
+      "buildArtifacts": 555,
+      "browserTests": "13/13",
+      "distMebibytes": 29.68
+    }
+  },
+  "conclusion": "The conforming complete-regional build passes all prewritten readiness, cadence, backend, land-geometry, and revised prospective aggregate-geometry stops on Apple M4 Metal hardware. Matched visual controls close the triangle-sag voids and distinguish the shared 0.001 Ma pale-sea state from correction behavior."
+}

@@ -62,6 +62,7 @@ export interface CaoFoundationBatchResource {
   readonly source: PreparedCaoStaticGeometryCopy;
   readonly vertexCount: number;
   readonly triangleCount: number;
+  readonly nativePrecedence: boolean;
   /** chartIndex, firstTriangle, triangleCount, preparedEntryIndex. */
   readonly chartRanges: Uint32Array;
   /** Reference-space shell AABB, six floats per chart range. */
@@ -106,6 +107,16 @@ export interface CaoFoundationLineMaterialGraph {
 
 export interface CaoFoundationDiagnostics {
   readonly identity: string | null;
+  readonly materialCorrectionIdentity: string | null;
+  readonly materialCorrections: Readonly<{
+    qualifiedActiveCharts: number;
+    uncertainActiveCharts: number;
+    formationUncertainActiveCharts: number;
+    modelInferredPoseActiveCharts: number;
+    overriddenNativeCharts: number;
+    activeSourceIds: readonly string[];
+    correctionIds: readonly string[];
+  }>;
   readonly requestedAgeMa: number | null;
   readonly batches: number;
   readonly vertices: number;
@@ -503,6 +514,7 @@ export function createCaoFoundationGeometryResource(
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
       resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
+        nativePrecedence: prepared.nativePrecedence,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
     }
     for (const prepared of revision.lineBatches) {
@@ -583,6 +595,8 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     readonly byteLength: number,
     readonly paletteEntries: number,
     readonly activeSourceBytes: number,
+    readonly materialCorrectionIdentity: string | null,
+    readonly materialCorrections: PreparedCaoRevision["materialCorrections"],
     readonly chartPoses: Float32Array,
     readonly chartActive: Uint8Array,
     readonly nativeBoundarySegments: number,
@@ -938,7 +952,11 @@ function createPublicationResource(
       // Source batches do not yet carry qualified moving interval bounds.
       // Drawing all foundation batches preserves coverage until those arrive.
       mesh.frustumCulled = false;
-      mesh.renderOrder = 1;
+      if (batch.nativePrecedence) {
+        graph.material.depthTest = true;
+        graph.material.depthWrite = false;
+      }
+      mesh.renderOrder = batch.nativePrecedence ? 0.9 : 1;
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
@@ -972,6 +990,7 @@ function createPublicationResource(
     "Cao publication");
     return new CaoFoundationPublicationResource(group, byteLength,
       packed.entryCount, revision.activeSourceBytes,
+      revision.materialCorrectionIdentity, revision.materialCorrections,
       pickState.chartPoses, pickState.chartActive,
       nativeBoundary.segmentCount, nativeBoundary.sourceAgeMa,
       topologyOwnership,
@@ -1016,6 +1035,18 @@ function tupleAt(values: Float32Array, offset: number): Vec3Tuple {
   return [values[offset]!, values[offset + 1]!, values[offset + 2]!];
 }
 
+function firstOpaqueGlobeIntersectionDistance(origin: Vec3Tuple, direction: Vec3Tuple): number | null {
+  const projection = origin[0] * direction[0] + origin[1] * direction[1] + origin[2] * direction[2];
+  const offset = origin[0] ** 2 + origin[1] ** 2 + origin[2] ** 2 - 1;
+  const discriminant = projection * projection - offset;
+  if (discriminant < 0) return null;
+  const root = Math.sqrt(discriminant);
+  const first = -projection - root;
+  if (first >= 0) return first;
+  const second = -projection + root;
+  return second >= 0 ? second : null;
+}
+
 export function intersectCaoFoundationSurface(
   geometry: CaoFoundationGeometryResource,
   publication: Pick<CaoFoundationPublicationResource, "chartPoses" | "chartActive">,
@@ -1034,9 +1065,10 @@ export function intersectCaoFoundationSurface(
   const rayDirection = rawRayDirection.map((value) => value / rayLength) as unknown as Vec3Tuple;
   const gplatesOrigin = rendererToGplatesDirection(numberScalarOps, rayOrigin);
   const gplatesDirection = rendererToGplatesDirection(numberScalarOps, rayDirection);
-  const shellRadius = 1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES;
   let testedTriangles = 0;
-  let nearest: CaoFoundationSurfaceHit | null = null;
+  let nearestNative: CaoFoundationSurfaceHit | null = null;
+  let nearestCorrection: CaoFoundationSurfaceHit | null = null;
+  const shellRadius = 1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES;
   for (const batch of geometry.batches) {
     for (let rangeOffset = 0, boundsOffset = 0;
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
@@ -1047,6 +1079,7 @@ export function intersectCaoFoundationSurface(
       const inversePose = publication.chartPoses.subarray(poseOffset + 4, poseOffset + 8) as unknown as QuaternionWxyz;
       const sourceOrigin = rotateDirection(numberScalarOps, inversePose, gplatesOrigin);
       const sourceDirection = rotateDirection(numberScalarOps, inversePose, gplatesDirection);
+      const opaqueGlobeDistance = firstOpaqueGlobeIntersectionDistance(sourceOrigin, sourceDirection);
       if (!rayIntersectsBounds(sourceOrigin, sourceDirection, batch.chartBounds, boundsOffset)) continue;
       const firstTriangle = batch.chartRanges[rangeOffset + 1]!;
       const triangleCount = batch.chartRanges[rangeOffset + 2]!;
@@ -1060,7 +1093,10 @@ export function intersectCaoFoundationSurface(
         }) as unknown as readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple];
         const hit = intersectRayTriangle(sourceOrigin, sourceDirection,
           vertices[0], vertices[1], vertices[2]);
-        if (!hit || (nearest !== null && hit.distance >= nearest.distance)) continue;
+        const visibleBeforeOpaqueGlobe = hit && (opaqueGlobeDistance === null
+          || hit.distance <= opaqueGlobeDistance + 1e-7);
+        const nearest = batch.nativePrecedence ? nearestCorrection : nearestNative;
+        if (!hit || !visibleBeforeOpaqueGlobe || (nearest !== null && hit.distance >= nearest.distance)) continue;
         const posed = rotateDirection(numberScalarOps, pose, hit.position);
         const rendererPosition = gplatesToRendererDirection(numberScalarOps, posed);
         const chart = geometry.chartIdentities[chartIndex]!;
@@ -1070,15 +1106,17 @@ export function intersectCaoFoundationSurface(
           hit.position[1] / length,
           hit.position[2] / length,
         ];
-        nearest = { batchId: batch.batchId, chartIndex, triangleIndex: triangle,
+        const candidate = { batchId: batch.batchId, chartIndex, triangleIndex: triangle,
           distance: hit.distance, position: rendererPosition,
           materialAddress: Object.freeze({ ...chart, cellOrTriangleId: 0,
             localCoordinate: Object.freeze({ kind: "chart-direction" as const,
               directionAtReference: Object.freeze([...referenceDirection]) as UnitDirection }) }) };
+        if (batch.nativePrecedence) nearestCorrection = candidate;
+        else nearestNative = candidate;
       }
     }
   }
-  return nearest;
+  return nearestNative ?? nearestCorrection;
 }
 
 /**
@@ -1156,6 +1194,16 @@ export class CaoFoundationSurfaceRenderer {
     const batches = this.staticGeometry?.batches ?? [];
     return Object.freeze({
       identity: current?.requestId ?? null,
+      materialCorrectionIdentity: current?.resources.materialCorrectionIdentity ?? null,
+      materialCorrections: current?.resources.materialCorrections ?? Object.freeze({
+        qualifiedActiveCharts: 0,
+        uncertainActiveCharts: 0,
+        formationUncertainActiveCharts: 0,
+        modelInferredPoseActiveCharts: 0,
+        overriddenNativeCharts: 0,
+        activeSourceIds: Object.freeze([]),
+        correctionIds: Object.freeze([]),
+      }),
       requestedAgeMa: current?.ageMa ?? null,
       batches: batches.length,
       vertices: batches.reduce((sum, batch) => sum + batch.vertexCount, 0),

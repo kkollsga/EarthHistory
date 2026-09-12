@@ -1,0 +1,3221 @@
+{
+  "attribution": "Contains information licensed under the Open Government Licence – Canada; source Natural Resources Canada, Geological Survey of Canada. Cao et al. (2024) model v2.4 is CC BY 4.0.",
+  "baseline": {
+    "coordinateFrame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "411bd3e5e5a2004ea42792a5c1be11942a46b52e3657efdb06507c147fbfdf1a"
+    },
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "sourceCollection": "shapes_coasts.gpmlz",
+    "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
+  },
+  "correctionId": "earthhistory-regional-barents-material-v1",
+  "features": [
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "barents-timan-pre-540-material-plate-302",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "barents-timan-pre-540-material-plate-302",
+        "path": "barents-pre-540-material.geojson",
+        "sha256": "d014aacaa049bb65b97c3cc91a957c262904fa5911fe5592a119f3ce76aca3a7"
+      },
+      "geometryProcessing": {
+        "crossPhaseOmissionReason": "none; the removed native material is already represented at every sampled corrected age",
+        "deduplicatedNativeSourcesByAge": {
+          "410.001": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "411.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "415.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "420.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "425.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "430.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "430.001": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "435.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "440.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "445.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "450.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "455.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "460.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "465.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "470.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "475.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "480.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "485.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "490.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "495.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "500.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "505.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "510.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "515.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "520.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "525.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "530.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "535.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ],
+          "540.0": [
+            {
+              "featureId": "GPlates-9e222bad-d470-4fb4-b0d3-8392082db7e5",
+              "name": "Kola Craton",
+              "plateId": 30202,
+              "polygonCount": 2
+            }
+          ]
+        },
+        "deliveredAreaSquareKilometres": 282368.7726463527,
+        "deliveredTargetAreaFraction": 0.8742093011599077,
+        "geometryCounts": {
+          "components": 5,
+          "holes": 0,
+          "vertices": 513
+        },
+        "guardedBeforeNativeDedupAreaSquareKilometres": 284651.5342287322,
+        "nativeDeduplicationAreaSquareKilometres": 2282.761582379658,
+        "nativeOverlapPreservedForRendererPrecedenceSquareKilometres": 0.0,
+        "outsideQualifiedSourceSquareMetres": 0.0,
+        "outsideTargetSquareMetres": 0.0,
+        "poseWitness": {
+          "positions": [
+            {
+              "ageMa": 410.001,
+              "longitudeLatitude": [
+                -38.29958230530384,
+                7.924792368832491
+              ]
+            },
+            {
+              "ageMa": 411.0,
+              "longitudeLatitude": [
+                -39.301106278088064,
+                7.8336463312211535
+              ]
+            },
+            {
+              "ageMa": 415.0,
+              "longitudeLatitude": [
+                -43.32712267498384,
+                7.707060822137877
+              ]
+            },
+            {
+              "ageMa": 420.0,
+              "longitudeLatitude": [
+                -48.356472462856956,
+                8.08666230408053
+              ]
+            },
+            {
+              "ageMa": 425.0,
+              "longitudeLatitude": [
+                -53.32257827229978,
+                9.057499570070332
+              ]
+            },
+            {
+              "ageMa": 430.0,
+              "longitudeLatitude": [
+                -58.165340008358754,
+                10.601750673900412
+              ]
+            },
+            {
+              "ageMa": 430.001,
+              "longitudeLatitude": [
+                -58.16475841321467,
+                10.60027355797927
+              ]
+            },
+            {
+              "ageMa": 435.0,
+              "longitudeLatitude": [
+                -55.38163583388399,
+                3.1795755209253707
+              ]
+            },
+            {
+              "ageMa": 440.0,
+              "longitudeLatitude": [
+                -52.78118136961161,
+                -4.301258371136001
+              ]
+            },
+            {
+              "ageMa": 445.0,
+              "longitudeLatitude": [
+                -48.593295913224615,
+                -8.18407659543418
+              ]
+            },
+            {
+              "ageMa": 450.0,
+              "longitudeLatitude": [
+                -45.181859376059215,
+                -12.783479509178813
+              ]
+            },
+            {
+              "ageMa": 455.0,
+              "longitudeLatitude": [
+                -42.65693881269959,
+                -17.929074045960483
+              ]
+            },
+            {
+              "ageMa": 460.0,
+              "longitudeLatitude": [
+                -41.13353476085616,
+                -23.440096102697208
+              ]
+            },
+            {
+              "ageMa": 465.0,
+              "longitudeLatitude": [
+                -31.922289558601015,
+                -30.186042776766975
+              ]
+            },
+            {
+              "ageMa": 470.0,
+              "longitudeLatitude": [
+                -22.98878120582604,
+                -37.82167914793718
+              ]
+            },
+            {
+              "ageMa": 475.0,
+              "longitudeLatitude": [
+                -14.071331388683605,
+                -46.14567717058266
+              ]
+            },
+            {
+              "ageMa": 480.0,
+              "longitudeLatitude": [
+                -16.29920838110261,
+                -42.87598890205827
+              ]
+            },
+            {
+              "ageMa": 485.0,
+              "longitudeLatitude": [
+                -19.01148289738012,
+                -39.86391464050454
+              ]
+            },
+            {
+              "ageMa": 490.0,
+              "longitudeLatitude": [
+                -22.120115208682652,
+                -37.16219340629436
+              ]
+            },
+            {
+              "ageMa": 495.0,
+              "longitudeLatitude": [
+                -25.55349468290217,
+                -34.81734901042121
+              ]
+            },
+            {
+              "ageMa": 500.0,
+              "longitudeLatitude": [
+                -29.249407990120897,
+                -32.86995607708656
+              ]
+            },
+            {
+              "ageMa": 505.0,
+              "longitudeLatitude": [
+                -33.150363639492895,
+                -31.354264787747596
+              ]
+            },
+            {
+              "ageMa": 510.0,
+              "longitudeLatitude": [
+                -37.37033787167945,
+                -31.484380097573723
+              ]
+            },
+            {
+              "ageMa": 515.0,
+              "longitudeLatitude": [
+                -41.54890115152935,
+                -32.093434814408816
+              ]
+            },
+            {
+              "ageMa": 520.0,
+              "longitudeLatitude": [
+                -45.63241924815862,
+                -33.17047981164867
+              ]
+            },
+            {
+              "ageMa": 525.0,
+              "longitudeLatitude": [
+                -52.4206246537608,
+                -28.434938921523745
+              ]
+            },
+            {
+              "ageMa": 530.0,
+              "longitudeLatitude": [
+                -59.48121079921361,
+                -24.382754603192858
+              ]
+            },
+            {
+              "ageMa": 535.0,
+              "longitudeLatitude": [
+                -66.80673917334732,
+                -21.103042508178717
+              ]
+            },
+            {
+              "ageMa": 540.0,
+              "longitudeLatitude": [
+                -74.36414657886446,
+                -18.67682822557368
+              ]
+            }
+          ],
+          "referenceLongitudeLatitude": [
+            57.49256187975678,
+            66.88522913625809
+          ]
+        },
+        "postDedupNativeCoastOverlap": {
+          "410.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456648,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "411.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456649,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "415.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.481045665,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "420.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566464,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "425.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456648,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566475,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456656,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "435.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456655,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "440.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.481045665,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "445.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566504,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "450.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566446,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "455.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566487,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "460.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456648,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "465.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566475,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "470.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566487,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "475.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566406,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "480.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456646,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "485.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456648,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "490.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.481045665,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "495.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.481045665,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "500.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566475,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "505.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456644,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "510.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.48104566487,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "515.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456648,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "520.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456644,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "525.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456644,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "530.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456646,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "535.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456647,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "540.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 282389.4810456643,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          }
+        },
+        "sourceTargetIntersectionAreaSquareKilometres": 291309.2168439126,
+        "supportedMaterialOmittedForCrossPhaseDeduplicationSquareKilometres": 0.0,
+        "targetAreaSquareKilometres": 322999.04870801955
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "plateId": 302,
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 302,
+        "sourceOrHypothesis": "strict Cao v2.4 regional rigid motion; material affinity sources do not independently determine exact palaeolongitude"
+      },
+      "poseConfidenceIntervalsMa": [
+        {
+          "oldest": 430,
+          "status": "qualified",
+          "youngest": 410,
+          "youngestExclusive": true
+        },
+        {
+          "oldest": 540,
+          "status": "uncertain-continuation",
+          "youngest": 430,
+          "youngestExclusive": true
+        }
+      ],
+      "rejectionConditions": [
+        "source record falls outside the named accepted tectonic domain or its explicitly inferred onshore ice mask",
+        "derived geometry leaves the GSC source/ice footprint or immutable Cao target",
+        "candidate overlaps active native Cao coast material outside the named Novaya/Kara renderer-precedence exception",
+        "candidate is represented as exposed land, shoreline, or palaeotopographic height",
+        "strict Cao motion is missing through 540 Ma or the older uncertainty phase becomes a hard absence edge"
+      ],
+      "sourceIds": [
+        "gsc-arctic-map-2159a",
+        "cao-2024-v2.4-cob",
+        "timan-preordovician-2007",
+        "eurasian-arctic-fold-belts-2016",
+        "urals-west-siberia-2013"
+      ],
+      "sourceUnitSelection": {
+        "excluded": [
+          {
+            "areaSquareKilometres": 166.08928191633012,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Cambrian to Devonian (542 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 316.72527575822426,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Devonian and Carboniferous (416 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1246.5143052215744,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Early Devonian (416 - 398 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4930.113286589925,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Ordovician and Silurian (488 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 89.40267566400445,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Silurian (444 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 577.2717566326797,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Eastern Ural Mountains|Silurian and Devonian (444 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4589.241632768928,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Asselian to Artinskian (299 - 276 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1672.442627344903,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cambrian and Ordovician (542 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 51.3605469702812,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cambrian to Devonian (542 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 627.7586968372425,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Campanian and Maastrichtian (83.5 - 65.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3230.287464368085,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cisuralian (299 - 271 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3446.327828210512,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Devonian and Carboniferous (416 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 956.5440349453756,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Guadalupian and Lopingian (271 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2545.8700442910317,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Middle and Late Ordovician (472 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 8.372418693296545,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Permian (299 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2771.295893222989,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Silurian and Devonian (444 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1148.7458197836502,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Pai-Khoi, Novaya Zemlya|late Early Cretaceous (~134 - 99.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 229.75200227312348,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "Taimyr-Severnaya Zemlya fold region|late Paleoproterozoic (Statherian) and Neoproterozoic (1800 - 542 Ma)"
+          },
+          {
+            "areaSquareKilometres": 455.5818003043478,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|Early Cretaceous (145.5 - 99.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 25.935324488749252,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|Early and Middle Jurassic (199.6 - 161.2 Ma)"
+          },
+          {
+            "areaSquareKilometres": 326.88375040412234,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|Jurassic and Cretaceous (199.6 - 65.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 191.35531948715933,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|Late Jurassic (161.2 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 368.05892611944034,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|Middle and Late Jurassic (175.6 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 63.59199448430203,
+            "reason": "excluded-non-timanian-affinity",
+            "unitId": "West Siberian Plate, South Kara depression, Yenisei-Khatanga Trough|late Early Cretaceous (~134 - 99.6 Ma)"
+          }
+        ],
+        "included": [
+          {
+            "areaSquareKilometres": 144.16461791027356,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Carboniferous (359 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 207.04394562558593,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Early Cretaceous (145.5 - 99.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1130.9261597412496,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Early Triassic (251.0 - 245.9 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1692.5370563865974,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Guadalupian and Lopingian (271 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3272.2022540767016,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Middle and Late Jurassic (175.6 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 43.10277156134331,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Russian Plate|Permian (299 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2384.7902664062462,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Carboniferous (359 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 535.1876264606477,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Carboniferous and Permian (359 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 7936.395802377285,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Cisuralian (299 - 271 Ma)"
+          },
+          {
+            "areaSquareKilometres": 156.3437538052889,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Devonian (416 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 16161.744004262591,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Early Cretaceous (145.5 - 99.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4108.285955101415,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Early Triassic (251.0 - 245.9 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3309.1131525256615,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Early and Middle Jurassic (199.6 - 161.2 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1301.5402451802115,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Early and Middle Triassic (251.0 - 228.7 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3354.9790815570955,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Guadalupian and Lopingian (271 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 717.7530771567662,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Jurassic (199.6 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 9004.137485935316,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Late Devonian (385 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4518.493826939663,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Late Jurassic (161.2 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2212.2932598937223,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Late Triassic (228.7 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 777.3442838434203,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Middle Devonian (398 - 385 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4890.18672201803,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Middle Jurassic (175.6 - 161.2 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1549.0968178746093,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Middle Triassic (245.9 - 228.7 Ma)"
+          },
+          {
+            "areaSquareKilometres": 17619.85126030392,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Middle and Late Jurassic (175.6 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 178.09797943673968,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Pliocene (5.3 - 2.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 291.13418763106586,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Silurian (444 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 218.979816130679,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|Silurian and Devonian (444 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 88348.03634110258,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt, Pechora Plate|late Early Cretaceous (~134 - 99.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2734.132549012259,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt|late Paleoproterozoic (Statherian) and Neoproterozoic (1800 - 542 Ma)"
+          },
+          {
+            "areaSquareKilometres": 379.96366540846276,
+            "reason": "coherent-timanide-or-pechora-platform-domain",
+            "unitId": "Timan fold belt|middle and late Mesoproterozoic (1460 - 1000 Ma)"
+          },
+          {
+            "areaSquareKilometres": 77.1714167357008,
+            "reason": "direct-proterozoic-western-ural-material",
+            "unitId": "Urals folded region|Ediacaran (~635 - 542 Ma)"
+          },
+          {
+            "areaSquareKilometres": 563.355626068342,
+            "reason": "direct-proterozoic-western-ural-material",
+            "unitId": "Urals folded region|Paleoproterozoic (2500 - 1600 Ma)"
+          },
+          {
+            "areaSquareKilometres": 8699.815622100166,
+            "reason": "direct-proterozoic-western-ural-material",
+            "unitId": "Urals folded region|late Paleoproterozoic (Statherian) and Neoproterozoic (1800 - 542 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3451.8458548340236,
+            "reason": "direct-proterozoic-western-ural-material",
+            "unitId": "Urals folded region|middle and late Mesoproterozoic (1460 - 1000 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1841.851312364702,
+            "reason": "direct-proterozoic-western-ural-material",
+            "unitId": "Urals folded region|middle and late Paleoproterozoic (Orosirian and Statherian) (2050 - 1600 Ma)"
+          },
+          {
+            "areaSquareKilometres": 38.63664765269232,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Age unknown"
+          },
+          {
+            "areaSquareKilometres": 8772.590711865501,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Cambrian and Ordovician (542 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4826.113683661587,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Cambrian to Devonian (542 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 284.6328483665781,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Carboniferous (359 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 4206.832374126165,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Carboniferous and Permian (359 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 7454.742351065523,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Cisuralian (299 - 271 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3521.060850934111,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Devonian and Carboniferous (416 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 5564.39827446037,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Early Ordovician (488 - 472 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1597.5412883870126,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Early Triassic (251.0 - 245.9 Ma)"
+          },
+          {
+            "areaSquareKilometres": 5709.736808839014,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Early and Middle Triassic (251.0 - 228.7 Ma)"
+          },
+          {
+            "areaSquareKilometres": 21096.491970317045,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Guadalupian and Lopingian (271 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 8039.700985809122,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Late Cretaceous (99.6 - 65.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 5936.986218481841,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Late Triassic (228.7 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1101.0568020205283,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Middle and Late Ordovician (472 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 6979.722198502881,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Middle and Late Triassic (245.9 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2185.5582915039095,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Neoproterozoic and Cambrian (1000 - 488 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2549.9273458005605,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Ordovician (488 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 515.2751090038151,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Ordovician and Silurian (488 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 325.7831190071158,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Permian (299 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 322.4505526122352,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Permian and Triassic (299 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 424.50371391459305,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Silurian (444 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 6031.399997656476,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Silurian and Devonian (444 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 12.176902155531089,
+            "reason": "western-ural-baltican-passive-margin-substrate",
+            "unitId": "Urals foredeep, Western Ural Mountains|Triassic (251.0 - 199.6 Ma)"
+          }
+        ],
+        "materialMeaning": "mapped younger cover or ice constrains the modern footprint only; cited regional geology supplies the inferred older continental substrate"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "bedrock-domain continuity does not establish a 410–540 Ma shoreline, emergence, or height"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "27752a2531ec2f21e4c37a12eda1c018649b80e00c00a6f0bdd59d73d4793340",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": 0
+          },
+          "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:59:0",
+          "plateId": 302,
+          "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+          "sourceFeatureOrder": 59
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 1,
+          "geometrySha256": "29fb685d671b6336cd8fa28cfd9d199f2f42d06b56155a85fc87500fb320111e",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": 0
+          },
+          "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:59:1",
+          "plateId": 302,
+          "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+          "sourceFeatureOrder": 59
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "511cf787f99853a90f6d65376c53b02fcf231aeca97f402848de224187227644",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": 0
+          },
+          "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:1938:0",
+          "plateId": 302,
+          "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+          "sourceFeatureOrder": 1938
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 1,
+          "geometrySha256": "2b60f5194d349d25a08aa8bfe827f596cc049546dd3d9413f9f8df1cc13d89d2",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": 0
+          },
+          "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:1938:1",
+          "plateId": 302,
+          "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+          "sourceFeatureOrder": 1938
+        }
+      ],
+      "uncertainty": {
+        "affinity": "late deformation and accretion can make the modern tectonic-domain footprint broader than the 410 Ma coherent block; excluded domains and native overlaps remain outside the correction",
+        "exposure": "unknown at every reconstructed age; this is neither a palaeoshoreline nor exposed-land evidence",
+        "spatial": "GSC Map 2159A Timanide/Pechora/Russian-platform domains, the western Ural Baltican passive-margin domain, and directly mapped pre-542 Ma Ural folded units clipped inside the Cao Timan target; eastern Ural, Pai-Khoi, and West Siberian domains remain excluded",
+        "temporal": "material continuity is source-supported; exact pose is best constrained near 410–430 Ma and is shown as uncertain farther back"
+      },
+      "uncertaintyDisplay": {
+        "olderThanMa": 430,
+        "style": "uncertain"
+      }
+    },
+    {
+      "activationRule": "native-visual-and-picking-precedence",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "barents-novaya-pre-540-material-plate-373",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "barents-novaya-pre-540-material-plate-373",
+        "path": "barents-pre-540-material.geojson",
+        "sha256": "d014aacaa049bb65b97c3cc91a957c262904fa5911fe5592a119f3ce76aca3a7"
+      },
+      "geometryProcessing": {
+        "crossPhaseOmissionReason": "none; the guarded mask is preserved and the shared renderer gives visible native Kara material visual and picking precedence where the models overlap",
+        "deduplicatedNativeSourcesByAge": {
+          "460.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 1
+            }
+          ],
+          "465.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 3
+            }
+          ],
+          "470.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 4
+            }
+          ],
+          "475.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "480.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 3
+            }
+          ],
+          "485.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 3
+            }
+          ],
+          "490.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 3
+            }
+          ],
+          "495.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 3
+            }
+          ],
+          "500.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "505.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "510.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "515.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "520.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "525.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "530.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "535.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ],
+          "540.0": [
+            {
+              "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+              "name": "Kara Block",
+              "plateId": 404,
+              "polygonCount": 2
+            }
+          ]
+        },
+        "deliveredAreaSquareKilometres": 69178.74542049418,
+        "deliveredTargetAreaFraction": 0.8776989202339548,
+        "geometryCounts": {
+          "components": 11,
+          "holes": 0,
+          "vertices": 811
+        },
+        "guardedBeforeNativeDedupAreaSquareKilometres": 69178.74542049418,
+        "nativeDeduplicationAreaSquareKilometres": 0.0,
+        "nativeOverlapPreservedForRendererPrecedenceSquareKilometres": 42561.50452928311,
+        "outsideQualifiedSourceSquareMetres": 0.0,
+        "outsideTargetSquareMetres": 0.0,
+        "poseWitness": {
+          "positions": [
+            {
+              "ageMa": 410.001,
+              "longitudeLatitude": [
+                -46.08746823261503,
+                8.882057854117928
+              ]
+            },
+            {
+              "ageMa": 411.0,
+              "longitudeLatitude": [
+                -47.064149803292835,
+                8.971513123276319
+              ]
+            },
+            {
+              "ageMa": 415.0,
+              "longitudeLatitude": [
+                -50.95300008938344,
+                9.559716879093294
+              ]
+            },
+            {
+              "ageMa": 420.0,
+              "longitudeLatitude": [
+                -55.72956646268338,
+                10.803818619494795
+              ]
+            },
+            {
+              "ageMa": 425.0,
+              "longitudeLatitude": [
+                -60.36093436644439,
+                12.592551287605408
+              ]
+            },
+            {
+              "ageMa": 430.0,
+              "longitudeLatitude": [
+                -64.79861008194126,
+                14.89547055056252
+              ]
+            },
+            {
+              "ageMa": 430.001,
+              "longitudeLatitude": [
+                -64.79795834489552,
+                14.894040446261911
+              ]
+            },
+            {
+              "ageMa": 435.0,
+              "longitudeLatitude": [
+                -61.73638107661177,
+                7.681706068041927
+              ]
+            },
+            {
+              "ageMa": 440.0,
+              "longitudeLatitude": [
+                -58.99234355849176,
+                0.3631982201781526
+              ]
+            },
+            {
+              "ageMa": 445.0,
+              "longitudeLatitude": [
+                -53.8082745812037,
+                -2.4110241584464918
+              ]
+            },
+            {
+              "ageMa": 450.0,
+              "longitudeLatitude": [
+                -49.244698771584034,
+                -6.133100113804466
+              ]
+            },
+            {
+              "ageMa": 455.0,
+              "longitudeLatitude": [
+                -45.437937112434064,
+                -10.64775242776905
+              ]
+            },
+            {
+              "ageMa": 460.0,
+              "longitudeLatitude": [
+                -42.49954320192429,
+                -15.783961672883894
+              ]
+            },
+            {
+              "ageMa": 465.0,
+              "longitudeLatitude": [
+                -32.339275646744255,
+                -22.431728712967807
+              ]
+            },
+            {
+              "ageMa": 470.0,
+              "longitudeLatitude": [
+                -22.48583025522349,
+                -30.069564387881123
+              ]
+            },
+            {
+              "ageMa": 475.0,
+              "longitudeLatitude": [
+                -12.639533077717697,
+                -38.45456825131012
+              ]
+            },
+            {
+              "ageMa": 480.0,
+              "longitudeLatitude": [
+                -16.28646809527189,
+                -35.112700897451035
+              ]
+            },
+            {
+              "ageMa": 485.0,
+              "longitudeLatitude": [
+                -20.27518612104044,
+                -32.16793997490069
+              ]
+            },
+            {
+              "ageMa": 490.0,
+              "longitudeLatitude": [
+                -24.54933709774741,
+                -29.66746517177699
+              ]
+            },
+            {
+              "ageMa": 495.0,
+              "longitudeLatitude": [
+                -29.056253385342824,
+                -27.653273815571726
+              ]
+            },
+            {
+              "ageMa": 500.0,
+              "longitudeLatitude": [
+                -33.74314499869701,
+                -26.16082040461743
+              ]
+            },
+            {
+              "ageMa": 505.0,
+              "longitudeLatitude": [
+                -38.55521827626643,
+                -25.21746419170756
+              ]
+            },
+            {
+              "ageMa": 510.0,
+              "longitudeLatitude": [
+                -43.65791450844717,
+                -26.013401349301162
+              ]
+            },
+            {
+              "ageMa": 515.0,
+              "longitudeLatitude": [
+                -48.65648317906398,
+                -27.37815722127695
+              ]
+            },
+            {
+              "ageMa": 520.0,
+              "longitudeLatitude": [
+                -53.49837473631953,
+                -29.28688409579699
+              ]
+            },
+            {
+              "ageMa": 525.0,
+              "longitudeLatitude": [
+                -60.40551847917561,
+                -25.338465362996043
+              ]
+            },
+            {
+              "ageMa": 530.0,
+              "longitudeLatitude": [
+                -67.5777069857915,
+                -22.15331692468775
+              ]
+            },
+            {
+              "ageMa": 535.0,
+              "longitudeLatitude": [
+                -74.97764798598176,
+                -19.808733291349768
+              ]
+            },
+            {
+              "ageMa": 540.0,
+              "longitudeLatitude": [
+                -82.54572170512513,
+                -18.366991579427093
+              ]
+            }
+          ],
+          "referenceLongitudeLatitude": [
+            60.280601047210325,
+            75.26871710692203
+          ]
+        },
+        "postDedupNativeCoastOverlap": {
+          "410.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607785,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "411.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.4270160777,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "415.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607775,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "420.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607775,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "425.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607762,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607752,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607781,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "435.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607791,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "440.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.4270160777,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "445.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607767,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "450.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607771,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "455.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 69179.42701607764,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "460.0": {
+            "candidateAreaFraction": 0.0016406687875908117,
+            "candidateUnionAreaSquareKilometres": 69179.42701607764,
+            "intersectingNativePolygonCount": 1,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 1
+              }
+            ],
+            "intersectionAreaSquareKilometres": 113.50052664869514,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "465.0": {
+            "candidateAreaFraction": 0.004100345533548558,
+            "candidateUnionAreaSquareKilometres": 69179.42701607781,
+            "intersectingNativePolygonCount": 3,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 3
+              }
+            ],
+            "intersectionAreaSquareKilometres": 283.659554578823,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "470.0": {
+            "candidateAreaFraction": 0.0761414788327248,
+            "candidateUnionAreaSquareKilometres": 69179.42701607749,
+            "intersectingNativePolygonCount": 4,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 4
+              }
+            ],
+            "intersectionAreaSquareKilometres": 5267.423877804694,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "475.0": {
+            "candidateAreaFraction": 0.16501102039277774,
+            "candidateUnionAreaSquareKilometres": 69179.42701607758,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 11415.367842110656,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "480.0": {
+            "candidateAreaFraction": 0.21228302598932747,
+            "candidateUnionAreaSquareKilometres": 69179.4270160777,
+            "intersectingNativePolygonCount": 3,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 3
+              }
+            ],
+            "intersectionAreaSquareKilometres": 14685.618103180805,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "485.0": {
+            "candidateAreaFraction": 0.2604730138543563,
+            "candidateUnionAreaSquareKilometres": 69179.42701607764,
+            "intersectingNativePolygonCount": 3,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 3
+              }
+            ],
+            "intersectionAreaSquareKilometres": 18019.373851595217,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "490.0": {
+            "candidateAreaFraction": 0.33026207168472277,
+            "candidateUnionAreaSquareKilometres": 69179.42701607767,
+            "intersectingNativePolygonCount": 3,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 3
+              }
+            ],
+            "intersectionAreaSquareKilometres": 22847.34088429189,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "495.0": {
+            "candidateAreaFraction": 0.31736398304134383,
+            "candidateUnionAreaSquareKilometres": 69179.42701607787,
+            "intersectingNativePolygonCount": 3,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 3
+              }
+            ],
+            "intersectionAreaSquareKilometres": 21955.05850234042,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "500.0": {
+            "candidateAreaFraction": 0.23931051301894007,
+            "candidateUnionAreaSquareKilometres": 69179.4270160776,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169573855,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "505.0": {
+            "candidateAreaFraction": 0.23931051301894507,
+            "candidateUnionAreaSquareKilometres": 69179.42701607758,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169574194,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "510.0": {
+            "candidateAreaFraction": 0.2393105130189421,
+            "candidateUnionAreaSquareKilometres": 69179.42701607764,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169574,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "515.0": {
+            "candidateAreaFraction": 0.2393105130189418,
+            "candidateUnionAreaSquareKilometres": 69179.4270160778,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.36416957402,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "520.0": {
+            "candidateAreaFraction": 0.23931051301894415,
+            "candidateUnionAreaSquareKilometres": 69179.42701607767,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169574153,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "525.0": {
+            "candidateAreaFraction": 0.23931051301894457,
+            "candidateUnionAreaSquareKilometres": 69179.42701607768,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169574186,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "530.0": {
+            "candidateAreaFraction": 0.23931051301893871,
+            "candidateUnionAreaSquareKilometres": 69179.42701607788,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169573826,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "535.0": {
+            "candidateAreaFraction": 0.23931051301894038,
+            "candidateUnionAreaSquareKilometres": 69179.42701607771,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169573902,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "540.0": {
+            "candidateAreaFraction": 0.23931051301894507,
+            "candidateUnionAreaSquareKilometres": 69179.42701607755,
+            "intersectingNativePolygonCount": 2,
+            "intersectingSources": [
+              {
+                "featureId": "GPlates-6df4cb1a-30d2-4c3c-b345-02d001edd0e2",
+                "name": "Kara Block",
+                "plateId": 404,
+                "polygonCount": 2
+              }
+            ],
+            "intersectionAreaSquareKilometres": 16555.364169574186,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          }
+        },
+        "sourceTargetIntersectionAreaSquareKilometres": 75919.83067968486,
+        "supportedMaterialOmittedForCrossPhaseDeduplicationSquareKilometres": 0.0,
+        "targetAreaSquareKilometres": 78818.30981637104
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "plateId": 373,
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 373,
+        "sourceOrHypothesis": "strict Cao v2.4 regional rigid motion; material affinity sources do not independently determine exact palaeolongitude"
+      },
+      "poseConfidenceIntervalsMa": [
+        {
+          "oldest": 430,
+          "status": "qualified",
+          "youngest": 410,
+          "youngestExclusive": true
+        },
+        {
+          "oldest": 540,
+          "status": "uncertain-continuation",
+          "youngest": 430,
+          "youngestExclusive": true
+        }
+      ],
+      "rejectionConditions": [
+        "source record falls outside the named accepted tectonic domain or its explicitly inferred onshore ice mask",
+        "derived geometry leaves the GSC source/ice footprint or immutable Cao target",
+        "candidate overlaps active native Cao coast material outside the named Novaya/Kara renderer-precedence exception",
+        "candidate is represented as exposed land, shoreline, or palaeotopographic height",
+        "strict Cao motion is missing through 540 Ma or the older uncertainty phase becomes a hard absence edge"
+      ],
+      "sourceIds": [
+        "gsc-arctic-map-2159a",
+        "cao-2024-v2.4-cob",
+        "novaya-structure-2022"
+      ],
+      "sourceUnitSelection": {
+        "excluded": [],
+        "included": [
+          {
+            "areaSquareKilometres": 564.1694457450329,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cambrian and Ordovician (542 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1781.3353090973496,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cambrian to Devonian (542 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 709.8514565062044,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Carboniferous (359 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 7296.197683268071,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Carboniferous and Permian (359 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3884.9694780585532,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Cisuaralian and Guadalupian (299 - 260 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1454.5205455324171,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Devonian (416 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3726.3422897536125,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Devonian and Carboniferous (416 - 299 Ma)"
+          },
+          {
+            "areaSquareKilometres": 6085.322511210738,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Early and Middle Devonian (416 - 385 Ma)"
+          },
+          {
+            "areaSquareKilometres": 16770.194152501568,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Guadalupian and Lopingian (271 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 3665.4305478740685,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Late Devonian (385 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 280.8459404042939,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Middle and Late Ordovician (472 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 7.143811376003946,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Neoproterozoic and Cambrian (1000 - 488 Ma)"
+          },
+          {
+            "areaSquareKilometres": 295.61434318303833,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Ordovician (488 - 444 Ma)"
+          },
+          {
+            "areaSquareKilometres": 2980.752366681758,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Ordovician and Silurian (488 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 24.175496154104557,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Paleozoic (542 - 251 Ma)"
+          },
+          {
+            "areaSquareKilometres": 42.92407772483415,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Permian and Triassic (299 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 1676.5628142692362,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Silurian (444 - 416 Ma)"
+          },
+          {
+            "areaSquareKilometres": 586.0697317918782,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Silurian and Devonian (444 - 359 Ma)"
+          },
+          {
+            "areaSquareKilometres": 447.76529810043934,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Pai-Khoi, Novaya Zemlya|Tournaisian to Moscovian (359 - 307 Ma)"
+          },
+          {
+            "areaSquareKilometres": 340.84001099106706,
+            "reason": "pai-khoi-novaya-tectonic-domain",
+            "unitId": "Urals folded region|late Paleoproterozoic (Statherian) and Neoproterozoic (1800 - 542 Ma)"
+          },
+          {
+            "areaSquareKilometres": 23298.803369460544,
+            "reason": "ice-mask-over-coherent-novaya-block",
+            "unitId": "ice|ice"
+          }
+        ],
+        "materialMeaning": "mapped younger cover or ice constrains the modern footprint only; cited regional geology supplies the inferred older continental substrate"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "bedrock-domain continuity does not establish a 410–540 Ma shoreline, emergence, or height"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "b514051f568476dc1e012b072fc98525f08e00ff0a80f497f20be36623035b01",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:683:0",
+          "plateId": 373,
+          "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+          "sourceFeatureOrder": 683
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "230a7707eb9f3bdf27912f75c55bef75311ec6f3076a647f558d78e178724bcc",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:706:0",
+          "plateId": 373,
+          "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+          "sourceFeatureOrder": 706
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "a604dc884c9fd714cbaf3c893de1f8be913314fc1ba351ac57b87155a42cc1e7",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:1042:0",
+          "plateId": 373,
+          "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+          "sourceFeatureOrder": 1042
+        }
+      ],
+      "uncertainty": {
+        "affinity": "late deformation and accretion can make the modern tectonic-domain footprint broader than the 410 Ma coherent block; excluded domains and native overlaps remain outside the correction",
+        "exposure": "unknown at every reconstructed age; this is neither a palaeoshoreline nor exposed-land evidence",
+        "spatial": "GSC Map 2159A Pai-Khoi/Novaya domain plus its onshore ice mask, clipped inside the Cao Novaya target; later Kara overlap is preserved under explicit native visual and picking precedence",
+        "temporal": "material continuity is source-supported; exact pose is best constrained near 410–430 Ma and is shown as uncertain farther back"
+      },
+      "uncertaintyDisplay": {
+        "olderThanMa": 430,
+        "style": "uncertain"
+      }
+    },
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "barents-fjl-pre-540-material-plate-311",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "barents-fjl-pre-540-material-plate-311",
+        "path": "barents-pre-540-material.geojson",
+        "sha256": "d014aacaa049bb65b97c3cc91a957c262904fa5911fe5592a119f3ce76aca3a7"
+      },
+      "geometryProcessing": {
+        "crossPhaseOmissionReason": "none; the removed native material is already represented at every sampled corrected age",
+        "deduplicatedNativeSourcesByAge": {},
+        "deliveredAreaSquareKilometres": 9315.884943193281,
+        "deliveredTargetAreaFraction": 0.6609708427920092,
+        "geometryCounts": {
+          "components": 24,
+          "holes": 0,
+          "vertices": 414
+        },
+        "guardedBeforeNativeDedupAreaSquareKilometres": 9315.884943193281,
+        "nativeDeduplicationAreaSquareKilometres": 0.0,
+        "nativeOverlapPreservedForRendererPrecedenceSquareKilometres": 0.0,
+        "outsideQualifiedSourceSquareMetres": 0.0,
+        "outsideTargetSquareMetres": 0.0,
+        "poseWitness": {
+          "positions": [
+            {
+              "ageMa": 410.001,
+              "longitudeLatitude": [
+                -52.31237106492095,
+                7.6991187871009314
+              ]
+            },
+            {
+              "ageMa": 411.0,
+              "longitudeLatitude": [
+                -53.22256291753059,
+                7.942011751749404
+              ]
+            },
+            {
+              "ageMa": 415.0,
+              "longitudeLatitude": [
+                -56.81253594526128,
+                9.098461362439329
+              ]
+            },
+            {
+              "ageMa": 420.0,
+              "longitudeLatitude": [
+                -61.15683800069207,
+                10.943084454199317
+              ]
+            },
+            {
+              "ageMa": 425.0,
+              "longitudeLatitude": [
+                -65.31405014142184,
+                13.205167053956012
+              ]
+            },
+            {
+              "ageMa": 430.0,
+              "longitudeLatitude": [
+                -69.25951350685085,
+                15.854058815514572
+              ]
+            },
+            {
+              "ageMa": 430.001,
+              "longitudeLatitude": [
+                -69.25907135654123,
+                15.853170435696208
+              ]
+            },
+            {
+              "ageMa": 435.0,
+              "longitudeLatitude": [
+                -67.6512683544856,
+                10.906456864517587
+              ]
+            },
+            {
+              "ageMa": 440.0,
+              "longitudeLatitude": [
+                -67.46864958655908,
+                4.871748619401812
+              ]
+            },
+            {
+              "ageMa": 445.0,
+              "longitudeLatitude": [
+                -69.5992547689315,
+                3.678630742806267
+              ]
+            },
+            {
+              "ageMa": 450.0,
+              "longitudeLatitude": [
+                -71.75404060573912,
+                2.534818941680094
+              ]
+            },
+            {
+              "ageMa": 455.0,
+              "longitudeLatitude": [
+                -73.9335644565983,
+                1.4425030294147607
+              ]
+            },
+            {
+              "ageMa": 460.0,
+              "longitudeLatitude": [
+                -76.13815913999865,
+                0.4038643731112559
+              ]
+            },
+            {
+              "ageMa": 465.0,
+              "longitudeLatitude": [
+                -78.36792388003047,
+                -0.578935549603914
+              ]
+            },
+            {
+              "ageMa": 470.0,
+              "longitudeLatitude": [
+                -80.62271607622517,
+                -1.5037679922732197
+              ]
+            },
+            {
+              "ageMa": 475.0,
+              "longitudeLatitude": [
+                -82.90214446268872,
+                -2.3685510788909827
+              ]
+            },
+            {
+              "ageMa": 480.0,
+              "longitudeLatitude": [
+                -85.2055642387067,
+                -3.171265092678154
+              ]
+            },
+            {
+              "ageMa": 485.0,
+              "longitudeLatitude": [
+                -87.5320747496869,
+                -3.9099687155493155
+              ]
+            },
+            {
+              "ageMa": 490.0,
+              "longitudeLatitude": [
+                -89.8805202699337,
+                -4.582815967443327
+              ]
+            },
+            {
+              "ageMa": 495.0,
+              "longitudeLatitude": [
+                -92.24949438349971,
+                -5.18807354409219
+              ]
+            },
+            {
+              "ageMa": 500.0,
+              "longitudeLatitude": [
+                -94.637348373938,
+                -5.724138205817016
+              ]
+            },
+            {
+              "ageMa": 505.0,
+              "longitudeLatitude": [
+                -96.60137967500417,
+                -7.991217422769969
+              ]
+            },
+            {
+              "ageMa": 510.0,
+              "longitudeLatitude": [
+                -98.62890884691302,
+                -10.212499884913155
+              ]
+            },
+            {
+              "ageMa": 515.0,
+              "longitudeLatitude": [
+                -100.72583280361403,
+                -12.383631285607038
+              ]
+            },
+            {
+              "ageMa": 520.0,
+              "longitudeLatitude": [
+                -102.8980640568414,
+                -14.49989155269607
+              ]
+            },
+            {
+              "ageMa": 525.0,
+              "longitudeLatitude": [
+                -105.15147345616057,
+                -16.556170556843487
+              ]
+            },
+            {
+              "ageMa": 530.0,
+              "longitudeLatitude": [
+                -107.49180797467278,
+                -18.54694793640727
+              ]
+            },
+            {
+              "ageMa": 535.0,
+              "longitudeLatitude": [
+                -108.89117633770896,
+                -15.31761843457673
+              ]
+            },
+            {
+              "ageMa": 540.0,
+              "longitudeLatitude": [
+                -110.5193744168544,
+                -12.199966727776864
+              ]
+            }
+          ],
+          "referenceLongitudeLatitude": [
+            64.15138470929357,
+            80.88145178420619
+          ]
+        },
+        "postDedupNativeCoastOverlap": {
+          "410.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.92082309615,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "411.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096123,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "415.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096101,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "420.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096023,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "425.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096114,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095894,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "430.001": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095843,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "435.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095837,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "440.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095976,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "445.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095927,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "450.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095948,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "455.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096018,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "460.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095907,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "465.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.92082309592,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "470.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095912,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "475.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095837,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "480.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095888,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "485.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095907,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "490.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.92082309595,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "495.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095961,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "500.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095965,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "505.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823096036,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "510.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095772,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "515.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095908,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "520.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095861,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "525.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095868,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "530.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095776,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "535.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095976,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          },
+          "540.0": {
+            "candidateAreaFraction": 0.0,
+            "candidateUnionAreaSquareKilometres": 9315.920823095925,
+            "intersectingNativePolygonCount": 0,
+            "intersectingSources": [],
+            "intersectionAreaSquareKilometres": 0.0,
+            "method": "spherical solid-polygon intersection candidate filter, followed by union/intersection area in an age- and cohort-centred spherical Lambert azimuthal equal-area projection",
+            "numericalLimit": "intersection areas use a spherical Earth and planar Shapely operations after local equal-area projection; boundaries closer than the 1e-12-radian spherical filter tolerance can be treated as touching"
+          }
+        },
+        "sourceTargetIntersectionAreaSquareKilometres": 12969.406578357606,
+        "supportedMaterialOmittedForCrossPhaseDeduplicationSquareKilometres": 0.0,
+        "targetAreaSquareKilometres": 14094.244919854587
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "plateId": 311,
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 311,
+        "sourceOrHypothesis": "strict Cao v2.4 regional rigid motion; material affinity sources do not independently determine exact palaeolongitude"
+      },
+      "poseConfidenceIntervalsMa": [
+        {
+          "oldest": 430,
+          "status": "qualified",
+          "youngest": 410,
+          "youngestExclusive": true
+        },
+        {
+          "oldest": 540,
+          "status": "uncertain-continuation",
+          "youngest": 430,
+          "youngestExclusive": true
+        }
+      ],
+      "rejectionConditions": [
+        "source record falls outside the named accepted tectonic domain or its explicitly inferred onshore ice mask",
+        "derived geometry leaves the GSC source/ice footprint or immutable Cao target",
+        "candidate overlaps active native Cao coast material outside the named Novaya/Kara renderer-precedence exception",
+        "candidate is represented as exposed land, shoreline, or palaeotopographic height",
+        "strict Cao motion is missing through 540 Ma or the older uncertainty phase becomes a hard absence edge"
+      ],
+      "sourceIds": [
+        "gsc-arctic-map-2159a",
+        "cao-2024-v2.4-cob",
+        "fjl-caledonian-2019"
+      ],
+      "sourceUnitSelection": {
+        "excluded": [],
+        "included": [
+          {
+            "areaSquareKilometres": 670.608657604311,
+            "reason": "barents-continental-shelf-domain",
+            "unitId": "Svalbard, Barents Shelf|Early and Late Cretaceous (145.5 - 65.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 355.94398034215067,
+            "reason": "barents-continental-shelf-domain",
+            "unitId": "Svalbard, Barents Shelf|Jurassic (199.6 - 145.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 92.33578914678965,
+            "reason": "barents-continental-shelf-domain",
+            "unitId": "Svalbard, Barents Shelf|Late Cretaceous (99.6 - 65.5 Ma)"
+          },
+          {
+            "areaSquareKilometres": 320.1494638014175,
+            "reason": "barents-continental-shelf-domain",
+            "unitId": "Svalbard, Barents Shelf|Late Triassic (228.7 - 199.6 Ma)"
+          },
+          {
+            "areaSquareKilometres": 10.115082224128184,
+            "reason": "barents-continental-shelf-domain",
+            "unitId": "Svalbard, Barents Shelf|Middle Triassic (245.9 - 228.7 Ma)"
+          },
+          {
+            "areaSquareKilometres": 11520.25360523881,
+            "reason": "ice-mask-over-barents-platform",
+            "unitId": "ice|ice"
+          }
+        ],
+        "materialMeaning": "mapped younger cover or ice constrains the modern footprint only; cited regional geology supplies the inferred older continental substrate"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "bedrock-domain continuity does not establish a 410–540 Ma shoreline, emergence, or height"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "2cf1054a349111360239a11de404c509e21838ce5d6640fbf53865edb65084c6",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:855:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 855
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "bcfc5ea68e78a5c307b875d74b1376d17437e5b81cce6bc01d86d1bd402e6740",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:876:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 876
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "7d65a981398eb8c3c0aff9d71ba2b8e8dd281f6e8c888554f188828ed613769e",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:897:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 897
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "af6ba165b98571f6e088decc8f9ff5a09c2f924be8e015c7cc60c20ac8d7fac8",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:970:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 970
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "318f2305945be9ec01d53f8d273baec67f05cbe4d6bc7fc89e9a5ce595b58ec2",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:985:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 985
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "9a3a2f2739e2e13b595ad0ac8b0fd68b092b0fe20adfe6b3a53b3ca9284052e0",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:991:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 991
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "8a2e209fbf2fa80e9287edfbf68bb256499a45e3911a7b0880a4a88a0fb037a8",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1072:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1072
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "2f8121d07438878ffa2df6b3765d5e61a217a50f84cc17a00a1aa6a3263efec6",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1142:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1142
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "f73734c07ee218b8ad1e3bec524a5f07ccbb0a8a7794c1adb6205a77af482d0d",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1153:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1153
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "49be4a50c7020449a0ef70a9b9eb52253f706e5b29a60270852377ac2c63117a",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1208:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1208
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "ff74962a164a9e7231533efaf27b3e7bf4eb05368d82dd425327dc33ee5cb42b",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1237:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1237
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "cd9bdecb1b845c28cbf0f621d23668d8d6b4acf8ac8513ad57ed8bf7cfc7c919",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1268:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1268
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "3493b46c855284b180ecaa3507c2b50a887c2d01391914584c42f121e802ae78",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1304:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1304
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "e1ea90c1e65ef39c026c466cb82fcf502fcf4836fa17221c21e3b9a6ff159b97",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1318:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1318
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "f227e472466db86c585929b85c9a31d737749599d3cad0a655f4132f6cde8bc5",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1319:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1319
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "71c72a9b558fcaae451ec13d6e60d367d5a426142ecbbf9cb65544413ea18d67",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1320:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1320
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "b40a7dcae87dfe4e702d17b1fc838f9b363248e377ad1c15cc49c35d04214c55",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1366:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1366
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "6ebc0ec023e1e3d20755be3daed8c88a563cbfb74be65548de102053073f643e",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1412:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1412
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "2f1c605dd691806d79ab06d6ccf588609ef64b82bd655fdfceb0e4f4c859bffb",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1465:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1465
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "1c70bca682afe2ef2c8f09b1a4cc6c2cd9b2f861c17274cd76b2b684cb18e510",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1580:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1580
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "e43f4c0e884056eeb71d971f752aaa5b06221ce5b284e4dcae53d93a3d08215b",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1709:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1709
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "92407024adf3542f816a4def8c23b203f2e05a5af2f1dbbe7cb096acdd3556fa",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1718:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+          "sourceFeatureOrder": 1718
+        }
+      ],
+      "uncertainty": {
+        "affinity": "late deformation and accretion can make the modern tectonic-domain footprint broader than the 410 Ma coherent block; excluded domains and native overlaps remain outside the correction",
+        "exposure": "unknown at every reconstructed age; this is neither a palaeoshoreline nor exposed-land evidence",
+        "spatial": "GSC Map 2159A Barents continental-shelf domain plus the Franz Josef Land onshore ice mask, clipped inside the Cao FJL targets",
+        "temporal": "material continuity is source-supported; exact pose is best constrained near 410–430 Ma and is shown as uncertain farther back"
+      },
+      "uncertaintyDisplay": {
+        "olderThanMa": 430,
+        "style": "uncertain"
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceAssets": [
+    {
+      "attribution": "Contains information licensed under the Open Government Licence – Canada; source Natural Resources Canada, Geological Survey of Canada.",
+      "bytes": 22894235,
+      "citation": "Harrison et al. (2011), Geological Survey of Canada Map 2159A, doi:10.4095/287868",
+      "evidenceRole": "geological-unit-extent",
+      "license": "Open Government Licence – Canada",
+      "publicationOrVersionDate": "2011-02-01",
+      "retrievedAt": "2026-09-12",
+      "sha256": "94b081c306bb1dc169e32eb5928f17b75796dfede706053a3250707cfc557e72",
+      "sourceId": "gsc-arctic-map-2159a",
+      "title": "Geological map of the Arctic, 1:5 000 000",
+      "url": "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/international_polar_year_en/MapServer/3?f=pjson"
+    },
+    {
+      "attribution": "Cao et al. (2024) model v2.4 contributors",
+      "bytes": 14423254,
+      "citation": "Cao et al. (2024), Earth's tectonic and plate boundary evolution over 1.8 billion years, model v2.4, doi:10.5281/zenodo.13628813",
+      "evidenceRole": "continental-or-crustal-extent",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "publicationOrVersionDate": "2024-09-03",
+      "retrievedAt": "2026-09-09",
+      "sha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd",
+      "sourceId": "cao-2024-v2.4-cob",
+      "title": "Cao et al. v2.4 closed continental-boundary collection",
+      "url": "https://doi.org/10.5281/zenodo.13628813"
+    },
+    {
+      "attribution": "Kuznetsov et al. (2007); citation metadata supplied by Crossref",
+      "bytes": 2739,
+      "citation": "Kuznetsov et al. (2007), Gondwana Research 12, 305–323, doi:10.1016/j.gr.2006.10.021",
+      "evidenceRole": "material-affinity",
+      "license": "Crossref metadata snapshot is CC0; cited article rights retained by its publisher",
+      "publicationOrVersionDate": "2007",
+      "retrievedAt": "2026-09-12",
+      "sha256": "a0424959c7e15c049a1a7c915cd80f0147fb29c744c7f68460684c7121a69339",
+      "sourceId": "timan-preordovician-2007",
+      "title": "Pre-Ordovician tectonic evolution and volcano-plutonic associations of the Timanides and northern Pre-Uralides",
+      "url": "https://doi.org/10.1016/j.gr.2006.10.021"
+    },
+    {
+      "attribution": "Drachev (2016); citation metadata supplied by Crossref",
+      "bytes": 67459,
+      "citation": "Drachev (2016), arktos 2:21, doi:10.1007/s41063-015-0014-8",
+      "evidenceRole": "material-affinity",
+      "license": "Crossref metadata snapshot is CC0; cited article rights retained by its publisher",
+      "publicationOrVersionDate": "2016",
+      "retrievedAt": "2026-09-12",
+      "sha256": "064d8aae54736c9b029ab54754107c2c1b399f6336668807cfe0bb3907498a52",
+      "sourceId": "eurasian-arctic-fold-belts-2016",
+      "title": "Fold belts and sedimentary basins of the Eurasian Arctic",
+      "url": "https://doi.org/10.1007/s41063-015-0014-8"
+    },
+    {
+      "attribution": "Ivanov et al. (2013); citation metadata supplied by Crossref",
+      "bytes": 17415,
+      "citation": "Ivanov et al. (2013), Journal of Asian Earth Sciences 72, 12–24, doi:10.1016/j.jseaes.2013.02.029",
+      "evidenceRole": "material-affinity",
+      "license": "Crossref metadata snapshot is CC0; cited article rights retained by its publisher",
+      "publicationOrVersionDate": "2013",
+      "retrievedAt": "2026-09-12",
+      "sha256": "616e7701393b0132a8848eeca9f53a6c1ec5638d21034c30367d970be170ee6f",
+      "sourceId": "urals-west-siberia-2013",
+      "title": "Tectonics of the Urals and adjacent part of the West-Siberian platform basement",
+      "url": "https://doi.org/10.1016/j.jseaes.2013.02.029"
+    },
+    {
+      "attribution": "Korago et al. (2022); citation metadata supplied by Crossref",
+      "bytes": 19303,
+      "citation": "Korago et al. (2022), Geotectonics 56, doi:10.1134/S0016852122020030",
+      "evidenceRole": "material-affinity",
+      "license": "Crossref metadata snapshot is CC0; cited article rights retained by its publisher",
+      "publicationOrVersionDate": "2022",
+      "retrievedAt": "2026-09-12",
+      "sha256": "8d253833351f66959806d86de17db983193e8ae3f26eb260a137e18c347684af",
+      "sourceId": "novaya-structure-2022",
+      "title": "Geological Structure of the Novaya Zemlya Archipelago and Peculiarities of the Tectonics of the Eurasian Arctic",
+      "url": "https://doi.org/10.1134/S0016852122020030"
+    },
+    {
+      "attribution": "Knudsen et al. (2019); citation metadata supplied by Crossref",
+      "bytes": 9104,
+      "citation": "Knudsen et al. (2019), GFF 141, 295–307, doi:10.1080/11035897.2019.1622151",
+      "evidenceRole": "material-affinity",
+      "license": "Crossref metadata snapshot is CC0; cited article rights retained by its publisher",
+      "publicationOrVersionDate": "2019",
+      "retrievedAt": "2026-09-12",
+      "sha256": "5f6ced36e5887622b5652c658564d6f0bff40f4347a9733ff5aae15d3b16dc77",
+      "sourceId": "fjl-caledonian-2019",
+      "title": "Caledonian metamorphism of metasediments from Franz Josef Land",
+      "url": "https://doi.org/10.1080/11035897.2019.1622151"
+    }
+  ],
+  "version": 1
+}

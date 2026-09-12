@@ -2004,8 +2004,8 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "305c237a7828b935fa7ee4f8f0e6504ae3990372950cc8e180719865bc90e1e9",
-          "bytes": 18372
+          "sha256": "272778a1014373f483865e819083305aa012beee7f03e9f221a9f88f783f8371",
+          "bytes": 18597
         },
         {
           "role": "motion-palette.bin",
@@ -3326,6 +3326,30 @@
           "path": "public/data/reconstruction/cao-v2.4/ownership-95ma.json",
           "sha256": "f6c7a98d0feec1097d403a8df612b691ec9e957b99f565b6e483d33c9c36b9bc",
           "bytes": 8447
+        }
+      ]
+    },
+    "regional-material-corrections-v1": {
+      "processing": "Source-qualified regional masks compiled as rigid material charts and guarded exact native-chart replacements; raw Cao source assets remain unchanged",
+      "scope": "Continental material support only; surface exposure, palaeoshoreline and physical height remain unknown",
+      "outputs": [
+        {
+          "role": "catalog.json",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
+          "bytes": 171525,
+          "sha256": "17c377d61694e304d99c071b9afb8db836dc4a782102e105999001602c3b08d7"
+        },
+        {
+          "role": "qualified.ehgb",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
+          "bytes": 268524,
+          "sha256": "c61c0fe9c6105e8767c3552371e8728364fcfa60b23f4d08e27b395779b6edfd"
+        },
+        {
+          "role": "uncertain.ehgb",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
+          "bytes": 376808,
+          "sha256": "4d71e6fe2bef4c3d5e8dbee8d11d222637a65f33b55dff286b68801f43f31217"
         }
       ]
     }

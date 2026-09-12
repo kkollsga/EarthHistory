@@ -1,0 +1,377 @@
+{
+  "basementAudit": {
+    "agePolicy": {
+      "foothillsWallowa": "the 280-165 Ma CRUST_AGE field is broadened to a possible 300 Ma oldest edge because DS898 notes basement to the Klamath arc as old as 300 Ma",
+      "franciscan": "the note that accreted rocks can be as young as 15 Ma constrains assembly and is not substituted for the 165-50 Ma crust-formation field",
+      "meaning": "domain-scale crust-age intervals bound material visibility but do not assert that each whole polygon formed instantaneously",
+      "salinia": "the source calls Salinia a possible Mojave fragment and records 30-0 Ma strike-slip accretion; its affinity and plate-176 pose remain uncertain"
+    },
+    "ageSnapshots": [
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia"
+        ],
+        "ageMa": 540.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.09068174747518841,
+        "visibleKm2": 14445.822531289181
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia"
+        ],
+        "ageMa": 410.001,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.09068174747518841,
+        "visibleKm2": 14445.822531289181
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia"
+        ],
+        "ageMa": 410.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.09068174747518841,
+        "visibleKm2": 14445.822531289181
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia"
+        ],
+        "ageMa": 400.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.09068174747518841,
+        "visibleKm2": 14445.822531289181
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry"
+        ],
+        "ageMa": 365.0,
+        "formationUncertainDomains": [
+          "Shoofly-Olds Ferry"
+        ],
+        "visibleFraction": 0.12729583985902054,
+        "visibleKm2": 20278.536340270253
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa"
+        ],
+        "ageMa": 250.0,
+        "formationUncertainDomains": [
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa"
+        ],
+        "visibleFraction": 0.463691344312766,
+        "visibleKm2": 73867.1569057476
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan"
+        ],
+        "ageMa": 100.0,
+        "formationUncertainDomains": [
+          "Franciscan"
+        ],
+        "visibleFraction": 0.9982859726257987,
+        "visibleKm2": 159029.37909278236
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 50.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 25.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 5.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 1.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 0.001,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      },
+      {
+        "activeDomains": [
+          "Mojave",
+          "Salinia",
+          "Shoofly-Olds Ferry",
+          "Calaveras-Baker",
+          "Foothills-Wallowa",
+          "Great Valley",
+          "Franciscan",
+          "Siletzia"
+        ],
+        "ageMa": 0.0,
+        "formationUncertainDomains": [],
+        "visibleFraction": 0.9999910811740664,
+        "visibleKm2": 159301.00702420922
+      }
+    ],
+    "domains": [
+      {
+        "accretionAge": "165-50 Ma",
+        "accretionType": "Underthrusting",
+        "crustFormationAge": "165-50 Ma",
+        "crustType": "Accretionary wedge",
+        "domain": "Franciscan",
+        "fid": 39,
+        "intersectionKm2": 52490.75205938801,
+        "notes": "In NW CA, accreted rocks as young as 15 Ma (McLaughlin and others, 1982)",
+        "predates410Ma": false
+      },
+      {
+        "accretionAge": "135 Ma",
+        "accretionType": "Collisional",
+        "crustFormationAge": "280-165 Ma",
+        "crustType": "Oceanic arc",
+        "domain": "Foothills-Wallowa",
+        "fid": 37,
+        "intersectionKm2": 47120.027098908606,
+        "notes": "Basement to arc as old as 300 Ma in Klamath Mtns (Saleeby, 1982)",
+        "predates410Ma": false
+      },
+      {
+        "accretionAge": "165 Ma",
+        "accretionType": "Magmatic?",
+        "crustFormationAge": "175-165 Ma",
+        "crustType": "Oceanic basin",
+        "domain": "Great Valley",
+        "fid": 38,
+        "intersectionKm2": 32671.470127646633,
+        "notes": null,
+        "predates410Ma": false
+      },
+      {
+        "accretionAge": null,
+        "accretionType": null,
+        "crustFormationAge": "1840 Ma",
+        "crustType": "Lateral-extensional orogen",
+        "domain": "Mojave",
+        "fid": 7,
+        "intersectionKm2": 13746.793988521835,
+        "notes": "Older crustal component >2.0; crustal growth ages 1.84, 1.78-1.76 Ga; includes Elves Chasm gneiss",
+        "predates410Ma": true
+      },
+      {
+        "accretionAge": "135 Ma",
+        "accretionType": "Collisional",
+        "crustFormationAge": "315-215 Ma",
+        "crustType": "Accretionary wedge",
+        "domain": "Calaveras-Baker",
+        "fid": 36,
+        "intersectionKm2": 6468.593466568842,
+        "notes": null,
+        "predates410Ma": false
+      },
+      {
+        "accretionAge": "135 Ma",
+        "accretionType": "Collisional",
+        "crustFormationAge": "365-187 Ma",
+        "crustType": "Oceanic arc",
+        "domain": "Shoofly-Olds Ferry",
+        "fid": 35,
+        "intersectionKm2": 5832.713808981072,
+        "notes": null,
+        "predates410Ma": false
+      },
+      {
+        "accretionAge": "30-0 Ma",
+        "accretionType": "Strike-slip",
+        "crustFormationAge": "1700 Ma",
+        "crustType": "Lateral-extensional orogen",
+        "domain": "Salinia",
+        "fid": 33,
+        "intersectionKm2": 699.0285427673558,
+        "notes": "Fragment of Mohave domain?",
+        "predates410Ma": true
+      },
+      {
+        "accretionAge": "50 Ma",
+        "accretionType": "Collisional",
+        "crustFormationAge": "60-50 Ma",
+        "crustType": "Oceanic basin",
+        "domain": "Siletzia",
+        "fid": 40,
+        "intersectionKm2": 271.62793142687207,
+        "notes": "Converted to continental arc. Some authors (Schmandt and Humphreys, 2011) suggest accretion at 55 Ma",
+        "predates410Ma": false
+      }
+    ],
+    "mappedFraction": 0.9999910811740664,
+    "mappedUnionKm2": 159301.00702420922,
+    "postdates410Fraction": 0.9093093336988779,
+    "postdates410Km2": 144855.18449292003,
+    "predates410Fraction": 0.09068174747518848,
+    "predates410Km2": 14445.82253128919,
+    "presentTargetOutsideUnionKm2": 0.0,
+    "presentUnionOutsideTargetKm2": 0.0,
+    "source": {
+      "bytes": 725411,
+      "citation": "Lund, K., Box, S.E., Holm-Denoma, C.S., San Juan, C.A., Blakely, R.J., Saltus, R.W., Anderson, E.D., and DeWitt, E.H. (2015), USGS Data Series 898",
+      "doi": "https://doi.org/10.3133/ds898",
+      "evidenceRole": "interpreted basement composition, origin, architecture, and crust-formation age; not a plate-motion model",
+      "featureCount": 82,
+      "retrievedAt": "2026-09-12",
+      "scale": "1:5,000,000",
+      "service": "https://energy.usgs.gov/arcgis/rest/services/Hosted/ds898/FeatureServer/0",
+      "sha256": "007b035b494f84e6a34465971c6b876d65952f77d9be0fdb88bb617756333052",
+      "title": "Basement domain map of the conterminous United States and Alaska"
+    },
+    "targetAreaKm2": 159302.4278148337
+  },
+  "diagnosis": {
+    "geometry": "The official mapped Eastern Klamath units and Ordovician Trinity nucleus have zero overlap with the exact Cao target. The target name is therefore a motion-partition label, not a terrane-footprint claim.",
+    "material": "At the 410 Ma endpoint, 90.9% of the target overlaps basement whose mapped crust-formation interval postdates 410 Ma. The only older basement intersections are Mojave and Salinia, not Eastern Klamath.",
+    "pose": "DS898 and the Redding map do not supply plate rotations. Salinia is a displaced Mojave fragment and cannot be moved back on plate 176 from its modern footprint without an explicit kinematic conversion."
+  },
+  "disposition": {
+    "implementationOwner": "shared correction runtime; this audit intentionally emits no additive plate-176 geometry",
+    "nativeEndpoint": "mask the younger DS898 domain portions near 410 Ma rather than displaying the full modern California mosaic at its oldest instant",
+    "olderContinuation": "none from source450",
+    "preserveYoungerMaterial": "unmask domain portions only within their reported formation-age ranges; do not delete the target across its complete 410-0 Ma lifetime"
+  },
+  "rejectionConditions": [
+    "the off-target Redding terrane geometry is attached to source450 merely because both use the East Klamath name",
+    "Mojave or displaced Salinia basement is reconstructed with plate 176 without a documented kinematic conversion",
+    "the full source450 target is continued older than 410 Ma",
+    "the full source450 target is removed at younger ages where its younger basement domains exist"
+  ],
+  "schemaVersion": 1,
+  "status": "source-qualified-native-mask-required",
+  "target": {
+    "originalValidTimeMa": {
+      "oldest": 410,
+      "youngest": null
+    },
+    "patchId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0",
+    "plateId": 176,
+    "referenceBoundsLonLat": [
+      -124.41400000000002,
+      34.898641948000034,
+      -118.32439994799992,
+      42.52681073284168
+    ],
+    "sourceFeatureName": "East Klamath",
+    "sourceFeatureOrder": 450
+  },
+  "terraneFootprintAudit": {
+    "mappedEasternKlamath": {
+      "areaKm2": 2533.7348015656935,
+      "boundsLonLat": [
+        -123.03373838435273,
+        40.44130861290605,
+        -122.00107785882786,
+        40.999982906769716
+      ],
+      "componentCount": 38,
+      "source450OverlapKm2": 0.0,
+      "sourcePolygonCount": 325
+    },
+    "source": {
+      "bytes": 5360801,
+      "citation": "Irwin, W.P., and Wentworth, C.M. (2012), USGS Open-File Report 2012-1228",
+      "retrievedAt": "2026-09-12",
+      "scale": "1:250,000",
+      "sha256": "fce631d09010046fadfc302b64a06068e0c6b70082de0d7a5a942dce6585517e",
+      "sourceCrs": "NAD27 custom Transverse Mercator, central meridian -123, scale factor 1",
+      "title": "Digital geologic map of the Redding 1 x 2 degree quadrangle, California",
+      "url": "https://pubs.usgs.gov/publication/ofr20121228"
+    },
+    "trinityOrdovician": {
+      "areaKm2": 117.22388862887874,
+      "boundsLonLat": [
+        -122.9796974095854,
+        40.45590825983986,
+        -122.4436311373154,
+        40.999982906769716
+      ],
+      "componentCount": 27,
+      "source450OverlapKm2": 0.0,
+      "sourcePolygonCount": 34
+    }
+  }
+}
