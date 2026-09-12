@@ -37,11 +37,14 @@ server for source-level debugging.
 The public repository is
 [kkollsga/EarthHistory](https://github.com/kkollsga/EarthHistory). GitHub Pages
 deploys through GitHub Actions. Pull requests run the deterministic gate plus a
-focused Pages/browser smoke set without publishing; the complete
-browser union remains the local release gate. Every successful push to `main`
-validates the same CI set, retains the checked `dist/` output for seven days,
-uploads the Pages artifact, and deploys that exact artifact. The workflow can
-also be dispatched manually on `main` to republish the current commit.
+focused Pages/browser smoke set without publishing. A routine local release
+runs the deterministic gate and directly affected browser cases, reusing recent
+matching full-browser evidence; the complete browser union is a confidence
+reset when that evidence is missing or a narrower result fails. Every
+successful push to `main` validates the same CI set, retains the checked
+`dist/` output for seven days, uploads the Pages artifact, and deploys that
+exact artifact. The workflow can also be dispatched manually on `main` to
+republish the current commit.
 
 Configure the repository Pages source to **GitHub Actions** once. The workflow
 uses GitHub's built-in Pages token and needs no application secret or runtime

@@ -9,7 +9,7 @@ import {
   type UnitDirection,
 } from "../reconstruction";
 import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
-import { lonLatToVector3, vector3ToLonLat } from "./math";
+import { lonLatToVector3, vector3ToLonLat, worldToGlobeLocalDirection } from "./math";
 import {
   createCurvedGuideLabelMesh,
   createPolarSectorTickLines,
@@ -260,7 +260,7 @@ function createMarkerTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-/** Soft ring for locked material/location follow — quieter than POI dots. */
+/** Small steady ring/dot for locked material follow; no pulse or broad halo. */
 function createFocusLockMarkerTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
@@ -269,20 +269,22 @@ function createFocusLockMarkerTexture(): THREE.CanvasTexture {
   if (context === null) throw new Error("Unable to create focus-lock marker texture");
   context.clearRect(0, 0, 64, 64);
   context.beginPath();
-  context.arc(32, 32, 18, 0, Math.PI * 2);
-  context.strokeStyle = "rgba(214, 232, 226, 0.55)";
+  context.arc(32, 32, 22, 0, Math.PI * 2);
+  context.strokeStyle = "rgba(2, 8, 11, 0.96)";
+  context.lineWidth = 8;
+  context.stroke();
+  context.beginPath();
+  context.arc(32, 32, 22, 0, Math.PI * 2);
+  context.strokeStyle = "rgba(239, 248, 244, 0.98)";
   context.lineWidth = 3;
   context.stroke();
   context.beginPath();
-  context.arc(32, 32, 4.5, 0, Math.PI * 2);
-  context.fillStyle = "rgba(232, 244, 238, 0.72)";
+  context.arc(32, 32, 6, 0, Math.PI * 2);
+  context.fillStyle = "rgba(2, 8, 11, 0.96)";
   context.fill();
-  const halo = context.createRadialGradient(32, 32, 4, 32, 32, 28);
-  halo.addColorStop(0, "rgba(180, 210, 200, 0.2)");
-  halo.addColorStop(1, "rgba(180, 210, 200, 0)");
-  context.fillStyle = halo;
   context.beginPath();
-  context.arc(32, 32, 28, 0, Math.PI * 2);
+  context.arc(32, 32, 2.75, 0, Math.PI * 2);
+  context.fillStyle = "rgba(239, 248, 244, 1)";
   context.fill();
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -429,6 +431,7 @@ export class GlobeScene {
   private readonly guideInverseGlobeQuaternion = new THREE.Quaternion();
   private readonly markerWorldPosition = new THREE.Vector3();
   private readonly markerWorldScale = new THREE.Vector3();
+  private readonly focusMarkerProjectedPosition = new THREE.Vector3();
   private readonly controls: OrbitControls;
   private readonly caoFoundationRenderer: CaoFoundationSurfaceRenderer;
   private readonly globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
@@ -584,6 +587,8 @@ export class GlobeScene {
     dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
     dataset.caoFoundationDrawCount = "0";
     dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
+    dataset.caoObservedMaterialCharts = "0";
+    dataset.caoClassifiedShallowMarineCharts = "0";
     dataset.caoQualifiedMaterialCharts = "0";
     dataset.caoUncertainMaterialCharts = "0";
     dataset.caoFormationUncertainMaterialCharts = "0";
@@ -656,6 +661,9 @@ export class GlobeScene {
         : correctionState.qualifiedActiveCharts > 0
           ? "cao-plus-qualified-material"
           : "native-cao-foundation";
+      dataset.caoObservedMaterialCharts = String(correctionState.observedActiveCharts);
+      dataset.caoClassifiedShallowMarineCharts =
+        String(correctionState.classifiedShallowMarineActiveCharts);
       dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
       dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
       dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
@@ -751,6 +759,9 @@ export class GlobeScene {
           ? "cao-plus-qualified-material"
           : "native-cao-foundation";
       dataset.caoMaterialCorrectionIdentity = diagnostics.materialCorrectionIdentity ?? "";
+      dataset.caoObservedMaterialCharts = String(correctionState.observedActiveCharts);
+      dataset.caoClassifiedShallowMarineCharts =
+        String(correctionState.classifiedShallowMarineActiveCharts);
       dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
       dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
       dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
@@ -793,6 +804,8 @@ export class GlobeScene {
         this.renderer.domElement.dataset.caoFoundationRequestedAgeMa = String(age);
         this.renderer.domElement.dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
         this.renderer.domElement.dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
+        this.renderer.domElement.dataset.caoObservedMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoClassifiedShallowMarineCharts = "0";
         this.renderer.domElement.dataset.caoQualifiedMaterialCharts = "0";
         this.renderer.domElement.dataset.caoUncertainMaterialCharts = "0";
         this.renderer.domElement.dataset.caoFormationUncertainMaterialCharts = "0";
@@ -955,17 +968,21 @@ export class GlobeScene {
     }
     if (this.focusLockMarker === null) {
       const marker = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: this.focusLockMarkerTexture, color: 0xd7e8e2, transparent: true, opacity: 0.62,
+        map: this.focusLockMarkerTexture, color: 0xffffff, transparent: true, opacity: 1,
         alphaTest: 0.02, depthTest: true, depthWrite: false,
       }));
       marker.userData.focusLockMarker = true;
-      marker.userData.markerTargetPixels = 14;
+      marker.userData.markerTargetPixels = 18;
       marker.renderOrder = 6;
       marker.frustumCulled = false;
       this.focusLockMarker = marker;
       this.markerGroup.add(marker);
+      this.renderer.domElement.dataset.focusMarkerStyle = "steady-ring-dot";
+      this.renderer.domElement.dataset.focusMarkerSizePx = "18";
     }
-    this.focusLockMarker.position.copy(direction).multiplyScalar(1.032);
+    this.focusLockMarker.position.copy(
+      worldToGlobeLocalDirection(direction, this.globeGroup.quaternion),
+    ).multiplyScalar(1.032);
     this.renderer.domElement.dataset.focusMarker = "true";
   }
 
@@ -1097,6 +1114,23 @@ export class GlobeScene {
     }
     this.renderer.domElement.dataset.poiMarkerPixels = "9";
     this.renderer.domElement.dataset.poiSelectedMarkerPixels = "12";
+  }
+
+  private reportFocusMarkerOffset(): void {
+    const dataset = this.renderer.domElement.dataset;
+    if (this.focusLockMarker === null || !this.markerGroup.visible || dataset.focusMarker !== "true") {
+      delete dataset.focusMarkerOffsetXPx;
+      delete dataset.focusMarkerOffsetYPx;
+      return;
+    }
+    this.focusLockMarker.getWorldPosition(this.markerWorldPosition);
+    this.focusMarkerProjectedPosition.copy(this.markerWorldPosition).project(this.camera);
+    dataset.focusMarkerOffsetXPx = (
+      this.focusMarkerProjectedPosition.x * this.renderer.domElement.clientWidth / 2
+    ).toFixed(2);
+    dataset.focusMarkerOffsetYPx = (
+      -this.focusMarkerProjectedPosition.y * this.renderer.domElement.clientHeight / 2
+    ).toFixed(2);
   }
 
   private updateInspectionLight(): void {
@@ -1248,6 +1282,7 @@ export class GlobeScene {
     }
     this.reportCameraDistance();
     this.updatePoiMarkerScale();
+    this.reportFocusMarkerOffset();
     this.updateInspectionLight();
     this.updateGuideLabelVisibility();
     if (this.impactGroup.visible && this.autoRotate && !this.reducedMotion.matches) {

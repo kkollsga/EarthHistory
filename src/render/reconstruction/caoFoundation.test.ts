@@ -5,6 +5,7 @@ import { BufferAttribute, Group, IntType, LineSegments, Mesh } from "three";
 import {
   CaoReconstructionRuntime,
   chartPickStateFromMotionFrame,
+  EARTH_RADIUS_METRES,
   type PreparedCaoRevision,
   type ReconstructionPackageManifestV2,
   packageAssetPath,
@@ -12,6 +13,7 @@ import {
 } from "../../reconstruction";
 import {
   CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+  CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
   CaoFoundationSurfaceRenderer,
   createCaoFoundationGeometryResource,
   estimateCaoFoundationGeometryReservation,
@@ -38,7 +40,8 @@ function fixture(entryCount = 2): PreparedCaoRevision {
   return {
     identity: "cao@r1:0", requestId: 1, packageId: "cao", packageRevision: "r1",
     materialCorrectionIdentity: null,
-    materialCorrections: { qualifiedActiveCharts: 0, uncertainActiveCharts: 0,
+    materialCorrections: { observedActiveCharts: 0, classifiedShallowMarineActiveCharts: 0,
+      qualifiedActiveCharts: 0, uncertainActiveCharts: 0,
       formationUncertainActiveCharts: 0, modelInferredPoseActiveCharts: 0,
       overriddenNativeCharts: 0, activeSourceIds: [], correctionIds: [] },
     requestedAgeMa: 0, frameIdentity: "cao-frame",
@@ -62,7 +65,8 @@ function fixture(entryCount = 2): PreparedCaoRevision {
       fragmentOrCohortId: "part", role: "model-geography",
       support: { kind: "supported", method: "compiled-rigid" },
       poseQuaternion: [1, 0, 0, 0], inversePoseQuaternion: [1, 0, 0, 0],
-      evidence: { status: "unknown", sourceIds: ["cao"], limitations: ["neutral height"] } }],
+      evidence: { status: "unknown", sourceIds: ["cao"], limitations: ["neutral height"] },
+      surfaceEvidence: { kind: "unknown", reason: "fixture surface is unspecified" } }],
     activeSourceBytes: byteLength,
     anchorIds: [],
     resolveAnchor: () => null,
@@ -107,7 +111,7 @@ describe("Cao foundation renderer boundary", () => {
       maxPublicationBytes: 2 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(4);
+    expect(resource.batches).toHaveLength(5);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
@@ -236,8 +240,22 @@ describe("Cao foundation renderer boundary", () => {
     } satisfies PreparedCaoRevision;
     const shelfEdgeResource = createCaoFoundationGeometryResource(shelfEdgeRevision, limits);
     const landEdgeResource = createCaoFoundationGeometryResource(landEdgeRevision, limits);
-    const edgeRay = [[3, 0.008726646, 0], [-1, 0, 0]] as const;
+    const apex = Math.sin(0.5 * Math.PI / 180);
+    expect(shelfEdgeResource.batches[0]!.chartBounds[5]).toBeCloseTo(
+      apex * (1 + CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES), 8);
+    expect(landEdgeResource.batches[0]!.chartBounds[5]).toBeCloseTo(
+      apex * (1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES), 8);
     const onePose = { chartPoses: identityPoses.subarray(0, 8), chartActive: new Uint8Array([1]) };
+    expect(intersectCaoFoundationSurface(
+      shelfEdgeResource, onePose, [3, 0, 0], [-1, 0, 0])?.batchId).toBe("batch-shelf");
+    expect(intersectCaoFoundationSurface(
+      landEdgeResource, onePose, [3, 0, 0], [-1, 0, 0])?.batchId).toBe("batch-land");
+    // Probe between the shelf and land apex radii so intersection uses the
+    // same per-batch shell contract as the spatial index.
+    const betweenShells = apex * (1
+      + (CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES)
+        / 2 / EARTH_RADIUS_METRES);
+    const edgeRay = [[3, betweenShells, 0], [-1, 0, 0]] as const;
     expect(intersectCaoFoundationSurface(shelfEdgeResource, onePose, ...edgeRay)).toBeNull();
     expect(intersectCaoFoundationSurface(landEdgeResource, onePose, ...edgeRay)?.batchId).toBe("batch-land");
 
@@ -259,6 +277,7 @@ describe("Cao foundation renderer boundary", () => {
     const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 1_000_000);
     const surface = new CaoFoundationSurfaceRenderer(group, retirement, limits);
     surface.publish(revision, 8);
+    expect(surface.diagnostics().shellOffsetMetres).toBe(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES);
     const meshes = group.children[0]!.children.filter((child): child is Mesh => child instanceof Mesh);
     expect(meshes.map((mesh) => {
       if (Array.isArray(mesh.material)) throw new Error("Cao surface mesh unexpectedly has multiple materials");
@@ -388,12 +407,14 @@ describe("Cao foundation renderer boundary", () => {
     expect(() => createCaoFoundationGeometryResource(broken, limits)).toThrow(/palette or chart index/);
   });
 
-  it("keeps the measured land shell offset outside source physical height", () => {
-    expect(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES).toBe(400);
-    expect(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES).toBeGreaterThan(305.306);
+  it("keeps the measured display shells clear and ordered above unknown physical height", () => {
+    expect(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES).toBe(400);
+    expect(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES).toBe(800);
+    expect(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES)
+      .toBeGreaterThan(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES);
   });
 
-  it("inverse-picks the same rigid 400 m shell triangles and skips inactive charts", () => {
+  it("inverse-picks the same rigid 800 m land shell triangles and skips inactive charts", () => {
     const resource = createCaoFoundationGeometryResource(fixture(), limits);
     const rayOrigin = [3, 0, 0] as const;
     const rayDirection = [-1, 0, 0] as const;

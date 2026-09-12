@@ -1,4 +1,4 @@
-import type { MaterialAddress, MaterialPose, SupportState } from "./types";
+import type { MaterialAddress, MaterialPose, SupportState, SurfaceEvidenceState } from "./types";
 import type { MaterialChartEvidence, MaterialChartRole } from "./packageV2";
 import type { QuaternionWxyz } from "./arithmetic";
 import type { NativeBoundarySegmentV2, PreparedNativeLayer, TopologyOwnershipRingV2 } from "./nativeLayersV2";
@@ -75,12 +75,15 @@ export interface PreparedCaoChartIdentity {
   readonly role: MaterialChartRole;
   readonly support: SupportState;
   readonly evidence: MaterialChartEvidence;
+  readonly surfaceEvidence: SurfaceEvidenceState;
   /** Stored-coordinate basis to requested-frame pose, shared by GPU rendering and inverse picking. */
   readonly poseQuaternion: QuaternionWxyz;
   readonly inversePoseQuaternion: QuaternionWxyz;
 }
 
 export interface PreparedMaterialCorrections {
+  readonly observedActiveCharts: number;
+  readonly classifiedShallowMarineActiveCharts: number;
   readonly qualifiedActiveCharts: number;
   readonly uncertainActiveCharts: number;
   readonly formationUncertainActiveCharts: number;

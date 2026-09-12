@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "correctionId": "earthhistory-regional-iceland-surface-v1",
+  "oracle": "pyGPlates strict Cao v2.4 finite rotations relative to each plate's 0 Ma pose",
+  "frame": {
+    "absoluteFrameId": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "axisConvention": "gplates-x0e-y90e-znorth",
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+  },
+  "packageAssets": {
+    "core": {
+      "url": "core.json",
+      "bytes": 5937171,
+      "sha256": "14c33ff9dc79feea337811f1e21c771765adb46857984d3ae2adc2545531bda8"
+    },
+    "motionPaletteCatalog": {
+      "url": "motion-palette.json",
+      "bytes": 457445,
+      "sha256": "bacde9c52c9fd755fb208d4cabef38537bb2f6e6eff7a01b4a30c9d371460e21"
+    },
+    "motionPaletteBinary": {
+      "url": "motion-palette.bin",
+      "bytes": 5172072,
+      "sha256": "17195d05d09864c6385feeaa0d73a965aca2fea0627271d5602954bc9ae6b2f7"
+    },
+    "materialCorrectionCatalog": {
+      "url": "corrections/material-v1/catalog.json",
+      "bytes": 198006,
+      "sha256": "9fb715d2f5eee35fc3008ea409cf3e85aad0f4794e67d152171d895d62c0768a"
+    }
+  },
+  "testedPlateIds": [
+    101,
+    301
+  ],
+  "testedAgesMa": [
+    0,
+    0.001,
+    0.021,
+    0.4,
+    0.799999,
+    0.8,
+    1,
+    3,
+    3.3,
+    5,
+    10,
+    15,
+    16.3
+  ],
+  "maximumAngularResidualRadians": 3.4755181639464544e-07,
+  "maximumResidualAt": {
+    "plateId": 301,
+    "ageMa": 16.3
+  },
+  "acceptanceLimitRadians": 1e-05,
+  "witnesses": [
+    {
+      "plateId": 101,
+      "ageMa": 0,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 0.001,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 0.021,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 7.884953353001448e-08
+    },
+    {
+      "plateId": 101,
+      "ageMa": 0.4,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 3.153981341200582e-07
+    },
+    {
+      "plateId": 101,
+      "ageMa": 0.799999,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 0.8,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 1,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 3,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 3.3,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 5,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 10,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 15,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 101,
+      "ageMa": 16.3,
+      "entryIds": [
+        "plate-101-0-1800"
+      ],
+      "angularResidualRadians": 5.960464477539063e-08
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0.001,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0.021,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 4.2146848510894035e-08
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0.4,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 2.5809568279517867e-07
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0.799999,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 0.8,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 2.9802322387695312e-08
+    },
+    {
+      "plateId": 301,
+      "ageMa": 1,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 3,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 3.3,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 5,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 10,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 15,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 0.0
+    },
+    {
+      "plateId": 301,
+      "ageMa": 16.3,
+      "entryIds": [
+        "plate-301-0-130"
+      ],
+      "angularResidualRadians": 3.4755181639464544e-07
+    }
+  ]
+}

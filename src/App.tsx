@@ -523,6 +523,26 @@ export default function App() {
   const displayedCao = !inCaoDomain ? null
     : caoMotionFrame?.requestedAgeMa === ageMa ? caoMotionFrame
       : caoRevision?.requestedAgeMa === ageMa ? caoRevision : null;
+  const foundationStatus = caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "outside compiled domain"
+    : periodCoordinateState.status === "error" ? "render unavailable"
+      : caoRevision === null ? "preparing"
+        : (caoMotionFrame?.requestedAgeMa ?? caoRevision.requestedAgeMa) !== ageMa
+          || periodCoordinateState.status === "updating"
+          ? "updating"
+          : periodCoordinateState.status === "ready" ? "rendered" : "updating";
+  const surfaceInfoState = caoLoadError !== null || periodCoordinateState.status === "error" ? "error"
+    : foundationStatus === "rendered" ? "ready" : foundationStatus === "outside compiled domain" ? "editorial" : "loading";
+  const surfaceInfoSummary = surfaceInfoState === "error" ? "Surface withheld"
+    : surfaceInfoState === "ready" ? "Cao surface"
+      : surfaceInfoState === "editorial" ? "Editorial surface" : "Preparing surface";
+  const observedMaterialVisible = (displayedCao?.materialCorrections.observedActiveCharts ?? 0) > 0;
+  const classifiedShallowMarineVisible =
+    (displayedCao?.materialCorrections.classifiedShallowMarineActiveCharts ?? 0) > 0;
+  const qualifiedMaterialVisible = ((displayedCao?.materialCorrections.qualifiedActiveCharts ?? 0)
+    - (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0)) > 0;
+  const uncertainMaterialVisible = (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0
+    || (displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0
+    || (displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0;
   const renderedEvidence = displayedCao === null ? "unknown" as const
     : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
       : "interpolation" as const;
@@ -779,7 +799,7 @@ export default function App() {
       kind: "area",
       coordinates,
       nonce: ++focusNonce.current,
-      distance: 1.82,
+      distance: undefined,
     });
   };
 
@@ -965,35 +985,46 @@ export default function App() {
             <button type="button" onClick={() => setSnapshot(editorialSnapshotForAge(ageMa))}>Try again</button>
           </div>
         )}
-        <div className="surface-legend" aria-label={`Surface-water view, ${layers.guides ? "schematic climatological reference guides, " : ""}Cao reconstruction with unknown elevation`}>
-          <span>Surface water</span>
-          {layers.guides && <span>Schematic climate guides</span>}
-          <span role="status">Cao native foundation · {caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "outside compiled domain"
-            : periodCoordinateState.status === "error" ? "render unavailable"
-              : caoRevision === null ? "preparing"
-                : (caoMotionFrame?.requestedAgeMa ?? caoRevision.requestedAgeMa) !== ageMa
-                  || periodCoordinateState.status === "updating"
-                  ? "updating"
-                  : periodCoordinateState.status === "ready" ? "rendered" : "updating"}</span>
-          {caoLoadError !== null && (
-            <span role="status">Cao reconstruction unavailable · surface withheld</span>
-          )}
-          {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
-          {((displayedCao?.materialCorrections.qualifiedActiveCharts ?? 0)
-            - (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0)) > 0 && (
-            <span className="material-key material-key-qualified">Ochre: source-supported material footprint · cited reconstruction pose · exposure unknown</span>
-          )}
-          {(displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0 && (
-            <span className="material-key material-key-uncertain">Gray: source-supported material footprint · partition pose uncertain · exposure unknown</span>
-          )}
-          {(displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0 && (
-            <span className="material-key material-key-uncertain">Gray: continued material with older pose uncertainty · exposure unknown</span>
-          )}
-          {(displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0 && (
-            <span className="material-key material-key-uncertain">Gray: possible domain-scale formation footprint · extent, pose, and exposure uncertain</span>
-          )}
-          Height data unknown <strong>{verticalExaggeration}× reserved</strong>
-        </div>
+        <details className="surface-info" data-status={surfaceInfoState}>
+          <summary aria-label={`Open map key. ${surfaceInfoSummary}. Cao reconstruction ${foundationStatus}.`}>
+            <Info size={14} aria-hidden="true" />
+            <span className="surface-status-dot" aria-hidden="true" />
+            <span className="surface-info-label">Map key</span>
+            <strong role="status">{surfaceInfoSummary}</strong>
+            <i aria-hidden="true" />
+          </summary>
+          <div className="surface-info-panel" aria-label="Surface map key">
+            <div className="surface-info-heading">
+              <span>Map key</span>
+              <strong>{surfaceInfoSummary}</strong>
+            </div>
+            <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
+            <ul className="surface-color-key">
+              <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>Continental shelf context; ancient water depth unknown</span></li>
+            </ul>
+            <div className="surface-evidence-key">
+              <strong>Evidence in this view</strong>
+              {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}
+              {classifiedShallowMarineVisible && <span>Modern Iceland shelf · generalized 0–200 m class</span>}
+              {qualifiedMaterialVisible && <span>Source-qualified material · cited reconstruction pose; exposure unknown</span>}
+              {uncertainMaterialVisible && <span>Model-inferred or uncertain material · pose, continuation, or formation extent; exposure unknown</span>}
+              {!observedMaterialVisible && !classifiedShallowMarineVisible
+                && !qualifiedMaterialVisible && !uncertainMaterialVisible
+                && <span>No regional material correction evidence active</span>}
+            </div>
+            <div className="surface-info-status">
+              <span>Surface water</span>
+              {layers.guides && <span>Schematic climate guides</span>}
+              <span role="status">Cao reconstruction · {foundationStatus}</span>
+              {caoLoadError !== null && (
+                <span role="status">Cao reconstruction unavailable · surface withheld</span>
+              )}
+              {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
+              <span>Elevation not represented</span>
+            </div>
+          </div>
+        </details>
         {materialFocusAddress !== null && (
           <div className="location-lock" data-testid="location-lock" data-status={areaFocusStatus ?? "resolving"}>
             <span role="status">

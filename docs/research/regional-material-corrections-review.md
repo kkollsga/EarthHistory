@@ -177,8 +177,9 @@ source-supported material with uncertain partition pose and unknown exposure.
 Older continuations and formation-range scenarios retain their separate gray
 wording.
 
-Correction geometry renders beneath native geometry at the same 400 m shell,
-with native visual and picking precedence in overlaps. Picking compares the
+Correction geometry renders beneath native geometry at the same 800 m land
+shell, with native visual and picking precedence in overlaps. Shelf context
+uses a separate 400 m shell. Picking compares the
 hit distance with the first opaque-globe intersection. Its near-limb regression
 uses a ray for which both sphere intersections have positive camera dot
 products and confirms that an occluded native triangle cannot defeat a visible

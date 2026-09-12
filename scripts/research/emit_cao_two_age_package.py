@@ -266,7 +266,7 @@ def main():
                     "limitations": [
                         "two-age integration subset",
                         "Cao coastline-class model geometry is not observed exposed land",
-                        "physical height unknown; 400 m is render-only shell separation",
+                        "physical height unknown; renderer-only shell offsets are not source elevation",
                     ],
                 },
                 "surfaceEvidence": {

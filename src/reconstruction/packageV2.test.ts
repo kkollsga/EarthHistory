@@ -31,6 +31,24 @@ const catalog: MaterialCorrectionCatalogV1 = { schemaVersion: 1, id: "correction
     overlapPolicy: "native-visual-and-picking-precedence" }] };
 
 describe("material correction catalog v1", () => {
+  it("accepts observed land only at the exact modern age", () => {
+    const observed = { ...catalog.charts[0]!, chartId: "observed", fragmentOrCohortId: "iceland",
+      lifecycle: { validTimeMa: { youngest: 0, oldest: 0 } },
+      motionBindings: [{ paletteId: "palette", entryId: "plate",
+        validTimeMa: { youngest: 0, oldest: 0 } }],
+      sourceFeatureTypes: ["EarthHistoryObservedModernLandCorrection"],
+      evidence: { ...catalog.charts[0]!.evidence,
+        correction: { correctionId: "region", phase: "observed-exposed-land" as const } },
+      surfaceEvidence: { kind: "observed" as const, surfaceClass: "land" as const,
+        sourceIds: ["natural-earth"], reason: "generalized modern land" } };
+    const observedCatalog = { ...catalog, charts: [observed] } satisfies MaterialCorrectionCatalogV1;
+    expect(() => validateMaterialCorrectionCatalogV1(observedCatalog, manifest)).not.toThrow();
+    expect(() => validateMaterialCorrectionCatalogV1({ ...observedCatalog, charts: [{ ...observed,
+      lifecycle: { validTimeMa: { youngest: 0, oldest: 0.001 } } }] }, manifest)).toThrow();
+    expect(() => validateMaterialCorrectionCatalogV1({ ...observedCatalog, charts: [{ ...observed,
+      surfaceEvidence: { kind: "unknown", reason: "lost observation" } }] }, manifest)).toThrow();
+  });
+
   it("rejects a corrupted phase, source boundary, baseline identity, and physical height", () => {
     expect(() => validateMaterialCorrectionCatalogV1(catalog, manifest)).not.toThrow();
     expect(() => validateMaterialCorrectionCatalogV1({ ...catalog, charts: [{ ...catalog.charts[0]!,

@@ -25,8 +25,10 @@ recorded in the [compiler report](reconstruction-cao-foundation-compiler.md).
 Native coast-class polygons are model geometry, rather than an independently
 validated atlas of exposed land, shallow seas or crust type. The initial
 physical elevation field is unknown and uses zero as its rendering placeholder.
-A 400 m rendering offset separates planar land triangles from the ocean shell;
-it is not source elevation and is not multiplied by vertical exaggeration.
+A render-only 400 m shelf shell and 800 m land/material shell separate planar
+triangles from the ocean sphere and preserve land-over-shelf ordering. These
+offsets are not source elevation and are not multiplied by vertical
+exaggeration.
 This foundation does not provide calibrated mountain heights, bathymetry,
 global seafloor ages or historical biome reconstructions.
 

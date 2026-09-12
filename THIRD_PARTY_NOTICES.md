@@ -21,6 +21,28 @@ below apply only to the identified third-party software and datasets.
   domain. EarthHistory subdivides and binds present-day reference lines to Cao
   plate coordinates offline, retaining ambiguity and validity limitations.
   These reference lines do not represent historical political borders.
+  The country-reference overlay remains 1:110m.
+- **Natural Earth 1:50m Admin 0 countries, version 5.1.1** —
+  [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
+  domain. EarthHistory extracts only the finer generalized Iceland polygon as
+  observed modern land at exactly 0 Ma; it is not backdated or used to define
+  the historical material footprint.
+- **Natural Earth 1:10m Bathymetry L_0 and K_200, embedded archive version
+  4.1.0** — [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/),
+  public domain. EarthHistory derives the exact-modern Iceland generalized
+  nominal 0–200 m shallow-marine context from the nested polygons. Natural
+  Earth documents coastline buffering and manual isobath generalization; the
+  derivative is not presented as exact measured bathymetry.
+- **Natural Science Institute of Iceland, Geological Map of Iceland — Bedrock
+  geology** — [official geological-map page](https://www.natt.is/en/resources/geospatial-data/geological-maps),
+  second edition (2014), licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The runtime
+  derivative selects and simplifies mapped outcrop-age classes from the
+  official WFS. The WFS layer retains a 1:500,000 identifier while the official
+  metadata identifies the current map lineage as 1:600,000. EarthHistory
+  attributes the Natural Science Institute of Iceland and preserves source
+  revision, spatial uncertainty, partial-coverage, inferred-pose and unknown
+  palaeosurface limits in the regional manifest.
 - **Geological Survey of Canada Arctic geology** — Harrison et al. (2011),
   [Geological Map of the Arctic, Map 2159A](https://doi.org/10.4095/287868),
   and Harrison, Lynds, Ford and Rainbird (2016),

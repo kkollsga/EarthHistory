@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import type { TimeSlice } from "../data";
 
 const CURVE = 5;
+export const TIMELINE_THUMB_DIAMETER_PX = 19;
 
 /** ICS 2026/06 base-Cambrian / Phanerozoic base used for range switching. */
 export const PHANEROZOIC_MAX_MA = 538.8;
@@ -14,6 +15,26 @@ export const ageToSlider = (age: number, maxAge: number) => {
   if (!maxAge) return 0;
   return (Math.log(1 + (Math.max(0, age) / maxAge) * (Math.exp(CURVE) - 1)) / CURVE) * 1000;
 };
+
+export const pointerClientXToSlider = (
+  clientX: number,
+  left: number,
+  width: number,
+  thumbDiameter = TIMELINE_THUMB_DIAMETER_PX,
+) => {
+  if (!Number.isFinite(clientX) || !Number.isFinite(left) || !Number.isFinite(width)
+    || !Number.isFinite(thumbDiameter) || width <= thumbDiameter || thumbDiameter < 0) return 0;
+  const thumbRadius = thumbDiameter / 2;
+  return Math.min(1000, Math.max(0, ((clientX - left - thumbRadius) / (width - thumbDiameter)) * 1000));
+};
+
+export const sliderToPointerClientX = (
+  sliderPosition: number,
+  left: number,
+  width: number,
+  thumbDiameter = TIMELINE_THUMB_DIAMETER_PX,
+) => left + thumbDiameter / 2
+  + (Math.min(1000, Math.max(0, sliderPosition)) / 1000) * Math.max(0, width - thumbDiameter);
 
 export function formatAge(ageMa: number) {
   if (ageMa === 0) return "Today";
@@ -136,6 +157,10 @@ export function Timeline({
   onNext,
 }: TimelineProps) {
   const chaptersRef = useRef<HTMLDivElement>(null);
+  const touchPointerId = useRef<number | null>(null);
+  const touchSliderPositionRef = useRef<number | null>(null);
+  const touchGrabOffsetPx = useRef(0);
+  const [touchSliderPosition, setTouchSliderPosition] = useState<number | null>(null);
   const [scaleMode, setScaleMode] = useState<ScaleMode>(() =>
     ageMa > PHANEROZOIC_MAX_MA ? "precambrian" : "phanerozoic",
   );
@@ -192,7 +217,73 @@ export function Timeline({
     if (next === "phanerozoic" && ageMa > PHANEROZOIC_MAX_MA) onAgeChange(PHANEROZOIC_MAX_MA);
   };
 
-  const handlePercent = sliderPosition(ageMa) / 10;
+  const liveSliderPosition = touchSliderPosition ?? sliderPosition(ageMa);
+  const liveAgeMa = touchSliderPosition === null ? ageMa : sliderAge(touchSliderPosition);
+  const handlePercent = liveSliderPosition / 10;
+  const updateTouchPosition = (
+    event: ReactPointerEvent<HTMLInputElement>,
+    urgent: boolean,
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const nextSliderPosition = pointerClientXToSlider(
+      event.clientX - touchGrabOffsetPx.current,
+      rect.left,
+      rect.width,
+    );
+    // Move the native thumb before reconstruction work begins. React state keeps
+    // the label in step while every value still reaches the globe motion path.
+    event.currentTarget.value = String(nextSliderPosition);
+    touchSliderPositionRef.current = nextSliderPosition;
+    setTouchSliderPosition(nextSliderPosition);
+    const publish = () => onAgeChange(sliderAge(nextSliderPosition));
+    if (urgent) publish(); else startTransition(publish);
+  };
+  const beginTouchDrag = (event: ReactPointerEvent<HTMLInputElement>) => {
+    if ((event.pointerType !== "touch" && event.pointerType !== "pen")
+      || !event.isPrimary || touchPointerId.current !== null) return;
+    event.preventDefault();
+    touchPointerId.current = event.pointerId;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const currentSliderPosition = touchSliderPositionRef.current ?? sliderPosition(ageMa);
+    const currentThumbCenter = sliderToPointerClientX(
+      currentSliderPosition,
+      rect.left,
+      rect.width,
+    );
+    const pointerOffset = event.clientX - currentThumbCenter;
+    touchGrabOffsetPx.current = Math.abs(pointerOffset) <= TIMELINE_THUMB_DIAMETER_PX / 2
+      ? pointerOffset
+      : 0;
+    event.currentTarget.focus({ preventScroll: true });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateTouchPosition(event, false);
+  };
+  const moveTouchDrag = (event: ReactPointerEvent<HTMLInputElement>) => {
+    if (touchPointerId.current !== event.pointerId) return;
+    event.preventDefault();
+    updateTouchPosition(event, false);
+  };
+  const endTouchDrag = (event: ReactPointerEvent<HTMLInputElement>) => {
+    if (touchPointerId.current !== event.pointerId) return;
+    event.preventDefault();
+    updateTouchPosition(event, true);
+    touchPointerId.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    touchSliderPositionRef.current = null;
+    touchGrabOffsetPx.current = 0;
+    setTouchSliderPosition(null);
+  };
+  const cancelTouchDrag = (event: ReactPointerEvent<HTMLInputElement>) => {
+    if (touchPointerId.current !== event.pointerId) return;
+    const finalSliderPosition = touchSliderPositionRef.current;
+    if (finalSliderPosition !== null) onAgeChange(sliderAge(finalSliderPosition));
+    touchPointerId.current = null;
+    touchSliderPositionRef.current = null;
+    touchGrabOffsetPx.current = 0;
+    setTouchSliderPosition(null);
+  };
   const majorBands = scaleMode === "phanerozoic"
     ? ERA_BOUNDARIES
     : EON_BOUNDARIES.filter(
@@ -248,7 +339,7 @@ export function Timeline({
           style={{ left: `${handlePercent}%` }}
           htmlFor="geological-age"
         >
-          {formatAge(ageMa)}
+          {formatAge(liveAgeMa)}
         </output>
         <input
           id="geological-age"
@@ -257,10 +348,23 @@ export function Timeline({
           min="0"
           max="1000"
           step="any"
-          value={sliderPosition(ageMa)}
-          onChange={(event) => onAgeChange(sliderAge(Number(event.target.value)))}
-          aria-label={`Geological age, ${formatAge(ageMa)}`}
-          aria-valuetext={formatAge(ageMa)}
+          value={liveSliderPosition}
+          onInput={(event) => {
+            const touchPosition = touchSliderPositionRef.current;
+            if (touchPointerId.current !== null && touchPosition !== null) {
+              event.currentTarget.value = String(touchPosition);
+            }
+          }}
+          onChange={(event) => {
+            if (touchPointerId.current === null) onAgeChange(sliderAge(Number(event.target.value)));
+          }}
+          onPointerDown={beginTouchDrag}
+          onPointerMove={moveTouchDrag}
+          onPointerUp={endTouchDrag}
+          onPointerCancel={cancelTouchDrag}
+          onLostPointerCapture={cancelTouchDrag}
+          aria-label={`Geological age, ${formatAge(liveAgeMa)}`}
+          aria-valuetext={formatAge(liveAgeMa)}
         />
         <div className="chapter-marks" aria-hidden="true">
           {visibleScaleChapters.map((slice) => (

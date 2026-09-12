@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "correctionId": "earthhistory-regional-barents-shelf-lifecycle-v1",
+  "reproducedBaseline": {
+    "packageVersion": "0.1.4",
+    "commit": "bc789eb",
+    "core": {
+      "bytes": 5875550,
+      "sha256": "cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223"
+    },
+    "motionPaletteCatalog": {
+      "bytes": 448210,
+      "sha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217"
+    },
+    "motionPaletteBinary": {
+      "bytes": 5166572,
+      "sha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed"
+    },
+    "materialCorrectionCatalog": {
+      "bytes": 176313,
+      "sha256": "a173bdaa3336564ffcd820f78090bbf11a74c2fce1dcda0986ebb176a1459023"
+    },
+    "activeTargetChartCountAt422Ma": 0,
+    "failure": "all three exact Cao continental-outline shelf charts are inactive because their compiled lifecycle ends at 410 Ma"
+  },
+  "sourceComparison": {
+    "compiledShelfCollectionSha256": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616",
+    "lifecycleAuthoritySha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd",
+    "exactFeatureIdentityMatches": 3,
+    "exactOrderedGeometryMatches": 3,
+    "compiledOldestAgeMa": 410,
+    "authorityOldestAgeMa": 600,
+    "excludedSameLifecycleFeatures": [
+      "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+      "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82"
+    ]
+  },
+  "witnesses": [
+    {
+      "featureId": "GPlates-12d36765-58ee-488d-9383-4a58fd55080c",
+      "plateId": 311,
+      "referenceLongitudeLatitude": [31.16324416906489, 76.98529747418236],
+      "reconstructedLongitudeLatitudeAt422Ma": [-61.634423071960946, 4.616748602388645]
+    },
+    {
+      "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "plateId": 311,
+      "referenceLongitudeLatitude": [24.455138172957703, 79.01287207949157],
+      "reconstructedLongitudeLatitudeAt422Ma": [-64.08561190914128, 4.888153799700256]
+    },
+    {
+      "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "plateId": 309,
+      "referenceLongitudeLatitude": [16.284884638354438, 76.52768520321726],
+      "reconstructedLongitudeLatitudeAt422Ma": [-64.47754121052292, 2.657926308316362]
+    }
+  ],
+  "isolatedBaselineApplication": {
+    "changedChartIndices": [74, 539, 543],
+    "changedChartCount": 3,
+    "appendedMotionEntries": [
+      "barents-shelf-plate-309-505-600",
+      "barents-shelf-plate-311-505-600"
+    ],
+    "appendedMotionSamples": 30,
+    "maximumQuarterMaMotionResidualRad410To600": 8.940696716308595e-08,
+    "angularErrorLimitRad": 0.00001,
+    "maximumResidualAgeMa": 468.0,
+    "geometryAssetsUnchanged": true,
+    "nativeCoastChartsUnchanged": true,
+    "nativeCoastChartCount": 2921,
+    "trackedMaterialCorrectionTargetsUnchanged": 90,
+    "candidateCore": {
+      "bytes": 5876282,
+      "sha256": "5c83e94a74990d47f486bae6a20ed18140813d9438c6d6380c610cc00e005e93"
+    },
+    "candidateMotionPaletteCatalog": {
+      "bytes": 449930,
+      "sha256": "bc5c44c11664d6ac544217b6a1cda1546453749d24b7e022eac788a97c2eaaef"
+    },
+    "candidateMotionPaletteBinary": {
+      "bytes": 5167172,
+      "sha256": "17881aa297c4d8ca4ea70d6a2577d266108b7b2b8eac68b10bf37261786fecdf"
+    },
+    "candidateMaterialCorrectionCatalog": {
+      "bytes": 176313,
+      "sha256": "5fe3347f7f1d146f55fd580b7f212ecc5bb0cc22a28313b948291f1868b4fe63",
+      "onlyChangedField": "baseline.coreSha256"
+    },
+    "candidateManifest": {
+      "bytes": 38988,
+      "sha256": "3f1b730140657806f5021f69d726d7de546bc398e1891fbb6c5a3066c616d3a0"
+    },
+    "note": "Final package hashes are assigned by the shared Iceland/Barents emitter after both isolated corrections are applied."
+  },
+  "lifecycleChecks": [
+    {"ageMa": 0, "activeChartCount": 3},
+    {"ageMa": 409, "activeChartCount": 3},
+    {"ageMa": 422, "activeChartCount": 3},
+    {"ageMa": 600, "activeChartCount": 3},
+    {"ageMa": 600.000001, "activeChartCount": 0}
+  ],
+  "surfaceSemantics": {
+    "appearance": "shelf",
+    "classification": "Cao model continental-outline context",
+    "surfaceEvidence": "unknown",
+    "bathymetryClaim": false,
+    "palaeoshorelineClaim": false,
+    "exposureClaim": false
+  },
+  "tests": {
+    "command": "../EarthHistory-data/palaeomap-study/verification/pygplates-venv/bin/python -m unittest scripts/research/apply_regional_barents_shelf_test.py",
+    "testCount": 6,
+    "status": "passed",
+    "deliberateMutation": "restoring one repaired chart lifecycle to 410 Ma makes validate_applied reject the 422 Ma regression"
+  }
+}

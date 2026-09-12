@@ -3,25 +3,27 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import json
 import math
+import os
 import struct
 import subprocess
 import tempfile
 from pathlib import Path
 
 import cao_material_corrections as contract
+import regional_iceland_correction as iceland_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 OUT = PUBLIC / "corrections/material-v1"
 CATALOG_ID = "earthhistory-cao-v2.4-material-corrections-v1"
-CATALOG_VERSION = "3"
-QUALIFIED_COLOR = [0.58, 0.52, 0.28]
-UNCERTAIN_COLOR = [0.34, 0.38, 0.35]
+CATALOG_VERSION = "4"
+LAND_COLOR = [0.45, 0.55, 0.3]
 MAX_EDGE_RADIANS = math.radians(1)
 EARTH_RADIUS_METRES = 6_371_000
 DISPLAY_SHELL_OFFSET_METRES = 400
@@ -788,11 +790,15 @@ def chart(manifest, feature, phase, palette):
     correction_id = manifest["correctionId"]
     source_ids = [str(value) for value in feature["sourceIds"]]
     replacement = feature.get("replacementEvidence")
-    label = ("source-qualified-material" if phase in {"qualified", "model-pose"} else
+    label = ("observed-exposed-land" if phase == "observed" else
+             "source-qualified-material" if phase in {"qualified", "model-pose"} else
              "formation-uncertain" if phase == "formation" else "uncertain-continuation")
-    lifecycle = {"validTimeMa": {"youngest": youngest, "oldest": oldest}}
-    if phase not in {"qualified", "model-pose"} or replacement is None:
-        lifecycle["youngestExclusive"] = True
+    if feature.get("phaseLifecycles") is not None:
+        lifecycle = feature["phaseLifecycles"][phase]
+    else:
+        lifecycle = {"validTimeMa": {"youngest": youngest, "oldest": oldest}}
+        if phase not in {"qualified", "model-pose"} or replacement is None:
+            lifecycle["youngestExclusive"] = True
     correction = {"correctionId": correction_id, "phase": label}
     if replacement is not None:
         correction.update({
@@ -801,6 +807,20 @@ def chart(manifest, feature, phase, palette):
         })
         if replacement["materialOriginRangeMa"] is not None:
             correction["materialOriginRangeMa"] = replacement["materialOriginRangeMa"]
+    elif feature.get("phaseLifecycles") is not None and phase != "observed":
+        kind = feature["sourceUnitSelection"]["included"][0]
+        origin = {"gold": [16.3, 3.3], "gnew": [3.3, 0.8],
+                  "hraun": [0.8, 0], "mob": [0.8, 0]}[kind]
+        correction.update({
+            "materialStatus": "supported" if phase in {"qualified", "model-pose"} else "formation-uncertain",
+            "poseStatus": "model-inference",
+            "materialOriginRangeMa": origin,
+        })
+    source_type = ("EarthHistoryObservedModernLandCorrection" if phase == "observed" else
+                   "EarthHistoryVolcanicIslandMaterialCorrection"
+                   if feature.get("phaseLifecycles") is not None else
+                   "EarthHistoryDomainFragmentReplacement" if replacement is not None else
+                   "EarthHistorySourceQualifiedMaterialCorrection")
     return {
         "kind": "rigid",
         "role": "model-geography",
@@ -813,15 +833,18 @@ def chart(manifest, feature, phase, palette):
         "motionBindings": palette_bindings(
             palette, feature["pose"]["plateId"], youngest, oldest
         ),
-        "sourceFeatureIds": [target["sourceFeatureId"] for target in feature["targets"]],
-        "sourceFeatureTypes": ["EarthHistoryDomainFragmentReplacement" if replacement is not None
-                               else "EarthHistorySourceQualifiedMaterialCorrection"],
+        "sourceFeatureIds": ([feature["correctionFeatureId"]]
+                             if feature.get("phaseLifecycles") is not None else
+                             [target["sourceFeatureId"] for target in feature["targets"]]),
+        "sourceFeatureTypes": [source_type],
         "evidence": {
             "status": "derived-overlay",
             "sourceIds": source_ids,
             "limitations": [feature["uncertainty"]["spatial"], feature["uncertainty"]["temporal"],
                             feature["uncertainty"]["exposure"],
-                            "material support is not a palaeoshoreline, exposed-land, or height claim",
+                            ("observed land classification is limited to the exact modern reference age"
+                             if phase == "observed" else
+                             "material support is not a palaeoshoreline, exposed-land, or height claim"),
                             *([replacement["poseWarning"]] if replacement is not None else [])],
             "correction": correction,
         },
@@ -829,36 +852,84 @@ def chart(manifest, feature, phase, palette):
     }
 
 
-def update_public_manifest(catalog_path, geometry_paths):
+def update_public_manifest(catalog_path, geometry_paths, *, update_root_manifest=True):
     manifest_path = PUBLIC / "manifest.json"
     package = json.loads(manifest_path.read_text())
     package["materialCorrections"] = {"id": CATALOG_ID, "catalog": asset(catalog_path)}
     manifest_path.write_bytes(canonical_json(package))
 
+    if not update_root_manifest:
+        return
+    refresh_outer_manifest()
+
+
+def refresh_outer_manifest():
+    """Rebind every mutable Cao/package correction asset in the outer inventory."""
+    manifest_path = PUBLIC / "manifest.json"
+    package = json.loads(manifest_path.read_text())
     root_manifest_path = ROOT / "public/data/manifest.json"
     root_manifest = json.loads(root_manifest_path.read_text())
     outputs = root_manifest["inputs"]["cao-reconstruction-foundation-v2"]["outputs"]
-    package_row = next(row for row in outputs if row["path"] == "public/data/reconstruction/cao-v2.4/manifest.json")
-    package_row.update({"bytes": manifest_path.stat().st_size, "sha256": sha256(manifest_path)})
-    correction_outputs = []
-    for path in [catalog_path, *geometry_paths]:
-        correction_outputs.append({"role": path.name, "path": str(path.relative_to(ROOT)),
-                                   "bytes": path.stat().st_size, "sha256": sha256(path)})
+    for row in outputs:
+        path = ROOT / row["path"]
+        if not path.is_file():
+            raise contract.CorrectionError(f"outer manifest output is missing: {row['path']}")
+        row.update({"bytes": path.stat().st_size, "sha256": sha256(path)})
+    foundation = root_manifest["inputs"]["cao-reconstruction-foundation-v2"]
+    foundation["license"] = "CC BY 4.0 (Cao v2.4); public domain (Natural Earth)"
+    foundation["processing"] = (
+        "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and "
+        "shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth "
+        "generalized 0-200 m Iceland shelf overlay; Natural Earth country locator lines; "
+        "native boundaries/ownership over the compiled Cao domain."
+    )
+    foundation["scope"] = (
+        "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline "
+        "shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; "
+        "Natural Earth country locator lines; native boundaries/ownership. Country lines remain "
+        "modern locators only; the shelf overlay is not a palaeoshoreline or growth simulation."
+    )
+    catalog_path = PUBLIC / package["materialCorrections"]["catalog"]["url"]
+    catalog = json.loads(catalog_path.read_text())
+    correction_paths = [catalog_path, *(PUBLIC / batch["geometryAsset"]["url"]
+                                         for batch in catalog["spatialBatches"])]
+    correction_outputs = [{"role": path.name, "path": str(path.relative_to(ROOT)),
+                           "bytes": path.stat().st_size, "sha256": sha256(path)}
+                          for path in correction_paths]
     root_manifest["inputs"]["regional-material-corrections-v1"] = {
-        "processing": "Source-qualified regional masks compiled as rigid material charts and guarded exact native-chart replacements; raw Cao source assets remain unchanged",
-        "scope": "Continental material support only; surface exposure, palaeoshoreline and physical height remain unknown",
+        "processing": "Source-qualified regional masks, one exact-modern observed land correction, and guarded native-chart replacements compiled as rigid charts; raw Cao source assets remain unchanged",
+        "scope": "Iceland is observed exposed land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
         "outputs": correction_outputs,
     }
-    root_manifest_path.write_text(json.dumps(root_manifest, indent=2) + "\n")
+    temporary = root_manifest_path.with_name(root_manifest_path.name + ".correction-stage")
+    temporary.write_text(json.dumps(root_manifest, indent=2) + "\n")
+    os.replace(temporary, root_manifest_path)
 
 
 def main():
+    global PUBLIC, OUT
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--package", type=Path, default=PUBLIC)
+    parser.add_argument("--skip-root-manifest", action="store_true")
+    parser.add_argument("--refresh-outer-manifest-only", action="store_true")
+    args = parser.parse_args()
+    PUBLIC = args.package.resolve()
+    OUT = PUBLIC / "corrections/material-v1"
+    if args.refresh_outer_manifest_only:
+        refresh_outer_manifest()
+        print(json.dumps({"outerManifest": str(ROOT / "public/data/manifest.json"),
+                          "package": str(PUBLIC)}))
+        return
     manifests = contract.validate_all(validate_runtime=False)
     manifest_paths = {path.parent.name: path for path in sorted(contract.CORRECTIONS.glob("*/manifest.json"))}
     rows = [(manifest, manifest_paths[next(name for name, path in manifest_paths.items()
                                           if json.loads(path.read_text())["correctionId"] == manifest["correctionId"])], feature)
             for manifest in manifests for feature in manifest["features"]]
     additive_rows = rows
+    iceland_manifest = json.loads(iceland_contract.MANIFEST.read_text())
+    iceland_contract.validate_document(iceland_manifest)
+    rows = [*rows, *((iceland_manifest, iceland_contract.MANIFEST, feature)
+                     for feature in iceland_manifest["features"])]
     package, palette, records = palette_data()
     core = json.loads((PUBLIC / package["core"]["url"]).read_text())
     native_overrides, replacement_rows = native_override_rows(core)
@@ -868,7 +939,8 @@ def main():
     batches = []
     geometry_paths = []
     with tempfile.TemporaryDirectory(prefix="earthhistory-corrections-") as scratch:
-        for batch_name, phases in (("qualified", ("qualified",)),
+        for batch_name, phases in (("observed", ("observed",)),
+                                   ("qualified", ("qualified",)),
                                    ("uncertain", ("uncertain", "model-pose", "formation"))):
             staged = stage_phases(rows, phases, batch_name, len(core["charts"]) + len(charts),
                                   palette, records, Path(scratch))
@@ -892,8 +964,7 @@ def main():
                 "geometryAsset": asset(geometry_path),
                 "encoding": "ehgb-v2-f32xyz-u32",
                 "staticDisplayControl": {"displayHeightMetres": 0,
-                                         "baseColorRgb": QUALIFIED_COLOR if batch_name == "qualified"
-                                         else UNCERTAIN_COLOR},
+                                         "baseColorRgb": LAND_COLOR},
                 "overlapPolicy": "native-visual-and-picking-precedence",
             })
     catalog = {
@@ -904,6 +975,7 @@ def main():
                      "coreSha256": package["core"]["sha256"], "motionPaletteId": palette["id"],
                      "frame": package["frame"]},
         "correctionIds": sorted({*(manifest["correctionId"] for manifest in manifests),
+                                 iceland_manifest["correctionId"],
                                  *(override["correctionId"] for override in native_overrides)}),
         "nativeChartOverrides": native_overrides,
         "alignmentWitnesses": alignment_witnesses(additive_rows, palette, records),
@@ -912,7 +984,8 @@ def main():
     }
     catalog_path = OUT / "catalog.json"
     catalog_path.write_bytes(canonical_json(catalog))
-    update_public_manifest(catalog_path, geometry_paths)
+    update_public_manifest(catalog_path, geometry_paths,
+                           update_root_manifest=not args.skip_root_manifest)
     print(json.dumps({"corrections": len(catalog["correctionIds"]), "charts": len(charts),
                       "nativeOverrides": len(native_overrides),
                       "batches": [{"id": batch["batchId"], "vertices": batch["vertexCount"],

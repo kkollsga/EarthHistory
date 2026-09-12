@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "review": "independent final composed Iceland, Cao shelf lifecycle, and pre-existing correction invariant review",
+  "packageAssets": {
+    "packageManifest": {
+      "bytes": 39277,
+      "sha256": "0dd831e5ecc04a719a782e3e21937275c8293ab539d15738bdd8a0e1cc1df3e5"
+    },
+    "core": {
+      "bytes": 5937171,
+      "sha256": "14c33ff9dc79feea337811f1e21c771765adb46857984d3ae2adc2545531bda8"
+    },
+    "shelf": {
+      "bytes": 6167960,
+      "sha256": "2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077"
+    },
+    "motionPaletteCatalog": {
+      "bytes": 457445,
+      "sha256": "bacde9c52c9fd755fb208d4cabef38537bb2f6e6eff7a01b4a30c9d371460e21"
+    },
+    "motionPaletteBinary": {
+      "bytes": 5172072,
+      "sha256": "17195d05d09864c6385feeaa0d73a965aca2fea0627271d5602954bc9ae6b2f7"
+    },
+    "materialCorrectionCatalog": {
+      "bytes": 198006,
+      "sha256": "9fb715d2f5eee35fc3008ea409cf3e85aad0f4794e67d152171d895d62c0768a"
+    }
+  },
+  "compositionInvariants": {
+    "baselineCoreCharts": 4824,
+    "appendedIcelandShelfCharts": 2,
+    "heightMetadataOnlyReplacements": 3784,
+    "nativeCoastCharts": 2921,
+    "nativeLandBinaryByteIdentical": true,
+    "nativeShelfDecodedPrefixIdentical": true,
+    "materialCorrectionCharts": 98,
+    "materialCorrectionIndexShift": 2,
+    "materialCorrectionDecodedGeometryUnchanged": true,
+    "originalMotionEntries": 1091,
+    "appendedMotionEntries": 4,
+    "originalMotionRecordsByteIdentical": true
+  },
+  "preExistingMaterialCorrections": {
+    "baselineChartCount": 84,
+    "removedChartCount": 0,
+    "changedDecodedChartCount": 0,
+    "nativeChartOverridesStructurallyEqual": true,
+    "trackedTargetCount": 90,
+    "trackedTargetsSha256": "693b210d70763f450360d91a6b552a3a6af77c0cfc39679a9a7922e4968ee27b",
+    "trackedTargetsByteIdenticalToHead": true,
+    "note": "correction EHGB bytes change only because two appended core chart indices shift correction chart indices by two"
+  },
+  "iceland": {
+    "observedModernLand": {
+      "chartCount": 2,
+      "batchId": "material-correction-observed",
+      "surfaceEvidenceKind": "observed",
+      "validTimeMa": {
+        "youngest": 0,
+        "oldest": 0
+      },
+      "source": "Natural Earth 1:50m Admin 0 Countries version 5.1.1",
+      "sourcePointCount": 453,
+      "previousSourcePointCount": 20,
+      "geometryAsset": {
+        "bytes": 16504,
+        "sha256": "a6df861f11ef2813e4a9ebc927f3d07c56bbb88acf8459a33e0b22fddff75aab",
+        "vertexCount": 502,
+        "triangleCount": 536,
+        "byteIncrease": 14124
+      },
+      "bothChartsRetainModelGeographyRole": true,
+      "bothChartsRetainExactModernLifecycle": true
+    },
+    "shallowMarine": {
+      "chartCount": 2,
+      "batchId": "batch-shelf",
+      "surfaceEvidenceKind": "classified",
+      "surfaceClass": "shallow-marine",
+      "validTimeMa": {
+        "youngest": 0,
+        "oldest": 0
+      },
+      "source": "Natural Earth 1:10m L_0 minus K_200, embedded version 4.1.0",
+      "sourceGeometry": {
+        "bounds": [
+          -26.753285,
+          63.150824,
+          -11.869252,
+          67.261115
+        ],
+        "componentCount": 1,
+        "hausdorffDistanceDegrees": 0.004997703,
+        "holeCount": 7,
+        "plateAreasSquareKilometres": {
+          "101": 53476.039,
+          "301": 59956.68
+        },
+        "plateVertexCounts": {
+          "101": 1065,
+          "301": 1248
+        },
+        "rawAreaSquareKilometres": 113421.318,
+        "rawVertexCount": 4388,
+        "relativeAreaError": 0.000100686,
+        "simplifiedAreaSquareKilometres": 113432.738,
+        "simplifiedVertexCount": 2291
+      },
+      "compiledMesh": {
+        "addedVertices": 2348,
+        "addedTriangles": 2387,
+        "addedBytes": 75604,
+        "shelfVertices": 156252,
+        "shelfTriangles": 253574,
+        "composedVertices": 361829,
+        "composedTriangles": 521541,
+        "maximumEdgeDegrees": 1.000145752,
+        "refinementBoundDegrees": 1
+      },
+      "historicalGrowthClaim": false
+    },
+    "nonModern": {
+      "chartCount": 12,
+      "modelPoseChartCount": 4,
+      "formationUncertainChartCount": 8,
+      "batchId": "material-correction-uncertain",
+      "surfaceEvidenceKind": "unknown",
+      "allChartsUseGrayUncertainBatch": true,
+      "palaeoshorelineExposureOrHeightClaimCount": 0
+    },
+    "denseMotionOracle": {
+      "oracle": "pyGPlates strict Cao v2.4 finite rotations relative to each plate's 0 Ma pose",
+      "ageRangeMa": [
+        0,
+        16.3
+      ],
+      "cadenceMa": 0.01,
+      "acceptanceLimitRadians": 1e-05,
+      "plates": {
+        "101": {
+          "sampleCount": 1631,
+          "maximumAngularResidualRadians": 3.2917740992269735e-07,
+          "maximumResidualAtAgeMa": 0.38
+        },
+        "301": {
+          "sampleCount": 1631,
+          "maximumAngularResidualRadians": 1.4648682746225335e-06,
+          "maximumResidualAtAgeMa": 13.5
+        }
+      }
+    }
+  },
+  "cao422ShelfLifecycle": {
+    "chartCount": 6,
+    "activeAt422Ma": 6,
+    "oldestInclusiveAgeMa": 600,
+    "maximumAngularResidualRadians": 9.339260428426327e-06,
+    "maximumResidualAtAgeMa": 418.75,
+    "maximumResidualPlateId": 319,
+    "acceptanceLimitRadians": 1e-05,
+    "oracle": "quarter-Ma across added intervals and both sides of every shared motion knot"
+  },
+  "rendererEnvelope": {
+    "earthRadiusMetres": 6371000,
+    "shelfShellOffsetMetres": 400,
+    "landShellOffsetMetres": 800,
+    "shelfMinimumDisplayedRadius": 1.000014908008,
+    "shelfMaximumDisplayedVertexRadius": 1.000062832803,
+    "landMinimumDisplayedRadius": 1.000077689495,
+    "minimumLandOverShelfMetres": 94.65,
+    "old80mShelfMinimumDisplayedRadius": 0.999964682819,
+    "old400mLandMinimumDisplayedRadius": 1.000014908008,
+    "interpretation": "conservative float32 mesh-ordering envelope; not a measured elevation/depth or proof of per-pixel occlusion against the triangulated globe"
+  },
+  "outcome": "pass"
+}
