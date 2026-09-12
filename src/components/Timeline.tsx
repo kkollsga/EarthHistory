@@ -256,7 +256,7 @@ export function Timeline({
           type="range"
           min="0"
           max="1000"
-          step="1"
+          step="any"
           value={sliderPosition(ageMa)}
           onChange={(event) => onAgeChange(sliderAge(Number(event.target.value)))}
           aria-label={`Geological age, ${formatAge(ageMa)}`}

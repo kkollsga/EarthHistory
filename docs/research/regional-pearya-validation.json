@@ -1,0 +1,114 @@
+{
+  "candidate": "earthhistory-regional-pearya-pericratonic-scenario-v1",
+  "combined": {
+    "candidateAreaKm2": 29284.155530214375,
+    "coordinateCount": 1327,
+    "targetAreaKm2": 42371.97848449835,
+    "targetAreaSupportFractionAt411": 0.6911207967531628
+  },
+  "endpointChecks": [
+    {
+      "ageMa": 410.0,
+      "correctionActive": false,
+      "nativeTargetActive": true
+    },
+    {
+      "ageMa": 410.001,
+      "correctionActive": true,
+      "nativeTargetActive": false
+    },
+    {
+      "ageMa": 416.0,
+      "correctionActive": true,
+      "nativeTargetActive": false,
+      "poseStyle": "qualified"
+    },
+    {
+      "ageMa": 416.001,
+      "correctionActive": true,
+      "nativeTargetActive": false,
+      "poseStyle": "uncertain"
+    },
+    {
+      "ageMa": 540.0,
+      "correctionActive": true,
+      "nativeTargetActive": false,
+      "poseStyle": "uncertain"
+    }
+  ],
+  "geometry": {
+    "candidateAreaKm2": 12214.202131586162,
+    "coordinateCount": 250,
+    "finalOutsideSourceHullKm2": 0,
+    "finalOutsideTargetKm2": 0,
+    "guardedHullExclusionKm2": 6189.038613503029,
+    "inferredIceOrUnmappedGapKm2": 6269.331719243513,
+    "mappedDomainClassification": {
+      "classified": [
+        {
+          "areaKm2": 6025.528508466994,
+          "domainLevel1": "Innuitian region, North Greenland",
+          "domainLevel2": "Pearya, north Ellesmere Island",
+          "domainLevel3": "Orogen, fold-thrust belt, folded region"
+        },
+        {
+          "areaKm2": 4580.750265519136,
+          "domainLevel1": "ice",
+          "domainLevel2": "ice",
+          "domainLevel3": "ice"
+        }
+      ],
+      "mappedUnionAreaKm2": 10606.27877398612,
+      "unmappedAreaKm2": 1769.030698330577
+    },
+    "mappedNonPearyaOverlapKm2": 0,
+    "mappedUnrelatedExcludedKm2": 3565.2888094146115,
+    "originalMappedSourceWithinTargetKm2": 6568.133850190186,
+    "retainedMappedSourceFraction": 0.9051079877384821,
+    "retainedMappedSourceKm2": 5944.870412342649,
+    "sourceHullGapWithinTargetKm2": 11835.106894899005,
+    "sourceHullWithinTargetKm2": 18403.24074508919,
+    "targetAreaKm2": 42371.97848449835,
+    "targetAreaSupportFractionAt411": 0.2882613125099808
+  },
+  "laurentianFragment": {
+    "candidateAreaKm2": 17069.95339862821,
+    "coordinateCount": 1077,
+    "maximumComputationalPlate101Vs124ResidualKm": 0.0,
+    "outsideTargetKm2": 0,
+    "overlapWithPearyaScenarioKm2": 0,
+    "qualifiedUntilMa": 430,
+    "rawMappedDomainAreaKm2": 18280.35137628093,
+    "simplificationAreaChangeFraction": 0.042037295730448294,
+    "simplifiedOutsideMappedSourceFraction": 0.023356546113340128,
+    "sourceDomains": [
+      "Ellesmere-North Greenland fold belt",
+      "Ellesmerian Orogen (Canada and Greenland)",
+      "eastern Sverdrup Basin, Eurekan Orogen"
+    ],
+    "targetAreaSupportFractionAt411": 0.402859484243182,
+    "uncertainUntilMa": 540.0
+  },
+  "limits": [
+    "the convex-envelope interior is accepted only after all mapped unrelated domains are removed",
+    "the inferred gap beneath ice or absent mapping is material-domain interpolation rather than observed outcrop",
+    "plate-124 pose agreement is computational and does not resolve competing Pearya palaeogeographic models"
+  ],
+  "pose": {
+    "consensusPlacement": false,
+    "maximumComputationalPlate124ResidualKm": 0.0,
+    "qualifiedUntilMa": 416.0,
+    "scenario": "pericratonic-Cao-plate-124",
+    "uncertainUntilMa": 540.0
+  },
+  "schemaVersion": 1,
+  "source": {
+    "aggregateSha256": "f8a919cc5bc70a772abed6643ccffbd1b0cfcbdadc291ff9c445d8cd9ac8b125",
+    "ownedSourceDirectoryBytes": 26717391,
+    "pearyaDomainRecordCount": 160,
+    "retainedMemberBytes": 26714227,
+    "sourceAcquisitionMaximumBytes": 134217728,
+    "sourceRecordCount": 2937
+  },
+  "status": "source-qualified-scenario"
+}

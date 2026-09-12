@@ -15,6 +15,26 @@ async function openMenu(page: Page) {
   await expect(page.getByRole("menu", { name: "Explore tools" })).toBeVisible();
 }
 
+async function setContinuousAge(page: Page, ageMa: number) {
+  await page.locator("#timeline-scale").selectOption("phanerozoic");
+  const rawValue = await page.locator("#geological-age").evaluate((element, age) => {
+    if (!(element instanceof HTMLInputElement)) throw new Error("geological age range is missing");
+    const raw = age / 538.8 * 1000;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (!setter) throw new Error("range value setter is unavailable");
+    setter.call(element, String(raw));
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    return Number(element.value);
+  }, ageMa);
+  expect(rawValue).toBeCloseTo(ageMa / 538.8 * 1000, 6);
+  await page.waitForFunction((age) => {
+    const value = document.querySelector<HTMLCanvasElement>(
+      "canvas[aria-label='Interactive three-dimensional Earth']",
+    )?.dataset.caoFoundationRequestedAgeMa;
+    return value !== undefined && Math.abs(Number(value) - age) <= 1e-6;
+  }, ageMa, { timeout: 20_000 });
+}
+
 test("loads one local Cao reconstruction and the complete chapter picker", { tag: "@ci" }, async ({ page, baseURL }) => {
   const external = new Set<string>();
   const failures: string[] = [];
@@ -27,15 +47,28 @@ test("loads one local Cao reconstruction and the complete chapter picker", { tag
   });
   await page.goto("./");
   await waitForCao(page);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
-  await expect(page.locator("#chapter-jump option")).toHaveCount(37);
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "native-cao-foundation");
-  await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-vertices")))
-    .toBeGreaterThan(100_000);
+  const snapshot = await page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>(
+      "canvas[aria-label='Interactive three-dimensional Earth']",
+    );
+    return {
+      heading: document.querySelector("h1")?.textContent?.trim(),
+      chapterCount: document.querySelectorAll("#chapter-jump option").length,
+      geographySupport: canvas?.dataset.caoFoundationGeographySupport,
+      overriddenNativeCharts: canvas?.dataset.caoOverriddenNativeCharts,
+      modelInferredPoseCharts: Number(canvas?.dataset.caoModelInferredPoseCharts),
+      foundationVertices: Number(canvas?.dataset.caoFoundationVertices),
+    };
+  });
+  expect(snapshot.heading).toBe("Present day");
+  expect(snapshot.chapterCount).toBe(37);
+  expect(snapshot.geographySupport).toBe("cao-plus-model-pose-material");
+  expect(snapshot.overriddenNativeCharts).toBe("2");
+  expect(snapshot.modelInferredPoseCharts).toBeGreaterThan(0);
+  expect(snapshot.foundationVertices).toBeGreaterThan(100_000);
   expect(external).toEqual(new Set());
   expect(failures).toEqual([]);
 });
-
 test("supports the TSL WebGL2 fallback", { tag: "@ci" }, async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -49,6 +82,9 @@ test("distinguishes exact native checkpoints from continuous motion", async ({ p
   await page.goto("./#age=450");
   await waitForCao(page);
   await expect(page.locator(".geography-age").first()).toContainText("450 Ma native Cao checkpoint");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "1");
   await expect(page.locator("#source-age-jump")).toHaveValue("450");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "450");
 
@@ -60,17 +96,81 @@ test("distinguishes exact native checkpoints from continuous motion", async ({ p
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "");
 });
 
+test("activates cited material corrections across exact evidence boundaries", async ({ page }) => {
+  await page.goto("./#age=410");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "10");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
+  await expect(globe(page)).toHaveAttribute("data-cao-model-inferred-pose-charts", "10");
+
+  await page.goto("./#age=410.0000001");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "15");
+  await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
+  await expect(page.getByText(/Ochre: source-supported material footprint/)).toBeVisible();
+
+  await page.goto("./#age=430");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "14");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "1");
+
+  await page.goto("./#age=430.0000001");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
+  await expect(page.getByText(/Gray: continued material with older pose uncertainty/)).toBeVisible();
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: "Sources" }).click();
+  await expect(page.getByRole("link", { name: /simplified tectonic assemblage map/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Geology, Svalbard/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Generalized Geologic Map/ })).toBeVisible();
+});
+
+test("retargets correction boundaries in one document with stable geometry", async ({ page }) => {
+  await page.goto("./");
+  await waitForCao(page);
+  const geometryIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
+  const vertices = await globe(page).getAttribute("data-cao-foundation-vertices");
+  expect(geometryIdentity).toBeTruthy();
+
+  for (const ageMa of [410, 410.001, 430.001, 0]) {
+    await setContinuousAge(page, ageMa);
+    await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", geometryIdentity!);
+    await expect(globe(page)).toHaveAttribute("data-cao-foundation-vertices", vertices!);
+  }
+  await expect(globe(page)).toHaveAttribute("data-cao-overridden-native-charts", "2");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "0");
+});
+
 test("withholds a failed checkpoint and recovers without stale land", async ({ page }) => {
   let failures = 0;
-  await page.route("**/checkpoint-450ma.json", async (route) => {
+  await page.route("**/checkpoint-450ma.json*", async (route) => {
     if (failures++ === 0) await route.abort("failed");
     else await route.continue();
   });
   await page.goto("./");
   await waitForCao(page);
+  const geometryIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
   await page.locator("#source-age-jump").selectOption("450");
   await expect(page.getByText(/Cao reconstruction unavailable · surface withheld/)).toBeVisible();
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "waiting");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-anchor-markers", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-anchor-age-ma", "");
+  await expect(globe(page)).toHaveAttribute("data-focus-marker", "false");
+  await setContinuousAge(page, 445.1);
+  await waitForCao(page);
+  await expect.poll(async () => Number(
+    await globe(page).getAttribute("data-cao-foundation-anchor-age-ma"),
+  )).toBeCloseTo(445.1, 6);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", geometryIdentity!);
+  await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);
   await page.locator("#source-age-jump").selectOption("445");
   await waitForCao(page);
   await page.locator("#source-age-jump").selectOption("450");
@@ -78,8 +178,35 @@ test("withholds a failed checkpoint and recovers without stale land", async ({ p
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "450");
 });
 
+test("ignores a stale checkpoint failure after a newer age retargets", async ({ page }) => {
+  let reject450: (() => Promise<void>) | undefined;
+  await page.route("**/checkpoint-450ma.json*", async (route) => {
+    await new Promise<void>((resolve) => {
+      reject450 = async () => {
+        await route.abort("failed");
+        resolve();
+      };
+    });
+  });
+  await page.goto("./");
+  await waitForCao(page);
+  const geometryIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
+  await page.locator("#source-age-jump").selectOption("450");
+  await expect.poll(() => reject450).toBeDefined();
+  await page.locator("#source-age-jump").selectOption("445");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "445");
+  await reject450!();
+  const stage = page.locator(".globe-stage");
+  await expect(stage).toHaveAttribute("data-cao-last-prepare-failed-age-ma", "450");
+  await expect(stage).toHaveAttribute("data-cao-last-prepare-failure-observed-age-ma", "445");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "445");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", geometryIdentity!);
+  await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);
+});
+
 test("labels editorial geography outside the live Cao package domain", async ({ page }) => {
-  await page.goto("./#age=720");
+  await page.goto("./#age=2000");
   await expect(globe(page)).toBeVisible();
   // Direct deep-time entry has no in-domain publish yet, so native geography is withheld.
   await expect.poll(() => globe(page).getAttribute("data-cao-foundation-status")).toBe("unsupported");
@@ -88,6 +215,19 @@ test("labels editorial geography outside the live Cao package domain", async ({ 
   await expect(page.locator("#timeline-scale")).toContainText("Precambrian");
   await expect(page.locator("#timeline-scale option[value='recent']")).toHaveCount(0);
   await expect(page.locator(".timeline-direction")).toContainText("present");
+});
+
+test("clears correction legend state outside the live Cao package domain", async ({ page }) => {
+  await page.goto("./#age=411");
+  await waitForCao(page);
+  await expect(page.getByText(/Ochre: source-supported material footprint/)).toBeVisible();
+  await page.locator("#chapter-jump").selectOption("moon-forming-scenario");
+  await expect(page.locator(".geography-age").first()).toContainText("Outside compiled domain");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "unsupported");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-draw-count", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-overridden-native-charts", "0");
+  await expect(page.getByText(/Ochre: source-supported material footprint/)).toHaveCount(0);
+  await expect(page.getByText(/Gray: continued material with older pose uncertainty/)).toHaveCount(0);
 });
 
 test("keeps Precambrian scrubber from deep time through today", async ({ page }) => {
@@ -179,7 +319,7 @@ test("retains a material address through an unsupported age and reacquires witho
     .toBeLessThan(1.75);
   const distance = Number(await globe(page).getAttribute("data-camera-distance"));
 
-  await page.locator("#chapter-jump").selectOption("cryogenian");
+  await page.locator("#chapter-jump").selectOption("rhyacian");
   // Last in-domain foundation may remain visible; tagged material is retained
   // while follow pose/marker clear until support returns.
   await expect(page.getByTestId("location-lock")).toContainText(/unavailable at this age/);
@@ -255,7 +395,7 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
   await page.locator("#source-age-jump").selectOption("0");
   await expect.poll(() => globe(page).getAttribute("data-cao-foundation-requested-age-ma")).toBe("0");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "native-cao-foundation");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-model-pose-material");
   await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-vertices")))
     .toBe(verticesAt100);
   await expect.poll(async () => Number(await globe(page).getAttribute("data-cao-foundation-draw-count")))
@@ -263,4 +403,3 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
   await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);
 });
-

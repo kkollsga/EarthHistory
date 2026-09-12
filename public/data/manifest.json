@@ -4266,8 +4266,8 @@
         {
           "role": "core.json",
           "path": "public/data/reconstruction/cao-v2.4/core.json",
-          "sha256": "9be727ee8e24fb062703abaadbfca6d534e3906b5b87ef0303b889cc78392d2a",
-          "bytes": 5898918
+          "sha256": "cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223",
+          "bytes": 5875550
         },
         {
           "role": "country-reference.ehgl",
@@ -4278,20 +4278,20 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "fa376df0e742a6cfe45937647d6bd1b9fabc6adad564e7fb41ca5456b4a64073",
-          "bytes": 38612
+          "sha256": "c1206ec9d49d4778df3594f554055208975923750a1982d9f44578b5495cb2f4",
+          "bytes": 38837
         },
         {
           "role": "motion-palette.bin",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.bin",
-          "sha256": "1705edc8cfe2e811a071aaf6ae0566dbfd4a3bec737f473e394bf12e175a2f54",
-          "bytes": 4704332
+          "sha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed",
+          "bytes": 5166572
         },
         {
           "role": "motion-palette.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
-          "sha256": "abbaaf464d62fae1112ee0b5a0a676496d8f43331770502eeb2b6b8412b9c7a7",
-          "bytes": 443258
+          "sha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217",
+          "bytes": 448210
         },
         {
           "role": "ownership-0ma.ehto",
@@ -7112,6 +7112,30 @@
           "path": "public/data/reconstruction/cao-v2.4/ownership-990ma.json",
           "sha256": "d34f9fa3a6c61005062070fb639f8e5ac865b8964adc09f03ea972c78dde6055",
           "bytes": 5351
+        }
+      ]
+    },
+    "regional-material-corrections-v1": {
+      "processing": "Source-qualified regional masks compiled as rigid material charts and guarded exact native-chart replacements; raw Cao source assets remain unchanged",
+      "scope": "Continental material support only; surface exposure, palaeoshoreline and physical height remain unknown",
+      "outputs": [
+        {
+          "role": "catalog.json",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
+          "bytes": 176313,
+          "sha256": "a173bdaa3336564ffcd820f78090bbf11a74c2fce1dcda0986ebb176a1459023"
+        },
+        {
+          "role": "qualified.ehgb",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
+          "bytes": 268524,
+          "sha256": "4fb021b5325b0b2494de4998e265636dab20082bc7edbe89ac62d630fc0033bd"
+        },
+        {
+          "role": "uncertain.ehgb",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
+          "bytes": 376808,
+          "sha256": "a0462d2c6b7b4317e2a8452448a6af2d4027291ab9691e8e86c89b13a8cb811e"
         }
       ]
     }

@@ -1,0 +1,480 @@
+{
+  "schemaVersion": 1,
+  "baseline": {
+    "originMainCoreSha256": "9be727ee8e24fb062703abaadbfca6d534e3906b5b87ef0303b889cc78392d2a",
+    "originMainMotionPaletteCatalogSha256": "abbaaf464d62fae1112ee0b5a0a676496d8f43331770502eeb2b6b8412b9c7a7",
+    "originMainMotionPaletteBinarySha256": "1705edc8cfe2e811a071aaf6ae0566dbfd4a3bec737f473e394bf12e175a2f54",
+    "rotationSourceAggregateSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "frame": {
+      "modelId": "cao-et-al-2024",
+      "modelVersion": "2.4",
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    }
+  },
+  "coastEvidenceRepair": {
+    "chartCount": 2921,
+    "changedFieldCount": 5842,
+    "allowedChangedFieldSuffixes": [
+      ".evidence.limitations[1]",
+      ".surfaceEvidence.reason"
+    ],
+    "correctedCoreSha256": "cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223",
+    "geometryAssetsUnchanged": true,
+    "nonEvidenceCoreFieldsUnchanged": true
+  },
+  "motionRefinementAndAppend": {
+    "nativeEntryCount": 1080,
+    "nativeSampleCount": 235215,
+    "nativeEntryIdsAndIntervalsUnchanged": true,
+    "nativeSamplePayloadSha256": "85adde3a0e61a61a4ea56f766b3c59f48971fe9d21549bf7ee0c782a7d578062",
+    "existingNativeSampleValuesPreserved": true,
+    "refinedEntries": [
+      {
+        "entryId": "plate-101-0-1800",
+        "plateId": 101,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 1800.0,
+        "oldSampleCount": 618,
+        "newSampleCount": 2501,
+        "addedSourceDerivedSamples": 1883,
+        "maximumQuarterMaResidualBeforeRad": 0.00048770110915056776,
+        "maximumPoint025MaResidualAfterRad": 1.789380675825903e-06
+      },
+      {
+        "entryId": "plate-120-0-130",
+        "plateId": 120,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 299,
+        "newSampleCount": 692,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.162071709541767e-05,
+        "maximumPoint025MaResidualAfterRad": 7.140128940767647e-07
+      },
+      {
+        "entryId": "plate-120-130-505",
+        "plateId": 120,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 260,
+        "newSampleCount": 1580,
+        "addedSourceDerivedSamples": 1320,
+        "maximumQuarterMaResidualBeforeRad": 0.0004876914478372238,
+        "maximumPoint025MaResidualAfterRad": 1.7796753200094829e-06
+      },
+      {
+        "entryId": "plate-122-0-130",
+        "plateId": 122,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 299,
+        "newSampleCount": 692,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1614451492047447e-05,
+        "maximumPoint025MaResidualAfterRad": 7.146345858741917e-07
+      },
+      {
+        "entryId": "plate-122-130-505",
+        "plateId": 122,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 260,
+        "newSampleCount": 1580,
+        "addedSourceDerivedSamples": 1320,
+        "maximumQuarterMaResidualBeforeRad": 0.00048768683656420916,
+        "maximumPoint025MaResidualAfterRad": 1.7886359796672056e-06
+      },
+      {
+        "entryId": "plate-123-0-130",
+        "plateId": 123,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 693,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1614636404710804e-05,
+        "maximumPoint025MaResidualAfterRad": 7.146345858741917e-07
+      },
+      {
+        "entryId": "plate-123-130-505",
+        "plateId": 123,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 260,
+        "newSampleCount": 1580,
+        "addedSourceDerivedSamples": 1320,
+        "maximumQuarterMaResidualBeforeRad": 0.0004876742099762054,
+        "maximumPoint025MaResidualAfterRad": 1.7871456564146815e-06
+      },
+      {
+        "entryId": "plate-124-0-130",
+        "plateId": 124,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 299,
+        "newSampleCount": 692,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.162071709541767e-05,
+        "maximumPoint025MaResidualAfterRad": 7.140128940767647e-07
+      },
+      {
+        "entryId": "plate-124-130-505",
+        "plateId": 124,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 260,
+        "newSampleCount": 1580,
+        "addedSourceDerivedSamples": 1320,
+        "maximumQuarterMaResidualBeforeRad": 0.0004876914478372238,
+        "maximumPoint025MaResidualAfterRad": 1.7796753200094829e-06
+      },
+      {
+        "entryId": "plate-141-0-130",
+        "plateId": 141,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 693,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1620018724640724e-05,
+        "maximumPoint025MaResidualAfterRad": 1.1557769435444824e-06
+      },
+      {
+        "entryId": "plate-141-130-505",
+        "plateId": 141,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 260,
+        "newSampleCount": 1580,
+        "addedSourceDerivedSamples": 1320,
+        "maximumQuarterMaResidualBeforeRad": 0.00048769139411213757,
+        "maximumPoint025MaResidualAfterRad": 1.7806731756079375e-06
+      },
+      {
+        "entryId": "plate-154-0-130",
+        "plateId": 154,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 693,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1620306291810287e-05,
+        "maximumPoint025MaResidualAfterRad": 7.133906604996852e-07
+      },
+      {
+        "entryId": "plate-154-130-505",
+        "plateId": 154,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 261,
+        "newSampleCount": 1582,
+        "addedSourceDerivedSamples": 1321,
+        "maximumQuarterMaResidualBeforeRad": 0.000487655671083059,
+        "maximumPoint025MaResidualAfterRad": 1.7791761823415508e-06
+      },
+      {
+        "entryId": "plate-176-0-130",
+        "plateId": 176,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 693,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1620306291810287e-05,
+        "maximumPoint025MaResidualAfterRad": 7.133906604996852e-07
+      },
+      {
+        "entryId": "plate-176-130-505",
+        "plateId": 176,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 281,
+        "newSampleCount": 1568,
+        "addedSourceDerivedSamples": 1287,
+        "maximumQuarterMaResidualBeforeRad": 0.0004876606760526336,
+        "maximumPoint025MaResidualAfterRad": 2.0479205301535404e-06
+      },
+      {
+        "entryId": "plate-302-0-1800",
+        "plateId": 302,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 1800.0,
+        "oldSampleCount": 645,
+        "newSampleCount": 2563,
+        "addedSourceDerivedSamples": 1918,
+        "maximumQuarterMaResidualBeforeRad": 0.000509790551352193,
+        "maximumPoint025MaResidualAfterRad": 1.787890973326104e-06
+      },
+      {
+        "entryId": "plate-309-0-130",
+        "plateId": 309,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 728,
+        "addedSourceDerivedSamples": 428,
+        "maximumQuarterMaResidualBeforeRad": 3.4014556580122495e-05,
+        "maximumPoint025MaResidualAfterRad": 7.121445623247971e-07
+      },
+      {
+        "entryId": "plate-309-130-505",
+        "plateId": 309,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 268,
+        "newSampleCount": 1584,
+        "addedSourceDerivedSamples": 1316,
+        "maximumQuarterMaResidualBeforeRad": 0.0005098113393580122,
+        "maximumPoint025MaResidualAfterRad": 1.7696658181314475e-06
+      },
+      {
+        "entryId": "plate-311-0-130",
+        "plateId": 311,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 728,
+        "addedSourceDerivedSamples": 428,
+        "maximumQuarterMaResidualBeforeRad": 3.4014556580122495e-05,
+        "maximumPoint025MaResidualAfterRad": 7.121445623247971e-07
+      },
+      {
+        "entryId": "plate-311-130-505",
+        "plateId": 311,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 268,
+        "newSampleCount": 1584,
+        "addedSourceDerivedSamples": 1316,
+        "maximumQuarterMaResidualBeforeRad": 0.000509826159789596,
+        "maximumPoint025MaResidualAfterRad": 3.3659477003806033e-06
+      },
+      {
+        "entryId": "plate-373-0-130",
+        "plateId": 373,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 728,
+        "addedSourceDerivedSamples": 428,
+        "maximumQuarterMaResidualBeforeRad": 3.4014556580122495e-05,
+        "maximumPoint025MaResidualAfterRad": 7.121445623247971e-07
+      },
+      {
+        "entryId": "plate-373-130-505",
+        "plateId": 373,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 264,
+        "newSampleCount": 1582,
+        "addedSourceDerivedSamples": 1318,
+        "maximumQuarterMaResidualBeforeRad": 0.0005098158533025733,
+        "maximumPoint025MaResidualAfterRad": 1.7930995174040587e-06
+      },
+      {
+        "entryId": "plate-1731-0-130",
+        "plateId": 1731,
+        "youngestAgeMa": 0.0,
+        "oldestAgeMa": 130.0,
+        "oldSampleCount": 300,
+        "newSampleCount": 693,
+        "addedSourceDerivedSamples": 393,
+        "maximumQuarterMaResidualBeforeRad": 2.1620306291810287e-05,
+        "maximumPoint025MaResidualAfterRad": 7.133906604996852e-07
+      },
+      {
+        "entryId": "plate-1731-130-505",
+        "plateId": 1731,
+        "youngestAgeMa": 130.0,
+        "oldestAgeMa": 505.0,
+        "oldSampleCount": 261,
+        "newSampleCount": 1582,
+        "addedSourceDerivedSamples": 1321,
+        "maximumQuarterMaResidualBeforeRad": 0.000487655671083059,
+        "maximumPoint025MaResidualAfterRad": 1.7791761823415508e-06
+      }
+    ],
+    "refinementAddedSampleCount": 22708,
+    "refinementAddedSampleBytes": 454160,
+    "maximumPoint025MaRefinedNativeResidualRad": 3.3659477003806033e-06,
+    "appendedEntries": [
+      {
+        "entryId": "correction-plate-101-410-540",
+        "plateId": 101,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 257923,
+        "sampleCount": 29
+      },
+      {
+        "entryId": "correction-plate-124-410-540",
+        "plateId": 124,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 257952,
+        "sampleCount": 29
+      },
+      {
+        "entryId": "correction-plate-154-410-540",
+        "plateId": 154,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 257981,
+        "sampleCount": 29
+      },
+      {
+        "entryId": "correction-plate-176-410-540",
+        "plateId": 176,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258010,
+        "sampleCount": 52
+      },
+      {
+        "entryId": "correction-plate-302-410-540",
+        "plateId": 302,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258062,
+        "sampleCount": 34
+      },
+      {
+        "entryId": "correction-plate-309-410-540",
+        "plateId": 309,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258096,
+        "sampleCount": 75
+      },
+      {
+        "entryId": "correction-plate-311-410-540",
+        "plateId": 311,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258171,
+        "sampleCount": 93
+      },
+      {
+        "entryId": "correction-plate-373-410-540",
+        "plateId": 373,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258264,
+        "sampleCount": 34
+      },
+      {
+        "entryId": "correction-plate-1731-410-540",
+        "plateId": 1731,
+        "youngestAgeMa": 410.0,
+        "oldestAgeMa": 540.0,
+        "sampleOffset": 258298,
+        "sampleCount": 29
+      }
+    ],
+    "correctionEntrySampleCount": 404,
+    "correctionEntrySampleBytes": 8080,
+    "correctedPaletteCatalogSha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217",
+    "correctedPaletteBinarySha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed",
+    "angularErrorLimitRad": 1e-05,
+    "maximumQuarterMaOracleResidualRad": 9.339212877515439e-06,
+    "seamChecks": [
+      {
+        "plateId": 101,
+        "nativeEntryId": "plate-101-0-1800",
+        "extensionEntryId": "correction-plate-101-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-101-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 7.300048299977715e-08
+      },
+      {
+        "plateId": 124,
+        "nativeEntryId": "plate-124-130-505",
+        "extensionEntryId": "correction-plate-124-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-124-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 8.429369702178807e-08
+      },
+      {
+        "plateId": 154,
+        "nativeEntryId": "plate-154-130-505",
+        "extensionEntryId": "correction-plate-154-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-154-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 7.884953353001448e-08
+      },
+      {
+        "plateId": 176,
+        "nativeEntryId": "plate-176-130-505",
+        "extensionEntryId": "correction-plate-176-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-176-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 8.327709611119097e-06
+      },
+      {
+        "plateId": 302,
+        "nativeEntryId": "plate-302-0-1800",
+        "extensionEntryId": "correction-plate-302-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-302-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 9.339212877515439e-06
+      },
+      {
+        "plateId": 309,
+        "nativeEntryId": "plate-309-130-505",
+        "extensionEntryId": "correction-plate-309-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-309-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 7.026778401801223e-06
+      },
+      {
+        "plateId": 311,
+        "nativeEntryId": "plate-311-130-505",
+        "extensionEntryId": "correction-plate-311-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-311-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 5.7982177901931804e-06
+      },
+      {
+        "plateId": 373,
+        "nativeEntryId": "plate-373-130-505",
+        "extensionEntryId": "correction-plate-373-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-373-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 9.327317544000759e-06
+      },
+      {
+        "plateId": 1731,
+        "nativeEntryId": "plate-1731-130-505",
+        "extensionEntryId": "correction-plate-1731-410-540",
+        "angularResidualRad": 0.0,
+        "selection": {
+          "410Ma": "correction-plate-1731-410-540"
+        },
+        "maximumQuarterMaOracleResidualRad": 7.884953353001448e-08
+      }
+    ],
+    "correctionOldestAgeMa": 540.0,
+    "noEndpointHolding": true
+  },
+  "baselinePublicManifestSha256BeforeCorrectionCatalog": "c515434f925b3c5df075924f81ba647f94c4373ad32d5b2f1625f50de3294297"
+}

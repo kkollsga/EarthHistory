@@ -2,7 +2,15 @@
 
 All notable changes to EarthHistory will be recorded here.
 
-## [0.1.3] - 2026-09-10
+## [0.1.4] - 2026-09-12
+
+### Added
+
+- Add source-qualified regional material corrections for northern Canada,
+  Pearya, Svalbard, Barents and western Laurentia, with static provenance,
+  licensing, uncertainty, validation and performance records.
+- Add a deterministic correction-package gate covering acquisition and
+  compilation contracts, source checksums, emitted geometry and manifests.
 
 ### Changed
 
@@ -10,8 +18,9 @@ All notable changes to EarthHistory will be recorded here.
   (`ageDomainMa` 0–1800 Ma): 235 display checkpoints (5 Ma to 540 Ma, then
   10 Ma), layered coastline-class land over continental-outline shelf, native
   boundaries/ownership including `1800-1000_plate_boundaries.gpml`, and a
-  shared motion palette sampled on every qualified source knot. Public
-  transitive size stays under the 50 MB Pages budget without PaleoDEM bins.
+  shared motion palette sampled on every qualified source knot plus bounded,
+  source-derived interior samples. Public transitive size stays under the
+  50 MB Pages budget without PaleoDEM bins.
 - Scrubbing continuously interpolates Cao plate motion from the resident shared
   palette between display knots, retargeting the published foundation in place
   instead of waiting for discrete prepare snaps. Adjacent checkpoints are
@@ -21,14 +30,11 @@ All notable changes to EarthHistory will be recorded here.
   still scrub forward through the Phanerozoic; the Recent Earth range is removed.
 - Age-domain gating and continuous play follow the live package `ageDomainMa`
   (cao-v2.4 declares 0–1800 Ma) rather than hard-coded ceilings.
-- Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 235 native
-  checkpoints from 0–1800 Ma and a shared, source-qualified motion clock.
-- Store geometry once and use one GPU rendering path for present-day and
-  ancient continents, country references and native tectonic boundaries.
-- Replace the previous PALEOMAP conversion, modern-only relief inputs, terrain
-  workers and caches with the native Cao package and bounded checkpoint loading.
-- Preserve the orbital interface, chapter navigation, field notes, globe guides
-  and WebGL2 fallback. Older chapters use explicitly editorial globe states.
+- Replace two materially misleading western North America native charts with
+  guarded, source-domain fragments whose lifecycles preserve independently
+  supported old material and withhold younger or unknown-age domains.
+- Remap affected modern-country reference segments to replacement domains and
+  expose correction evidence, status and limitations in the interface.
 
 ### Fixed
 
@@ -36,14 +42,18 @@ All notable changes to EarthHistory will be recorded here.
   load verified assets with content-addressed `?h=<sha256>` URLs and `cache: no-store`
   so a stale browser/CDN body cannot fail checksum verification against a newer
   manifest (full-domain 0–1800 ship reused `cao-foundation-v1` paths).
-- Keep Fennoscandia (and other Eurasian plates) visible while scrubbing through
-  the open 118–120 Ma Cao motion-binding gap: bridge adjacent compiled palette
-  endpoints instead of treating the compiler adaptive dropout as missing motion.
-  Future package rebuilds cap adaptive refinement instead of dropping those leaves.
+- Keep Fennoscandia (and other Eurasian plates) visible through 118–120 Ma:
+  cap adaptive refinement so the compiled palette retains explicit continuous
+  bindings, and reject any package binding gap instead of inventing a
+  nearest-endpoint pose.
+- Refine native and correction motion intervals with pinned source-derived
+  samples where endpoint interpolation exceeded the angular pose contract;
+  oracle checks stay below `1e-5` radians across the affected native entry
+  spans and correction bindings through 540 Ma.
 - Keep continents visible when scrubbing to today (0 Ma): retain the last
-  prepared foundation until the next exact-knot prepare is ready, do not clear
-  React state on prepare/request failure, and do not tear down the published
-  surface on a transient render error.
+  prepared foundation until the next exact-knot prepare is ready, withhold an
+  actively failed exact checkpoint, and ignore that failure after a later age
+  has successfully retargeted the surface.
 - Precambrian timeline range again spans deep time through today (0 Ma): the
   scrubber is no longer clamped to ages older than ICS 538.8 Ma, and switching
   into Precambrian mode keeps the current age instead of jumping to the Cambrian
@@ -55,22 +65,15 @@ All notable changes to EarthHistory will be recorded here.
 - Complete the material location-lock follow path: camera tracks the tagged
   Cao material through continuous scrub and chapter changes, with a subtle
   on-globe marker and an Unlock control while focus is active.
+- Retarget source-linked globe markers on every continuous motion frame so
+  anchors remain aligned with the moving foundation between display knots.
 - Draw reference-guide labels as curved surface ribbons fixed in geographic
   space and replace upright pole sprites with flat polar sector ticks on the
   globe (globus-style guides).
-- Keep continents visible while scrubbing or playing through Cao ages: retain
-  the last published foundation until the next prepare lands, coalesce rapid
-  age ticks, and continuously retarget motion so plates interpolate between
-  prepares. Outside the live package domain, keep the last foundation rather
-  than blanking when entering editorial Precambrian chapters from an in-domain age.
-- Load both authored Cao rotation files, including younger-age parent ties in
-  the older-named file, to retain native US and Amazon geometry and its motion.
-- Keep tagged material and supported POIs on the same coordinate authority as
-  the globe, preserving camera distance through motion and support gaps.
-- Bind integer motion-palette attributes correctly on WebGL2.
-- Release superseded or unrenderable prepared states and withhold stale maps
-  after failed age changes.
-- Validate every nested scientific asset and its size and checksum.
+- Keep corrected material, picking and dependent country references aligned
+  through native precedence, source-age transitions and reconstructed motion.
+- Subdivide long spherical correction triangles so their rendered edges follow
+  the globe instead of visibly sagging through it.
 
 ### Known limitations
 
@@ -83,12 +86,51 @@ All notable changes to EarthHistory will be recorded here.
   detail are deferred; previous modern-only detail is no longer rendered.
 - Native coast-class polygons are model geography, not independently validated
   exposed-land outlines. Unsupported country fragments and POIs are omitted.
-- Continental motion interpolates on its qualified source clock. Native
-  boundary and ownership geometry is available only at exact checkpoints.
+- Correction footprints describe supported material domains, not exposed land,
+  palaeoshorelines, elevation or exact terrane reconstructions. Northern
+  Canada, Pearya, Svalbard and Barents retain explicit uncovered target areas;
+  western replacements withhold material where source age or affinity remains
+  unresolved.
 - Display checkpoints coarsen to 10 Ma beyond 540 Ma so the Pages budget
   remains reachable; continuous motion still follows the qualified source-knot
   clock through 1800 Ma. Editorial chapter globe states may still apply where
   authored narrative exceeds the compiled evidence for a scene.
+
+## [0.1.3] - 2026-09-10
+
+### Changed
+
+- Adopt Cao 2024 v2.4 as the sole reconstruction foundation, with 109 native
+  checkpoints from 0–540 Ma and a shared, source-qualified motion clock.
+- Store geometry once and use one GPU rendering path for present-day and
+  ancient continents, country references and native tectonic boundaries.
+- Replace the previous PALEOMAP conversion, modern-only relief inputs, terrain
+  workers and caches with the native Cao package and bounded checkpoint loading.
+- Preserve the orbital interface, chapter navigation, field notes, globe guides
+  and WebGL2 fallback. Older chapters use explicitly editorial globe states.
+
+### Fixed
+
+- Load both authored Cao rotation files, including younger-age parent ties in
+  the older-named file, to retain native US and Amazon geometry and its motion.
+- Keep tagged material and supported POIs on the same coordinate authority as
+  the globe, preserving camera distance through motion and support gaps.
+- Bind integer motion-palette attributes correctly on WebGL2.
+- Release superseded or unrenderable prepared states and withhold stale maps
+  after failed age changes.
+- Validate every nested scientific asset and its size and checksum.
+
+### Known limitations
+
+- This foundation deliberately uses neutral surfaces. Calibrated mountains,
+  bathymetry, shallow-sea masks, global seafloor ages and historical biome
+  detail are deferred; previous modern-only detail is no longer rendered.
+- Native coast-class polygons are model geography, not independently validated
+  exposed-land outlines. Unsupported country fragments and POIs are omitted.
+- Continental motion interpolates on its qualified source clock. Native
+  boundary and ownership geometry is available only at exact checkpoints.
+- The initial package covers 0–540 Ma; the model's older domain is not yet
+  compiled into the application.
 
 ## [0.1.2] - 2026-09-10
 

@@ -6,6 +6,7 @@ import {
   numberScalarOps,
   type MaterialAddress,
   type PreparedCaoRevision,
+  type UnitDirection,
 } from "../reconstruction";
 import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
 import { lonLatToVector3, vector3ToLonLat } from "./math";
@@ -385,6 +386,12 @@ interface PreparedAnchorMarker {
   readonly address: MaterialAddress;
 }
 
+export interface CaoMotionAnchorMarker {
+  readonly id: string;
+  readonly direction: UnitDirection;
+  readonly address: MaterialAddress;
+}
+
 export class GlobeScene {
   static async create(
     mount: HTMLDivElement,
@@ -437,6 +444,7 @@ export class GlobeScene {
   private preparedAnchors: readonly PreparedAnchorMarker[] = [];
   private pendingCaoDiagnostics: CaoFoundationDiagnostics | null = null;
   private hasNativePublication = false;
+  private caoFoundationWithheld = false;
   private autoRotate = true;
   private verticalExaggeration = 8;
   private disposed = false;
@@ -567,6 +575,43 @@ export class GlobeScene {
     this.onCaoFoundationState = callback;
   }
 
+  private applyCaoFoundationWithheldState(): CaoFoundationDiagnostics {
+    const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
+    this.pendingCaoDiagnostics = null;
+    this.markerGroup.visible = false;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoFoundationStatus = "waiting";
+    dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
+    dataset.caoFoundationDrawCount = "0";
+    dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
+    dataset.caoQualifiedMaterialCharts = "0";
+    dataset.caoUncertainMaterialCharts = "0";
+    dataset.caoFormationUncertainMaterialCharts = "0";
+    dataset.caoModelInferredPoseCharts = "0";
+    dataset.caoOverriddenNativeCharts = "0";
+    dataset.caoFoundationNativeBoundarySegments = "0";
+    dataset.caoFoundationNativeBoundarySourceAgeMa = "";
+    dataset.caoFoundationTopologyOwnershipRings = "0";
+    dataset.caoFoundationTopologyOwnershipSourceAgeMa = "";
+    dataset.caoFoundationAnchorMarkers = "0";
+    dataset.caoFoundationAnchorAgeMa = "";
+    dataset.focusMarker = "false";
+    dataset.surfaceStatus = "waiting";
+    this.onCaoFoundationState?.({ status: "loading",
+      requestedAgeMa: diagnostics.requestedAgeMa ?? undefined, resolvedVertices: 0 });
+    return diagnostics;
+  }
+
+  setCaoFoundationWithheld(withheld: boolean): CaoFoundationDiagnostics | null {
+    if (withheld === this.caoFoundationWithheld) {
+      return withheld ? this.applyCaoFoundationWithheldState() : null;
+    }
+    this.caoFoundationWithheld = withheld;
+    // Recovery makes the group visible only after a current revision or motion
+    // frame updates its marker poses; the retained sprites may still be stale.
+    return withheld ? this.applyCaoFoundationWithheldState() : null;
+  }
+
   retargetCaoMotion(
     paletteValues: Float32Array,
     entryCount: number,
@@ -574,15 +619,48 @@ export class GlobeScene {
     chartPoses: Float32Array,
     chartActive: Uint8Array,
     requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
+    anchorMarkers: readonly CaoMotionAnchorMarker[],
   ): CaoFoundationDiagnostics | null {
     if (!this.hasNativePublication) return null;
     try {
-      const diagnostics = this.caoFoundationRenderer.retargetMotion(
-        paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa);
+      this.caoFoundationRenderer.retargetMotion(
+        paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa,
+        materialCorrections);
+      this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
+      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
+      this.markerGroup.visible = true;
+      const diagnostics = this.caoFoundationRenderer.diagnostics();
       this.pendingCaoDiagnostics = diagnostics;
       const dataset = this.renderer.domElement.dataset;
       dataset.caoFoundationStatus = "ready";
       dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
+      dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
+      dataset.caoFoundationNativeBoundarySegments = String(diagnostics.nativeBoundarySegments);
+      dataset.caoFoundationNativeBoundarySourceAgeMa = diagnostics.nativeBoundarySourceAgeMa === null
+        ? "" : String(diagnostics.nativeBoundarySourceAgeMa);
+      dataset.caoFoundationTopologyOwnershipRings = String(diagnostics.topologyOwnershipRings);
+      dataset.caoFoundationTopologyOwnershipSourceAgeMa =
+        diagnostics.topologyOwnershipSourceAgeMa === null
+          ? "" : String(diagnostics.topologyOwnershipSourceAgeMa);
+      const correctionState = diagnostics.materialCorrections;
+      dataset.caoFoundationGeographySupport = correctionState.formationUncertainActiveCharts > 0
+        ? "cao-plus-formation-range-material"
+        : correctionState.uncertainActiveCharts > 0
+        ? correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-and-uncertain-material"
+          : "cao-plus-uncertain-material"
+        : correctionState.modelInferredPoseActiveCharts > 0
+          ? "cao-plus-model-pose-material"
+        : correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-material"
+          : "native-cao-foundation";
+      dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
+      dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
+      dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
+      dataset.caoModelInferredPoseCharts = String(correctionState.modelInferredPoseActiveCharts);
+      dataset.caoOverriddenNativeCharts = String(correctionState.overriddenNativeCharts);
       dataset.surfaceStatus = "ready";
       this.onCaoFoundationState?.({ status: "ready",
         requestedAgeMa: diagnostics.requestedAgeMa ?? undefined,
@@ -630,11 +708,15 @@ export class GlobeScene {
       this.hasNativePublication = true;
       this.preparedAnchors = Object.freeze(preparedAnchors);
       this.rebuildMarkers();
+      this.markerGroup.visible = !this.caoFoundationWithheld;
+      this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
       this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.pendingCaoDiagnostics = diagnostics;
       const dataset = this.renderer.domElement.dataset;
       dataset.caoFoundationStatus = "updating";
       dataset.caoFoundationIdentity = diagnostics.identity ?? "";
+      dataset.caoFoundationGeometryIdentity = diagnostics.staticGeometryIdentity ?? "";
       dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
       dataset.caoFoundationBatches = String(diagnostics.batches);
       dataset.caoFoundationVertices = String(diagnostics.vertices);
@@ -656,7 +738,24 @@ export class GlobeScene {
       dataset.caoFoundationTopologyOwnershipSourceAgeMa =
         diagnostics.topologyOwnershipSourceAgeMa === null
           ? "" : String(diagnostics.topologyOwnershipSourceAgeMa);
-      dataset.caoFoundationGeographySupport = "native-cao-foundation";
+      const correctionState = diagnostics.materialCorrections;
+      dataset.caoFoundationGeographySupport = correctionState.formationUncertainActiveCharts > 0
+        ? "cao-plus-formation-range-material"
+        : correctionState.uncertainActiveCharts > 0
+        ? correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-and-uncertain-material"
+          : "cao-plus-uncertain-material"
+        : correctionState.modelInferredPoseActiveCharts > 0
+          ? "cao-plus-model-pose-material"
+        : correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-material"
+          : "native-cao-foundation";
+      dataset.caoMaterialCorrectionIdentity = diagnostics.materialCorrectionIdentity ?? "";
+      dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
+      dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
+      dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
+      dataset.caoModelInferredPoseCharts = String(correctionState.modelInferredPoseActiveCharts);
+      dataset.caoOverriddenNativeCharts = String(correctionState.overriddenNativeCharts);
       dataset.surfaceStatus = "updating";
       dataset.surfaceMode = "surface";
       this.onCaoFoundationState?.({ status: "updating",
@@ -688,9 +787,21 @@ export class GlobeScene {
         0.12 + (environment.cloudCover ?? 0.5) * 0.34, 0.12, 0.42,
       );
       const age = snapshot.requestedAgeMa ?? snapshot.ageMa;
-      if (!this.hasNativePublication && age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
+      if (age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
+        const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
         this.renderer.domElement.dataset.caoFoundationStatus = "unsupported";
+        this.renderer.domElement.dataset.caoFoundationRequestedAgeMa = String(age);
         this.renderer.domElement.dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
+        this.renderer.domElement.dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
+        this.renderer.domElement.dataset.caoQualifiedMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoUncertainMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoFormationUncertainMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoModelInferredPoseCharts = "0";
+        this.renderer.domElement.dataset.caoOverriddenNativeCharts = "0";
+        this.renderer.domElement.dataset.caoFoundationNativeBoundarySegments = "0";
+        this.renderer.domElement.dataset.caoFoundationNativeBoundarySourceAgeMa = "";
+        this.renderer.domElement.dataset.caoFoundationTopologyOwnershipRings = "0";
+        this.renderer.domElement.dataset.caoFoundationTopologyOwnershipSourceAgeMa = "";
         this.renderer.domElement.dataset.surfaceStatus = "ready";
         this.onCaoFoundationState?.({ status: "unsupported", requestedAgeMa: age,
           displayedAgeMa: age, resolvedVertices: 0 });
@@ -894,6 +1005,38 @@ export class GlobeScene {
     this.renderer.domElement.dataset.caoFoundationAnchorMarkers = String(this.preparedAnchors.length);
   }
 
+  private updatePreparedAnchorMarkers(
+    markers: readonly CaoMotionAnchorMarker[],
+    requestedAgeMa: number,
+  ): void {
+    const next = Object.freeze(markers.map((marker) => Object.freeze({
+      id: marker.id,
+      direction: new THREE.Vector3(...gplatesToRendererDirection(numberScalarOps, marker.direction)).normalize(),
+      address: marker.address,
+    })));
+    const existing = new Map(this.markerGroup.children.flatMap((child) => {
+      const id = child.userData.poiId;
+      return typeof id === "string" ? [[id, child] as const] : [];
+    }));
+    const sameSet = existing.size === next.length && next.every((marker) => existing.has(marker.id));
+    this.preparedAnchors = next;
+    if (!sameSet) {
+      this.rebuildMarkers();
+    } else {
+      for (const marker of next) {
+        const sprite = existing.get(marker.id)!;
+        sprite.position.copy(marker.direction).multiplyScalar(1.028);
+        sprite.userData.materialAddress = marker.address;
+      }
+      if (this.followTarget !== null && (this.renderer.domElement.dataset.focusKind === "area"
+          || this.renderer.domElement.dataset.focusKind === "place")) {
+        this.setFocusLockMarker(this.followTarget);
+      }
+      this.renderer.domElement.dataset.caoFoundationAnchorMarkers = String(next.length);
+    }
+    this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(requestedAgeMa);
+  }
+
   private rebuildOverlays(): void {
     clearGroup(this.overlayGroup);
     if (!this.layers.guides) {
@@ -1021,6 +1164,7 @@ export class GlobeScene {
       ? sphereHit === undefined ? null : this.globeGroup.worldToLocal(sphereHit.point.clone()).normalize()
       : new THREE.Vector3(...caoHit.position).normalize();
     if (localDirection === null) return;
+    if (this.caoFoundationWithheld) return;
 
     if (this.renderer.domElement.dataset.focusKind !== "none") {
       this.onSelectSurface(vector3ToLonLat(localDirection), caoHit?.materialAddress);

@@ -1,0 +1,2626 @@
+{
+  "schemaVersion": 4,
+  "recordedAt": "2026-09-12T18:55:09.094Z",
+  "scope": "EarthHistory v0.1.4 integrated Cao v2.4 release candidate: the 0–1800 Ma layered native foundation, source-clock refinements, 0–540 Ma regional material corrections, direct consumers, continuous motion, and guarded recovery",
+  "codeIdentity": {
+    "releaseVersion": "0.1.4",
+    "sourceState": "Frozen staged release candidate; publication commit is assigned by the release coordinator after this evidence record.",
+    "productionIndex": "dist/index.html",
+    "productionIndexSha256": "a842670d31d6d4a37c3c160ef3e1eac6b1f47947f40268be64f894882d6b4393",
+    "productionEntry": "dist/assets/index-Dtk5yjWu.js",
+    "productionEntrySha256": "b5e4d73c7160f6bc05ccf833dcca08e1ae1fed6ec06a8df14dba0f28aa519612",
+    "caoPackageManifest": "dist/data/reconstruction/cao-v2.4/manifest.json",
+    "caoPackageManifestSha256": "c1206ec9d49d4778df3594f554055208975923750a1982d9f44578b5495cb2f4",
+    "caoCoreSha256": "cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223",
+    "caoMotionPaletteCatalogSha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217",
+    "caoMotionPaletteBinarySha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed",
+    "correctionCatalog": "dist/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
+    "correctionCatalogSha256": "a173bdaa3336564ffcd820f78090bbf11a74c2fce1dcda0986ebb176a1459023"
+  },
+  "machine": {
+    "operatingSystem": "Darwin 25.6.0 arm64",
+    "device": "Apple M4 Mac mini",
+    "logicalCpuCount": 10,
+    "totalMemoryBytes": 17179869184,
+    "browser": "Google Chrome 152.0.7977.83",
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+    "skiaBackend": "GraphiteDawnMetal",
+    "measuredBackends": [
+      "webgpu",
+      "webgl2"
+    ],
+    "softwareRendererFromPriorDiagnostic": "ANGLE Vulkan SwiftShader Device (LLVM 10.0.0)"
+  },
+  "prospectiveIntegratedReleaseLimits": {
+    "recordedBeforeMeasurement": true,
+    "releaseVersion": "0.1.4",
+    "coldReady": {
+      "maximumCandidateMinusControlMedianMs": 250,
+      "maximumCandidateOverControlIncreaseRatio": 0.2
+    },
+    "cadence": {
+      "minimumCandidateRelativeToControl": 0.9,
+      "maximumCandidateFrameTimeP50Ms": 33.33
+    },
+    "spatialGeometry": {
+      "maximumVertices": 325000,
+      "maximumTriangles": 490000,
+      "expectedVertices": 322442,
+      "expectedTriangles": 486333,
+      "expectedBatches": 4
+    },
+    "aggregateUniqueGeometry": {
+      "definition": "Spatial vertices plus country-line vertices; spatial triangles plus unique country-line segments.",
+      "maximumVertices": 345000,
+      "maximumPrimitives": 500000,
+      "expectedVertices": 342470,
+      "expectedPrimitives": 496347,
+      "expectedCountryLineVertices": 20028,
+      "expectedCountryLineSegments": 10014,
+      "expectedCountryLineBatches": 1
+    },
+    "drawWork": {
+      "definition": "Spatial triangles plus country-line segments drawn once for the underlay and once for the stroke.",
+      "expectedNonCheckpointPrimitives": 506361,
+      "expectedBaseDrawPasses": 6,
+      "exactNativeBoundaryOverlayMayAddOnePass": true
+    },
+    "unchangedRuntimeHardGuards": {
+      "maximumSpatialBatches": 5,
+      "maximumSpatialVertices": 400000,
+      "maximumSpatialTriangles": 600000,
+      "maximumRetainedSourceBytes": 48000000,
+      "maximumPaletteTextureSize": 4096,
+      "maximumPublicationBytes": 10000000,
+      "maximumSpatialIndexBytes": 1048576
+    },
+    "measurementCondition": "Measure the final integrated production artifact only after its exact geometry and package inventory agree with these expectations."
+  },
+  "priorEvidence": {
+    "initialSoftwareDiagnostic": {
+      "configuration": "Headless installed Chrome, SwiftShader, production Vite preview, five alternating native-only/candidate runs at 411 Ma.",
+      "baselineReadyMedianMs": 2378,
+      "candidateReadyMedianMs": 3270,
+      "native410ReadyMedianMs": 3280,
+      "readyDeltaMs": 892,
+      "readyRatio": 1.3751,
+      "coldReadyStop": "fail",
+      "absoluteCadenceStop": "not-qualified-on-software-renderer",
+      "interpretation": "Preserved diagnostic failure; it is not hardware production evidence."
+    },
+    "rejectedParallelReadExperiment": {
+      "configuration": "Headless SwiftShader profile and five-repeat follow-up on an experimental concurrent second-stage loader.",
+      "baselineReadyMedianMs": 1548.6,
+      "candidateReadyMedianMs": 1662.8,
+      "readyDeltaMs": 114.2,
+      "readyRatio": 1.0737,
+      "disposition": "reverted",
+      "reason": "Independent review found missing sibling cancellation after terminal verification failure and no bound on Promise.all fan-out or aggregate concurrent bytes."
+    },
+    "priorThreeRegionHardwareMeasurement": {
+      "configuration": "Final sequential loader; headed installed Chrome; production Vite preview; fresh context per run; 1280x720 DPR1; at least 120 renderer samples; five alternating-order native-only/candidate WebGPU runs at 411 Ma, two native 410 Ma anchors, and two forced-WebGL2 candidate runs.",
+      "webgpu": {
+        "baseline411ReadyMs": [
+          397.6,
+          400.5,
+          382.1,
+          382.2,
+          396.0
+        ],
+        "candidate411ReadyMs": [
+          447.9,
+          415.6,
+          435.5,
+          416.9,
+          409.4
+        ],
+        "native410ReadyMs": [
+          405.2,
+          406.5
+        ],
+        "baselineReadyMedianMs": 396.0,
+        "candidateReadyMedianMs": 416.9,
+        "native410ReadyMedianMs": 405.2,
+        "readyDeltaMs": 20.9,
+        "readyRatio": 1.0528,
+        "baselineFrameP50MedianMs": 16.7,
+        "candidateFrameP50MedianMs": 16.7,
+        "native410FrameP50MedianMs": 16.7,
+        "candidateFrameP95Ms": [
+          18.7,
+          18.7,
+          18.7,
+          18.7,
+          18.7
+        ],
+        "relativeCadenceRatio": 1.0,
+        "coldReadyStop": "pass",
+        "relativeCadenceStop": "pass",
+        "absoluteCadenceStop": "pass"
+      },
+      "forcedWebgl2": {
+        "candidate411ReadyMs": [
+          506.7,
+          482.6
+        ],
+        "candidateFrameP50Ms": [
+          16.7,
+          16.7
+        ],
+        "candidateFrameP95Ms": [
+          18.7,
+          18.7
+        ],
+        "actualBackend": "webgl2",
+        "compatibilityCheck": "pass"
+      },
+      "renderedCandidate": {
+        "qualifiedCharts": 7,
+        "uncertainCharts": 0,
+        "meshVertices": 159282,
+        "totalVertexLedgerIncludingCountryLines": 179318,
+        "totalPrimitiveLedger": 230331,
+        "geometryStop": "pass"
+      },
+      "disposition": "Historical three-region evidence, superseded by the complete correction union."
+    },
+    "rejectedVisualCandidate": {
+      "build": {
+        "productionIndexSha256": "6180020b910be5dbffcc91354608e849e1bfc05bd12810b058cfff35728e14b9",
+        "productionEntrySha256": "ac500f32687688276b0d79e949db56c8e857e36de9459c3b50aa10a17ddecfb1",
+        "caoPackageManifestSha256": "1221dc19684a4431bb2af9bc42e60a9902c700ebea2d7b84ef35f5c96303301b",
+        "correctionCatalogSha256": "fca4bbebba0aa8cd16f26acd1a4b6e237710e2830a70013b314f3aa790ff738b"
+      },
+      "baseline411ReadyMedianMs": 376.5,
+      "candidate411ReadyMedianMs": 418.1,
+      "readyDeltaMs": 41.6,
+      "baseline411FrameP50MedianMs": 16.7,
+      "candidate411FrameP50MedianMs": 16.7,
+      "landVertices": 166159,
+      "landTriangles": 230424,
+      "aggregateVertices": 186195,
+      "aggregatePrimitives": 240442,
+      "quantitativeStopsUnderHistorical241000PrimitiveBound": "pass",
+      "visualStop": "fail",
+      "failure": "Before refinement, the global audit found 559 of 17307 correction triangles submerged and a 10.9304-degree maximum edge. The examined Franciscan witness triangles had edges up to 3.27355 degrees: triangle 8436 at (-120.3826, 48.0323) lay 242.9 m below the ocean, and triangles 8443/8446 lay 1353.1/1037.8 m below.",
+      "rawPerformanceJsonSha256": "498de89cbb9bf76082ed64a48686f4de334ff247ce502fcbe6d242df4ebca81b",
+      "disposition": "Rejected and preserved as historical failed-visual-candidate evidence."
+    },
+    "preRebaseCompleteRegionalHardwareMeasurement": {
+      "configuration": "Headed installed Chrome; production Vite preview; fresh reduced-motion context per run; 1280x720 DPR1; five alternating-order candidate/control runs at 411 Ma; correction catalog stripped for the true 410 and 411 controls; separate candidate 410 anchor; two forced-WebGL2 candidate checks; 120 renderer diagnostic samples per performance run; nine same-age, same-camera baseline/candidate comparison images, including paired modern 0/0.001 and a transformed-footprint older-gray view.",
+      "webgpu": {
+        "baseline411ReadyMs": [
+          389.8,
+          381.1,
+          389.5,
+          387.3,
+          394.3
+        ],
+        "candidate411ReadyMs": [
+          464.2,
+          449.6,
+          429.7,
+          430.6,
+          434.4
+        ],
+        "baseline411ReadyMedianMs": 389.5,
+        "candidate411ReadyMedianMs": 434.4,
+        "readyDeltaMs": 44.9,
+        "readyRatio": 1.1153,
+        "baseline411FrameP50Ms": [
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7
+        ],
+        "candidate411FrameP50Ms": [
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7
+        ],
+        "baseline411FrameP95Ms": [
+          18.7,
+          18.7,
+          18.7,
+          18.7,
+          18.7
+        ],
+        "candidate411FrameP95Ms": [
+          18.7,
+          18.7,
+          18.7,
+          18.7,
+          18.7
+        ],
+        "baseline411SampleCounts": [
+          172,
+          175,
+          173,
+          173,
+          173
+        ],
+        "candidate411SampleCounts": [
+          171,
+          169,
+          171,
+          171,
+          169
+        ],
+        "baseline411FrameP50MedianMs": 16.7,
+        "candidate411FrameP50MedianMs": 16.7,
+        "relativeCadenceRatio": 1,
+        "baseline410ReadyMs": 395.6,
+        "candidate410ReadyMs": 440.7,
+        "baseline410FrameP50Ms": 16.7,
+        "candidate410FrameP50Ms": 16.7,
+        "actualBackend": "webgpu",
+        "coldReadyStop": "pass",
+        "relativeCadenceStop": "pass",
+        "absoluteCadenceStop": "pass"
+      },
+      "forcedWebgl2": {
+        "candidate411ReadyMs": [
+          515.9,
+          501.7
+        ],
+        "candidateFrameP50Ms": [
+          16.7,
+          16.7
+        ],
+        "candidateFrameP95Ms": [
+          18.7,
+          18.7
+        ],
+        "actualBackend": "webgl2",
+        "backendRunsPassing": "2/2",
+        "compatibilityCheck": "pass"
+      },
+      "correctionActivation": {
+        "baseline411": {
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "overriddenNativeCharts": 0
+        },
+        "candidate411": {
+          "qualifiedCharts": 15,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "overriddenNativeCharts": 0
+        },
+        "baseline410": {
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "overriddenNativeCharts": 0
+        },
+        "candidate410": {
+          "qualifiedCharts": 10,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "overriddenNativeCharts": 2
+        }
+      },
+      "renderedCandidate411": {
+        "foundationSpatialBatches": 3,
+        "countryReferenceLineBatches": 1,
+        "totalRendererBatches": 4,
+        "landMeshVertices": 168538,
+        "landMeshTriangles": 235146,
+        "countryLineVertices": 20036,
+        "countryLineSegments": 10018,
+        "aggregateVertexLedger": "168538 + 20036 = 188574",
+        "aggregatePrimitiveLedger": "235146 + 10018 = 245164",
+        "aggregateVertices": 188574,
+        "aggregatePrimitives": 245164,
+        "landGeometryStop": "pass",
+        "aggregateGeometryStop": "pass"
+      },
+      "allStops": "pass"
+    },
+    "preRebaseCompleteRegionalCaptures": {
+      "evidenceClass": "Pre-rebase complete-regional checkpoint",
+      "count": 9,
+      "pairMeaning": "Every file is a same-age, same-camera stripped-catalog baseline/candidate comparison.",
+      "files": [
+        {
+          "sha256": "3e1f1a3f2f6d8514c094c4bbb63fa39c29414b281f064f21b65b0417f5ee065a",
+          "kind": "paired-baseline-candidate",
+          "region": "regionalWestern",
+          "ageMa": 409,
+          "center": [
+            -91,
+            -15
+          ],
+          "baselineCamera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          },
+          "visualFinding": "Western geometry remains continuous across the matched pair; qualified replacement behavior remains bounded to its active state."
+        },
+        {
+          "sha256": "8eeac85ecb60cc8c7bf7452e9aa882c0e90d0795158721a27c3eb61dcaefda77",
+          "kind": "paired-baseline-candidate",
+          "region": "regionalWestern",
+          "ageMa": 411,
+          "center": [
+            -91,
+            -15
+          ],
+          "baselineCamera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          },
+          "visualFinding": "The former angular/trapezoid water voids are closed after conforming correction-triangle subdivision."
+        },
+        {
+          "sha256": "0c4729a5a44af7b329a3014104018d9695cc27edcbcf9675cfeaf1cb767a35b2",
+          "kind": "paired-baseline-candidate",
+          "region": "CanadaPearya",
+          "ageMa": 409,
+          "center": [
+            -60.5,
+            3
+          ],
+          "baselineCamera": {
+            "longitude": -60.5,
+            "latitude": 3.0001,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          },
+          "visualFinding": "Matched pair retains the native younger-side reconstruction while showing the correction-specific transition without triangular holes."
+        },
+        {
+          "sha256": "e55e5ef231bcdfdf4806392da99d7b012f0c3344d3cbc84ecd18dae939a055cd",
+          "kind": "paired-baseline-candidate",
+          "region": "CanadaPearya",
+          "ageMa": 411,
+          "center": [
+            -60.5,
+            3
+          ],
+          "baselineCamera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          },
+          "visualFinding": "The source-supported Canadian and Pearya continuation is visible in the candidate and absent from the stripped-catalog baseline."
+        },
+        {
+          "sha256": "2ac503dd0c84f6354d6ac2f44c052dd0279fca5614c82869373fbe113ff03628",
+          "kind": "paired-baseline-candidate",
+          "region": "BarentsSvalbard",
+          "ageMa": 409,
+          "center": [
+            -46,
+            5
+          ],
+          "baselineCamera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          },
+          "visualFinding": "Recentered transformed-bound pair shows the younger-side native reconstruction consistently."
+        },
+        {
+          "sha256": "3c587887928eea5049fbfda54e2d90389d429b8701e4078c79b7c835f7d66c26",
+          "kind": "paired-baseline-candidate",
+          "region": "BarentsSvalbard",
+          "ageMa": 411,
+          "center": [
+            -46,
+            5
+          ],
+          "baselineCamera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          },
+          "visualFinding": "Recentered transformed-bound pair visibly contains Svalbard, Franz Josef Land, Novaya Zemlya, and Timan correction regions."
+        },
+        {
+          "sha256": "acd865360a394f40a7295ae4a67a9ae4a7c50bf45c9db315537118adb769107b",
+          "kind": "paired-baseline-candidate",
+          "region": "regionalWesternModern",
+          "ageMa": 0,
+          "center": [
+            -118,
+            48
+          ],
+          "baselineCamera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          },
+          "visualFinding": "Matched baseline/candidate shows continuous land under the gray replacement; the former central and lower blue holes are closed."
+        },
+        {
+          "sha256": "5c55f824a7c0ac66c2f39599a5528f10a60fcc1b0307e9d55f8f8cc3838b3e29",
+          "kind": "paired-baseline-candidate",
+          "region": "regionalWesternModern",
+          "ageMa": 0.001,
+          "center": [
+            -118,
+            48
+          ],
+          "baselineCamera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -117.9998,
+            "latitude": 48,
+            "distance": 1.3482
+          },
+          "visualFinding": "The pale sea is present in both baseline and candidate; it is not a correction regression. The gray replacement remains continuous."
+        },
+        {
+          "sha256": "fc73d6dfb97d21c4dd19956d60d90a819e51493d86b9e176e7ac9c7964f9084b",
+          "kind": "paired-baseline-candidate",
+          "region": "olderGrayNovaya",
+          "ageMa": 430.001,
+          "center": [
+            -63.4,
+            13.5
+          ],
+          "baselineCamera": {
+            "longitude": -63.4,
+            "latitude": 13.5,
+            "distance": 1.3482
+          },
+          "candidateCamera": {
+            "longitude": -63.4,
+            "latitude": 13.5,
+            "distance": 1.3482
+          },
+          "visualFinding": "Candidate gray uncertain Novaya footprint is visible at its transformed centroid and absent from the stripped-catalog baseline."
+        }
+      ],
+      "retention": "The durable record preserves image hashes, cameras, and findings; the raw working captures were ephemeral."
+    }
+  },
+  "runHistory": [
+    {
+      "attempt": 1,
+      "outcome": "not-published",
+      "classification": "harness-publication-failure",
+      "reason": "Cross-filesystem rename from ephemeral staging to the workspace capture directory",
+      "measurementRowsRetained": false,
+      "stopFailure": false,
+      "knownInterference": false,
+      "artifactEffect": "Performance JSON remained unchanged; prior JPG captures were removed before the failed transfer; nine candidate-only staging images remained in ephemeral storage."
+    },
+    {
+      "attempt": 2,
+      "outcome": "published-rejected",
+      "classification": "visual-stop-failure",
+      "reason": "The global audit found 559 of 17307 correction triangles submerged and a 10.9304-degree maximum edge; examined Franciscan witness edges reached 3.27355 degrees and produced the visible Western voids despite the 400 m shell.",
+      "measurementRowsRetained": true,
+      "stopFailure": true,
+      "knownInterference": false,
+      "performanceJsonSha256": "498de89cbb9bf76082ed64a48686f4de334ff247ce502fcbe6d242df4ebca81b"
+    },
+    {
+      "attempt": 3,
+      "outcome": "not-published",
+      "classification": "harness-capture-stop-failure",
+      "reason": "The first Barents capture requested camera distance 1.85 while also requiring runtime regional detail, whose boundary is 1.5; waitForFunction timed out.",
+      "measurementRowsRetained": false,
+      "stopFailure": true,
+      "knownInterference": false,
+      "artifactEffect": "Timing rows existed only in process memory; no performance JSON or final images were published."
+    },
+    {
+      "attempt": 4,
+      "outcome": "published",
+      "classification": "conforming-triangulation-final-run",
+      "reason": "All correction triangle edges are conformingly subdivided below one degree and radial-clearance validated; the Barents view uses the corrected transformed center at the supported 1.5 regional boundary.",
+      "measurementRowsRetained": true,
+      "stopFailure": false,
+      "knownInterference": false
+    },
+    {
+      "attempt": 5,
+      "outcome": "rejected-before-measurement",
+      "classification": "integrated-full-gate-browser-failure",
+      "reason": "The integrated make gate-full browser phase passed 15/17 and exposed two failures: a real exact-checkpoint withheld-state race, and an unsupported-age assertion that still used 720 Ma after the Cao domain expanded to 1800 Ma.",
+      "measurementRowsRetained": false,
+      "stopFailure": true,
+      "knownInterference": false,
+      "recovery": "The race now guards stale prepare failures, withholds stale overlays/anchors/picking, and retargets current source markers; the unsupported test now probes 2200 Ma."
+    },
+    {
+      "attempt": 6,
+      "outcome": "accepted",
+      "classification": "integrated-v0.1.4-release-hardware-run",
+      "reason": "The frozen integrated production build passed preflight hashes and routing, every prospective hardware stop, three continuous scrub comparisons, two forced-WebGL2 checks, three older-domain smokes, and nine paired captures.",
+      "measurementRowsRetained": true,
+      "stopFailure": false,
+      "knownInterference": false
+    },
+    {
+      "attempt": 7,
+      "outcome": "rejected-remote-workflow",
+      "classification": "ci-smoke-assertion-transport-timeout",
+      "reason": "GitHub Actions run 34712827409 failed its sole @ci smoke after the globe was ready at 18.811 s: six valid serial CDP-backed assertion reads each took about 4.1 s, and the final 322442-vertex value returned at 47.590 s after the 47.026 s test timeout.",
+      "measurementRowsRetained": true,
+      "stopFailure": false,
+      "knownInterference": false,
+      "workflowUrl": "https://github.com/kkollsga/EarthHistory/actions/runs/34712827409",
+      "headSha": "7066203531ec8611efeff032142e1e00a0fc9d51",
+      "disposition": "Batch the same six post-ready DOM reads into one page.evaluate while preserving their exact assertions, the 20 s readiness wait, and the 45 s test timeout. This changes only the browser test harness."
+    }
+  ],
+  "conformingGeometryEvidence": {
+    "qualifiedBatch": {
+      "vertices": 7850,
+      "triangles": 9291,
+      "maximumEdgeDegrees": 0.996656,
+      "minimumDisplayedRadius": 1.00002395
+    },
+    "uncertaintyBatch": {
+      "vertices": 11196,
+      "triangles": 12738,
+      "maximumEdgeDegrees": 0.999583,
+      "minimumDisplayedRadius": 1.000023129
+    },
+    "correctionTriangles": 22029,
+    "submergedCorrectionTriangles": 0,
+    "minimumClearanceMetres": 147.356,
+    "method": "Conforming shared-edge midpoint bisection to at most one degree followed by exact closest-point radial-clearance validation after float32 encoding."
+  },
+  "finalHardwareMeasurement": {
+    "evidenceClass": "Frozen integrated v0.1.4 release candidate",
+    "configuration": "Headed installed Chrome against a production Vite preview; the same final frontend renderer serves either the integrated candidate data or exact upstream native-data manifest/core/motion-palette bytes pinned at 6af9bd9; fresh reduced-motion 1280x720 DPR1 contexts; five alternating-order native/candidate pairs at 411 Ma; native 0/410/411 anchors; candidate 410; two forced-WebGL2 candidate runs; candidate 540/1000/1800 domain smoke; continuous 409.01-410.99 and 0.001-1 Ma same-clock scrubs with a forced-WebGL2 seam pair; 120 frame samples per stationary timing run; nine same-age, same-camera visual pairs.",
+    "comparisonScope": "The same final frontend renderer compares the integrated candidate data with the exact upstream native-data foundation pinned at 6af9bd9; this is not a comparison with previously deployed JavaScript.",
+    "machine": {
+      "platform": "darwin",
+      "release": "25.6.0",
+      "architecture": "arm64",
+      "cpuModel": "Apple M4",
+      "logicalCpuCount": 10,
+      "totalMemoryBytes": 17179869184,
+      "browserChannel": "chrome",
+      "browserVersion": "152.0.7977.83"
+    },
+    "gpu": {
+      "devices": [
+        {
+          "vendorId": 4203,
+          "deviceId": 0,
+          "vendorString": "Google Inc. (Apple)",
+          "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+          "driverVendor": "Apple",
+          "driverVersion": "26.6.2"
+        }
+      ],
+      "glRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+      "skiaBackendType": "GraphiteDawnMetal"
+    },
+    "build": {
+      "comparisonScope": "The same final frontend renderer compares the integrated candidate data with the exact upstream native-data foundation pinned at 6af9bd9; this is not a comparison with previously deployed JavaScript.",
+      "manifest": "dist/data/reconstruction/cao-v2.4/manifest.json",
+      "manifestSha256": "c1206ec9d49d4778df3594f554055208975923750a1982d9f44578b5495cb2f4",
+      "index": "dist/index.html",
+      "indexSha256": "a842670d31d6d4a37c3c160ef3e1eac6b1f47947f40268be64f894882d6b4393",
+      "entry": "dist/assets/index-Dtk5yjWu.js",
+      "entrySha256": "b5e4d73c7160f6bc05ccf833dcca08e1ae1fed6ec06a8df14dba0f28aa519612",
+      "candidateNative": {
+        "core": "dist/data/reconstruction/cao-v2.4/core.json",
+        "coreBytes": 5875550,
+        "coreSha256": "cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223",
+        "paletteCatalog": "dist/data/reconstruction/cao-v2.4/motion-palette.json",
+        "paletteCatalogBytes": 448210,
+        "paletteCatalogSha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217",
+        "paletteBinary": "dist/data/reconstruction/cao-v2.4/motion-palette.bin",
+        "paletteBinaryBytes": 5166572,
+        "paletteBinarySha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed"
+      },
+      "controlNative": {
+        "commit": "6af9bd9ca7836adb58eb658d37b2f7743b9de68c",
+        "manifestBytes": 38612,
+        "manifestSha256": "fa376df0e742a6cfe45937647d6bd1b9fabc6adad564e7fb41ca5456b4a64073",
+        "coreBytes": 5898918,
+        "coreSha256": "9be727ee8e24fb062703abaadbfca6d534e3906b5b87ef0303b889cc78392d2a",
+        "paletteCatalogBytes": 443258,
+        "paletteCatalogSha256": "abbaaf464d62fae1112ee0b5a0a676496d8f43331770502eeb2b6b8412b9c7a7",
+        "paletteBinaryBytes": 4704332,
+        "paletteBinarySha256": "1705edc8cfe2e811a071aaf6ae0566dbfd4a3bec737f473e394bf12e175a2f54"
+      },
+      "catalog": "dist/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
+      "catalogSha256": "a173bdaa3336564ffcd820f78090bbf11a74c2fce1dcda0986ebb176a1459023"
+    },
+    "limits": {
+      "maximumColdReadyDeltaMs": 250,
+      "maximumColdReadyRatioIncrease": 0.2,
+      "minimumRelativeCadence": 0.9,
+      "maximumFrameP50Ms": 33.33,
+      "maximumSpatialVertices": 325000,
+      "maximumSpatialTriangles": 490000,
+      "maximumAggregateVertices": 345000,
+      "maximumAggregatePrimitives": 500000,
+      "expectedSpatialBatches": 4,
+      "expectedCountryBatches": 1,
+      "expectedSpatialVertices": 322442,
+      "expectedSpatialTriangles": 486333,
+      "expectedCountryVertices": 20028,
+      "expectedCountrySegments": 10014,
+      "expectedBaseDrawPasses": 6
+    },
+    "summary": {
+      "baseline411ReadyMedianMs": 562.7,
+      "candidate411ReadyMedianMs": 586,
+      "baseline411FrameP50MedianMs": 16.7,
+      "candidate411FrameP50MedianMs": 16.7,
+      "baseline410ReadyMs": 560.4,
+      "candidate410ReadyMs": 580.2,
+      "candidate411MaximumSpatialVertices": 322442,
+      "candidate411MaximumSpatialTriangles": 486333,
+      "candidate411MaximumAggregateVertices": 342470,
+      "candidate411MaximumAggregatePrimitives": 496347,
+      "candidate411MaximumDrawnPrimitives": 506361,
+      "baseline411ActiveSourceBytes": 23209603,
+      "candidate411ActiveSourceBytes": 24475072,
+      "readyDeltaMs": 23.3,
+      "readyRatio": 1.0414,
+      "frameRatio": 1,
+      "candidateAdditionalActiveSourceBytes": 1265469,
+      "relativeColdStopPass": true,
+      "relativeCadencePass": true,
+      "absoluteCadencePass": true,
+      "spatialGeometryStopPass": true,
+      "aggregateGeometryStopPass": true,
+      "forcedWebgl2Pass": true,
+      "autoBackendMatchPass": true,
+      "correctionActivationPass": true,
+      "nativeAnchorPass": true,
+      "domainSmokePass": true,
+      "olderDomainCorrectionInactivePass": true,
+      "scrubStops": [
+        {
+          "sceneId": "seam-409-411",
+          "requested": "auto",
+          "baselineFrameP50Ms": 16.7,
+          "candidateFrameP50Ms": 16.7,
+          "frameRatio": 1,
+          "relativeCadencePass": true,
+          "absoluteCadencePass": true,
+          "candidateGeometryIdentityReusePass": true,
+          "expectedGeometryPass": true,
+          "backendMatchPass": true,
+          "evaluatedEveryAgePass": true,
+          "errorFree": true
+        },
+        {
+          "sceneId": "modern-0-1",
+          "requested": "auto",
+          "baselineFrameP50Ms": 16.7,
+          "candidateFrameP50Ms": 16.7,
+          "frameRatio": 1,
+          "relativeCadencePass": true,
+          "absoluteCadencePass": true,
+          "candidateGeometryIdentityReusePass": true,
+          "expectedGeometryPass": true,
+          "backendMatchPass": true,
+          "evaluatedEveryAgePass": true,
+          "errorFree": true
+        },
+        {
+          "sceneId": "seam-409-411",
+          "requested": "webgl2",
+          "baselineFrameP50Ms": 16.7,
+          "candidateFrameP50Ms": 16.7,
+          "frameRatio": 1,
+          "relativeCadencePass": true,
+          "absoluteCadencePass": true,
+          "candidateGeometryIdentityReusePass": true,
+          "expectedGeometryPass": true,
+          "backendMatchPass": true,
+          "evaluatedEveryAgePass": true,
+          "errorFree": true
+        }
+      ],
+      "continuousScrubPass": true,
+      "captureCount": 9,
+      "captureErrors": 0,
+      "allStopsPass": true
+    },
+    "stationaryAndAnchorRows": [
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 586,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 169
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "baseline411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 555.5,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.5,
+          "samples": 172
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "baseline411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 605.4,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.7,
+          "samples": 170
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 599.9,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.7,
+          "samples": 168
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 580.9,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.7,
+          "samples": 168
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "baseline411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 562.7,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.7,
+          "samples": 172
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "baseline411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 596.5,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17,
+          "samples": 172
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 594.9,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.3,
+          "samples": 166
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 581.7,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 167
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "baseline411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 556.1,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 171
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "native-anchor",
+        "label": "native0",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 0,
+        "readyMs": 604.2,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23325573,
+          "retainedPublicationBytes": 556062,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 248
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.7,
+          "samples": 172
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "native-anchor",
+        "label": "native410",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 410,
+        "readyMs": 560.4,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23150148,
+          "retainedPublicationBytes": 419116,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 75
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 172
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "native-anchor",
+        "label": "native411",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "ageMa": 411,
+        "readyMs": 566,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 2,
+          "vertices": 303396,
+          "triangles": 464304,
+          "drawCount": 4,
+          "retainedStaticBytes": 22370984,
+          "activeSourceBytes": 23209603,
+          "retainedPublicationBytes": 392664,
+          "paletteEntries": 4824,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 171
+        },
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "errorCount": 0
+      },
+      {
+        "kind": "candidate-anchor",
+        "label": "candidate410",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 410,
+        "readyMs": 580.2,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 10,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 10,
+        "overriddenNativeCharts": 2,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24415617,
+          "retainedPublicationBytes": 426644,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 75
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 168
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "webgl2",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 1659.5,
+        "actualBackend": "webgl2",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 137
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "comparison",
+        "label": "candidate411",
+        "requested": "webgl2",
+        "nativeDataControl": false,
+        "ageMa": 411,
+        "readyMs": 677.5,
+        "actualBackend": "webgl2",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 15,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 2,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24475072,
+          "retainedPublicationBytes": 400192,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 0
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 162
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "domain-smoke",
+        "label": "candidate540",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 540,
+        "readyMs": 587.1,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "cao-plus-formation-range-material",
+        "qualifiedCharts": 4,
+        "uncertainCharts": 11,
+        "formationUncertainCharts": 1,
+        "modelInferredPoseCharts": 2,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24444420,
+          "retainedPublicationBytes": 442683,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 111
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 167
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "domain-smoke",
+        "label": "candidate1000",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 1000,
+        "readyMs": 573.1,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24422601,
+          "retainedPublicationBytes": 429829,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 85
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 167
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      },
+      {
+        "kind": "domain-smoke",
+        "label": "candidate1800",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "ageMa": 1800,
+        "readyMs": 571.1,
+        "actualBackend": "webgpu",
+        "foundationStatus": "ready",
+        "support": "native-cao-foundation",
+        "qualifiedCharts": 0,
+        "uncertainCharts": 0,
+        "formationUncertainCharts": 0,
+        "modelInferredPoseCharts": 0,
+        "overriddenNativeCharts": 0,
+        "staticCounts": {
+          "batches": 4,
+          "vertices": 322442,
+          "triangles": 486333,
+          "drawCount": 6,
+          "retainedStaticBytes": 23550604,
+          "activeSourceBytes": 24400853,
+          "retainedPublicationBytes": 416202,
+          "paletteEntries": 4928,
+          "countryLineBatches": 1,
+          "countryLineVertices": 20028,
+          "countryLineSegments": 10014,
+          "nativeBoundarySegments": 59
+        },
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 17.6,
+          "samples": 168
+        },
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "errorCount": 0
+      }
+    ],
+    "continuousScrubs": [
+      {
+        "sceneId": "seam-409-411",
+        "variant": "baseline",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          409.01,
+          410.99
+        ],
+        "requestedAgeCount": 204,
+        "observedAgeCount": 204,
+        "maximumAbsoluteAgeErrorMa": 2.8421709430404007e-13,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 409.00999999999993,
+            "support": "native-cao-foundation",
+            "qualifiedCharts": 0,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 0,
+            "modelInferredPoseCharts": 0,
+            "overriddenNativeCharts": 0
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "geometryLedgers": [
+          {
+            "batches": 2,
+            "countryLineBatches": 1,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 474318,
+            "drawnPrimitives": 484332,
+            "retainedStaticBytes": 22370984
+          }
+        ],
+        "actualBackend": "webgpu",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18.3,
+          "samples": 171
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      },
+      {
+        "sceneId": "seam-409-411",
+        "variant": "candidate",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          409.01,
+          410.99
+        ],
+        "requestedAgeCount": 204,
+        "observedAgeCount": 204,
+        "maximumAbsoluteAgeErrorMa": 2.8421709430404007e-13,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 409.00999999999993,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          },
+          {
+            "ageMa": 410.03960000000006,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 15,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 2,
+            "overriddenNativeCharts": 0
+          },
+          {
+            "ageMa": 409.99999999999994,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          },
+          {
+            "ageMa": 410.03960000000006,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 15,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 2,
+            "overriddenNativeCharts": 0
+          },
+          {
+            "ageMa": 409.99999999999994,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "geometryLedgers": [
+          {
+            "batches": 4,
+            "countryLineBatches": 1,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 496347,
+            "drawnPrimitives": 506361,
+            "retainedStaticBytes": 23550604
+          }
+        ],
+        "actualBackend": "webgpu",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18.6,
+          "samples": 180
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      },
+      {
+        "sceneId": "modern-0-1",
+        "variant": "baseline",
+        "requested": "auto",
+        "nativeDataControl": true,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          0.001,
+          1
+        ],
+        "requestedAgeCount": 202,
+        "observedAgeCount": 202,
+        "maximumAbsoluteAgeErrorMa": 2.886579864025407e-15,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 0.0009999999999999983,
+            "support": "native-cao-foundation",
+            "qualifiedCharts": 0,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 0,
+            "modelInferredPoseCharts": 0,
+            "overriddenNativeCharts": 0
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "geometryLedgers": [
+          {
+            "batches": 2,
+            "countryLineBatches": 1,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 474318,
+            "drawnPrimitives": 484332,
+            "retainedStaticBytes": 22370984
+          }
+        ],
+        "actualBackend": "webgpu",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18.6,
+          "samples": 172
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      },
+      {
+        "sceneId": "modern-0-1",
+        "variant": "candidate",
+        "requested": "auto",
+        "nativeDataControl": false,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          0.001,
+          1
+        ],
+        "requestedAgeCount": 202,
+        "observedAgeCount": 202,
+        "maximumAbsoluteAgeErrorMa": 2.886579864025407e-15,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 0.0009999999999999983,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 34,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 1,
+            "modelInferredPoseCharts": 34,
+            "overriddenNativeCharts": 2
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "geometryLedgers": [
+          {
+            "batches": 4,
+            "countryLineBatches": 1,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 496347,
+            "drawnPrimitives": 506361,
+            "retainedStaticBytes": 23550604
+          }
+        ],
+        "actualBackend": "webgpu",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18.5,
+          "samples": 180
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      },
+      {
+        "sceneId": "seam-409-411",
+        "variant": "baseline",
+        "requested": "webgl2",
+        "nativeDataControl": true,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          409.01,
+          410.99
+        ],
+        "requestedAgeCount": 204,
+        "observedAgeCount": 204,
+        "maximumAbsoluteAgeErrorMa": 2.8421709430404007e-13,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 409.00999999999993,
+            "support": "native-cao-foundation",
+            "qualifiedCharts": 0,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 0,
+            "modelInferredPoseCharts": 0,
+            "overriddenNativeCharts": 0
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "e4580bd49aa820bc2bee54a721491076fed321deefc7c413cf994f96d247a0e9",
+        "geometryLedgers": [
+          {
+            "batches": 2,
+            "countryLineBatches": 1,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 474318,
+            "drawnPrimitives": 484332,
+            "retainedStaticBytes": 22370984
+          }
+        ],
+        "actualBackend": "webgl2",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18.5,
+          "samples": 167
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      },
+      {
+        "sceneId": "seam-409-411",
+        "variant": "candidate",
+        "requested": "webgl2",
+        "nativeDataControl": false,
+        "uiMapping": "Phanerozoic linear range: raw = ageMa / 538.8 * 1000",
+        "requestedRangeMa": [
+          409.01,
+          410.99
+        ],
+        "requestedAgeCount": 204,
+        "observedAgeCount": 204,
+        "maximumAbsoluteAgeErrorMa": 2.8421709430404007e-13,
+        "allRequestedAgesEvaluated": true,
+        "counterTransitions": [
+          {
+            "ageMa": 409.00999999999993,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          },
+          {
+            "ageMa": 410.03960000000006,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 15,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 2,
+            "overriddenNativeCharts": 0
+          },
+          {
+            "ageMa": 409.99999999999994,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          },
+          {
+            "ageMa": 410.03960000000006,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 15,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 2,
+            "overriddenNativeCharts": 0
+          },
+          {
+            "ageMa": 409.99999999999994,
+            "support": "cao-plus-formation-range-material",
+            "qualifiedCharts": 10,
+            "uncertainCharts": 0,
+            "formationUncertainCharts": 2,
+            "modelInferredPoseCharts": 10,
+            "overriddenNativeCharts": 2
+          }
+        ],
+        "publicationIdentityCount": 1,
+        "geometryIdentityCount": 1,
+        "geometryIdentitySha256": "c3506418c11d92c269cfe8ed166def32f4faec9bdfb37afb0d02edac7c463bc6",
+        "geometryLedgers": [
+          {
+            "batches": 4,
+            "countryLineBatches": 1,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "uniquePrimitives": 496347,
+            "drawnPrimitives": 506361,
+            "retainedStaticBytes": 23550604
+          }
+        ],
+        "actualBackend": "webgl2",
+        "frameTimeMs": {
+          "p50": 16.7,
+          "p95": 18,
+          "samples": 180
+        },
+        "sameDocument": true,
+        "errorCount": 0
+      }
+    ],
+    "visualReview": {
+      "outcome": "accepted",
+      "reviewer": "release coordinator",
+      "finding": "All nine same-age, same-camera pairs were accepted: modern 0/0.001 Ma western replacement is continuous without false holes; the 0.001 Ma pale ocean also occurs in the native control; the uncertain Novaya continuation is visible at 430.001 Ma; Arctic native coverage is preserved at 409 Ma and the 411 Ma additions and western replacements are intended."
+    },
+    "allStops": "pass"
+  },
+  "captures": {
+    "evidenceClass": "Frozen integrated v0.1.4 release candidate",
+    "count": 9,
+    "pairMeaning": "Each image is a same-age, same-camera upstream-native-data control and integrated-candidate pair rendered by the same final frontend.",
+    "files": [
+      {
+        "id": "western-409",
+        "region": "regionalWestern",
+        "ageMa": 409,
+        "center": [
+          -91,
+          -15
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "25a58805eaca080614eb55bded6203eb694c3c2050003c10cc17697f70f15a21",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209186,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 10,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 10,
+          "overriddenNativeCharts": 2,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24474655,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "western-411",
+        "region": "regionalWestern",
+        "ageMa": 411,
+        "center": [
+          -91,
+          -15
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "3cdee554e14073261ab87900643b1e3b703fecc2cd9939b7fc0a21cb3ac9ffee",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209603,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 15,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 2,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24475072,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -91,
+            "latitude": -15,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "canada-pearya-409",
+        "region": "CanadaPearya",
+        "ageMa": 409,
+        "center": [
+          -60.5,
+          3
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "14591614cdf57867b4ab29794c6f15cc9dbe36836d36cb98dada6b5dbcfac374",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209186,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 10,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 10,
+          "overriddenNativeCharts": 2,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24474655,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "canada-pearya-411",
+        "region": "CanadaPearya",
+        "ageMa": 411,
+        "center": [
+          -60.5,
+          3
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "79dc932f804f3268e461e59de25d918c0b5f5262cbb74ee0694e52109260da96",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209603,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 15,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 2,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24475072,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -60.5,
+            "latitude": 3,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "barents-svalbard-409",
+        "region": "BarentsSvalbard",
+        "ageMa": 409,
+        "center": [
+          -46,
+          5
+        ],
+        "distance": 1.49,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "5ffd84b4be22b23b5e3b1fd26d6500855cb836e8ba4d1760ed585eecb23bbfd1",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209186,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 10,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 10,
+          "overriddenNativeCharts": 2,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24474655,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "barents-svalbard-411",
+        "region": "BarentsSvalbard",
+        "ageMa": 411,
+        "center": [
+          -46,
+          5
+        ],
+        "distance": 1.49,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "2958d1f0f7f49b8361be48d30623510c9122958c26eaf1165c724eee6589dac9",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23209603,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 15,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 2,
+          "modelInferredPoseCharts": 2,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24475072,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -46,
+            "latitude": 5,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "western-modern-0",
+        "region": "regionalWesternModern",
+        "ageMa": 0,
+        "center": [
+          -118,
+          48
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "290e38e4ad91f8628a8eee17bfc85842a615a223d5c67a5b6f4b433b4367c9c3",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23325573,
+            "retainedPublicationBytes": 556062,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 248
+          },
+          "camera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-model-pose-material",
+          "qualifiedCharts": 35,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 35,
+          "overriddenNativeCharts": 2,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24591042,
+            "retainedPublicationBytes": 563590,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 248
+          },
+          "camera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "western-modern-0p001",
+        "region": "regionalWesternModern",
+        "ageMa": 0.001,
+        "center": [
+          -118,
+          48
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "f0efc1a6b2d372caa815356b221fd32a4ea4c6f0f203ee28808a60e2f7e885ce",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23530083,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 34,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 1,
+          "modelInferredPoseCharts": 34,
+          "overriddenNativeCharts": 2,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24795552,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -118,
+            "latitude": 48,
+            "distance": 1.3482
+          }
+        }
+      },
+      {
+        "id": "older-gray-430p001",
+        "region": "olderGrayNovaya",
+        "ageMa": 430.001,
+        "center": [
+          -63.4,
+          13.5
+        ],
+        "distance": 1.45,
+        "kind": "paired-baseline-candidate",
+        "imageSha256": "6de2548502163a573fd98f21ab831ba77de0b695d338658c3e551b37baf228b9",
+        "baseline": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "native-cao-foundation",
+          "qualifiedCharts": 0,
+          "uncertainCharts": 0,
+          "formationUncertainCharts": 0,
+          "modelInferredPoseCharts": 0,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 2,
+            "vertices": 303396,
+            "triangles": 464304,
+            "drawCount": 4,
+            "retainedStaticBytes": 22370984,
+            "activeSourceBytes": 23225199,
+            "retainedPublicationBytes": 392664,
+            "paletteEntries": 4824,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -63.4,
+            "latitude": 13.5,
+            "distance": 1.3482
+          }
+        },
+        "candidate": {
+          "errorCount": 0,
+          "actualBackend": "webgpu",
+          "foundationStatus": "ready",
+          "support": "cao-plus-formation-range-material",
+          "qualifiedCharts": 4,
+          "uncertainCharts": 11,
+          "formationUncertainCharts": 1,
+          "modelInferredPoseCharts": 2,
+          "overriddenNativeCharts": 0,
+          "staticCounts": {
+            "batches": 4,
+            "vertices": 322442,
+            "triangles": 486333,
+            "drawCount": 6,
+            "retainedStaticBytes": 23550604,
+            "activeSourceBytes": 24490668,
+            "retainedPublicationBytes": 400192,
+            "paletteEntries": 4928,
+            "countryLineBatches": 1,
+            "countryLineVertices": 20028,
+            "countryLineSegments": 10014,
+            "nativeBoundarySegments": 0
+          },
+          "camera": {
+            "longitude": -63.4,
+            "latitude": 13.5,
+            "distance": 1.3482
+          }
+        }
+      }
+    ],
+    "retention": "The release run retained exactly nine pair hashes and diagnostics here. Raw captures lived only in the bounded release-owned working allocation and are not a dependency of this durable record."
+  },
+  "rawEvidence": {
+    "historicalPreRebase": {
+      "performanceJsonSha256": "9de9b82045e1566e429915a37d2409f651aeda2cb848667cb6741cefdf2cb29a",
+      "persistedTimingRowsSha256": "0a3a87877a67897b86135d663c899245d6a58ede5786680fb747dcb2c894ad0b",
+      "harnessSha256": "fcfced5fb79e10cee1766a6beff43bd53d7825fb4676102b63c7f8ac3444727c",
+      "finalGateFull": {
+        "exitCode": 0,
+        "deterministicFiles": 24,
+        "deterministicTests": 98,
+        "buildArtifacts": 555,
+        "browserTests": "13/13",
+        "distMebibytes": 29.68
+      },
+      "retention": "Raw working files were ephemeral; the durable rows, capture hashes, outcomes, and gate counts are retained in this record."
+    },
+    "integratedRelease": {
+      "harness": "dev-docs/bench/scripts/regional-material-release.mjs",
+      "harnessSha256": "a824842179316e3bc46d107baa1fd46b9a2285cdc2ab3d59b20cf9fdf6c161f3",
+      "resultSha256": "560a59c7ea2a1d03e786f77e8d6a0ec597147e443248be842ce2a9f81384bf51",
+      "timingRowsSha256": "b2bff90e8f1d71e096dc3c50e4ada31c259d5055d4f3a7bd460a472c4ef50f3e",
+      "preflight": "Candidate/control route, declared-byte, SHA-256, and exact fractional-age input checks passed before measurement.",
+      "boundedWorkingEvidence": {
+        "maximumOutputBytes": 67108864,
+        "measuredOutputBytes": 11649282,
+        "pairCount": 9,
+        "rawCapturesRetained": 0,
+        "cleanupOwner": "the release run owns and removes its temporary benchmark output"
+      },
+      "retention": "Raw pair images and timing files use the release-owned bounded working allocation; this tracked record embeds their hashes and metrics."
+    }
+  },
+  "conclusion": "The frozen integrated v0.1.4 build passes the prewritten cold-ready, cadence, backend, continuous-scrub, geometry, byte, domain, and capture stops on Apple M4 Metal hardware. The first integrated full-gate attempt correctly exposed two browser failures; focused recovery, a deliberate mutation, and the final 118-test deterministic gate verify their disposition. No concrete release defect remains in the reviewed candidate.",
+  "preRebaseStopRules": {
+    "coldReady": "Reject when candidate median exceeds baseline median by more than max(250 ms, 20%).",
+    "relativeCadence": "Reject when candidate steady cadence is below 90% of baseline.",
+    "absoluteCadence": "Reject production readiness below 30 fps, equivalent to frame-time p50 above 33.33 ms.",
+    "landGeometry": "Reject above 180000 land vertices or 240000 land triangles.",
+    "aggregateGeometry": "Reject above 190000 aggregate vertices or 246000 foundation-triangle plus country-line primitives.",
+    "aggregateDefinition": "Aggregate vertices are foundation vertices plus renderer-reported country-line vertices; aggregate primitives are foundation triangles plus renderer-reported country-line segments.",
+    "aggregateRevision": "The prior 241000-primitive bound is retained with the rejected visual candidate. The 246000 bound was approved before final measurement from quantified conforming-subdivision counts; cold, cadence, land-geometry, and byte guards were unchanged."
+  },
+  "stopRules": {
+    "coldReady": "Reject when candidate median exceeds control median by more than max(250 ms, 20%).",
+    "relativeCadence": "Reject when candidate cadence is below 90% of control cadence.",
+    "absoluteCadence": "Reject when candidate frame-time p50 exceeds 33.33 ms.",
+    "spatialGeometry": "Reject above 325000 spatial vertices or 490000 spatial triangles.",
+    "aggregateGeometry": "Reject above 345000 aggregate vertices or 500000 unique spatial-triangle plus country-line primitives.",
+    "drawWork": "Require 506361 non-checkpoint drawn primitives and six base draw passes; an exact native boundary may add one pass.",
+    "runtimeHardGuards": {
+      "maximumSpatialBatches": 5,
+      "maximumSpatialVertices": 400000,
+      "maximumSpatialTriangles": 600000,
+      "maximumRetainedSourceBytes": 48000000,
+      "maximumPaletteTextureSize": 4096,
+      "maximumPublicationBytes": 10000000,
+      "maximumSpatialIndexBytes": 1048576
+    }
+  },
+  "independentChecks": {
+    "integratedGateFullAttempt": {
+      "outcome": "failed in browser phase",
+      "browserTests": "15/17",
+      "failures": [
+        "exact-checkpoint withheld-state race",
+        "stale 720 Ma unsupported-domain assertion"
+      ],
+      "disposition": "Both failures were corrected before the frozen build; this attempt remains recorded as failure evidence."
+    },
+    "focusedRecovery": {
+      "browserTests": "5/5",
+      "delayedRaceRegression": "1/1",
+      "mutation": "Removing the latest-age guard reproduced the stuck waiting state; restoring it returned the regression to pass."
+    },
+    "finalDeterministicGate": {
+      "outcome": "pass",
+      "files": 30,
+      "tests": 118,
+      "productionBuild": "pass",
+      "artifacts": 1186,
+      "distMebibytes": 40.37
+    },
+    "workflowLint": {
+      "command": "actionlint .github/workflows/pages.yml",
+      "outcome": "pass"
+    },
+    "hardwareAndVisual": {
+      "allStops": "pass",
+      "pairedCaptures": "9/9",
+      "captureErrors": 0,
+      "visualReview": "accepted"
+    },
+    "remoteCiHarnessRecovery": {
+      "failedRun": "https://github.com/kkollsga/EarthHistory/actions/runs/34712827409",
+      "failedHeadSha": "7066203531ec8611efeff032142e1e00a0fc9d51",
+      "diagnosis": "The application was ready in 18.811 s and all returned values were valid, including 322442 vertices; serial CDP reads completed at 47.590 s after the 47.026 s test timeout.",
+      "change": "Read the same six post-ready values in one page.evaluate; runtime, limits, assertions, and production bytes are unchanged.",
+      "mutationChecks": [
+        "chapter-count mutation rejected",
+        "geography-support mutation rejected"
+      ],
+      "restoredFocusedCiSmoke": {
+        "durationSeconds": 17.2,
+        "tests": "2/2"
+      },
+      "typecheck": "pass",
+      "diffCheck": "pass",
+      "hardwareMeasurementRepeated": false,
+      "hardwareEvidenceReason": "Runtime and production entry SHA-256 b5e4d73c7160f6bc05ccf833dcca08e1ae1fed6ec06a8df14dba0f28aa519612 are unchanged."
+    }
+  }
+}

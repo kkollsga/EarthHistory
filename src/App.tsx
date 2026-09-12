@@ -175,6 +175,10 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [shareComplete, setShareComplete] = useState(false);
   const [caoLoadError, setCaoLoadError] = useState<string | null>(null);
+  const [caoLastPrepareFailure, setCaoLastPrepareFailure] = useState<{
+    failedAgeMa: number;
+    observedAgeMa: number;
+  } | null>(null);
   const [periodCoordinateState, setPeriodCoordinateState] = useState<PeriodCoordinateRenderState>({ status: null });
   const [caoRevision, setCaoRevision] = useState<PreparedCaoRevision | null>(null);
   const caoRevisionRef = useRef<PreparedCaoRevision | null>(null);
@@ -274,7 +278,15 @@ export default function App() {
         setSpatialFocus((current) => current?.kind === "area" ? null : current);
       }
     }
-    setCaoLoadError(null);
+    const runtime = caoRuntimeRef.current;
+    const exactCheckpoint = runtime?.manifest.checkpoints.some(
+      (checkpoint) => checkpoint.ageMa === frame.requestedAgeMa,
+    ) ?? false;
+    // A motion frame cannot certify the exact-checkpoint overlays. Preserve a
+    // prepare failure until that checkpoint itself publishes successfully.
+    if (!exactCheckpoint || caoRevisionRef.current?.requestedAgeMa === frame.requestedAgeMa) {
+      setCaoLoadError(null);
+    }
     caoMotionFrameRef.current = frame;
     setCaoMotionFrame(frame);
   };
@@ -390,7 +402,8 @@ export default function App() {
         request = runtime.request(targetAge);
       } catch (error) {
         if (serial === pumpState.serial) pumpState.inFlight = false;
-        // Keep the last visible foundation; do not clear on request failure.
+        setCaoLastPrepareFailure({ failedAgeMa: targetAge, observedAgeMa: requestedAgeRef.current });
+        // Retain the resident allocation; the error state withholds its presentation.
         setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction request could not start");
         return;
       }
@@ -422,8 +435,13 @@ export default function App() {
           if (requestedAgeRef.current !== targetAge) pump();
           return;
         }
-        // Keep the last published foundation visible (especially at 0 Ma) instead
-        // of clearing continents while the scrubber sits on a failed exact knot.
+        setCaoLastPrepareFailure({ failedAgeMa: targetAge, observedAgeMa: requestedAgeRef.current });
+        if (requestedAgeRef.current !== targetAge) {
+          pump();
+          return;
+        }
+        // Retain the last publication for bounded recovery while withholding it
+        // so a failed exact checkpoint cannot present stale native overlays.
         setCaoLoadError(error instanceof Error ? error.message : "Cao reconstruction could not be prepared");
       });
     };
@@ -449,8 +467,8 @@ export default function App() {
     if (!runtime || !caoRuntimeReady) return;
     const domain = runtime.manifest.ageDomainMa;
     if (ageMa < domain.youngest || ageMa > domain.oldest) {
-      // Outside the live Cao package domain: keep the last foundation visible
-      // (editorial deep-time chapters) instead of blanking continents.
+      // Outside the live Cao package domain: keep the resident foundation for
+      // bounded reuse, but clear its live frame and material legend state.
       if (caoScrubPumpRef.current) {
         caoScrubPumpRef.current.serial += 1;
         caoScrubPumpRef.current.inFlight = false;
@@ -458,6 +476,7 @@ export default function App() {
       // Material lock stays tagged for reacquisition; follow pose is unavailable.
       // Drop the cached motion frame so re-entering the domain re-applies follow.
       caoMotionFrameRef.current = null;
+      setCaoMotionFrame(null);
       if (materialFocusAddressRef.current !== null) {
         setAreaFocusStatus("unresolved");
         setSpatialFocus((current) => current?.kind === "area" ? null : current);
@@ -499,8 +518,13 @@ export default function App() {
     return caoRevision === null ? undefined : caoAnchorCoordinates;
   }, [ageMa, caoAgeDomainMa, caoAnchorCoordinates, caoRevision]);
   const contextSnapshot = displayedSnapshot;
-  const renderedEvidence = caoRevision === null ? "unknown" as const
-    : caoRevision.display.fraction === 0 || caoRevision.display.fraction === 1 ? "model-output" as const
+  const inCaoDomain = caoAgeDomainMa !== null
+    && ageMa >= caoAgeDomainMa[0] && ageMa <= caoAgeDomainMa[1];
+  const displayedCao = !inCaoDomain ? null
+    : caoMotionFrame?.requestedAgeMa === ageMa ? caoMotionFrame
+      : caoRevision?.requestedAgeMa === ageMa ? caoRevision : null;
+  const renderedEvidence = displayedCao === null ? "unknown" as const
+    : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
       : "interpolation" as const;
   const selectedPoiCoordinate = selectedPoi
     ? temporalPoiCoordinates?.[selectedPoi.id]
@@ -843,7 +867,7 @@ export default function App() {
   };
 
   const activeSourceIds = new Set(caoAgeDomainMa && ageMa <= caoAgeDomainMa[1]
-    ? ["cao-plate-model-2024-v2-4"]
+    ? ["cao-plate-model-2024-v2-4", ...(displayedCao?.materialCorrections.activeSourceIds ?? [])]
     : contextSnapshot?.sourceIds ?? []);
   const snapshotSources = sources.filter((source) => activeSourceIds.has(source.id));
   const poiSources = sources.filter((source) => selectedPoi?.sourceIds.includes(source.id));
@@ -909,10 +933,16 @@ export default function App() {
         <span className="share-status" aria-live="polite">{shareComplete ? "View link copied" : ""}</span>
       </header>
 
-      <section className="globe-stage" aria-label="Interactive Earth reconstruction">
+      <section
+        className="globe-stage"
+        aria-label="Interactive Earth reconstruction"
+        data-cao-last-prepare-failed-age-ma={caoLastPrepareFailure?.failedAgeMa}
+        data-cao-last-prepare-failure-observed-age-ma={caoLastPrepareFailure?.observedAgeMa}
+      >
         <GlobeView
           caoRevision={caoRevision}
           caoMotionFrame={caoMotionFrame}
+          caoWithheld={caoLoadError !== null}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
@@ -947,6 +977,20 @@ export default function App() {
                   : periodCoordinateState.status === "ready" ? "rendered" : "updating"}</span>
           {caoLoadError !== null && (
             <span role="status">Cao reconstruction unavailable · surface withheld</span>
+          )}
+          {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
+          {((displayedCao?.materialCorrections.qualifiedActiveCharts ?? 0)
+            - (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0)) > 0 && (
+            <span className="material-key material-key-qualified">Ochre: source-supported material footprint · cited reconstruction pose · exposure unknown</span>
+          )}
+          {(displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: source-supported material footprint · partition pose uncertain · exposure unknown</span>
+          )}
+          {(displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: continued material with older pose uncertainty · exposure unknown</span>
+          )}
+          {(displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0 && (
+            <span className="material-key material-key-uncertain">Gray: possible domain-scale formation footprint · extent, pose, and exposure uncertain</span>
           )}
           Height data unknown <strong>{verticalExaggeration}× reserved</strong>
         </div>
@@ -985,12 +1029,22 @@ export default function App() {
         <div id="chapter-context-details" className="context-details">
           <p className="geography-age">
             Geography source <strong>{caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "Outside compiled domain · editorial scene" :
-              caoRevision === null ? "Awaiting native Cao package" :
-              (caoMotionFrame ?? caoRevision).display.youngerAgeMa === (caoMotionFrame ?? caoRevision).display.olderAgeMa
-                ? `${(caoMotionFrame ?? caoRevision).display.youngerAgeMa} Ma native Cao checkpoint`
-                : `${(caoMotionFrame ?? caoRevision).display.youngerAgeMa}–${(caoMotionFrame ?? caoRevision).display.olderAgeMa} Ma native Cao controls`}</strong>
+              displayedCao === null ? "Awaiting native Cao package" :
+              displayedCao.display.youngerAgeMa === displayedCao.display.olderAgeMa
+                ? `${displayedCao.display.youngerAgeMa} Ma native Cao checkpoint${
+                  displayedCao.materialCorrections.qualifiedActiveCharts > 0 ? " + qualified material masks" : ""}${
+                  displayedCao.materialCorrections.modelInferredPoseActiveCharts > 0 ? " + uncertain partition poses" : ""}${
+                  displayedCao.materialCorrections.uncertainActiveCharts > 0 ? " + uncertain continuations" : ""}${
+                  displayedCao.materialCorrections.formationUncertainActiveCharts > 0 ? " + formation-range scenarios" : ""}`
+                : `${displayedCao.display.youngerAgeMa}–${displayedCao.display.olderAgeMa} Ma native Cao controls${
+                  displayedCao.materialCorrections.qualifiedActiveCharts > 0 ? " + qualified material masks" : ""}${
+                  displayedCao.materialCorrections.modelInferredPoseActiveCharts > 0 ? " + uncertain partition poses" : ""}${
+                  displayedCao.materialCorrections.uncertainActiveCharts > 0 ? " + uncertain continuations" : ""}${
+                  displayedCao.materialCorrections.formationUncertainActiveCharts > 0 ? " + formation-range scenarios" : ""}`}</strong>
           </p>
-          <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · source-qualified coverage</strong></p>
+          <p className="geography-age">Coordinate model <strong>Cao et al. 2024 v2.4 · {ageMa <= 540
+            ? "source-qualified material corrections" : "native full-domain reconstruction"}</strong></p>
+          {ageMa <= 540 && <p className="geography-age">Coverage meaning <strong>Unmapped material is unavailable evidence, not confirmed ocean; corrected masks do not claim exposure or coastline</strong></p>}
           <p className="chapter-copy">{chapter.description}</p>
           {scenarioLike && <span className="scenario-label"><Aperture size={13} /> Illustrative scene · geography unresolved</span>}
 
@@ -1029,14 +1083,14 @@ export default function App() {
               <label htmlFor="source-age-jump">Jump to reconstruction</label>
               <select
                 id="source-age-jump"
-                value={caoRevision === null ? ""
-                  : (caoMotionFrame ?? caoRevision).display.youngerAgeMa === (caoMotionFrame ?? caoRevision).display.olderAgeMa
-                    ? String((caoMotionFrame ?? caoRevision).display.youngerAgeMa)
+                value={displayedCao === null ? ""
+                  : displayedCao.display.youngerAgeMa === displayedCao.display.olderAgeMa
+                    ? String(displayedCao.display.youngerAgeMa)
                     : "interpolated"}
                 onChange={(event) => changeAge(Number(event.target.value))}
               >
                 {caoRevision === null && <option value="">Resolving source age…</option>}
-                {caoRevision !== null && caoRevision.display.youngerAgeMa !== caoRevision.display.olderAgeMa && (
+                {displayedCao !== null && displayedCao.display.youngerAgeMa !== displayedCao.display.olderAgeMa && (
                   <option value="interpolated" disabled>
                     {formatAge(ageMa)} · interpolated
                   </option>
@@ -1083,13 +1137,11 @@ export default function App() {
       <Timeline
         ageMa={ageMa}
         caoAgeDomainMa={caoAgeDomainMa ?? undefined}
-        geographicSourceAgeMa={(caoMotionFrame ?? caoRevision) !== null
-          && (caoMotionFrame ?? caoRevision)!.display.youngerAgeMa
-            === (caoMotionFrame ?? caoRevision)!.display.olderAgeMa
-          ? (caoMotionFrame ?? caoRevision)!.display.youngerAgeMa : undefined}
-        geographicSourceAgeBracketMa={(caoMotionFrame ?? caoRevision) === null ? undefined
-          : [(caoMotionFrame ?? caoRevision)!.display.youngerAgeMa,
-            (caoMotionFrame ?? caoRevision)!.display.olderAgeMa]}
+        geographicSourceAgeMa={displayedCao !== null
+          && displayedCao.display.youngerAgeMa === displayedCao.display.olderAgeMa
+          ? displayedCao.display.youngerAgeMa : undefined}
+        geographicSourceAgeBracketMa={displayedCao === null ? undefined
+          : [displayedCao.display.youngerAgeMa, displayedCao.display.olderAgeMa]}
         slices={timeSlices}
         playing={playing}
         onPlayingChange={handlePlayingChange}
@@ -1182,7 +1234,7 @@ export default function App() {
       </Modal>
 
       <Modal open={panel === "sources"} title="Sources & provenance" eyebrow={contextSnapshot ? `${contextSnapshot.label} reconstruction` : "Scientific record"} onClose={closePanel}>
-        <p className="modal-intro">Each reconstruction distinguishes source evidence from interpolation and visual synthesis. These references support the current chapter.</p>
+        <p className="modal-intro">Each reconstruction distinguishes source evidence from interpolation and visual synthesis. These references support the current rendered view.</p>
         <div className="source-list">
           {(snapshotSources.length ? snapshotSources : sources).map((source) => <SourceLink key={source.id} source={source} />)}
         </div>

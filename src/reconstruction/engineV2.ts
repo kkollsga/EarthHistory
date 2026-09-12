@@ -25,7 +25,8 @@ export class CaoReconstructionRuntime {
         + this.manifest.motionPalette.binary.bytes
         + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + [...foundation.lineBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
-        + (foundation.core.anchorCatalog?.bytes ?? 0);
+        + (foundation.core.anchorCatalog?.bytes ?? 0)
+        + (this.manifest.materialCorrections?.catalog.bytes ?? 0);
     }).catch(() => {});
     void this.foundation.catch(() => {});
   }
@@ -103,7 +104,11 @@ export class CaoReconstructionRuntime {
     const motion = evaluateCaoMotionFrame(this.manifest, foundation, requestedAgeMa);
     const boundaryLayer = display.exactCheckpoint ? youngerLoaded.boundary : null;
     const ownershipLayer = display.exactCheckpoint ? youngerLoaded.ownership : null;
-    const identity = `${this.manifest.packageId}@${this.manifest.revision}:${requestId}`;
+    const countrySegmentDescriptors = (foundation.correctionCatalog?.nativeChartOverrides ?? []).flatMap((override) =>
+      override.dependentConsumers.countrySegmentBindings.map((binding) => ({ override, binding })));
+    const combinedRevision = motion.materialCorrectionIdentity
+      ? `${this.manifest.revision}+${motion.materialCorrectionIdentity}` : this.manifest.revision;
+    const identity = `${this.manifest.packageId}@${combinedRevision}:${requestId}`;
     let payload: typeof foundation | null = foundation;
     let motionValues: Float32Array | null = motion.paletteValues;
     let boundaryPoints = boundaryLayer?.points ?? null;
@@ -111,17 +116,23 @@ export class CaoReconstructionRuntime {
     const requirePayload = () => { if (!payload) throw new Error("Cao prepared revision released"); return payload; };
     const batches = foundation.core.spatialBatches.map((descriptor) => {
       const geometry = foundation.spatialBatches.get(descriptor.batchId)!;
-      const youngerControl = younger.batchControls.find((control) => control.batchId === descriptor.batchId)!;
-      const olderControl = older.batchControls.find((control) => control.batchId === descriptor.batchId)!;
-      const displayControl = (control: typeof youngerControl) => control.state.kind === "uniform"
-        ? Object.freeze({ kind: "uniform" as const, value: control.state.displayHeightMetres })
+      const youngerControl = younger.batchControls.find((control) => control.batchId === descriptor.batchId);
+      const olderControl = older.batchControls.find((control) => control.batchId === descriptor.batchId);
+      const youngerState = youngerControl?.state ?? (descriptor.staticDisplayControl
+        ? { kind: "uniform" as const, ...descriptor.staticDisplayControl } : undefined);
+      const olderState = olderControl?.state ?? (descriptor.staticDisplayControl
+        ? { kind: "uniform" as const, ...descriptor.staticDisplayControl } : undefined);
+      if (!youngerState || !olderState) throw new Error("Cao batch lacks display controls");
+      const displayControl = (control: typeof youngerState) => control.kind === "uniform"
+        ? Object.freeze({ kind: "uniform" as const, value: control.displayHeightMetres })
         : (() => { throw new Error("per-vertex Cao checkpoint state preparation is not implemented"); })();
-      const color = youngerControl.state.kind === "uniform" && olderControl.state.kind === "uniform"
-        ? Object.freeze({ kind: "uniform" as const, value: youngerControl.state.baseColorRgb })
+      const color = youngerState.kind === "uniform" && olderState.kind === "uniform"
+        ? Object.freeze({ kind: "uniform" as const, value: youngerState.baseColorRgb })
         : (() => { throw new Error("per-vertex Cao checkpoint color preparation is not implemented"); })();
       return Object.freeze({ batchId: descriptor.batchId,
         staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
         vertexCount: descriptor.vertexCount, triangleCount: descriptor.triangleCount,
+        nativePrecedence: descriptor.overlapPolicy === "native-visual-and-picking-precedence",
         // Renderer copy excludes the EHGB header. Two narrowed chart-index
         // arrays together equal the source u32 chart-index storage.
         staticGeometryBytes: geometry.byteLength - 32
@@ -133,23 +144,32 @@ export class CaoReconstructionRuntime {
             seamIds: new Uint32Array(current.seamIds), preparedEntryIndices: narrow
               ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices),
             materialChartIndices: narrow ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices) }; },
-        createDisplayControlsCopy: () => { requirePayload(); return { displayHeightStart: displayControl(youngerControl),
-          displayHeightEnd: displayControl(olderControl), baseColor: color }; },
+        createDisplayControlsCopy: () => { requirePayload(); return { displayHeightStart: displayControl(youngerState),
+          displayHeightEnd: displayControl(olderState), baseColor: color }; },
       });
     });
     const lineBatches = (foundation.core.lineBatches ?? []).map((descriptor) => {
       const geometry = foundation.lineBatches.get(descriptor.batchId)!;
-      const narrow = foundation.core.charts.length <= 65_535;
+      const narrow = motion.charts.length <= 65_535;
+      const remapped = new Uint32Array(geometry.vertexChartIndices);
+      for (const [segmentChartOffset, segment] of countrySegmentDescriptors.entries()) {
+        if (segment.binding.batchId !== descriptor.batchId) continue;
+        const left = geometry.lineIndices[segment.binding.segmentIndex * 2]!;
+        const right = geometry.lineIndices[segment.binding.segmentIndex * 2 + 1]!;
+        const chartIndex = foundation.core.charts.length + segmentChartOffset;
+        remapped[left] = chartIndex;
+        remapped[right] = chartIndex;
+      }
       return Object.freeze({ batchId: descriptor.batchId,
-        staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
+        staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`
+          + (countrySegmentDescriptors.length ? ":source-domain-segments-v1" : ""),
         vertexCount: descriptor.vertexCount, segmentCount: descriptor.segmentCount,
         staticGeometryBytes: geometry.byteLength - 32 + (narrow ? 0 : descriptor.vertexCount * 4),
         createStaticGeometryCopy: () => { const current = requirePayload().lineBatches.get(descriptor.batchId)!;
           return Object.freeze({ referenceDirections: new Float32Array(current.referenceDirections),
             lineIndices: new Uint32Array(current.lineIndices), preparedEntryIndices: narrow
-              ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices),
-            materialChartIndices: narrow
-              ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices) }); },
+              ? new Uint16Array(remapped) : new Uint32Array(remapped),
+            materialChartIndices: narrow ? new Uint16Array(remapped) : new Uint32Array(remapped) }); },
       });
     });
     const release = () => {
@@ -175,7 +195,10 @@ export class CaoReconstructionRuntime {
         reason: display.exactCheckpoint ? "source-absent" as const : "fractional-topology-unqualified" as const });
     this.leases.set(identity, release);
     return Object.freeze({ identity, requestId, packageId: this.manifest.packageId,
-      packageRevision: this.manifest.revision, requestedAgeMa, frameIdentity: packageFrameIdentity(this.manifest.frame),
+      packageRevision: combinedRevision,
+      materialCorrectionIdentity: motion.materialCorrectionIdentity,
+      materialCorrections: motion.materialCorrections,
+      requestedAgeMa, frameIdentity: packageFrameIdentity(this.manifest.frame),
       display: Object.freeze({ youngerAgeMa: display.youngerAgeMa, olderAgeMa: display.olderAgeMa,
         fraction: display.fraction }),
       motionPalette: Object.freeze({ stride: PREPARED_MOTION_PALETTE_STRIDE,
@@ -184,7 +207,8 @@ export class CaoReconstructionRuntime {
       batches: Object.freeze(batches), lineBatches: Object.freeze(lineBatches), nativeBoundary,
       topologyOwnership, charts: motion.charts, anchorIds: motion.anchorIds,
       activeSourceBytes: this.manifest.core.bytes + this.manifest.motionPalette.catalog.bytes
-        + this.manifest.motionPalette.binary.bytes + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
+        + this.manifest.motionPalette.binary.bytes + (this.manifest.materialCorrections?.catalog.bytes ?? 0)
+        + [...foundation.spatialBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + [...foundation.lineBatches.values()].reduce((sum, batch) => sum + batch.byteLength, 0)
         + (foundation.core.anchorCatalog?.bytes ?? 0)
         + youngerAsset.transitiveBytes

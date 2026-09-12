@@ -1,0 +1,2464 @@
+{
+  "attribution": "Contains information from © Norwegian Polar Institute, licensed CC BY 4.0.",
+  "baseline": {
+    "coordinateFrame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    },
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "sourceCollection": "shapes_coasts.gpmlz",
+    "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
+  },
+  "correctionId": "earthhistory-regional-svalbard-material-v1",
+  "features": [
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "svalbard-pre-540-material-plate-309",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "svalbard-pre-540-material-plate-309",
+        "path": "svalbard-pre-540-material.geojson",
+        "sha256": "d6d641208db91b2e42cc4fed9a1236e0b854ea609b0764268da1d7f1ee8c587d"
+      },
+      "geometryProcessing": {
+        "areaLossFraction": 0.1288074621428601,
+        "cobIntersectionAreaSquareKilometres": 24582.596593914215,
+        "cobSourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+        "cobSourceValidTimeMa": {
+          "oldest": 600,
+          "youngest": null
+        },
+        "deliveredAreaSquareKilometres": 21416.174713770408,
+        "deliveredComponentCount": 5,
+        "deliveredHoleCount": 0,
+        "deliveredVertexCount": 160,
+        "derivation": "intersect the immutable Cao West Svalbard target union with the separately authored West Svalbard closed continental boundary whose native validity reaches 600 Ma, inset 1500 m, and simplify 500 m with topology preservation",
+        "outsideCobSquareMetres": 0.0,
+        "outsideTargetSquareMetres": 0.0,
+        "rawDissolvedComponentCount": 5,
+        "rawDissolvedHoleCount": 0,
+        "rawSourceVertexCount": 124,
+        "simplificationToleranceMetres": 500,
+        "targetInsideCobFraction": 0.9999999999999984,
+        "targetUnionAreaSquareKilometres": 24582.59659391425,
+        "vertexReduction": -36
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "overlapPolicy": {
+        "interpretation": "The correction is a geological-material witness. Overlap with Greenland in Cao continent/static collections indicates containment in an older continental footprint, not an additional independent continent; absence from the coast collection is not evidence of absent older material.",
+        "measuredAgesMa": [
+          410.0,
+          410.001,
+          411.0,
+          420.0,
+          430.0,
+          430.001,
+          440.0,
+          500.0,
+          540.0
+        ],
+        "measurements": {
+          "410.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 1.0000000000000002,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 5
+                },
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 21416.25218639118
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 1.0000000000000002,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 1
+                },
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 21416.25218639118
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 1.0000000000000002,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 1
+                },
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 21416.25218639118
+            }
+          },
+          "410.001": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "411.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "420.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "430.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0032873739485388127,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 70.4032295128796
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0032873739485388127,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 70.4032295128796
+            }
+          },
+          "430.001": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.003287373948538657,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 70.40322951287682
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.003287373948538657,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 70.40322951287682
+            }
+          },
+          "440.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "500.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "540.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          }
+        },
+        "renderRule": "For the baseline coast collection, render the correction only while its targets are inactive. If a continent/static material footprint is rendered instead, suppress this correction where covered or union/deduplicate it before drawing.",
+        "stopCondition": "Do not co-render this mask additively over an active native continent/static material footprint."
+      },
+      "plateId": 309,
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 309,
+        "sourceOrHypothesis": "model-output; geological sources support material affinity, not exact pose"
+      },
+      "poseConfidenceIntervalsMa": [
+        {
+          "oldest": 430,
+          "status": "qualified",
+          "youngest": 410,
+          "youngestExclusive": true
+        },
+        {
+          "oldest": 540,
+          "status": "uncertain-continuation",
+          "youngest": 430,
+          "youngestExclusive": true
+        }
+      ],
+      "rejectionConditions": [
+        "West Svalbard target union is not at least 99.9% contained by its exact valid-to-600 Ma closed continental boundary",
+        "guarded West Svalbard geometry leaves either its immutable Cao target or closed continental boundary",
+        "candidate is rendered or described as exposed land, ancient shoreline, or positive palaeotopography",
+        "strict Cao motion is missing or a 410/430 parent-switch step exceeds the recorded tolerance",
+        "candidate creates a new hard material-absence boundary inside the 0–540 Ma product domain"
+      ],
+      "sourceIds": [
+        "npi-svalbard-geology-1-750k",
+        "cao-2024-v2.4",
+        "cao-2024-v2.4-cob"
+      ],
+      "sourceUnitSelection": {
+        "eligibilityRule": "NPI AGE_PERIOD must be an exact, non-questioned class wholly older than the 540 Ma product boundary, followed by conservative spatial membership in the matching Cao Svalbard cohort",
+        "eligibleSourceFeatureCountsByAge": {
+          "Cryogenian": 86,
+          "Mesoproterozoic": 579,
+          "Palaeoproterozoic": 54,
+          "Tonian": 224
+        },
+        "evidenceTier": "older-continental-boundary-plus-regional-affinity-substrate-inference",
+        "excluded": [
+          {
+            "count": 4,
+            "reason": "age-not-certainly-pre-540:Caledonian (?)"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Cambrian"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Cambrian - Ordovician"
+          },
+          {
+            "count": 33,
+            "reason": "age-not-certainly-pre-540:Carboniferous"
+          },
+          {
+            "count": 332,
+            "reason": "age-not-certainly-pre-540:Carboniferous - Permian"
+          },
+          {
+            "count": 232,
+            "reason": "age-not-certainly-pre-540:Devonian"
+          },
+          {
+            "count": 222,
+            "reason": "age-not-certainly-pre-540:Early - Middle Triassic"
+          },
+          {
+            "count": 63,
+            "reason": "age-not-certainly-pre-540:Early Carboniferous"
+          },
+          {
+            "count": 549,
+            "reason": "age-not-certainly-pre-540:Early Cretaceous"
+          },
+          {
+            "count": 90,
+            "reason": "age-not-certainly-pre-540:Early Devonian"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Early Palaeozoic ?"
+          },
+          {
+            "count": 26,
+            "reason": "age-not-certainly-pre-540:Early-Middle Ordovician"
+          },
+          {
+            "count": 120,
+            "reason": "age-not-certainly-pre-540:Eocene"
+          },
+          {
+            "count": 158,
+            "reason": "age-not-certainly-pre-540:Holocene"
+          },
+          {
+            "count": 22,
+            "reason": "age-not-certainly-pre-540:Late Carboniferous"
+          },
+          {
+            "count": 21,
+            "reason": "age-not-certainly-pre-540:Late Carboniferous - Early Permian"
+          },
+          {
+            "count": 16,
+            "reason": "age-not-certainly-pre-540:Late Devonian"
+          },
+          {
+            "count": 7,
+            "reason": "age-not-certainly-pre-540:Late Devonian or Early Carboniferous"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Late Ediacaran"
+          },
+          {
+            "count": 14,
+            "reason": "age-not-certainly-pre-540:Late Eocene - Oligocene"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Late Eocene ?"
+          },
+          {
+            "count": 5,
+            "reason": "age-not-certainly-pre-540:Late Silurian or Early Devonian"
+          },
+          {
+            "count": 153,
+            "reason": "age-not-certainly-pre-540:Late Triasic - Middle Jurassic"
+          },
+          {
+            "count": 152,
+            "reason": "age-not-certainly-pre-540:Late Triassic"
+          },
+          {
+            "count": 8,
+            "reason": "age-not-certainly-pre-540:Late Triassic - Middle Jurassic"
+          },
+          {
+            "count": 29,
+            "reason": "age-not-certainly-pre-540:Mesoproterozoic ?"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Middle - Late Ordovician"
+          },
+          {
+            "count": 112,
+            "reason": "age-not-certainly-pre-540:Middle Jurassic - Early Cretaceous"
+          },
+          {
+            "count": 27,
+            "reason": "age-not-certainly-pre-540:Middle Silurian"
+          },
+          {
+            "count": 25,
+            "reason": "age-not-certainly-pre-540:Miocene"
+          },
+          {
+            "count": 295,
+            "reason": "age-not-certainly-pre-540:Neoproterozoic"
+          },
+          {
+            "count": 6,
+            "reason": "age-not-certainly-pre-540:Neoproterozoic (?)"
+          },
+          {
+            "count": 8,
+            "reason": "age-not-certainly-pre-540:Ordovician - Middle Silurian"
+          },
+          {
+            "count": 5,
+            "reason": "age-not-certainly-pre-540:Ordovician, 450-475 my"
+          },
+          {
+            "count": 177,
+            "reason": "age-not-certainly-pre-540:Paleocene"
+          },
+          {
+            "count": 328,
+            "reason": "age-not-certainly-pre-540:Permian"
+          },
+          {
+            "count": 3,
+            "reason": "age-not-certainly-pre-540:Pleistocene"
+          },
+          {
+            "count": 11,
+            "reason": "age-not-certainly-pre-540:Tonian ?"
+          },
+          {
+            "count": 2,
+            "reason": "age-not-certainly-pre-540:Tonian, late Grenvillian"
+          },
+          {
+            "count": 165,
+            "reason": "eligible-part-centroid-outside-or-ambiguous-cao-cohort"
+          },
+          {
+            "count": 14,
+            "reason": "eligible-part-insufficient-or-cross-cohort-membership"
+          },
+          {
+            "count": 5,
+            "reason": "eligible-part-invalid-in-equal-area-projection"
+          },
+          {
+            "count": 57,
+            "reason": "eligible-part-excluded-by-predeclared-equal-area-containment"
+          }
+        ],
+        "footprintInference": "the complete guarded West Svalbard target footprint is inside its separately authored valid-to-600 Ma closed continental boundary; mapped younger cover and ice locate inferred substrate but are not backdated as surface rock",
+        "included": [
+          {
+            "agePeriod": "Cryogenian",
+            "areaSteradians": 1.7244015655393241e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4200,
+            "mainLithology": "Clastic and carbonate rocks, tilloid rocks",
+            "name": "West Coast Diamictite unit",
+            "polygonCount": 27,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              119,
+              377,
+              392,
+              461,
+              464,
+              832,
+              838,
+              844,
+              846,
+              1290,
+              1294,
+              1295,
+              1374,
+              1770,
+              1852,
+              2244,
+              2246,
+              2263,
+              3220,
+              3224,
+              3227,
+              3233,
+              3305,
+              3313,
+              3560,
+              3690,
+              3693
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Cryogenian",
+            "areaSteradians": 9.163246605936592e-09,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4220,
+            "mainLithology": "Clastic sedimentary rocks, incl. tilloids",
+            "name": "West Coast Diamictite Unit possible equivalents",
+            "polygonCount": 1,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4232
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 6.956960341142349e-09,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4902,
+            "mainLithology": "Slate or phyllite, sandstone, quartzite",
+            "name": "Sørhamna Formation",
+            "polygonCount": 1,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              3790
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 3.387583524805393e-07,
+            "datingMethod": "Stratigraphic corrlelation",
+            "geoCode": 5200,
+            "mainLithology": "Phyllite and micaschist",
+            "name": "Biscayarhuken unit",
+            "polygonCount": 3,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              780,
+              2768,
+              3719
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 2.183641742981024e-07,
+            "datingMethod": "Stratigraphic corrlelation",
+            "geoCode": 5205,
+            "mainLithology": "garnet-micaschist",
+            "name": "Montblanc unit",
+            "polygonCount": 4,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              318,
+              873,
+              1246,
+              1814
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.6784684442328057e-07,
+            "datingMethod": "Isotope ages",
+            "geoCode": 5210,
+            "mainLithology": "Gneiss, amphibolite, eclogite, marble",
+            "name": "Richarddalen Complex",
+            "polygonCount": 3,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              414,
+              1335,
+              1816
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.9770621855208503e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5231,
+            "mainLithology": "Marble and dolomite marble",
+            "name": "Generalfjella Formation",
+            "polygonCount": 56,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              340,
+              349,
+              351,
+              358,
+              359,
+              360,
+              431,
+              439,
+              442,
+              444,
+              445,
+              447,
+              449,
+              559,
+              815,
+              825,
+              895,
+              896,
+              1269,
+              1351,
+              1353,
+              1357,
+              1416,
+              1422,
+              1473,
+              1738,
+              1739,
+              1743,
+              1747,
+              1748,
+              1843,
+              1962,
+              2216,
+              2220,
+              2223,
+              2225,
+              2230,
+              2294,
+              2307,
+              2312,
+              2313,
+              2315,
+              2317,
+              2445,
+              2703,
+              2704,
+              2789,
+              3181,
+              3201,
+              3283,
+              3295,
+              3296,
+              3647,
+              3662,
+              3738,
+              3741
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 2.781754314007401e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5240,
+            "mainLithology": "Micaschist, quartzite and other metasedim. rocks",
+            "name": "Signehamna Formation",
+            "polygonCount": 77,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              31,
+              335,
+              352,
+              365,
+              427,
+              440,
+              446,
+              451,
+              502,
+              793,
+              808,
+              809,
+              814,
+              823,
+              876,
+              879,
+              883,
+              898,
+              903,
+              950,
+              1254,
+              1255,
+              1262,
+              1270,
+              1272,
+              1278,
+              1279,
+              1339,
+              1355,
+              1727,
+              1731,
+              1732,
+              1734,
+              1735,
+              1737,
+              1749,
+              1751,
+              1825,
+              1829,
+              1831,
+              1838,
+              1841,
+              1842,
+              1898,
+              2203,
+              2206,
+              2209,
+              2212,
+              2218,
+              2221,
+              2314,
+              2316,
+              2320,
+              2432,
+              2694,
+              2696,
+              2698,
+              2700,
+              2776,
+              2782,
+              2783,
+              2786,
+              2790,
+              3184,
+              3193,
+              3194,
+              3200,
+              3284,
+              3291,
+              3293,
+              3649,
+              3650,
+              3651,
+              3653,
+              3668,
+              3733,
+              3747
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 3.8326331752713827e-07,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5250,
+            "mainLithology": "Banded gneiss with aplites and amphibolite",
+            "name": "Nissenfjella Formation",
+            "polygonCount": 4,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              429,
+              1258,
+              1824,
+              3368
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 6.925885233766138e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5265,
+            "mainLithology": "Migmatite, granite",
+            "name": "Smeerenburgfjorden Complex - migmatite",
+            "polygonCount": 118,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              83,
+              320,
+              322,
+              330,
+              333,
+              339,
+              344,
+              357,
+              362,
+              413,
+              415,
+              417,
+              419,
+              425,
+              426,
+              428,
+              430,
+              432,
+              434,
+              435,
+              436,
+              438,
+              776,
+              787,
+              789,
+              791,
+              794,
+              797,
+              798,
+              816,
+              875,
+              882,
+              893,
+              894,
+              1248,
+              1251,
+              1252,
+              1256,
+              1259,
+              1260,
+              1264,
+              1266,
+              1271,
+              1341,
+              1345,
+              1354,
+              1356,
+              1359,
+              1707,
+              1709,
+              1719,
+              1728,
+              1729,
+              1736,
+              1744,
+              1823,
+              1836,
+              1837,
+              2189,
+              2200,
+              2205,
+              2213,
+              2214,
+              2228,
+              2292,
+              2297,
+              2300,
+              2306,
+              2310,
+              2675,
+              2676,
+              2681,
+              2686,
+              2687,
+              2689,
+              2691,
+              2697,
+              2701,
+              2702,
+              2767,
+              2771,
+              2772,
+              2775,
+              2781,
+              2787,
+              2846,
+              3173,
+              3174,
+              3177,
+              3180,
+              3183,
+              3186,
+              3189,
+              3192,
+              3206,
+              3210,
+              3274,
+              3275,
+              3280,
+              3282,
+              3286,
+              3628,
+              3629,
+              3631,
+              3632,
+              3636,
+              3642,
+              3643,
+              3657,
+              3663,
+              3670,
+              3721,
+              3723,
+              3724,
+              3728,
+              3731,
+              3732,
+              3739
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.3141269850081017e-08,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5270,
+            "mainLithology": "Gneiss",
+            "name": "Smeerenburgfjorden Complex - gneiss",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              1242,
+              2392
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 3.6639341161048833e-07,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5271,
+            "mainLithology": "Migmatite, gneiss",
+            "name": "Smeerenburgfjorden Complex - migmatite and gneis",
+            "polygonCount": 12,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              329,
+              421,
+              497,
+              784,
+              788,
+              878,
+              1250,
+              2197,
+              3178,
+              3279,
+              3638,
+              3644
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 2.7935852298099917e-08,
+            "datingMethod": "none",
+            "geoCode": 5300,
+            "mainLithology": "Mica schist",
+            "name": "Pinkie unit",
+            "polygonCount": 3,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              372,
+              4222,
+              4223
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.885658784672728e-08,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5610,
+            "mainLithology": "Amphibolite",
+            "name": "Eimfjellet amphibolite",
+            "polygonCount": 1,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              3145
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 8.570475795721677e-08,
+            "datingMethod": "none",
+            "geoCode": 5801,
+            "mainLithology": "Augen gneiss and feldspathic quartzite",
+            "name": "Berzeliuseggene Metaigneous Suite",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              258,
+              2589
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Palaeoproterozoic",
+            "areaSteradians": 3.691494772084525e-07,
+            "datingMethod": "Isotope ages",
+            "geoCode": 6001,
+            "mainLithology": "Granitic gneiss, migmatite, amphibolite",
+            "name": "Bangenhuk unit",
+            "polygonCount": 9,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              32,
+              1044,
+              1297,
+              1515,
+              2257,
+              3217,
+              3310,
+              3463,
+              3761
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 8.00249755350535e-08,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 7410,
+            "mainLithology": "Slate or phyllite, sandstone, quartzite",
+            "name": "Chamberlindalen Suite",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              245,
+              2106
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          }
+        ],
+        "includedAgeClasses": [
+          "Cryogenian",
+          "Mesoproterozoic",
+          "Palaeoproterozoic",
+          "Tonian"
+        ],
+        "materialMeaning": "mapped exposure of pre-540 rock is a witness for old continental material; its modern polygon is neither a 410–540 Ma outcrop nor a palaeoshoreline"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "mapped old rocks and the valid-to-600 Ma West Svalbard closed continental boundary support older substrate beneath younger cover and ice; no dated palaeoshoreline or height evidence"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "83bcf13421888170fad4111bd3199529c7ee1568c4083a9e38a48e60b19d5cbc",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:0",
+          "plateId": 309,
+          "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+          "sourceFeatureOrder": 690
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 1,
+          "geometrySha256": "68856bd6b3270009d20f62c9c1c2d864964913aed048f7a4f7fcccae520226f7",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:1",
+          "plateId": 309,
+          "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+          "sourceFeatureOrder": 690
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 2,
+          "geometrySha256": "be70e2435279e90d4e5bd91e971f7671cc45e33565b308fa3292b3052572f689",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:2",
+          "plateId": 309,
+          "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+          "sourceFeatureOrder": 690
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "0d6caa5211a2377f063693806966abcb527dd0cc8afd274daade9adff3a19feb",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:1078:0",
+          "plateId": 309,
+          "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+          "sourceFeatureOrder": 1078
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "8b8a90ecb966042ed726bcd85089e487884e81ee3491bc9552d40d61e2a8804e",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:1604:0",
+          "plateId": 309,
+          "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+          "sourceFeatureOrder": 1604
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at all reconstructed ages; the polygons must not be interpreted as emergent land or a palaeoshoreline",
+        "spatial": "low confidence; guarded West Svalbard target footprint inside its separately authored valid-to-600 Ma continental boundary, supported by NPI old-unit witnesses and regional affinity",
+        "temporal": "selected mapped rock units predate 540 Ma; regional affinity is best constrained near 410–430 Ma, while rigid pose farther back to 540 Ma is lower-confidence Cao model output",
+        "terrane": "West/East cohort assignment follows Cao source geometry; internal Svalbard terrane correlations remain debated"
+      },
+      "uncertaintyDisplay": {
+        "olderThanMa": 430,
+        "style": "uncertain"
+      }
+    },
+    {
+      "activationRule": "target-inactive-only",
+      "coordinateFrame": "WGS84-reference-coordinates",
+      "correctionFeatureId": "svalbard-pre-540-material-plate-311",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "svalbard-pre-540-material-plate-311",
+        "path": "svalbard-pre-540-material.geojson",
+        "sha256": "d6d641208db91b2e42cc4fed9a1236e0b854ea609b0764268da1d7f1ee8c587d"
+      },
+      "geometryProcessing": {
+        "areaLossFraction": 0.10392008276148634,
+        "cobIntersectionAreaSquareKilometres": 33759.34757961059,
+        "cobSourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+        "cobSourceValidTimeMa": {
+          "oldest": 600,
+          "youngest": null
+        },
+        "deliveredAreaSquareKilometres": 30251.073385163676,
+        "deliveredComponentCount": 7,
+        "deliveredHoleCount": 0,
+        "deliveredVertexCount": 165,
+        "derivation": "intersect the immutable Cao East Svalbard target union with the separately authored East Svalbard closed continental boundary whose native validity reaches 600 Ma, inset 1500 m, and simplify 500 m with topology preservation",
+        "outsideCobSquareMetres": 0.0,
+        "outsideTargetSquareMetres": 0.0,
+        "rawDissolvedComponentCount": 6,
+        "rawDissolvedHoleCount": 0,
+        "rawSourceVertexCount": 139,
+        "simplificationToleranceMetres": 500,
+        "targetInsideCobFraction": 0.9997155439281067,
+        "targetUnionAreaSquareKilometres": 33768.9533634363,
+        "vertexReduction": -26
+      },
+      "geometryReferenceAgeMa": 0,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "qualified-through-product-oldest-age",
+      "overlapPolicy": {
+        "interpretation": "The correction is a geological-material witness. Overlap with Greenland in Cao continent/static collections indicates containment in an older continental footprint, not an additional independent continent; absence from the coast collection is not evidence of absent older material.",
+        "measuredAgesMa": [
+          410.0,
+          410.001,
+          411.0,
+          420.0,
+          430.0,
+          430.001,
+          440.0,
+          500.0,
+          540.0
+        ],
+        "measurements": {
+          "410.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 1.0,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 6
+                },
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 2
+                }
+              ],
+              "intersectionAreaSquareKilometres": 30250.24619496739
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 1.0,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 1
+                },
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 30250.24619496739
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 1.0,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+                  "name": "West Svalbard",
+                  "plateId": 309,
+                  "polygonCount": 1
+                },
+                {
+                  "featureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+                  "name": "East Svalbard",
+                  "plateId": 311,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 30250.24619496739
+            }
+          },
+          "410.001": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "411.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "420.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "430.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "430.001": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            }
+          },
+          "440.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.8649043375808543,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.56914691612
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.8649043375808543,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.56914691612
+            }
+          },
+          "500.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.864904337580849,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.569146915856
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.864904337580849,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.569146915856
+            }
+          },
+          "540.0": {
+            "shapes_coasts.gpmlz": {
+              "candidateAreaFraction": 0.0,
+              "intersectingSources": [],
+              "intersectionAreaSquareKilometres": 0.0
+            },
+            "shapes_continents.gpmlz": {
+              "candidateAreaFraction": 0.8649043375808517,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.569146915754
+            },
+            "static_polygons.gpmlz": {
+              "candidateAreaFraction": 0.8649043375808517,
+              "intersectingSources": [
+                {
+                  "featureId": "GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a",
+                  "name": "Greenland",
+                  "plateId": 102,
+                  "polygonCount": 1
+                }
+              ],
+              "intersectionAreaSquareKilometres": 26163.569146915754
+            }
+          }
+        },
+        "renderRule": "For the baseline coast collection, render the correction only while its targets are inactive. If a continent/static material footprint is rendered instead, suppress this correction where covered or union/deduplicate it before drawing.",
+        "stopCondition": "Do not co-render this mask additively over an active native continent/static material footprint."
+      },
+      "plateId": 311,
+      "pose": {
+        "method": "cao-rigid-plate-motion",
+        "plateId": 311,
+        "sourceOrHypothesis": "model-output; geological sources support material affinity, not exact pose"
+      },
+      "poseConfidenceIntervalsMa": [
+        {
+          "oldest": 430,
+          "status": "qualified",
+          "youngest": 410,
+          "youngestExclusive": true
+        },
+        {
+          "oldest": 540,
+          "status": "uncertain-continuation",
+          "youngest": 430,
+          "youngestExclusive": true
+        }
+      ],
+      "rejectionConditions": [
+        "East Svalbard target union is not at least 99.9% contained by its exact valid-to-600 Ma closed continental boundary",
+        "guarded East Svalbard geometry leaves either its immutable Cao target or closed continental boundary",
+        "candidate is rendered or described as exposed land, ancient shoreline, or positive palaeotopography",
+        "strict Cao motion is missing or a 410/430 parent-switch step exceeds the recorded tolerance",
+        "candidate creates a new hard material-absence boundary inside the 0–540 Ma product domain"
+      ],
+      "sourceIds": [
+        "npi-svalbard-geology-1-750k",
+        "cao-2024-v2.4",
+        "cao-2024-v2.4-cob"
+      ],
+      "sourceUnitSelection": {
+        "eligibilityRule": "NPI AGE_PERIOD must be an exact, non-questioned class wholly older than the 540 Ma product boundary, followed by conservative spatial membership in the matching Cao Svalbard cohort",
+        "eligibleSourceFeatureCountsByAge": {
+          "Cryogenian": 86,
+          "Mesoproterozoic": 579,
+          "Palaeoproterozoic": 54,
+          "Tonian": 224
+        },
+        "evidenceTier": "older-continental-boundary-plus-regional-affinity-substrate-inference",
+        "excluded": [
+          {
+            "count": 4,
+            "reason": "age-not-certainly-pre-540:Caledonian (?)"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Cambrian"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Cambrian - Ordovician"
+          },
+          {
+            "count": 33,
+            "reason": "age-not-certainly-pre-540:Carboniferous"
+          },
+          {
+            "count": 332,
+            "reason": "age-not-certainly-pre-540:Carboniferous - Permian"
+          },
+          {
+            "count": 232,
+            "reason": "age-not-certainly-pre-540:Devonian"
+          },
+          {
+            "count": 222,
+            "reason": "age-not-certainly-pre-540:Early - Middle Triassic"
+          },
+          {
+            "count": 63,
+            "reason": "age-not-certainly-pre-540:Early Carboniferous"
+          },
+          {
+            "count": 549,
+            "reason": "age-not-certainly-pre-540:Early Cretaceous"
+          },
+          {
+            "count": 90,
+            "reason": "age-not-certainly-pre-540:Early Devonian"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Early Palaeozoic ?"
+          },
+          {
+            "count": 26,
+            "reason": "age-not-certainly-pre-540:Early-Middle Ordovician"
+          },
+          {
+            "count": 120,
+            "reason": "age-not-certainly-pre-540:Eocene"
+          },
+          {
+            "count": 158,
+            "reason": "age-not-certainly-pre-540:Holocene"
+          },
+          {
+            "count": 22,
+            "reason": "age-not-certainly-pre-540:Late Carboniferous"
+          },
+          {
+            "count": 21,
+            "reason": "age-not-certainly-pre-540:Late Carboniferous - Early Permian"
+          },
+          {
+            "count": 16,
+            "reason": "age-not-certainly-pre-540:Late Devonian"
+          },
+          {
+            "count": 7,
+            "reason": "age-not-certainly-pre-540:Late Devonian or Early Carboniferous"
+          },
+          {
+            "count": 12,
+            "reason": "age-not-certainly-pre-540:Late Ediacaran"
+          },
+          {
+            "count": 14,
+            "reason": "age-not-certainly-pre-540:Late Eocene - Oligocene"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Late Eocene ?"
+          },
+          {
+            "count": 5,
+            "reason": "age-not-certainly-pre-540:Late Silurian or Early Devonian"
+          },
+          {
+            "count": 153,
+            "reason": "age-not-certainly-pre-540:Late Triasic - Middle Jurassic"
+          },
+          {
+            "count": 152,
+            "reason": "age-not-certainly-pre-540:Late Triassic"
+          },
+          {
+            "count": 8,
+            "reason": "age-not-certainly-pre-540:Late Triassic - Middle Jurassic"
+          },
+          {
+            "count": 29,
+            "reason": "age-not-certainly-pre-540:Mesoproterozoic ?"
+          },
+          {
+            "count": 1,
+            "reason": "age-not-certainly-pre-540:Middle - Late Ordovician"
+          },
+          {
+            "count": 112,
+            "reason": "age-not-certainly-pre-540:Middle Jurassic - Early Cretaceous"
+          },
+          {
+            "count": 27,
+            "reason": "age-not-certainly-pre-540:Middle Silurian"
+          },
+          {
+            "count": 25,
+            "reason": "age-not-certainly-pre-540:Miocene"
+          },
+          {
+            "count": 295,
+            "reason": "age-not-certainly-pre-540:Neoproterozoic"
+          },
+          {
+            "count": 6,
+            "reason": "age-not-certainly-pre-540:Neoproterozoic (?)"
+          },
+          {
+            "count": 8,
+            "reason": "age-not-certainly-pre-540:Ordovician - Middle Silurian"
+          },
+          {
+            "count": 5,
+            "reason": "age-not-certainly-pre-540:Ordovician, 450-475 my"
+          },
+          {
+            "count": 177,
+            "reason": "age-not-certainly-pre-540:Paleocene"
+          },
+          {
+            "count": 328,
+            "reason": "age-not-certainly-pre-540:Permian"
+          },
+          {
+            "count": 3,
+            "reason": "age-not-certainly-pre-540:Pleistocene"
+          },
+          {
+            "count": 11,
+            "reason": "age-not-certainly-pre-540:Tonian ?"
+          },
+          {
+            "count": 2,
+            "reason": "age-not-certainly-pre-540:Tonian, late Grenvillian"
+          },
+          {
+            "count": 165,
+            "reason": "eligible-part-centroid-outside-or-ambiguous-cao-cohort"
+          },
+          {
+            "count": 14,
+            "reason": "eligible-part-insufficient-or-cross-cohort-membership"
+          },
+          {
+            "count": 5,
+            "reason": "eligible-part-invalid-in-equal-area-projection"
+          },
+          {
+            "count": 57,
+            "reason": "eligible-part-excluded-by-predeclared-equal-area-containment"
+          }
+        ],
+        "footprintInference": "the complete guarded East Svalbard target footprint is inside its separately authored valid-to-600 Ma closed continental boundary; mapped younger cover and ice locate inferred substrate but are not backdated as surface rock",
+        "included": [
+          {
+            "agePeriod": "Cryogenian",
+            "areaSteradians": 3.9945813767872096e-07,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4010,
+            "mainLithology": "Clastic and carbonate rocks, tilloid rocks",
+            "name": "Gotiahalvøya Group",
+            "polygonCount": 4,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4040,
+              4052,
+              4064,
+              4067
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Cryogenian",
+            "areaSteradians": 9.980313135926622e-07,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4100,
+            "mainLithology": "Clastic and carbonate rocks, tilloid rocks",
+            "name": "Polarisbreen Group",
+            "polygonCount": 38,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              90,
+              93,
+              120,
+              121,
+              137,
+              574,
+              578,
+              594,
+              597,
+              611,
+              941,
+              1037,
+              1481,
+              1974,
+              1997,
+              2001,
+              2003,
+              2462,
+              2469,
+              2497,
+              2501,
+              2510,
+              2844,
+              2848,
+              2858,
+              2942,
+              2995,
+              3355,
+              3358,
+              3438,
+              3445,
+              3454,
+              3845,
+              3889,
+              3935,
+              3936,
+              3942,
+              3969
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 1.769639934590117e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4520,
+            "mainLithology": "Carbonate rocks",
+            "name": "Roaldtoppen Group",
+            "polygonCount": 11,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              17,
+              496,
+              938,
+              1889,
+              2842,
+              2845,
+              4049,
+              4051,
+              4060,
+              4065,
+              4066
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 2.214854183613113e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4540,
+            "mainLithology": "Clastic and carbonate sedimentary rocks",
+            "name": "Celsiusberget Group",
+            "polygonCount": 9,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              19,
+              940,
+              2843,
+              4046,
+              4050,
+              4061,
+              4070,
+              4072,
+              4075
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 2.3001567464042694e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4560,
+            "mainLithology": "Clastic sedimentary rocks",
+            "name": "Franklinsundet Group",
+            "polygonCount": 7,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              1883,
+              4081,
+              4083,
+              4093,
+              4098,
+              4099,
+              4130
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 1.72894731287343e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4580,
+            "mainLithology": "Clastic and carbonate sedimentary rocks",
+            "name": "Galtedalen Group",
+            "polygonCount": 8,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4074,
+              4077,
+              4080,
+              4094,
+              4125,
+              4129,
+              4141,
+              4142
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 2.2502499659182718e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4601,
+            "mainLithology": "Carbonate sedimentary rocks",
+            "name": "Akademikarbreen Group",
+            "polygonCount": 43,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              69,
+              138,
+              503,
+              565,
+              588,
+              589,
+              596,
+              598,
+              947,
+              1000,
+              1034,
+              1036,
+              1414,
+              1522,
+              1969,
+              1988,
+              1989,
+              2002,
+              2382,
+              2447,
+              2475,
+              2476,
+              2477,
+              2500,
+              2513,
+              2974,
+              2976,
+              2988,
+              2991,
+              2994,
+              3353,
+              3354,
+              3421,
+              3451,
+              3458,
+              3846,
+              3890,
+              3891,
+              3892,
+              3910,
+              3932,
+              3933,
+              3934
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 4.658809757973614e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 4650,
+            "mainLithology": "Clastic sedimentary rocks",
+            "name": "Veteranen Group",
+            "polygonCount": 61,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              21,
+              36,
+              72,
+              95,
+              108,
+              130,
+              131,
+              550,
+              1003,
+              1015,
+              1016,
+              1021,
+              1051,
+              1406,
+              1412,
+              1484,
+              1887,
+              1949,
+              1950,
+              1954,
+              1961,
+              1963,
+              1966,
+              1981,
+              1985,
+              2380,
+              2383,
+              2384,
+              2385,
+              2443,
+              2449,
+              2506,
+              2508,
+              2865,
+              2932,
+              2935,
+              2936,
+              2951,
+              3352,
+              3356,
+              3364,
+              3397,
+              3400,
+              3408,
+              3409,
+              3418,
+              3419,
+              3428,
+              3464,
+              3861,
+              3894,
+              3895,
+              3897,
+              3899,
+              3909,
+              3923,
+              3924,
+              3930,
+              3931,
+              3951,
+              3970
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 7.864907218824158e-07,
+            "datingMethod": "Isotope ages and stratigraphic correlation",
+            "geoCode": 5001,
+            "mainLithology": "Metavolcanic rocks",
+            "name": "Kapp Hansteen Group",
+            "polygonCount": 5,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              494,
+              1882,
+              2371,
+              4126,
+              4127
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 5.537821063494874e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5010,
+            "mainLithology": "Metasedimentary rocks",
+            "name": "Brennevinsfjorden Group",
+            "polygonCount": 6,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              934,
+              3345,
+              4068,
+              4082,
+              4097,
+              4103
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.314486599568454e-07,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5020,
+            "mainLithology": "Migmatite, granite, gneiss",
+            "name": "Duvefjorden Migmatite Complex",
+            "polygonCount": 4,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              930,
+              1884,
+              2836,
+              4150
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 3.111893746687855e-06,
+            "datingMethod": "Stratigraphic correlation",
+            "geoCode": 5100,
+            "mainLithology": "Mica gneiss and schist, phyllite, quartzite",
+            "name": "Mosselhalvøya Group",
+            "polygonCount": 51,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              15,
+              18,
+              37,
+              39,
+              41,
+              512,
+              516,
+              553,
+              555,
+              558,
+              581,
+              945,
+              949,
+              1008,
+              1010,
+              1012,
+              1426,
+              1428,
+              1430,
+              1467,
+              1488,
+              1513,
+              1886,
+              1900,
+              1903,
+              1959,
+              2431,
+              2441,
+              2450,
+              2453,
+              2494,
+              2847,
+              2862,
+              2866,
+              2868,
+              2919,
+              2924,
+              2926,
+              2928,
+              2934,
+              2940,
+              3351,
+              3357,
+              3406,
+              3416,
+              3425,
+              3449,
+              3886,
+              3888,
+              3918,
+              3921
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 1.5247945128749052e-09,
+            "datingMethod": "Isotope ages, detrital zircon",
+            "geoCode": 5131,
+            "mainLithology": "Metapsammite and amphibolite",
+            "name": "Sørbreen unit",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              3850,
+              3852
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 3.235417016522746e-06,
+            "datingMethod": "Isotope ages, detrital zircon",
+            "geoCode": 5133,
+            "mainLithology": "Quartzite, micaschist, amphibolite and marble",
+            "name": "Polhem and Rittervatnet units",
+            "polygonCount": 52,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              26,
+              38,
+              78,
+              87,
+              101,
+              104,
+              110,
+              117,
+              505,
+              557,
+              562,
+              567,
+              583,
+              584,
+              593,
+              995,
+              1002,
+              1013,
+              1014,
+              1028,
+              1032,
+              1408,
+              1475,
+              1482,
+              1495,
+              1510,
+              1973,
+              1983,
+              2386,
+              2433,
+              2464,
+              2474,
+              2849,
+              2851,
+              2960,
+              2961,
+              2966,
+              2967,
+              2971,
+              2975,
+              3410,
+              3415,
+              3859,
+              3871,
+              3873,
+              3874,
+              3875,
+              3876,
+              3883,
+              3962
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Mesoproterozoic",
+            "areaSteradians": 2.448217428341337e-06,
+            "datingMethod": "Isotope ages, detrital zircon",
+            "geoCode": 5140,
+            "mainLithology": "Garnet-micasch.,calc-pelitic sch.,amphib.,marble",
+            "name": "Smutsbreen unit",
+            "polygonCount": 30,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              82,
+              94,
+              122,
+              1004,
+              1018,
+              1030,
+              1460,
+              1479,
+              1952,
+              2435,
+              2437,
+              2440,
+              2458,
+              2472,
+              2921,
+              2953,
+              2962,
+              2980,
+              2984,
+              3366,
+              3433,
+              3853,
+              3862,
+              3864,
+              3879,
+              3880,
+              3881,
+              3882,
+              3884,
+              3887
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Palaeoproterozoic",
+            "areaSteradians": 1.878255812215457e-06,
+            "datingMethod": "Isotope ages",
+            "geoCode": 6001,
+            "mainLithology": "Granitic gneiss, migmatite, amphibolite",
+            "name": "Bangenhuk unit",
+            "polygonCount": 24,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              27,
+              783,
+              954,
+              1343,
+              1470,
+              1472,
+              1724,
+              1892,
+              1897,
+              1904,
+              1956,
+              2391,
+              2397,
+              2399,
+              2444,
+              2674,
+              2679,
+              2863,
+              2933,
+              3367,
+              3645,
+              3855,
+              3877,
+              3878
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Palaeoproterozoic",
+            "areaSteradians": 9.885435625633932e-08,
+            "datingMethod": "Isotope ages",
+            "geoCode": 6010,
+            "mainLithology": "Granitic gneiss, amphibolite",
+            "name": "Instrumentberget and Flåtan units",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              3857,
+              3858
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Palaeoproterozoic",
+            "areaSteradians": 4.2696737656555683e-07,
+            "datingMethod": "Isotope ages",
+            "geoCode": 6015,
+            "mainLithology": "Biotite gneiss, amphibolite",
+            "name": "Eskolabreen unit",
+            "polygonCount": 13,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              118,
+              126,
+              591,
+              604,
+              1039,
+              1991,
+              2470,
+              2486,
+              2945,
+              3440,
+              3885,
+              3917,
+              3919
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 5.592744267701732e-07,
+            "datingMethod": "Isotope ages",
+            "geoCode": 7502,
+            "mainLithology": "granitic gneiss",
+            "name": "Fonndalen augengneiss",
+            "polygonCount": 2,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4128,
+              4140
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 9.717018834010105e-07,
+            "datingMethod": "Isotope ages",
+            "geoCode": 7502,
+            "mainLithology": "granitic gneiss",
+            "name": "Ringgåsvatnet augengneiss",
+            "polygonCount": 4,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4144,
+              4145,
+              4146,
+              4147
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 2.036691545637126e-06,
+            "datingMethod": "Isotope ages",
+            "geoCode": 7502,
+            "mainLithology": "granitic gneiss",
+            "name": "unnamed granitic gneisses",
+            "polygonCount": 3,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              4151,
+              4155,
+              4159
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          },
+          {
+            "agePeriod": "Tonian",
+            "areaSteradians": 5.709589689928407e-09,
+            "datingMethod": "Isotope ages",
+            "geoCode": 7601,
+            "mainLithology": "Granite",
+            "name": "Laponiahalvøya Granite",
+            "polygonCount": 1,
+            "reason": "mapped unit age ends before 540 Ma and its polygon passes conservative Cao cohort membership and equal-area containment",
+            "sourceObjectIds": [
+              929
+            ],
+            "sourceReference": "Generalized by NPI from data from various sources"
+          }
+        ],
+        "includedAgeClasses": [
+          "Cryogenian",
+          "Mesoproterozoic",
+          "Palaeoproterozoic",
+          "Tonian"
+        ],
+        "materialMeaning": "mapped exposure of pre-540 rock is a witness for old continental material; its modern polygon is neither a 410–540 Ma outcrop nor a palaeoshoreline"
+      },
+      "supportIntervalMa": {
+        "oldest": 540,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "mapped old rocks and the valid-to-600 Ma East Svalbard closed continental boundary support older substrate beneath younger cover and ice; no dated palaeoshoreline or height evidence"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "e4ba42b3f1a35c5c5716921fd2b50e4051e166c1ab82ae2a8075620136122ecb",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:691:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 691
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "65dc0c3ef385fef68e163c11a1e6d8dd3e9a6f0d1c41da01d66f5213297ecfd5",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:730:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 730
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "165aabf5a0581daa9d30e8d0cdd58e16f923ae986e0d45ee566bf1c1688c36b6",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:796:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 796
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "62bf1a8c26596f0fc3d1d6ce4c9fc4b68abe57a139167e59edbc0db8eb3925b1",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:938:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 938
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "a504969c0291d4b3b0e117aa4fc6876893dfc03a6cf5c273632f0342ee02dcbd",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:1541:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 1541
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "544daf82e407a89c209dd0f4fb2a9543f09f9f9af87ebf7511d1f745b33df61f",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:1748:0",
+          "plateId": 311,
+          "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+          "sourceFeatureOrder": 1748
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at all reconstructed ages; the polygons must not be interpreted as emergent land or a palaeoshoreline",
+        "spatial": "low confidence; guarded East Svalbard target footprint inside its separately authored valid-to-600 Ma continental boundary, supported by NPI old-unit witnesses and regional affinity",
+        "temporal": "selected mapped rock units predate 540 Ma; regional affinity is best constrained near 410–430 Ma, while rigid pose farther back to 540 Ma is lower-confidence Cao model output",
+        "terrane": "West/East cohort assignment follows Cao source geometry; internal Svalbard terrane correlations remain debated"
+      },
+      "uncertaintyDisplay": {
+        "olderThanMa": 430,
+        "style": "uncertain"
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceAssets": [
+    {
+      "attribution": "© Norwegian Polar Institute",
+      "bytes": 12206233,
+      "citation": "Norwegian Polar Institute, Geology Svalbard, Geological units at 1:750,000, ArcGIS layer 10",
+      "evidenceRole": "geological-unit-extent",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "publicationOrVersionDate": "scientific map version/edit date not reported; hash-pinned retrieval 2026-09-12",
+      "query": "OBJECTID ascending, 1000 records per page, all attributes and source geometry",
+      "retrievedAt": "2026-09-12",
+      "scientificVersion": null,
+      "sha256": "c6f518f26fd2d78139f64210434fa6ae85a9a135940ba5c81b3a1c73deb20abc",
+      "sourceId": "npi-svalbard-geology-1-750k",
+      "title": "Geology, Svalbard — Geological units 1:750,000",
+      "url": "https://geodata.npolar.no/arcgis/rest/services/Temadata/G_Geologi_Svalbard_S250_S750/MapServer/10?f=pjson",
+      "versionLimitation": "The service reports no scientific map version or edit date; currentVersion is the ArcGIS server version only. This acquisition is pinned by response hashes and retrieval date."
+    },
+    {
+      "attribution": "Cao et al. (2024) model v2.4 contributors",
+      "bytes": 14423254,
+      "citation": "Cao et al. (2024), Earth's tectonic and plate boundary evolution over 1.8 billion years, model v2.4, doi:10.5281/zenodo.13628813",
+      "evidenceRole": "continental-or-crustal-extent",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "publicationOrVersionDate": "2024-09-03",
+      "retrievedAt": "2026-09-09",
+      "sha256": "cfcea20c5244613e53ad4b9cdf6411d79ff535c25af335b4fa6eb9251377d4bd",
+      "sourceId": "cao-2024-v2.4-cob",
+      "title": "Cao et al. v2.4 closed continental-boundary collection",
+      "url": "https://doi.org/10.5281/zenodo.13628813"
+    }
+  ],
+  "version": 3
+}

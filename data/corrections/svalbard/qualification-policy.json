@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "writtenBeforeMeasurement": false,
+  "writtenDate": "2026-09-12",
+  "recordedSequence": "The original outcrop compiler recorded its gates during exploratory measurement, including the fallback ladder after the first simplification failed. Rough target/COB containment screens preceded both cohort expansion rules. Each rule records when it was frozen; none is presented as preregistration.",
+  "amendment": "Invalid projected source geometry was detected before any area metric completed, so whole invalid parts were predeclared for rejection without repair. The first 1000 m simplification measurement was then rejected because East Svalbard was invalid; before testing smaller tolerances, a descending fallback ladder and largest-passing selection rule were recorded here.",
+  "candidate": "earthhistory-regional-svalbard-material-v1",
+  "measurement": {
+    "projection": "spherical Lambert azimuthal equal-area centered at 15E, 78N",
+    "earthRadiusMetres": 6371008.8,
+    "library": "Shapely 2.0.7",
+    "geometry": "NPI source polygons and Cao West/East Svalbard source cohort polygons in 0 Ma reference coordinates",
+    "reportedAreas": [
+      "sum of selected source-part areas",
+      "selected union area",
+      "intersection with own Cao cohort union",
+      "intersection with the other Cao cohort union",
+      "area outside both Cao cohort unions"
+    ]
+  },
+  "initialCandidateAcceptance": {
+    "minimumEachPartOwnCohortAreaFraction": 0.98,
+    "maximumEachPartCrossCohortAreaFraction": 0.0001,
+    "minimumOwnCohortAreaFraction": 0.98,
+    "maximumCrossCohortAreaFraction": 0.0001,
+    "maximumSelectedUnionOverlapFraction": 0.0001
+  },
+  "predeclaredFallback": {
+    "operation": "exclude whole NPI source polygon parts that are invalid in the measurement projection or whose own-cohort intersection fraction is below 0.98; do not repair, clip, or invent boundaries",
+    "invalidGeometryPolicy": "exclude the whole source part; do not use buffer(0), make-valid, or another topology-changing repair",
+    "minimumFinalOwnCohortAreaFraction": 0.995,
+    "minimumEachRetainedPartOwnCohortAreaFraction": 0.98,
+    "maximumEachRetainedPartCrossCohortAreaFraction": 0.0001,
+    "maximumFinalCrossCohortAreaFraction": 0.0001,
+    "maximumFinalSelectedUnionOverlapFraction": 0.0001
+  },
+  "deliveredGeometry": {
+    "operation": "dissolve retained source parts by Cao plate cohort as independent affinity witnesses; derive delivered cohort geometry from each exact target/closed-boundary intersection under its expansion rule",
+    "simplificationToleranceCandidatesMetres": [1000, 500, 250, 100, 0],
+    "selectionRule": "for each cohort, choose the first descending tolerance that passes validity, component, hole, area, and cohort thresholds; 0 means dissolved geometry without simplification",
+    "knownRejectedAttempt": "1000 m produced an invalid East Svalbard geometry (hole outside shell) and cannot be selected for that cohort",
+    "basis": "The tested tolerances are at or below the approximately 1:750,000 source map's practical line-detail scale and are used only for an orbital material-support mask",
+    "maximumAbsoluteAreaErrorFraction": 0.01,
+    "minimumOwnCohortAreaFraction": 0.995,
+    "maximumCrossCohortAreaFraction": 0.0001,
+    "maximumTotalOutputVertices": 10000,
+    "smallIslandPolicy": "retain every polygon component produced by the unsimplified dissolve; do not apply an area filter",
+    "holePolicy": "retain every interior ring produced by the unsimplified dissolve",
+    "lineagePolicy": "record every contributing NPI object ID and polygon-part order even though internal unit boundaries are dissolved"
+  },
+  "westCohortExpansion": {
+    "recordedSequence": "A rough target/COB containment screen preceded this amendment. The rule was added before the reproducible compiler generated and validated the expanded West candidate. This amendment is not presented as preregistration.",
+    "operation": "intersect the immutable Cao West Svalbard target union with the separately authored West Svalbard closed continental boundary whose native validity reaches 600 Ma, inset 1500 m, and simplify 500 m with topology preservation",
+    "independentMaterialSupport": "NPI mapped Precambrian units and regional Caledonide syntheses support older continental material; younger cover and ice contribute footprint only and remain substrate inference",
+    "minimumCobContainmentFraction": 0.999,
+    "insetMetres": 1500,
+    "simplifyMetres": 500,
+    "maximumOutsideTargetSquareMetres": 1,
+    "maximumOutsideCobSquareMetres": 1,
+    "maximumAbsoluteAreaLossFraction": 0.25,
+    "surfaceEvidence": "unknown",
+    "stopRule": "Reject if the West target is not at least 99.9% inside the independently authored valid-to-600 Ma closed continental boundary, the guarded result leaves the target or COB, loses more than 25% area, is invalid/empty, or overlaps active native coast material at the sampled older ages."
+  },
+  "eastCohortExpansion": {
+    "recordedSequence": "The exact East target/COB containment was measured after native-underlay precedence removed the former double-drawing objection. This rule was frozen before the reproducible expanded candidate and mutation test were run; it is not presented as preregistration.",
+    "operation": "intersect the immutable Cao East Svalbard target union with the separately authored East Svalbard closed continental boundary whose native validity reaches 600 Ma, inset 1500 m, and simplify 500 m with topology preservation",
+    "independentMaterialSupport": "NPI mapped Precambrian units and regional Caledonide syntheses support older continental material; younger cover and ice contribute footprint only and remain substrate inference",
+    "minimumCobContainmentFraction": 0.999,
+    "insetMetres": 1500,
+    "simplifyMetres": 500,
+    "maximumOutsideTargetSquareMetres": 1,
+    "maximumOutsideCobSquareMetres": 1,
+    "maximumAbsoluteAreaLossFraction": 0.25,
+    "surfaceEvidence": "unknown",
+    "stopRule": "Reject if the East target is not at least 99.9% inside the exact valid-to-600 Ma East Svalbard boundary, the guarded result leaves the target or boundary, loses more than 25% area, or is invalid/empty. Native continent/static overlap is handled by the shared native-precedence render contract rather than by discarding independently supported material."
+  },
+  "stopRules": [
+    "Reject the cohort if the predeclared whole-part exclusion does not meet every final threshold.",
+    "Reject either cohort expansion if it loses source object and polygon-part lineage or its exact target/COB identity witnesses.",
+    "Reject simplification if it changes polygon-component or hole counts, exceeds 1% absolute union-area error, fails final cohort thresholds, or exceeds 10000 total output vertices.",
+    "Treat reconstructed-age vertex and centroid overlap as a screen only; it cannot substitute for this reference-space area measurement.",
+    "Do not infer geological lineage from overlap with an alternative Cao collection."
+  ]
+}

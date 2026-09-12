@@ -1,0 +1,1282 @@
+{
+  "schemaVersion": 2,
+  "sourceCollection": "shapes_coasts.gpmlz",
+  "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+  "coordinateFrame": {
+    "absoluteFrameId": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "axisConvention": "gplates-x0e-y90e-znorth",
+    "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+  },
+  "topologySources": [
+    {"path": "250-0_plate_boundaries.gpml", "sha256": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4"},
+    {"path": "410-250_plate_boundaries.gpml", "sha256": "6516dbac4d7928e7ad71244b0bbabc65eb25e6e89dc79d4becb9a82a25a6fc91"},
+    {"path": "1000-410_plate_boundaries.gpml", "sha256": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1"},
+    {"path": "1800-1000_plate_boundaries.gpml", "sha256": "759a76605bc907197928214f4101403dd6221e7ba8d4ecacde57999bc3675dce"},
+    {"path": "TopologyBuildingBlocks.gpml", "sha256": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297"}
+  ],
+  "geometryHashEncoding": "earthhistory-cao-staged-geometry-f32le-xyz-rings-v1",
+  "targets": [
+    {
+      "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:620:0",
+      "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+      "sourceFeatureOrder": 620,
+      "geometryOrder": 0,
+      "plateId": 124,
+      "geometrySha256": "afc23b3557aaa74809c1bd5566c0318e6fd40fa9ff8b646d178503ac72852eda",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North Ellesmere Island (Pearya)",
+      "sourceAreaSteradians": 0.0010173726795725813
+    },
+    {
+      "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:0",
+      "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+      "sourceFeatureOrder": 688,
+      "geometryOrder": 0,
+      "plateId": 124,
+      "geometrySha256": "e30d0cc3221c5bfd2b67f4c7d034514837f0800eff238762d8642068618ff0e1",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North Ellesmere Island (Pearya)",
+      "sourceAreaSteradians": 1.7806013645760288e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:1",
+      "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+      "sourceFeatureOrder": 688,
+      "geometryOrder": 1,
+      "plateId": 124,
+      "geometrySha256": "18178f6f611f6eaca7da112e8611b42b9aa51b988ca35d9a75b3db7f712dd31a",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North Ellesmere Island (Pearya)",
+      "sourceAreaSteradians": 1.3332719864145304e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:1040:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 1040,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "82eb250e6bb1986b68cb3525a5f7cc219403b7763efecf202f3e51dc96a25f1a",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 1.9021447765332766e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:1070:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 1070,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "a3210e642078070247cc7a09ad4b7d68d8f10615e8ea0357f9829d0919f0a077",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 1.3541332039679332e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:1125:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 1125,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "eae026bd304ecc58fc1b494bed47d7a9197f487cd77ea50b1d4427f8212ae331",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 1.1719889912331638e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:685:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 685,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "e5ae72929e764d7ac42589c280558d9b73fd9ff67515c4aca7bc7db774a75af0",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.00010726428240159791
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:685:1",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 685,
+      "geometryOrder": 1,
+      "plateId": 120,
+      "geometrySha256": "43926e77e8a514f2d8989a453edb556cfc956c51d9a8d788b6d63bf93619deed",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0003463110544386083
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:685:2",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 685,
+      "geometryOrder": 2,
+      "plateId": 120,
+      "geometrySha256": "539e62b5fca1a7d59bf5e36d038151b56fbaba0ae3628fafb0db83c0040cf69b",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 5.111155960690894e-07
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:687:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 687,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "6d32b8e0814f4010bdaaa42d067bc9cb4f8340b88776b42af556e2ea4562eef0",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0008638844121824363
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:726:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 726,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "d35a4fc19139faf44ea6080f355af78bd0f124d91f54279cade96c746c3e1bbe",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0003870509519092735
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:741:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 741,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "56b75e351315dcdfb921aa72bfa9ebbf759441c5642c2b48308e2b4a8259aa23",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0002741140630337924
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:792:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 792,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "8905a030115b4d9fa98b93bde6c101a5372a25aed1692477226249ee04d68701",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0001276300385821827
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:795:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 795,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "9664121c1cb828118eee8ccd3a4c1b8313f63d0a5a2e9b3461e491d9fed9c718",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 0.0001185257060445366
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:853:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 853,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "274034421a40d5107e73817aec96f3366c2e3af7e9c13fb5dcb6bf119aec8b6d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 6.543036285977522e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:866:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 866,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "202fce07ff7d81e4d8790d3899560d90c6c77b5fd7c7cfb0be62ab909e8bf53d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 5.7764573400564956e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:913:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 913,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "af9e597cbff62e2a1639b3c712890b3dd85af2e66e158ffae33a97e32a82bd81",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 3.5092248349855026e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:913:1",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 913,
+      "geometryOrder": 1,
+      "plateId": 120,
+      "geometrySha256": "a269c6de4db90e58c26807d52c213390eb141002b14c19b57adccc2831f86086",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 3.5626306349456627e-09
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:930:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 930,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "342c1ba6123f736d942db5a99f28b9004d40041058039dd6c9a4a3713fd0fe39",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 1.0448085656644679e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:937:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 937,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "1237888656e3ba6d51914900b331c36ffdad8ff832b6fb224597a7bd54aa0c27",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 2.8226110873941224e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda:999:0",
+      "sourceFeatureId": "GPlates-0bde4fc7-5415-42c0-b8dc-3e10a0ffbdda",
+      "sourceFeatureOrder": 999,
+      "geometryOrder": 0,
+      "plateId": 120,
+      "geometrySha256": "4a1dbfb701e160ce18bb96e3333841b1d92af85dd9fd9b1fdd3470c2be74db34",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands North",
+      "sourceAreaSteradians": 1.7904795508449922e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692:1772:0",
+      "sourceFeatureId": "GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692",
+      "sourceFeatureOrder": 1772,
+      "geometryOrder": 0,
+      "plateId": 122,
+      "geometrySha256": "799c9247f6809c3a68f906718fd2c31a573b21203310a93d0e46b282249cfa0b",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "South-Central Ellesmere Island",
+      "sourceAreaSteradians": 3.2152721112232996e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692:621:0",
+      "sourceFeatureId": "GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692",
+      "sourceFeatureOrder": 621,
+      "geometryOrder": 0,
+      "plateId": 122,
+      "geometrySha256": "871769e286106a2be248126adb57584f17c36cf6a4b40fa1eebe64f1f099233b",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "South-Central Ellesmere Island",
+      "sourceAreaSteradians": 0.0009222813472100633
+    },
+    {
+      "patchId": "cao-coast:GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692:621:1",
+      "sourceFeatureId": "GPlates-26838120-dc5d-42da-9bdf-ca3e5e9c3692",
+      "sourceFeatureOrder": 621,
+      "geometryOrder": 1,
+      "plateId": 122,
+      "geometrySha256": "be93ee37507be9bc72e87f2e104210034cb6b844be9bb23967f90a4f43867934",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "South-Central Ellesmere Island",
+      "sourceAreaSteradians": 7.639704890216592e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1072:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1072,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "8a2e209fbf2fa80e9287edfbf68bb256499a45e3911a7b0880a4a88a0fb037a8",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 1.4327916855183531e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1142:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1142,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "2f8121d07438878ffa2df6b3765d5e61a217a50f84cc17a00a1aa6a3263efec6",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 1.284061662953917e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1153:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1153,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "f73734c07ee218b8ad1e3bec524a5f07ccbb0a8a7794c1adb6205a77af482d0d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 1.237734121728451e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1208:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1208,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "49be4a50c7020449a0ef70a9b9eb52253f706e5b29a60270852377ac2c63117a",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 8.207868883669533e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1237:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1237,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "ff74962a164a9e7231533efaf27b3e7bf4eb05368d82dd425327dc33ee5cb42b",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 1.0546962617929978e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1268:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1268,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "cd9bdecb1b845c28cbf0f621d23668d8d6b4acf8ac8513ad57ed8bf7cfc7c919",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 8.092372506318668e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1304:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1304,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "3493b46c855284b180ecaa3507c2b50a887c2d01391914584c42f121e802ae78",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 6.936947255731241e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1318:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1318,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "e1ea90c1e65ef39c026c466cb82fcf502fcf4836fa17221c21e3b9a6ff159b97",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 5.6211889973845075e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1319:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1319,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "f227e472466db86c585929b85c9a31d737749599d3cad0a655f4132f6cde8bc5",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 5.988949877799854e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1320:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1320,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "71c72a9b558fcaae451ec13d6e60d367d5a426142ecbbf9cb65544413ea18d67",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 8.54667194127856e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1366:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1366,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "b40a7dcae87dfe4e702d17b1fc838f9b363248e377ad1c15cc49c35d04214c55",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 5.960883632027958e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1412:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1412,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "6ebc0ec023e1e3d20755be3daed8c88a563cbfb74be65548de102053073f643e",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 4.039636746000497e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1465:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1465,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "2f1c605dd691806d79ab06d6ccf588609ef64b82bd655fdfceb0e4f4c859bffb",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 3.875065350822382e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1580:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1580,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "1c70bca682afe2ef2c8f09b1a4cc6c2cd9b2f861c17274cd76b2b684cb18e510",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 4.1261166372486e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1709:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1709,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "e43f4c0e884056eeb71d971f752aaa5b06221ce5b284e4dcae53d93a3d08215b",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 2.814998249167644e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:1718:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 1718,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "92407024adf3542f816a4def8c23b203f2e05a5af2f1dbbe7cb096acdd3556fa",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 2.6167599291859744e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:855:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 855,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "2cf1054a349111360239a11de404c509e21838ce5d6640fbf53865edb65084c6",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 6.568070762025258e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:876:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 876,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "bcfc5ea68e78a5c307b875d74b1376d17437e5b81cce6bc01d86d1bd402e6740",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 5.114189789612311e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:897:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 897,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "7d65a981398eb8c3c0aff9d71ba2b8e8dd281f6e8c888554f188828ed613769e",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 4.051456323228564e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:970:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 970,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "af6ba165b98571f6e088decc8f9ff5a09c2f924be8e015c7cc60c20ac8d7fac8",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 2.7230473435224667e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:985:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 985,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "318f2305945be9ec01d53f8d273baec67f05cbe4d6bc7fc89e9a5ce595b58ec2",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 2.3346777947796937e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82:991:0",
+      "sourceFeatureId": "GPlates-2f364506-cb89-45ae-8e0a-0c73dd52af82",
+      "sourceFeatureOrder": 991,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "9a3a2f2739e2e13b595ad0ac8b0fd68b092b0fe20adfe6b3a53b3ca9284052e0",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Barentsia (Franz Josef Land)",
+      "sourceAreaSteradians": 2.240476195236596e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a:490:0",
+      "sourceFeatureId": "GPlates-6ee78b87-bf48-4f5c-8da4-eab35d483a0a",
+      "sourceFeatureOrder": 490,
+      "geometryOrder": 0,
+      "plateId": 1731,
+      "geometrySha256": "0a498dd8a7772af9ed8a531f02c71335c64510a8d60d5f84d5a8a46769eda894",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Purcell Mountains North America Craton",
+      "sourceAreaSteradians": 0.011209393891614017
+    },
+    {
+      "patchId": "cao-coast:GPlates-79e80d97-d4aa-4269-8507-d50c8193a298:503:0",
+      "sourceFeatureId": "GPlates-79e80d97-d4aa-4269-8507-d50c8193a298",
+      "sourceFeatureOrder": 503,
+      "geometryOrder": 0,
+      "plateId": 154,
+      "geometrySha256": "ac2c856f6d5c6f7d8893356f7679b7682c2d45759a908eac08c32acbdcd408e5",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Laurentia Parautochthon",
+      "sourceAreaSteradians": 0.016415144713104013
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:1541:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 1541,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "a504969c0291d4b3b0e117aa4fc6876893dfc03a6cf5c273632f0342ee02dcbd",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 6.957592512790711e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:1748:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 1748,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "544daf82e407a89c209dd0f4fb2a9543f09f9f9af87ebf7511d1f745b33df61f",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 2.760920587707716e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:691:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 691,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "e4ba42b3f1a35c5c5716921fd2b50e4051e166c1ab82ae2a8075620136122ecb",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 0.00032653603835797185
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:730:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 730,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "65dc0c3ef385fef68e163c11a1e6d8dd3e9a6f0d1c41da01d66f5213297ecfd5",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 0.0003510283559031713
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:796:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 796,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "165aabf5a0581daa9d30e8d0cdd58e16f923ae986e0d45ee566bf1c1688c36b6",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 0.00011345304163556946
+    },
+    {
+      "patchId": "cao-coast:GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6:938:0",
+      "sourceFeatureId": "GPlates-9653c415-6d07-4bf4-8884-da5a535b03b6",
+      "sourceFeatureOrder": 938,
+      "geometryOrder": 0,
+      "plateId": 311,
+      "geometrySha256": "62bf1a8c26596f0fc3d1d6ce4c9fc4b68abe57a139167e59edbc0db8eb3925b1",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Svalbard",
+      "sourceAreaSteradians": 3.121966789931818e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:1078:0",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "sourceFeatureOrder": 1078,
+      "geometryOrder": 0,
+      "plateId": 309,
+      "geometrySha256": "0d6caa5211a2377f063693806966abcb527dd0cc8afd274daade9adff3a19feb",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "West Svalbard",
+      "sourceAreaSteradians": 1.4591890509674244e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:1604:0",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "sourceFeatureOrder": 1604,
+      "geometryOrder": 0,
+      "plateId": 309,
+      "geometrySha256": "8b8a90ecb966042ed726bcd85089e487884e81ee3491bc9552d40d61e2a8804e",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "West Svalbard",
+      "sourceAreaSteradians": 3.213875160668067e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:0",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "sourceFeatureOrder": 690,
+      "geometryOrder": 0,
+      "plateId": 309,
+      "geometrySha256": "83bcf13421888170fad4111bd3199529c7ee1568c4083a9e38a48e60b19d5cbc",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "West Svalbard",
+      "sourceAreaSteradians": 0.0003132952440849657
+    },
+    {
+      "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:1",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "sourceFeatureOrder": 690,
+      "geometryOrder": 1,
+      "plateId": 309,
+      "geometrySha256": "68856bd6b3270009d20f62c9c1c2d864964913aed048f7a4f7fcccae520226f7",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "West Svalbard",
+      "sourceAreaSteradians": 5.1445748803224944e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc:690:2",
+      "sourceFeatureId": "GPlates-9711c046-0949-4fda-a338-6ea2d48e27dc",
+      "sourceFeatureOrder": 690,
+      "geometryOrder": 2,
+      "plateId": 309,
+      "geometrySha256": "be70e2435279e90d4e5bd91e971f7671cc45e33565b308fa3292b3052572f689",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "West Svalbard",
+      "sourceAreaSteradians": 0.00026939229642719553
+    },
+    {
+      "patchId": "cao-coast:GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42:450:0",
+      "sourceFeatureId": "GPlates-9e1d4153-557b-4b65-b6fb-5ec2bfbb2c42",
+      "sourceFeatureOrder": 450,
+      "geometryOrder": 0,
+      "plateId": 176,
+      "geometrySha256": "79accc3d7a55391c5bc250dd144ded02a53254ed50ac2a5a371946330507d2fa",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "East Klamath",
+      "sourceAreaSteradians": 0.003921989237569701
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:1100:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 1100,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "e10619a70955855ad16d6d52d23523d641c6c458e311961642b79daa7c990a79",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 1.908331074051972e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:1159:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 1159,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "f958e4b4e7d9ec50268e131c6387fa3af5cd55aff802c6877c91a1f466a3a265",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 1.1859592286889153e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:1206:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 1206,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "68d4726d55591379998a6a57692c3441e68f609a538e7dcce2e4b170af1a02c4",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 6.403579115854541e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:1316:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 1316,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "bf60eac90386310fe9f854b1776f619b7139c8c7e5eeb9a5699c4d25a4718e2d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 6.4337548000281686e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:623:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 623,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "bee98351c00428dee4a5461c6d9b7c030560989eaa7f082f0bf705bb5506014d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 1.5952840085375897e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:623:1",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 623,
+      "geometryOrder": 1,
+      "plateId": 141,
+      "geometrySha256": "f8246d49ea76c78b03407d0195278204e3183f95db3810c90fd1c61acf3c2f22",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 1.4639675114835882e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:680:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 680,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "e0c816ac868864f2eef77a1af1978342ff1fe2a4c40b3dd7ff34953f596dfb1d",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 0.00015717112665525335
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:686:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 686,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "7d56fb660c13591aa28828c42c0802b6a459e0a937b61c7f55a262c1b41a0830",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 0.0005029894954415859
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:686:1",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 686,
+      "geometryOrder": 1,
+      "plateId": 141,
+      "geometrySha256": "4d3647759246800723a7e5bd233932a78525dc547d349e6268874ddd63cbeeca",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 5.972466602832682e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:725:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 725,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "556c51f51e52df96661eb439c1cdb1f4821599a98da2143d5fa7e76f02b5c1b0",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 0.0002564391993047366
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:725:1",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 725,
+      "geometryOrder": 1,
+      "plateId": 141,
+      "geometrySha256": "4b6ea48146e1f140d9619f628268966d3e0d59026bbe5a5b4fc317da7864c165",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 8.00002779577369e-08
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:914:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 914,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "58ac28433e016e4441e81ff6efecfb784ea723d8aeab2bf33cff8c09bcb3d53e",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 2.702906109153247e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:931:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 931,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "af9eb97735c8287407dae02f22c55f77d1c5e3e270c96620f80d65b6306ae515",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 2.011379579336392e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:959:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 959,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "113e4617f10d698298df52f729aa497b971272a96f6e1349f8d1d380dd1b02e7",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 2.7662552791962725e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:964:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 964,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "7c8e37491b708f8bd9eac3da727aff269a264ebfc52e3c60d922181bc20a7365",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 2.4016843495733298e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c:972:0",
+      "sourceFeatureId": "GPlates-aabe8357-8489-4f8e-8936-e7e6f6fcc84c",
+      "sourceFeatureOrder": 972,
+      "geometryOrder": 0,
+      "plateId": 141,
+      "geometrySha256": "b6846f9ec54e44aaa3b771b7ac02d37629deb3be5fa1be8e6d926ec4d35b4d77",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Canadian Arctic Islands South",
+      "sourceAreaSteradians": 2.522254876868857e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:1042:0",
+      "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+      "sourceFeatureOrder": 1042,
+      "geometryOrder": 0,
+      "plateId": 373,
+      "geometrySha256": "a604dc884c9fd714cbaf3c893de1f8be913314fc1ba351ac57b87155a42cc1e7",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Novaya-Semya",
+      "sourceAreaSteradians": 1.5331352955172406e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:683:0",
+      "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+      "sourceFeatureOrder": 683,
+      "geometryOrder": 0,
+      "plateId": 373,
+      "geometrySha256": "b514051f568476dc1e012b072fc98525f08e00ff0a80f497f20be36623035b01",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Novaya-Semya",
+      "sourceAreaSteradians": 0.0011273307553496537
+    },
+    {
+      "patchId": "cao-coast:GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778:706:0",
+      "sourceFeatureId": "GPlates-c1ebb2d0-409d-4f8b-b848-0e45787a9778",
+      "sourceFeatureOrder": 706,
+      "geometryOrder": 0,
+      "plateId": 373,
+      "geometrySha256": "230a7707eb9f3bdf27912f75c55bef75311ec6f3076a647f558d78e178724bcc",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "Novaya-Semya",
+      "sourceAreaSteradians": 0.000799206606890035
+    },
+    {
+      "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:1938:0",
+      "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+      "sourceFeatureOrder": 1938,
+      "geometryOrder": 0,
+      "plateId": 302,
+      "geometrySha256": "511cf787f99853a90f6d65376c53b02fcf231aeca97f402848de224187227644",
+      "originalValidTimeMa": {
+        "youngest": 0,
+        "oldest": 410
+      },
+      "sourceName": "Timan Region",
+      "sourceAreaSteradians": 5.7206648342411626e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:1938:1",
+      "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+      "sourceFeatureOrder": 1938,
+      "geometryOrder": 1,
+      "plateId": 302,
+      "geometrySha256": "2b60f5194d349d25a08aa8bfe827f596cc049546dd3d9413f9f8df1cc13d89d2",
+      "originalValidTimeMa": {
+        "youngest": 0,
+        "oldest": 410
+      },
+      "sourceName": "Timan Region",
+      "sourceAreaSteradians": 1.0714862954230853e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:59:0",
+      "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+      "sourceFeatureOrder": 59,
+      "geometryOrder": 0,
+      "plateId": 302,
+      "geometrySha256": "27752a2531ec2f21e4c37a12eda1c018649b80e00c00a6f0bdd59d73d4793340",
+      "originalValidTimeMa": {
+        "youngest": 0,
+        "oldest": 410
+      },
+      "sourceName": "Timan Region",
+      "sourceAreaSteradians": 0.007669465495327099
+    },
+    {
+      "patchId": "cao-coast:GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45:59:1",
+      "sourceFeatureId": "GPlates-de41c02b-9cf9-4281-9ccf-ef5594719d45",
+      "sourceFeatureOrder": 59,
+      "geometryOrder": 1,
+      "plateId": 302,
+      "geometrySha256": "29fb685d671b6336cd8fa28cfd9d199f2f42d06b56155a85fc87500fb320111e",
+      "originalValidTimeMa": {
+        "youngest": 0,
+        "oldest": 410
+      },
+      "sourceName": "Timan Region",
+      "sourceAreaSteradians": 0.00022129709946749898
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:1342:0",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 1342,
+      "geometryOrder": 0,
+      "plateId": 123,
+      "geometrySha256": "dcd13b3c41ebce14b31f1a9e19cb07a96518c399c3537ca3876039ef51201d31",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 5.233198316467735e-06
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:622:0",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 622,
+      "geometryOrder": 0,
+      "plateId": 123,
+      "geometrySha256": "69f8a3abff39a8c70164359cd948fd047742dae11536521846f0caafc996dac3",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 0.001215582078899935
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:622:1",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 622,
+      "geometryOrder": 1,
+      "plateId": 123,
+      "geometrySha256": "883afe45e062d2819ca2e4e76d9985b93084ccecdba21ea3e094f344c9a0dbe1",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 0.00011962181773350622
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:622:2",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 622,
+      "geometryOrder": 2,
+      "plateId": 123,
+      "geometrySha256": "0f3b924102aed288c5e5dab933261b2617a353721c39ade626783ed2b069b259",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 1.8151787273268383e-07
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:622:3",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 622,
+      "geometryOrder": 3,
+      "plateId": 123,
+      "geometrySha256": "1384a45f3296e5cba98236570eac6bba12cd840388a9b5a4805b730123cbded4",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 8.240101934120503e-10
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:622:4",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 622,
+      "geometryOrder": 4,
+      "plateId": 123,
+      "geometrySha256": "e5170d7ad9e16fc2d471523dcf561b77e1c2c7e3ba61711f145e95557bd500b6",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 7.388979136102591e-05
+    },
+    {
+      "patchId": "cao-coast:GPlates-e0621848-530c-45e9-988a-3e063fbae938:689:0",
+      "sourceFeatureId": "GPlates-e0621848-530c-45e9-988a-3e063fbae938",
+      "sourceFeatureOrder": 689,
+      "geometryOrder": 0,
+      "plateId": 123,
+      "geometrySha256": "0b28ecf1691140bd5d2b9e0d1915b2f503a754bff3c201ebfd05bdfd9b80183c",
+      "originalValidTimeMa": {
+        "youngest": null,
+        "oldest": 410
+      },
+      "sourceName": "North-Central Ellesmere Island",
+      "sourceAreaSteradians": 0.0001294700468861265
+    }
+  ]
+}

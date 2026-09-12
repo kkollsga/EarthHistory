@@ -28,6 +28,7 @@ export interface PeriodCoordinateRenderState {
 export interface GlobeViewProps {
   caoRevision?: PreparedCaoRevision | null;
   caoMotionFrame?: CaoMotionFrame | null;
+  caoWithheld?: boolean;
   snapshot: WorldSnapshot | null;
   layers: LayerVisibility;
   selectedPoiId: string | null;
@@ -45,6 +46,7 @@ export interface GlobeViewProps {
 export function GlobeView({
   caoRevision = null,
   caoMotionFrame = null,
+  caoWithheld = false,
   snapshot,
   layers,
   selectedPoiId,
@@ -64,6 +66,7 @@ export function GlobeView({
   const latestProps = useRef({
     caoRevision,
     caoMotionFrame,
+    caoWithheld,
     snapshot,
     layers,
     selectedPoiId,
@@ -80,6 +83,7 @@ export function GlobeView({
   latestProps.current = {
     caoRevision,
     caoMotionFrame,
+    caoWithheld,
     snapshot,
     layers,
     selectedPoiId,
@@ -117,6 +121,7 @@ export function GlobeView({
         scene.setCallbacks(current.onSelectPoi, current.onSelectSurface, current.onStats);
         scene.setVerticalExaggeration(current.verticalExaggeration);
         scene.setPreparedCaoRevision(current.caoRevision);
+        scene.setCaoFoundationWithheld(current.caoWithheld);
         scene.setEditorialSnapshot(current.snapshot);
         scene.setLayers(current.layers);
         scene.setSelectedPoi(current.selectedPoiId);
@@ -159,6 +164,11 @@ export function GlobeView({
     sceneRef.current?.setCallbacks(onSelectPoi, onSelectSurface, onStats);
   }, [onSelectPoi, onSelectSurface, onStats]);
 
+  // Clear a prior withheld flag before a recovered revision/frame publishes.
+  useEffect(() => {
+    sceneRef.current?.setCaoFoundationWithheld(caoWithheld);
+  }, [caoWithheld]);
+
   useEffect(() => {
     const scene = sceneRef.current;
     if (scene === null) {
@@ -176,6 +186,12 @@ export function GlobeView({
     const scene = sceneRef.current;
     if (scene === null || caoMotionFrame === null || caoRevision === null) return;
     const pick = chartPickStateFromMotionFrame(caoMotionFrame);
+    const anchors = caoMotionFrame.anchorIds.flatMap((id) => {
+      const resolved = caoMotionFrame.resolveAnchor(id);
+      return resolved?.pose.support.kind === "supported" && resolved.pose.direction !== null
+        ? [{ id, direction: resolved.pose.direction, address: resolved.pose.address }]
+        : [];
+    });
     scene.retargetCaoMotion(
       caoMotionFrame.paletteValues,
       caoMotionFrame.entryCount,
@@ -183,6 +199,8 @@ export function GlobeView({
       pick.chartPoses,
       pick.chartActive,
       caoMotionFrame.requestedAgeMa,
+      caoMotionFrame.materialCorrections,
+      anchors,
     );
   }, [caoMotionFrame, caoRevision]);
 

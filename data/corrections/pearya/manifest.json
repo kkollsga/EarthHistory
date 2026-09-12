@@ -1,0 +1,726 @@
+{
+  "attribution": "Contains information licensed under the Open Government Licence – Canada; source Natural Resources Canada, Geological Survey of Canada. Cao et al. (2024) model v2.4 is CC BY 4.0.",
+  "baseline": {
+    "coordinateFrame": {
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    },
+    "modelId": "cao-et-al-2024",
+    "modelVersion": "2.4",
+    "sourceCollection": "shapes_coasts.gpmlz",
+    "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
+  },
+  "correctionId": "earthhistory-regional-pearya-pericratonic-scenario-v1",
+  "features": [
+    {
+      "coordinateFrame": "cao-v2.4-reconstructed-palaeomagnetic",
+      "correctionFeatureId": "pearya-pericratonic-scenario-plate-124",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "pearya-pericratonic-scenario-plate-124",
+        "path": "pearya-material-v1.geojson",
+        "sha256": "c41b39995b17ce44047c0132ba9885e9a4af6b89ce077819a3c3aff9ffe28fc0"
+      },
+      "geometryReferenceAgeMa": 410,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "uncertain-beyond-qualified-support",
+      "olderUncertaintyTransitionMa": {
+        "oldest": 540.0,
+        "representation": "same material-support mask remains visible as an explicitly uncertain pericratonic pose scenario",
+        "youngest": 416.0
+      },
+      "pose": {
+        "alignmentWitnesses": [
+          {
+            "olderPoseComparisons": [
+              {
+                "ageMa": 411.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -57.736682317603965,
+                  5.501988223549255
+                ],
+                "residualKm": 0.0
+              },
+              {
+                "ageMa": 416.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -62.87054466379698,
+                  7.602521102489
+                ],
+                "residualKm": 0.0
+              },
+              {
+                "ageMa": 430.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -75.88511500459583,
+                  16.24657629834798
+                ],
+                "residualKm": 0.0
+              },
+              {
+                "ageMa": 540.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -118.56059720798066,
+                  0.7039439026640976
+                ],
+                "residualKm": 0.0
+              }
+            ],
+            "presentLonLat": [
+              -77.87810347726494,
+              82.69194038243943
+            ],
+            "referenceLonLat": [
+              -56.68555800276059,
+              5.151274067451933
+            ],
+            "witnessId": "mapped-pearya-domain-interior"
+          }
+        ],
+        "method": "regional-model-hypothesis",
+        "plateId": 124,
+        "sourceOrHypothesis": "pericratonic Pearya scenario attached to the Cao plate-124 circuit; this is one disputed tectonic hypothesis and does not establish a consensus pre-accretion position"
+      },
+      "rejectionConditions": [
+        "the source selection includes a mapped non-Pearya domain",
+        "the interpolated geometry escapes the exact Pearya target or the mapped Pearya-domain convex envelope",
+        "the scenario is presented as a consensus pre-accretion position",
+        "the mask is presented as exposed land, shoreline, or palaeotopography",
+        "the correction is active at the inclusive 410 Ma native endpoint"
+      ],
+      "sourceBasis": {
+        "derivation": "convex envelope of the official mapped Pearya domain, clipped to the exact Cao Pearya target, with every mapped non-Pearya and non-ice domain removed; the remaining ice and unmapped interior is a bounded terrane-domain interpolation",
+        "kind": "reconstructed-target-union",
+        "normalization": "qPose(0)*inverse(qPose(referenceAge))*dReference",
+        "targetPlateIds": [
+          124
+        ]
+      },
+      "sourceIds": [
+        "gsc-map-2159a-arctic-onshore-geology",
+        "cao-2024-v2.4"
+      ],
+      "sourceUnitSelection": {
+        "candidateAreaKm2": 12214.202131586162,
+        "excluded": [
+          {
+            "count": 2695,
+            "reason": "removed to prevent the terrane interpolation from absorbing Ellesmerian, Franklinian, or ocean-margin domains",
+            "unitId": "all mapped non-Pearya, non-ice domains within the Pearya-domain convex envelope"
+          }
+        ],
+        "finalOutsideSourceHullKm2": 0,
+        "finalOutsideTargetKm2": 0,
+        "guardedHullExclusionKm2": 6189.038613503029,
+        "included": [
+          {
+            "agePeriod": "Carboniferous and Permian (359 - 251 Ma)",
+            "count": 12,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "CP3"
+          },
+          {
+            "agePeriod": "Carboniferous and Permian (359 - 251 Ma)",
+            "count": 17,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "CP7"
+          },
+          {
+            "agePeriod": "Carboniferous and Permian (359 - 251 Ma)",
+            "count": 2,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "CP8"
+          },
+          {
+            "agePeriod": "Cambrian and Ordovician (542 - 444 Ma)",
+            "count": 8,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "CmO6"
+          },
+          {
+            "agePeriod": "Devonian and Carboniferous (416 - 299 Ma)",
+            "count": 1,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "DC13"
+          },
+          {
+            "agePeriod": "late Early Cretaceous (~134 - 99.6 Ma)",
+            "count": 3,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "K5"
+          },
+          {
+            "agePeriod": "Cretaceous (145.5 - 65.5 Ma)",
+            "count": 2,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "K60"
+          },
+          {
+            "agePeriod": "Neoproterozoic and Cambrian (1000 - 488 Ma)",
+            "count": 24,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "NCm7"
+          },
+          {
+            "agePeriod": "Neoproterozoic and Cambrian (1000 - 488 Ma)",
+            "count": 11,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "NCm8"
+          },
+          {
+            "agePeriod": "Late Ordovician (461 - 444 Ma)",
+            "count": 18,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O17"
+          },
+          {
+            "agePeriod": "Late Ordovician (461 - 444 Ma)",
+            "count": 4,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O18"
+          },
+          {
+            "agePeriod": "Late Ordovician (461 - 444 Ma)",
+            "count": 10,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O20"
+          },
+          {
+            "agePeriod": "Ordovician (488 - 444 Ma)",
+            "count": 16,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O26"
+          },
+          {
+            "agePeriod": "Early Ordovician (488 - 472 Ma)",
+            "count": 1,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O4"
+          },
+          {
+            "agePeriod": "Early Ordovician (488 - 472 Ma)",
+            "count": 1,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "O5"
+          },
+          {
+            "agePeriod": "Ordovician and Silurian (488 - 416 Ma)",
+            "count": 13,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "OS4"
+          },
+          {
+            "agePeriod": "Guadalupian (~Kazanian) (271 - 260 Ma)",
+            "count": 3,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "P21"
+          },
+          {
+            "agePeriod": "Paleocene and Eocene (65.5 - 33.9 Ma)",
+            "count": 3,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "Pg15"
+          },
+          {
+            "agePeriod": "Quaternary (2.6 - 0.0 Ma)",
+            "count": 1,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "Q2"
+          },
+          {
+            "agePeriod": "Silurian (444 - 416 Ma)",
+            "count": 10,
+            "maximumAge": "none assigned",
+            "minimumAge": "none assigned",
+            "reason": "mapped within the named Pearya tectonic domain",
+            "unitId": "S5"
+          }
+        ],
+        "inferredIceOrUnmappedGapKm2": 6269.331719243513,
+        "mappedNonPearyaOverlapKm2": 0,
+        "mappedUnrelatedExcludedKm2": 3565.2888094146115,
+        "mappedUnrelatedExclusionGuardMetres": 2000.0,
+        "minimumComponentAreaKm2": 25.0,
+        "originalMappedSourceWithinTargetKm2": 6568.133850190186,
+        "retainedMappedSourceFraction": 0.9051079877384821,
+        "retainedMappedSourceKm2": 5944.870412342649,
+        "simplificationToleranceMetres": 1000.0,
+        "sourceHullGapWithinTargetKm2": 11835.106894899005,
+        "sourceHullWithinTargetKm2": 18403.24074508919,
+        "sourceRecordCount": 160,
+        "targetAreaKm2": 42371.97848449835,
+        "targetAreaSupportFractionAt411": 0.2882613125099808
+      },
+      "supportIntervalMa": {
+        "oldest": 416.0,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "Map 2159A constrains a present-day tectonic domain; the interpolated mask represents possible continental material, not exposed land, shoreline, or relief"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "afc23b3557aaa74809c1bd5566c0318e6fd40fa9ff8b646d178503ac72852eda",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:620:0",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 620
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "e30d0cc3221c5bfd2b67f4c7d034514837f0800eff238762d8642068618ff0e1",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:0",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 688
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 1,
+          "geometrySha256": "18178f6f611f6eaca7da112e8611b42b9aa51b988ca35d9a75b3db7f712dd31a",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:1",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 688
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at every age",
+        "spatial": "mapped Pearya outcrops are source constrained; connections beneath ice or unmapped gaps are a clipped domain interpolation with mapped unrelated domains removed",
+        "temporal": "material is retained through the Silurian docking interval, while the pre-416 Ma position is a visibly uncertain pericratonic scenario because Pearya's accretion history remains disputed"
+      }
+    },
+    {
+      "coordinateFrame": "cao-v2.4-reconstructed-palaeomagnetic",
+      "correctionFeatureId": "pearya-target-laurentian-affinity-plate-101",
+      "epistemicStatus": "model-inference",
+      "geometryAsset": {
+        "featureId": "pearya-target-laurentian-affinity-plate-101",
+        "path": "pearya-material-v1.geojson",
+        "sha256": "c41b39995b17ce44047c0132ba9885e9a4af6b89ce077819a3c3aff9ffe28fc0"
+      },
+      "geometryReferenceAgeMa": 410,
+      "materialRole": "continental-material-support",
+      "olderEdgePolicy": "uncertain-beyond-qualified-support",
+      "olderUncertaintyTransitionMa": {
+        "oldest": 540.0,
+        "representation": "same Laurentian-affinity material remains visible with explicit lower spatial confidence",
+        "youngest": 430
+      },
+      "pose": {
+        "alignmentWitnesses": [
+          {
+            "olderPoseComparisons": [
+              {
+                "ageMa": 411.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -59.4154790536065,
+                  5.0629295454889816
+                ],
+                "residualKm": 0.0
+              },
+              {
+                "ageMa": 430.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -77.66706114537733,
+                  16.500043373109094
+                ],
+                "residualKm": 0.0
+              },
+              {
+                "ageMa": 540.0,
+                "angularResidualDegrees": 0.0,
+                "counterfactualCaoPlateId": 124,
+                "expectedLonLat": [
+                  -120.01087593510643,
+                  1.6446079748123714
+                ],
+                "residualKm": 0.0
+              }
+            ],
+            "presentLonLat": [
+              -88.00602100690465,
+              81.64502774002824
+            ],
+            "referenceLonLat": [
+              -58.35303566691855,
+              4.674664862494605
+            ],
+            "witnessId": "mapped-laurentian-domain-interior"
+          }
+        ],
+        "method": "regional-model-hypothesis",
+        "plateId": 101,
+        "sourceOrHypothesis": "northern Laurentian/Franklinian material aligned to the native plate-124 target at 410 Ma, then carried with Cao North America plate 101; affinity is distinct from the Pearya scenario"
+      },
+      "rejectionConditions": [
+        "the source selection includes Pearya, ice, unmapped area, or an unqualified tectonic domain",
+        "the simplified fragment exceeds 10% area change or 6% outside-source area",
+        "the fragment overlaps the guarded Pearya-affinity scenario or escapes the exact plate-124 target",
+        "the fragment is assigned Pearya affinity or presented as exposed land, shoreline, or palaeotopography",
+        "the plate-101 carry no longer matches the frozen Cao plate-124 circuit at the recorded witnesses"
+      ],
+      "sourceBasis": {
+        "derivation": "Map 2159A Ellesmere-North Greenland fold-belt, eastern Sverdrup/Eurekan, and Ellesmerian domains clipped to the exact plate-124 target; simplified at 1 km, differenced from the guarded Pearya-affinity scenario, and carried older with Laurentia",
+        "kind": "reconstructed-target-union",
+        "normalization": "qPose(0)*inverse(qPose(referenceAge))*dReference",
+        "targetPlateIds": [
+          124
+        ]
+      },
+      "sourceIds": [
+        "gsc-map-2159a-arctic-onshore-geology",
+        "cao-2024-v2.4"
+      ],
+      "sourceUnitSelection": {
+        "candidateAreaKm2": 17069.95339862821,
+        "excluded": [
+          {
+            "count": 2657,
+            "reason": "outside the exact independently qualified northern Laurentian domain set",
+            "unitId": "Pearya, ice, unmapped, and other Map 2159A domains"
+          }
+        ],
+        "finalOutsideTargetKm2": 0,
+        "finalOverlapWithPearyaScenarioKm2": 0,
+        "included": [
+          {
+            "agePeriod": "Cambrian to Devonian (542 - 359 Ma)",
+            "clippedAreaKm2": 85.9642714068275,
+            "count": 5,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Carboniferous and Permian (359 - 251 Ma)",
+            "clippedAreaKm2": 1810.5297191223988,
+            "count": 44,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Cretaceous (145.5 - 65.5 Ma)",
+            "clippedAreaKm2": 256.460904942407,
+            "count": 3,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Early Ordovician (488 - 472 Ma)",
+            "clippedAreaKm2": 6.352551364433317,
+            "count": 1,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Early Triassic (251.0 - 245.9 Ma)",
+            "clippedAreaKm2": 9.387269655654723,
+            "count": 1,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Guadalupian (~Kazanian) (271 - 260 Ma)",
+            "clippedAreaKm2": 21.512860523850815,
+            "count": 2,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Late Ordovician (461 - 444 Ma)",
+            "clippedAreaKm2": 155.4369656246838,
+            "count": 8,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Neoproterozoic and Cambrian (1000 - 488 Ma)",
+            "clippedAreaKm2": 313.38464927719014,
+            "count": 9,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Ordovician and Silurian (488 - 416 Ma)",
+            "clippedAreaKm2": 0.47251876199125376,
+            "count": 1,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Paleocene and Eocene (65.5 - 33.9 Ma)",
+            "clippedAreaKm2": 5.347546198174415,
+            "count": 1,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Silurian (444 - 416 Ma)",
+            "clippedAreaKm2": 5902.737886522653,
+            "count": 31,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmere-North Greenland fold belt"
+          },
+          {
+            "agePeriod": "Ediacaran (~635 - 542 Ma)",
+            "clippedAreaKm2": 1220.6822681266294,
+            "count": 23,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmerian Orogen (Canada and Greenland)"
+          },
+          {
+            "agePeriod": "Neoproterozoic (1000 - 542 Ma)",
+            "clippedAreaKm2": 1863.7674858264943,
+            "count": 40,
+            "reason": "mapped Laurentian/Franklinian fold-belt material, including direct pre-410 units and younger deformed cover",
+            "unitId": "Ellesmerian Orogen (Canada and Greenland)"
+          },
+          {
+            "agePeriod": "Cambrian to Devonian (542 - 359 Ma)",
+            "clippedAreaKm2": 34.0021556076538,
+            "count": 1,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Carboniferous and Permian (359 - 251 Ma)",
+            "clippedAreaKm2": 3167.942734052832,
+            "count": 51,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Early Triassic (251.0 - 245.9 Ma)",
+            "clippedAreaKm2": 604.9417723002252,
+            "count": 20,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Guadalupian (~Kazanian) (271 - 260 Ma)",
+            "clippedAreaKm2": 336.2138462484213,
+            "count": 11,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Jurassic (199.6 - 145.5 Ma)",
+            "clippedAreaKm2": 195.1146065671344,
+            "count": 2,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Middle and Late Triassic (245.9 - 199.6 Ma)",
+            "clippedAreaKm2": 330.7478133571656,
+            "count": 3,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Paleocene and Eocene (65.5 - 33.9 Ma)",
+            "clippedAreaKm2": 531.6494166944683,
+            "count": 3,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Silurian (444 - 416 Ma)",
+            "clippedAreaKm2": 87.54085346517536,
+            "count": 5,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Tournaisian to Moscovian (359 - 307 Ma)",
+            "clippedAreaKm2": 31.64251257360212,
+            "count": 1,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Triassic (251.0 - 199.6 Ma)",
+            "clippedAreaKm2": 970.1230705407512,
+            "count": 6,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          },
+          {
+            "agePeriod": "Triassic and Jurassic (251.0 - 145.5 Ma)",
+            "clippedAreaKm2": 338.39569752009317,
+            "count": 8,
+            "reason": "mapped younger successor-basin or fold-belt cover over the northern Laurentian/Franklinian substrate",
+            "unitId": "eastern Sverdrup Basin, Eurekan Orogen"
+          }
+        ],
+        "minimumComponentAreaKm2": 25.0,
+        "pearyaScenarioSeparationGuardMetres": 2000.0,
+        "rawMappedDomainAreaKm2": 18280.35137628093,
+        "simplificationAreaChangeFraction": 0.042037295730448294,
+        "simplificationToleranceMetres": 1000.0,
+        "simplifiedOutsideMappedSourceFraction": 0.023356546113340128,
+        "sourceDomains": [
+          "Ellesmere-North Greenland fold belt",
+          "Ellesmerian Orogen (Canada and Greenland)",
+          "eastern Sverdrup Basin, Eurekan Orogen"
+        ],
+        "targetAreaSupportFractionAt411": 0.402859484243182
+      },
+      "supportIntervalMa": {
+        "oldest": 430,
+        "youngest": 410,
+        "youngestExclusive": true
+      },
+      "surfaceEvidence": {
+        "kind": "unknown",
+        "reason": "mapped fold-belt and successor-basin domains support older Laurentian material, not exposed land, shoreline, or relief"
+      },
+      "targets": [
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "afc23b3557aaa74809c1bd5566c0318e6fd40fa9ff8b646d178503ac72852eda",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:620:0",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 620
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 0,
+          "geometrySha256": "e30d0cc3221c5bfd2b67f4c7d034514837f0800eff238762d8642068618ff0e1",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:0",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 688
+        },
+        {
+          "expectedMatches": 1,
+          "geometryOrder": 1,
+          "geometrySha256": "18178f6f611f6eaca7da112e8611b42b9aa51b988ca35d9a75b3db7f712dd31a",
+          "originalValidTimeMa": {
+            "oldest": 410,
+            "youngest": null
+          },
+          "patchId": "cao-coast:GPlates-07112260-c9aa-4713-b989-5c25cd1c6045:688:1",
+          "plateId": 124,
+          "sourceFeatureId": "GPlates-07112260-c9aa-4713-b989-5c25cd1c6045",
+          "sourceFeatureOrder": 688
+        }
+      ],
+      "uncertainty": {
+        "exposure": "unknown at every age",
+        "spatial": "source-bounded mapped domains are clipped to the Cao target and separated from the Pearya-affinity scenario; deformation within the fold belts is not reconstructed",
+        "temporal": "material affinity is qualified through 430 Ma and retained as a visibly uncertain continuation through 540 Ma"
+      }
+    }
+  ],
+  "licenseNote": "Map 2159A-derived geometry requires OGL Canada attribution; the Cao model requires CC BY 4.0 attribution.",
+  "schemaVersion": 1,
+  "sourceAssets": [
+    {
+      "attribution": "Contains information licensed under the Open Government Licence – Canada. Source: Harrison et al., Geological Survey of Canada Map 2159A, Geological map of the Arctic, 2011, doi:10.4095/287868. This derivative is not affiliated with or endorsed by NRCan.",
+      "bytes": 26714227,
+      "citation": "Harrison et al. (2011), Geological map of the Arctic, Geological Survey of Canada Map 2159A, doi:10.4095/287868",
+      "evidenceRole": "geological-unit-extent",
+      "hashEncoding": "earthhistory-arctic-map-2159a-canada-members-v1",
+      "license": "Open Government Licence – Canada 2.0",
+      "publicationOrVersionDate": "2011-02-01",
+      "retrievedAt": "2026-09-12",
+      "sha256": "f8a919cc5bc70a772abed6643ccffbd1b0cfcbdadc291ff9c445d8cd9ac8b125",
+      "sourceId": "gsc-map-2159a-arctic-onshore-geology",
+      "url": "https://open.canada.ca/data/en/dataset/9f4aacbb-42eb-be93-f0a0-9a30cf6d658f"
+    },
+    {
+      "attribution": "Cao et al. (2024), model v2.4, doi:10.5281/zenodo.13628813",
+      "bytes": 1860295,
+      "citation": "Cao et al. (2024), Earth's tectonic and plate boundary evolution over 1.8 billion years, model v2.4",
+      "evidenceRole": "material-affinity",
+      "license": "CC BY 4.0",
+      "publicationOrVersionDate": "2024-09-02",
+      "retrievedAt": "2026-09-09",
+      "sha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+      "sourceId": "cao-2024-v2.4",
+      "url": "https://doi.org/10.5281/zenodo.13628813"
+    }
+  ],
+  "version": "2.0.0-candidate"
+}

@@ -1,6 +1,6 @@
 # Cao full-domain extension (0–1800 Ma)
 
-**Date:** 2026-09-10  
+**Date:** 2026-09-10
 **Status:** live public package promoted for `ageDomainMa` 0–1800 Ma (235 checkpoints; layered shelf/land) under the Pages budget on 2026-09-10.
 
 ## Intent
@@ -29,4 +29,4 @@ coarse step beyond 540 Ma only if transitive public bytes again approach 50 MB.
 
 ## Note on Fennoscandia
 
-Open motion-binding gaps such as 118–120 Ma are bridged at runtime from neighbouring compiled endpoints (`resolveChartMotionSegment`). Future package rebuilds also cap adaptive refinement instead of dropping those leaves.
+Earlier package builds could drop motion leaves around 118–120 Ma during adaptive refinement. The compiler now retains explicit binding coverage through those intervals, and runtime validation rejects gaps instead of inventing a nearest-entry hold.

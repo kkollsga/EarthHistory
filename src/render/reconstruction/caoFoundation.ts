@@ -69,6 +69,7 @@ export interface CaoFoundationBatchResource {
   readonly source: PreparedCaoStaticGeometryCopy;
   readonly vertexCount: number;
   readonly triangleCount: number;
+  readonly nativePrecedence: boolean;
   /** chartIndex, firstTriangle, triangleCount, preparedEntryIndex. */
   readonly chartRanges: Uint32Array;
   /** Reference-space shell AABB, six floats per chart range. */
@@ -113,6 +114,17 @@ export interface CaoFoundationLineMaterialGraph {
 
 export interface CaoFoundationDiagnostics {
   readonly identity: string | null;
+  readonly staticGeometryIdentity: string | null;
+  readonly materialCorrectionIdentity: string | null;
+  readonly materialCorrections: Readonly<{
+    qualifiedActiveCharts: number;
+    uncertainActiveCharts: number;
+    formationUncertainActiveCharts: number;
+    modelInferredPoseActiveCharts: number;
+    overriddenNativeCharts: number;
+    activeSourceIds: readonly string[];
+    correctionIds: readonly string[];
+  }>;
   readonly requestedAgeMa: number | null;
   readonly batches: number;
   readonly vertices: number;
@@ -549,6 +561,7 @@ export function createCaoFoundationGeometryResource(
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
       resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
+        nativePrecedence: prepared.nativePrecedence,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
     }
     for (const prepared of revision.lineBatches) {
@@ -630,11 +643,14 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     readonly byteLength: number,
     readonly paletteEntries: number,
     readonly activeSourceBytes: number,
+    readonly materialCorrectionIdentity: string | null,
+    public materialCorrections: PreparedCaoRevision["materialCorrections"],
     readonly chartPoses: Float32Array,
     readonly chartActive: Uint8Array,
-    readonly nativeBoundarySegments: number,
-    readonly nativeBoundarySourceAgeMa: number | null,
-    readonly topologyOwnership: CaoTopologyOwnershipState | null,
+    private readonly publishedNativeBoundarySegments: number,
+    private readonly publishedNativeBoundarySourceAgeMa: number | null,
+    private readonly nativeBoundaryObject: THREE.Object3D | null,
+    private readonly publishedTopologyOwnership: CaoTopologyOwnershipState | null,
     private readonly palette: THREE.DataTexture,
     private readonly materials: readonly THREE.Material[],
     private readonly displayFractions: readonly UniformNode<"float", number>[],
@@ -650,6 +666,21 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     return this.scrubAgeMa;
   }
 
+  get nativeBoundarySegments(): number {
+    return this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa
+      ? this.publishedNativeBoundarySegments : 0;
+  }
+
+  get nativeBoundarySourceAgeMa(): number | null {
+    return this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa
+      ? this.publishedNativeBoundarySourceAgeMa : null;
+  }
+
+  get topologyOwnership(): CaoTopologyOwnershipState | null {
+    return this.publishedTopologyOwnership?.sourceAgeMa === this.scrubAgeMa
+      ? this.publishedTopologyOwnership : null;
+  }
+
   disposeUnsubmitted(): void {
     this.dispose();
   }
@@ -658,12 +689,20 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     for (const exaggeration of this.verticalExaggerations) exaggeration.value = value;
   }
 
+  setNativeBoundaryLayerVisibility(visible: boolean): void {
+    if (this.nativeBoundaryObject) {
+      this.nativeBoundaryObject.visible = visible
+        && this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa;
+    }
+  }
+
   retargetMotion(
     packed: PackedCaoPalette,
     displayFraction: number,
     chartPoses: Float32Array,
     chartActive: Uint8Array,
     requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
   ): void {
     if (this.disposed) throw new Error("Cao foundation publication is disposed");
     if (packed.entryCount !== this.paletteEntries || packed.width !== this.palette.image.width
@@ -681,8 +720,12 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     this.palette.needsUpdate = true;
     this.chartPoses.set(chartPoses);
     this.chartActive.set(chartActive);
+    this.materialCorrections = materialCorrections;
     for (const fraction of this.displayFractions) fraction.value = displayFraction;
     this.scrubAgeMa = requestedAgeMa;
+    if (this.nativeBoundaryObject) {
+      this.nativeBoundaryObject.visible = this.publishedNativeBoundarySourceAgeMa === requestedAgeMa;
+    }
   }
 
   identifyTopology(direction: UnitDirection): InstantaneousOwnershipResult | null {
@@ -1024,8 +1067,13 @@ function createPublicationResource(
       // Source batches do not yet carry qualified moving interval bounds.
       // Drawing all foundation batches preserves coverage until those arrive.
       mesh.frustumCulled = false;
-      // Shelf under land so coasts land colour wins where they overlap.
-      mesh.renderOrder = batch.batchId === "batch-shelf" ? 1 : 2;
+      if (batch.nativePrecedence) {
+        graph.material.depthTest = true;
+        graph.material.depthWrite = false;
+      }
+      // Shelf under corrections, with source land last so native land keeps
+      // visual precedence where it overlaps a corrected material footprint.
+      mesh.renderOrder = batch.nativePrecedence ? 1.5 : batch.batchId === "batch-shelf" ? 1 : 2;
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
@@ -1063,9 +1111,10 @@ function createPublicationResource(
     "Cao publication");
     return new CaoFoundationPublicationResource(group, byteLength,
       packed.entryCount, revision.activeSourceBytes,
+      revision.materialCorrectionIdentity, revision.materialCorrections,
       pickState.chartPoses, pickState.chartActive,
       nativeBoundary.segmentCount, nativeBoundary.sourceAgeMa,
-      topologyOwnership,
+      nativeBoundary.object, topologyOwnership,
       paletteTexture, Object.freeze(materials), Object.freeze(displayFractions),
       Object.freeze(verticalExaggerations),
       Object.freeze(publicationGeometries), retirement, revision.requestedAgeMa);
@@ -1108,6 +1157,18 @@ function tupleAt(values: Float32Array, offset: number): Vec3Tuple {
   return [values[offset]!, values[offset + 1]!, values[offset + 2]!];
 }
 
+function firstOpaqueGlobeIntersectionDistance(origin: Vec3Tuple, direction: Vec3Tuple): number | null {
+  const projection = origin[0] * direction[0] + origin[1] * direction[1] + origin[2] * direction[2];
+  const offset = origin[0] ** 2 + origin[1] ** 2 + origin[2] ** 2 - 1;
+  const discriminant = projection * projection - offset;
+  if (discriminant < 0) return null;
+  const root = Math.sqrt(discriminant);
+  const first = -projection - root;
+  if (first >= 0) return first;
+  const second = -projection + root;
+  return second >= 0 ? second : null;
+}
+
 export function intersectCaoFoundationSurface(
   geometry: CaoFoundationGeometryResource,
   publication: Pick<CaoFoundationPublicationResource, "chartPoses" | "chartActive">,
@@ -1126,10 +1187,12 @@ export function intersectCaoFoundationSurface(
   const rayDirection = rawRayDirection.map((value) => value / rayLength) as unknown as Vec3Tuple;
   const gplatesOrigin = rendererToGplatesDirection(numberScalarOps, rayOrigin);
   const gplatesDirection = rendererToGplatesDirection(numberScalarOps, rayDirection);
-  const shellRadius = 1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES;
   let testedTriangles = 0;
-  let nearest: CaoFoundationSurfaceHit | null = null;
+  let nearestNativeLand: CaoFoundationSurfaceHit | null = null;
+  let nearestShelf: CaoFoundationSurfaceHit | null = null;
+  let nearestCorrection: CaoFoundationSurfaceHit | null = null;
   for (const batch of geometry.batches) {
+    const shellRadius = 1 + caoFoundationShellOffsetMetres(batch.batchId) / EARTH_RADIUS_METRES;
     for (let rangeOffset = 0, boundsOffset = 0;
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
       const chartIndex = batch.chartRanges[rangeOffset]!;
@@ -1139,6 +1202,7 @@ export function intersectCaoFoundationSurface(
       const inversePose = publication.chartPoses.subarray(poseOffset + 4, poseOffset + 8) as unknown as QuaternionWxyz;
       const sourceOrigin = rotateDirection(numberScalarOps, inversePose, gplatesOrigin);
       const sourceDirection = rotateDirection(numberScalarOps, inversePose, gplatesDirection);
+      const opaqueGlobeDistance = firstOpaqueGlobeIntersectionDistance(sourceOrigin, sourceDirection);
       if (!rayIntersectsBounds(sourceOrigin, sourceDirection, batch.chartBounds, boundsOffset)) continue;
       const firstTriangle = batch.chartRanges[rangeOffset + 1]!;
       const triangleCount = batch.chartRanges[rangeOffset + 2]!;
@@ -1152,7 +1216,11 @@ export function intersectCaoFoundationSurface(
         }) as unknown as readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple];
         const hit = intersectRayTriangle(sourceOrigin, sourceDirection,
           vertices[0], vertices[1], vertices[2]);
-        if (!hit || (nearest !== null && hit.distance >= nearest.distance)) continue;
+        const visibleBeforeOpaqueGlobe = hit && (opaqueGlobeDistance === null
+          || hit.distance <= opaqueGlobeDistance + 1e-7);
+        const nearest = batch.nativePrecedence ? nearestCorrection
+          : batch.batchId === "batch-shelf" ? nearestShelf : nearestNativeLand;
+        if (!hit || !visibleBeforeOpaqueGlobe || (nearest !== null && hit.distance >= nearest.distance)) continue;
         const posed = rotateDirection(numberScalarOps, pose, hit.position);
         const rendererPosition = gplatesToRendererDirection(numberScalarOps, posed);
         const chart = geometry.chartIdentities[chartIndex]!;
@@ -1162,15 +1230,18 @@ export function intersectCaoFoundationSurface(
           hit.position[1] / length,
           hit.position[2] / length,
         ];
-        nearest = { batchId: batch.batchId, chartIndex, triangleIndex: triangle,
+        const candidate = { batchId: batch.batchId, chartIndex, triangleIndex: triangle,
           distance: hit.distance, position: rendererPosition,
           materialAddress: Object.freeze({ ...chart, cellOrTriangleId: 0,
             localCoordinate: Object.freeze({ kind: "chart-direction" as const,
               directionAtReference: Object.freeze([...referenceDirection]) as UnitDirection }) }) };
+        if (batch.nativePrecedence) nearestCorrection = candidate;
+        else if (batch.batchId === "batch-shelf") nearestShelf = candidate;
+        else nearestNativeLand = candidate;
       }
     }
   }
-  return nearest;
+  return nearestNativeLand ?? nearestCorrection ?? nearestShelf;
 }
 
 /**
@@ -1181,6 +1252,7 @@ export class CaoFoundationSurfaceRenderer {
   private readonly publisher = new AtomicPrototypePublisher<CaoFoundationPublicationResource>();
   private staticGeometry: CaoFoundationGeometryResource | null = null;
   private disposed = false;
+  private domainVisible = true;
 
   constructor(
     private readonly parent: THREE.Group,
@@ -1233,6 +1305,7 @@ export class CaoFoundationSurfaceRenderer {
         throw new Error("Cao foundation publication commit failed");
       }
       if (previous) this.parent.remove(previous.resources.group);
+      this.domainVisible = true;
       resource = null;
       revision.release();
       return this.diagnostics();
@@ -1248,20 +1321,33 @@ export class CaoFoundationSurfaceRenderer {
     const batches = this.staticGeometry?.batches ?? [];
     return Object.freeze({
       identity: current?.requestId ?? null,
+      staticGeometryIdentity: this.staticGeometry?.key ?? null,
+      materialCorrectionIdentity: current?.resources.materialCorrectionIdentity ?? null,
+      materialCorrections: current?.resources.materialCorrections ?? Object.freeze({
+        qualifiedActiveCharts: 0,
+        uncertainActiveCharts: 0,
+        formationUncertainActiveCharts: 0,
+        modelInferredPoseActiveCharts: 0,
+        overriddenNativeCharts: 0,
+        activeSourceIds: Object.freeze([]),
+        correctionIds: Object.freeze([]),
+      }),
       requestedAgeMa: current?.resources.requestedAgeMa ?? current?.ageMa ?? null,
       batches: batches.length,
       vertices: batches.reduce((sum, batch) => sum + batch.vertexCount, 0),
       triangles: batches.reduce((sum, batch) => sum + batch.triangleCount, 0),
-      drawCount: current?.resources.group.children.length ?? 0,
+      drawCount: this.domainVisible
+        ? current?.resources.group.children.filter((child) => child.visible).length ?? 0 : 0,
       countryLineBatches: this.staticGeometry?.lineBatches.length ?? 0,
       countryLineVertices: this.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.vertexCount, 0) ?? 0,
       countryLineSegments: this.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.segmentCount, 0) ?? 0,
-      nativeBoundarySegments: current?.resources.nativeBoundarySegments ?? 0,
-      nativeBoundarySourceAgeMa: current?.resources.nativeBoundarySourceAgeMa ?? null,
-      topologyOwnershipRings: current?.resources.topologyOwnership?.rings.length ?? 0,
-      topologyOwnershipSourceAgeMa: current?.resources.topologyOwnership?.sourceAgeMa ?? null,
+      nativeBoundarySegments: this.domainVisible ? current?.resources.nativeBoundarySegments ?? 0 : 0,
+      nativeBoundarySourceAgeMa: this.domainVisible ? current?.resources.nativeBoundarySourceAgeMa ?? null : null,
+      topologyOwnershipRings: this.domainVisible ? current?.resources.topologyOwnership?.rings.length ?? 0 : 0,
+      topologyOwnershipSourceAgeMa: this.domainVisible
+        ? current?.resources.topologyOwnership?.sourceAgeMa ?? null : null,
       retainedStaticBytes: this.staticGeometry?.byteLength ?? 0,
       activeSourceBytes: current?.resources.activeSourceBytes ?? 0,
       retainedPublicationBytes: this.publisher.retainedBytes(),
@@ -1277,14 +1363,21 @@ export class CaoFoundationSurfaceRenderer {
     maximumTestedTriangles = 65_536,
   ): CaoFoundationSurfaceHit | null {
     const current = this.publisher.current();
-    if (!this.staticGeometry || !current) return null;
+    if (!this.domainVisible || !this.staticGeometry || !current) return null;
     return intersectCaoFoundationSurface(this.staticGeometry, current.resources,
       rayOrigin, rayDirection, maximumTestedTriangles);
   }
 
   identifyTopology(rendererDirection: UnitDirection): InstantaneousOwnershipResult | null {
     const current = this.publisher.current();
-    return current?.resources.identifyTopology(rendererDirection) ?? null;
+    return this.domainVisible ? current?.resources.identifyTopology(rendererDirection) ?? null : null;
+  }
+
+  setDomainVisibility(visible: boolean): CaoFoundationDiagnostics {
+    this.domainVisible = visible;
+    const current = this.publisher.current();
+    if (current) current.resources.group.visible = visible;
+    return this.diagnostics();
   }
 
   setLayerVisibility(borders: boolean, tectonics: boolean): void {
@@ -1294,6 +1387,7 @@ export class CaoFoundationSurfaceRenderer {
       if (child.userData.overlayLayer === "borders") child.visible = borders;
       if (child.userData.overlayLayer === "tectonics") child.visible = tectonics;
     }
+    current.resources.setNativeBoundaryLayerVisibility(tectonics);
   }
 
   /**
@@ -1307,12 +1401,17 @@ export class CaoFoundationSurfaceRenderer {
     chartPoses: Float32Array,
     chartActive: Uint8Array,
     requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
   ): CaoFoundationDiagnostics {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
     const current = this.publisher.current();
     if (!current) throw new Error("Cao foundation has no published surface to retarget");
     const packed = packCaoPaletteValues(paletteValues, entryCount, this.limits.maxTextureSize);
-    current.resources.retargetMotion(packed, displayFraction, chartPoses, chartActive, requestedAgeMa);
+    current.resources.retargetMotion(
+      packed, displayFraction, chartPoses, chartActive, requestedAgeMa, materialCorrections,
+    );
+    this.domainVisible = true;
+    current.resources.group.visible = true;
     return this.diagnostics();
   }
 

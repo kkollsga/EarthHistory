@@ -39,6 +39,9 @@ ROT_SHAS = (
     "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
 )
 ROT_SHA = "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f"
+CORRECTION_MOTION_PLATES = (101, 124, 154, 176, 302, 309, 311, 373, 1731)
+CORRECTION_MOTION_YOUNGEST_MA = 410.0
+CORRECTION_MOTION_OLDEST_MA = 540.0
 
 
 def sha(path):
@@ -117,14 +120,22 @@ def adaptive(cp, rotation, plate, clock):
 
     def train(left, right, depth):
         middle = (left + right) / 2
-        exact = cp.exact_quaternion(rotation, middle, plate)
-        if exact is None:
-            raise ValueError(f"missing strict midpoint {plate} {middle}")
-        if (
-            cp.angular_rotation_error(exact, cp.slerp(nodes[left], nodes[right], 0.5))
-            <= cp.INTERPOLATION_TARGET_RAD
-        ):
+        probes = []
+        for fraction in (0.25, 0.5, 0.75):
+            age = left + (right - left) * fraction
+            exact = cp.exact_quaternion(rotation, age, plate)
+            if exact is None:
+                raise ValueError(f"missing strict interpolation probe {plate} {age}")
+            probes.append((
+                cp.angular_rotation_error(
+                    exact, cp.slerp(nodes[left], nodes[right], fraction)
+                ),
+                age,
+                exact,
+            ))
+        if max(error for error, _, _ in probes) <= cp.INTERPOLATION_TARGET_RAD:
             return
+        exact = next(exact for _, age, exact in probes if age == middle)
         if depth >= getattr(cp, "ADAPTIVE_MAX_DEPTH", 16) or len(nodes) >= getattr(cp, "ADAPTIVE_MAX_SAMPLES", 4096):
             nodes[middle] = cp.float32_quaternion(exact)
             return
@@ -200,6 +211,32 @@ def write_geometry(path, directions, seams, charts, triangles):
     path.write_bytes(data)
 
 
+def source_layer(meta):
+    """Return one proven Cao geometry layer; mixed or unknown stages are rejected."""
+    declared = meta.get("source", {}).get("layer")
+    prefixes = {patch.get("patchId", "").split(":", 1)[0] for patch in meta["patches"]}
+    inferred = "coasts" if prefixes == {"cao-coast"} else (
+        "continents" if prefixes == {"cao-continent"} else None
+    )
+    if declared is not None and declared not in {"coasts", "continents"}:
+        raise ValueError(f"unknown Cao source layer {declared!r}")
+    if inferred is None or (declared is not None and declared != inferred):
+        raise ValueError("Cao source layer metadata and chart identities disagree")
+    return inferred
+
+
+def layer_evidence(layer):
+    if layer == "coasts":
+        return (
+            "Cao coastline-class model geometry is not observed exposed land",
+            "native Cao coastline-class geometry; exposed-land and height evidence unavailable",
+        )
+    return (
+        "Cao continental-outline model geometry is not observed exposed land",
+        "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
+    )
+
+
 def main(out: Path | None = None, stage: Path | None = None):
     OUT = Path(out) if out else DEFAULT_OUT
     STAGE = Path(stage) if stage else (OUT.parent if out is None else DEFAULT_STAGE)
@@ -210,6 +247,8 @@ def main(out: Path | None = None, stage: Path | None = None):
     OUT.mkdir(parents=True, exist_ok=True)
     assert tuple(sha(MODEL / name) for name in ROTATION_FILES) == ROT_SHAS
     meta = json.loads((STAGE / "coast-patches.json").read_text())
+    layer = source_layer(meta)
+    evidence_limitation, surface_reason = layer_evidence(layer)
     raw = (STAGE / "coast-reference-directions.f32").read_bytes()
     values = struct.unpack(f"<{len(raw) // 4}f", raw)
     source = [values[i : i + 3] for i in range(0, len(values), 3)]
@@ -315,13 +354,13 @@ def main(out: Path | None = None, stage: Path | None = None):
                     ],
                     "limitations": [
                         "native Cao foundation; surface exposure remains unknown",
-                        "Cao continental-outline model geometry is not observed exposed land",
+                        evidence_limitation,
                         "physical height unknown; 400 m is render-only shell separation",
                     ],
                 },
                 "surfaceEvidence": {
                     "kind": "unknown",
-                    "reason": "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
+                    "reason": surface_reason,
                 },
             }
         )
@@ -367,6 +406,46 @@ def main(out: Path | None = None, stage: Path | None = None):
                 "sourceIntervalSetId": interval_ids[interval_key],
             }
         )
+    # Accepted regional corrections remain qualified through 540 Ma. Dedicated
+    # entries avoid inheriting the sparse full-domain native interpolation on
+    # this bounded interval while leaving every native entry and binding intact.
+    if layer == "coasts":
+        youngest = CORRECTION_MOTION_YOUNGEST_MA
+        oldest = CORRECTION_MOTION_OLDEST_MA
+        extension_clock = sorted({youngest, oldest, *(
+            age for age in global_clock if youngest <= age <= oldest
+        )})
+        interval_id = "correction-clock-410-540"
+        interval_sets.append({"id": interval_id, "intervals": [
+            {"youngestAgeMa": youngest, "oldestAgeMa": oldest, "kind": "smooth-motion"},
+            *[{"youngestAgeMa": age, "oldestAgeMa": age, "kind": "source-knot"}
+              for age in extension_clock],
+        ]})
+        for plate in CORRECTION_MOTION_PLATES:
+            nodes = adaptive(cp, rotation, plate, extension_clock)
+            qref = cp.exact_quaternion(rotation, 0, plate)
+            if qref is None:
+                raise ValueError(f"correction motion plate {plate} lacks its 0 Ma reference pose")
+            relative = {
+                age: cp.float32_quaternion(compose(q, inverse(qref)))
+                for age, q in nodes.items()
+            }
+            offset = len(records)
+            records += sorted(relative.items())
+            entries.append({
+                "entryId": f"correction-plate-{plate}-410-540",
+                "plateId": plate,
+                "storedCoordinateBasis": {
+                    "kind": "supported-reference",
+                    "geometryReferenceAgeMa": 0,
+                },
+                "youngestAgeMa": youngest,
+                "oldestAgeMa": oldest,
+                "sampleOffset": offset,
+                "sampleCount": len(relative),
+                "sourceIds": ["doi:10.5281/zenodo.13628813"],
+                "sourceIntervalSetId": interval_id,
+            })
     palette_binary = bytearray(32 + 20 * len(records))
     palette_binary[:4] = b"EHMP"
     struct.pack_into(

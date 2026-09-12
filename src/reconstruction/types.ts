@@ -12,7 +12,7 @@ export interface FrameKey {
 
 export type SupportState =
   | { kind: "supported"; method: "compiled-rigid" | "compiled-deforming" }
-  | { kind: "inactive"; reason: "unborn" | "consumed" | "not-yet-valid" | "expired" }
+  | { kind: "inactive"; reason: "unborn" | "consumed" | "not-yet-valid" | "expired" | "replaced" }
   | { kind: "conditional"; reason: "birth-bound" | "loss-bound"; intervalMa: readonly [number, number] }
   | { kind: "ambiguous"; candidateIds: readonly string[] }
   | { kind: "unsupported"; reason: "outside-domain" | "frame-mismatch" | "chart-mismatch" |
@@ -31,6 +31,9 @@ export interface MaterialAddress {
 
 export interface MaterialLifecycle {
   validTimeMa: { oldest: number; youngest: number };
+  /** Correction phases can meet inclusive native source endpoints without double drawing. */
+  youngestExclusive?: boolean;
+  oldestExclusive?: boolean;
   birth?: { status: "confirmed" | "bounded"; intervalMa: readonly [number, number] };
   loss?: { status: "confirmed" | "bounded"; intervalMa: readonly [number, number] };
 }

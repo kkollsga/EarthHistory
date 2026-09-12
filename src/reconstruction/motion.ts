@@ -94,7 +94,8 @@ export async function decodeVerifiedMotionTable(
 
 export function validateMaterialLifecycle(lifecycle: MaterialLifecycle): boolean {
   const { oldest, youngest } = lifecycle.validTimeMa;
-  if (!Number.isFinite(oldest) || !Number.isFinite(youngest) || youngest < 0 || oldest > 1_800 || youngest > oldest) {
+  if (!Number.isFinite(oldest) || !Number.isFinite(youngest) || youngest < 0 || oldest > 1_800 || youngest > oldest
+      || (youngest === oldest && (lifecycle.youngestExclusive === true || lifecycle.oldestExclusive === true))) {
     return false;
   }
   for (const event of [lifecycle.birth, lifecycle.loss]) {
@@ -113,8 +114,14 @@ export function validateMaterialLifecycle(lifecycle: MaterialLifecycle): boolean
 
 export function evaluateLifecycleSupport(lifecycle: MaterialLifecycle, ageMa: number): SupportState | null {
   if (!validateMaterialLifecycle(lifecycle)) return { kind: "unsupported", reason: "invalid-address" };
-  if (ageMa > lifecycle.validTimeMa.oldest) return { kind: "inactive", reason: "unborn" };
-  if (ageMa < lifecycle.validTimeMa.youngest) return { kind: "inactive", reason: "consumed" };
+  if (ageMa > lifecycle.validTimeMa.oldest
+      || (lifecycle.oldestExclusive === true && ageMa === lifecycle.validTimeMa.oldest)) {
+    return { kind: "inactive", reason: "unborn" };
+  }
+  if (ageMa < lifecycle.validTimeMa.youngest
+      || (lifecycle.youngestExclusive === true && ageMa === lifecycle.validTimeMa.youngest)) {
+    return { kind: "inactive", reason: "consumed" };
+  }
   if (lifecycle.birth?.status === "confirmed" && ageMa > lifecycle.birth.intervalMa[0]) {
     return { kind: "inactive", reason: "unborn" };
   }

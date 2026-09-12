@@ -1,0 +1,1025 @@
+{
+  "schemaVersion": 1,
+  "rotationSourceAggregateSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+  "motionPaletteCatalogSha256": "aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217",
+  "motionPaletteBinarySha256": "e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed",
+  "angularErrorLimitRad": 1e-05,
+  "maximumAngularResidualRad": 9.339212877515439e-06,
+  "maximumPost410CorrectionResidualRad": 9.339212877515439e-06,
+  "criticalAgesMa": [
+    402.5,
+    409.0,
+    410.0,
+    410.001,
+    430.0,
+    430.001,
+    504.999999,
+    505.0,
+    505.000001,
+    540.0
+  ],
+  "criticalSamples": [
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 120,
+      "ageMa": 402.5,
+      "entryId": "plate-120-130-505",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 120,
+      "ageMa": 409.0,
+      "entryId": "plate-120-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 120,
+      "ageMa": 410.0,
+      "entryId": "plate-120-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 122,
+      "ageMa": 402.5,
+      "entryId": "plate-122-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 122,
+      "ageMa": 409.0,
+      "entryId": "plate-122-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 122,
+      "ageMa": 410.0,
+      "entryId": "plate-122-130-505",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 123,
+      "ageMa": 402.5,
+      "entryId": "plate-123-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 123,
+      "ageMa": 409.0,
+      "entryId": "plate-123-130-505",
+      "angularResidualRad": 7.300048299977715e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 123,
+      "ageMa": 410.0,
+      "entryId": "plate-123-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 124,
+      "ageMa": 402.5,
+      "entryId": "plate-124-130-505",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 124,
+      "ageMa": 409.0,
+      "entryId": "plate-124-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 124,
+      "ageMa": 410.0,
+      "entryId": "plate-124-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 141,
+      "ageMa": 402.5,
+      "entryId": "plate-141-130-505",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 141,
+      "ageMa": 409.0,
+      "entryId": "plate-141-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 141,
+      "ageMa": 410.0,
+      "entryId": "plate-141-130-505",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 154,
+      "ageMa": 402.5,
+      "entryId": "plate-154-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 154,
+      "ageMa": 409.0,
+      "entryId": "plate-154-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 154,
+      "ageMa": 410.0,
+      "entryId": "plate-154-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 176,
+      "ageMa": 402.5,
+      "entryId": "plate-176-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 176,
+      "ageMa": 409.0,
+      "entryId": "plate-176-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 176,
+      "ageMa": 410.0,
+      "entryId": "plate-176-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 302,
+      "ageMa": 402.5,
+      "entryId": "plate-302-0-1800",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 302,
+      "ageMa": 409.0,
+      "entryId": "plate-302-0-1800",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 302,
+      "ageMa": 410.0,
+      "entryId": "plate-302-0-1800",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 309,
+      "ageMa": 402.5,
+      "entryId": "plate-309-130-505",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 309,
+      "ageMa": 409.0,
+      "entryId": "plate-309-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 309,
+      "ageMa": 410.0,
+      "entryId": "plate-309-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 311,
+      "ageMa": 402.5,
+      "entryId": "plate-311-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 311,
+      "ageMa": 409.0,
+      "entryId": "plate-311-130-505",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 311,
+      "ageMa": 410.0,
+      "entryId": "plate-311-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 373,
+      "ageMa": 402.5,
+      "entryId": "plate-373-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 373,
+      "ageMa": 409.0,
+      "entryId": "plate-373-130-505",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 373,
+      "ageMa": 410.0,
+      "entryId": "plate-373-130-505",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 1731,
+      "ageMa": 402.5,
+      "entryId": "plate-1731-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 1731,
+      "ageMa": 409.0,
+      "entryId": "plate-1731-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 1731,
+      "ageMa": 410.0,
+      "entryId": "plate-1731-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 8.429369702178807e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 7.300048299977715e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 8.429369702178807e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-101-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-124-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-154-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 402.5,
+      "entryId": "plate-176-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 409.0,
+      "entryId": "plate-176-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-176-410-540",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-302-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 6.610474888330381e-07
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 6.165552397244359e-07
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-309-410-540",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 6.630598146106926e-07
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-311-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-373-410-540",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 402.5,
+      "entryId": "plate-1731-130-505",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 409.0,
+      "entryId": "plate-1731-130-505",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 410.0,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 410.001,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 2.9802322387695312e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 430.0,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 430.001,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 4.2146848510894035e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 504.999999,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 5.16191365590357e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 505.0,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 505.000001,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 5.960464477539063e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "ageMa": 540.0,
+      "entryId": "correction-plate-1731-410-540",
+      "angularResidualRad": 0.0
+    }
+  ],
+  "intervalResults": [
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 120,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 7.300048299977715e-08,
+      "maximumResidualAgeMa": 169.25,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 122,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 7.300048299977715e-08,
+      "maximumResidualAgeMa": 188.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 123,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 187.5,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 124,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 7.300048299977715e-08,
+      "maximumResidualAgeMa": 169.25,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 141,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 200.25,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 154,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 189.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 176,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 189.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 302,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 358.25,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 309,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 7.884953353001448e-08,
+      "maximumResidualAgeMa": 349.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 311,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 366.75,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 373,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 375.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "tracked-native-targets",
+      "plateId": 1731,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 410.0,
+      "sampleCount": 1641,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 189.0,
+      "maximumPost410CorrectionResidualRad": 0.0
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 101,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 504.999999,
+      "maximumPost410CorrectionResidualRad": 8.429369702178807e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 124,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 501.0,
+      "maximumPost410CorrectionResidualRad": 8.429369702178807e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 154,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 7.300048299977715e-08,
+      "maximumResidualAgeMa": 485.0,
+      "maximumPost410CorrectionResidualRad": 7.300048299977715e-08
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 176,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 2165,
+      "maximumAngularResidualRad": 8.327709611119097e-06,
+      "maximumResidualAgeMa": 487.0,
+      "maximumPost410CorrectionResidualRad": 8.327709611119097e-06
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 302,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 9.339212877515439e-06,
+      "maximumResidualAgeMa": 418.75,
+      "maximumPost410CorrectionResidualRad": 9.339212877515439e-06
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 309,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 7.026778401801223e-06,
+      "maximumResidualAgeMa": 436.0,
+      "maximumPost410CorrectionResidualRad": 7.026778401801223e-06
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 311,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 5.798294380327062e-06,
+      "maximumResidualAgeMa": 414.0,
+      "maximumPost410CorrectionResidualRad": 5.798294380327062e-06
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 373,
+      "youngestAgeMa": 410.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 525,
+      "maximumAngularResidualRad": 9.327317544000759e-06,
+      "maximumResidualAgeMa": 411.25,
+      "maximumPost410CorrectionResidualRad": 9.327317544000759e-06
+    },
+    {
+      "scope": "emitted-correction-charts",
+      "plateId": 1731,
+      "youngestAgeMa": 0.0,
+      "oldestAgeMa": 540.0,
+      "sampleCount": 2165,
+      "maximumAngularResidualRad": 8.429369702178807e-08,
+      "maximumResidualAgeMa": 189.0,
+      "maximumPost410CorrectionResidualRad": 7.300048299977715e-08
+    }
+  ],
+  "trackedNativeTargetCount": 90,
+  "correctionChartCount": 84,
+  "correctionChartsActiveAfter540Ma": 0,
+  "selectionRule": "youngest-inclusive, oldest-exclusive except the final lifecycle endpoint",
+  "noNearestEntryHolding": true,
+  "nativeTargetResidualPolicy": "native entry IDs and valid intervals, native chart bindings, and pre-existing sample values are unchanged; added source-derived samples are described by the native refinement record"
+}

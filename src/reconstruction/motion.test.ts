@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { gplatesToRendererDirection, numberScalarOps, radialHeightScale, relativePoseQuaternion,
   rotateDirection, slerpQuaternion } from "./arithmetic";
-import { assertFrame, decodeMotionTable, decodeVerifiedMotionTable, evaluateMaterialPose, selectMotionSubsegment,
+import { assertFrame, decodeMotionTable, decodeVerifiedMotionTable, evaluateLifecycleSupport, evaluateMaterialPose, selectMotionSubsegment,
   type MotionCatalog } from "./motion";
 import type { MaterialAddress, MaterialLifecycle } from "./types";
 
@@ -33,6 +33,20 @@ function angularError(left: readonly number[], right: readonly number[]): number
 }
 
 describe("compiled reconstruction motion core", () => {
+  it("supports strictly-older adjacent phases without an age gap or exact-boundary overlap", () => {
+    const native = { validTimeMa: { youngest: 0, oldest: 410 } } as const;
+    const qualified = { validTimeMa: { youngest: 410, oldest: 430 }, youngestExclusive: true } as const;
+    const uncertain = { validTimeMa: { youngest: 430, oldest: 540 }, youngestExclusive: true } as const;
+
+    expect(evaluateLifecycleSupport(native, 410)).toBeNull();
+    expect(evaluateLifecycleSupport(qualified, 410)?.kind).toBe("inactive");
+    expect(evaluateLifecycleSupport(qualified, 410 + 1e-7)).toBeNull();
+    expect(evaluateLifecycleSupport(qualified, 410 + 1e-6)).toBeNull();
+    expect(evaluateLifecycleSupport(qualified, 430)).toBeNull();
+    expect(evaluateLifecycleSupport(uncertain, 430)?.kind).toBe("inactive");
+    expect(evaluateLifecycleSupport(uncertain, 430 + 1e-7)).toBeNull();
+  });
+
   it("decodes pinned float32 motion with micro-Ma time and a nonzero chart reference age", () => {
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(catalog.binary.sha256);
     expect(interval.samples).toHaveLength(34);

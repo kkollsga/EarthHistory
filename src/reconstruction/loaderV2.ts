@@ -6,6 +6,8 @@ import {
   validateReconstructionAnchorCatalogV2,
   validateReconstructionCoreV2,
   validateReconstructionPackageManifestV2,
+  validateMaterialCorrectionCatalogV1,
+  type MaterialCorrectionCatalogV1,
   type ReconstructionCheckpointV2,
   type ReconstructionCoreV2,
   type ReconstructionAnchorCatalogV2,
@@ -40,6 +42,7 @@ export interface LoadedCaoFoundation {
   readonly spatialBatches: ReadonlyMap<string, DecodedCaoSpatialBatch>;
   readonly lineBatches: ReadonlyMap<string, DecodedCaoLineBatch>;
   readonly anchorCatalog: ReconstructionAnchorCatalogV2 | null;
+  readonly correctionCatalog: MaterialCorrectionCatalogV1 | null;
 }
 
 /** Loads the fixed package/core/palette identity once; checkpoints remain age-demand loaded. */
@@ -49,10 +52,13 @@ export async function loadVerifiedCaoFoundation(
   signal?: AbortSignal,
 ): Promise<LoadedCaoFoundation> {
   validateReconstructionPackageManifestV2(manifest);
-  const [rawCore, rawCatalog, binary] = await Promise.all([
+  const [rawCore, rawCatalog, binary, correctionCatalog] = await Promise.all([
     verifiedJson<ReconstructionCoreV2>(manifest.core, fetcher, signal),
     verifiedJson<MotionPaletteCatalog>(manifest.motionPalette.catalog, fetcher, signal),
     loadVerifiedBytes(manifest.motionPalette.binary, fetcher, signal),
+    manifest.materialCorrections
+      ? verifiedJson<MaterialCorrectionCatalogV1>(manifest.materialCorrections.catalog, fetcher, signal)
+      : Promise.resolve(null),
   ]);
   if (signal?.aborted) throw new DOMException("Cao reconstruction foundation load aborted", "AbortError");
   if (rawCatalog.binary.bytes !== manifest.motionPalette.binary.bytes
@@ -60,8 +66,15 @@ export async function loadVerifiedCaoFoundation(
     throw new Error("Cao motion palette manifest/catalog binary mismatch");
   }
   validateReconstructionCoreV2(rawCore, manifest, rawCatalog);
+  if (correctionCatalog) validateMaterialCorrectionCatalogV1(correctionCatalog, manifest, rawCore);
+  const combinedCore: ReconstructionCoreV2 = correctionCatalog ? {
+    ...rawCore,
+    charts: [...rawCore.charts, ...correctionCatalog.charts],
+    spatialBatches: [...rawCore.spatialBatches, ...correctionCatalog.spatialBatches],
+  } : rawCore;
+  validateReconstructionCoreV2(combinedCore, manifest, rawCatalog);
   const paletteEntries = decodeMotionPalette(rawCatalog, binary);
-  for (const chart of rawCore.charts) {
+  for (const chart of combinedCore.charts) {
     const bindings = chart.motionBindings ?? [];
     for (let left = 0; left < bindings.length; left += 1) for (let right = left + 1; right < bindings.length; right += 1) {
       const first = bindings[left]!;
@@ -72,35 +85,85 @@ export async function loadVerifiedCaoFoundation(
       const secondSegment = selectPaletteMotionSubsegment(paletteEntries.get(second.entryId)!, touchingAge);
       const endpoint = (segment: NonNullable<typeof firstSegment>) => segment.fraction === 0
         ? segment.younger.quaternion : segment.older.quaternion;
-      if (!firstSegment || !secondSegment || endpoint(firstSegment).some((value, axis) =>
-        value !== endpoint(secondSegment)[axis])) {
+      const firstQuaternion = firstSegment ? endpoint(firstSegment) : null;
+      const secondQuaternion = secondSegment ? endpoint(secondSegment) : null;
+      const dot = firstQuaternion && secondQuaternion
+        ? firstQuaternion.reduce((sum, value, axis) => sum + value * secondQuaternion[axis]!, 0) : 0;
+      const normProduct = firstQuaternion && secondQuaternion
+        ? Math.hypot(...firstQuaternion) * Math.hypot(...secondQuaternion) : 0;
+      const angularResidual = firstQuaternion && secondQuaternion
+        ? 2 * Math.acos(Math.max(-1, Math.min(1, Math.abs(dot) / normProduct))) : Number.POSITIVE_INFINITY;
+      if (angularResidual > 1e-5) {
         throw new Error("touching Cao motion bindings disagree at their shared source knot");
       }
     }
   }
+  const correctionBatchIds = new Set(correctionCatalog?.spatialBatches.map((batch) => batch.batchId) ?? []);
   const spatialBatches = new Map<string, DecodedCaoSpatialBatch>();
-  for (const batch of rawCore.spatialBatches) {
+  for (const batch of combinedCore.spatialBatches) {
     if (signal?.aborted) throw new DOMException("Cao reconstruction foundation load aborted", "AbortError");
-    spatialBatches.set(batch.batchId, await loadVerifiedCaoSpatialBatch(rawCore, batch.batchId, fetcher, signal));
+    const decoded = await loadVerifiedCaoSpatialBatch(combinedCore, batch.batchId, fetcher, signal);
+    if (correctionBatchIds.has(batch.batchId)
+        && decoded.vertexChartIndices.some((chartIndex) => chartIndex < rawCore.charts.length)) {
+      throw new Error("material correction batch cannot bind vertices to native Cao charts");
+    }
+    spatialBatches.set(batch.batchId, decoded);
   }
   const lineBatches = new Map<string, DecodedCaoLineBatch>();
   for (const batch of rawCore.lineBatches ?? []) {
     if (signal?.aborted) throw new DOMException("Cao reconstruction foundation load aborted", "AbortError");
     const bytes = await loadVerifiedBytes(batch.geometryAsset, fetcher, signal);
     lineBatches.set(batch.batchId, decodeCaoLineBatch(bytes, batch.vertexCount, batch.segmentCount,
-      rawCore.charts.length));
+      combinedCore.charts.length));
   }
   const anchorCatalog = rawCore.anchorCatalog
     ? await verifiedJson<ReconstructionAnchorCatalogV2>(rawCore.anchorCatalog, fetcher, signal)
     : null;
-  if (anchorCatalog) validateReconstructionAnchorCatalogV2(anchorCatalog, manifest, rawCore);
+  if (anchorCatalog) validateReconstructionAnchorCatalogV2(anchorCatalog, manifest, combinedCore);
+  for (const override of correctionCatalog?.nativeChartOverrides ?? []) {
+    const expectedSegments = new Set<string>();
+    const sourceChartIndices = new Set(override.dependentConsumers.sourceCountryChartIds.map((chartId) =>
+      combinedCore.charts.findIndex((chart) => chart.chartId === chartId)));
+    for (const [batchId, batch] of lineBatches) {
+      for (let offset = 0; offset < batch.lineIndices.length; offset += 2) {
+        const left = batch.lineIndices[offset]!;
+        const right = batch.lineIndices[offset + 1]!;
+        if (sourceChartIndices.has(batch.vertexChartIndices[left]!)) {
+          if (batch.vertexChartIndices[left] !== batch.vertexChartIndices[right]) {
+            throw new Error("native replacement country segment crosses source ownership");
+          }
+          expectedSegments.add(`${batchId}:${offset / 2}`);
+        }
+      }
+    }
+    const declaredSegments = new Set(override.dependentConsumers.countrySegmentBindings.map((binding) => {
+      const batch = lineBatches.get(binding.batchId);
+      const sourceIndex = combinedCore.charts.findIndex((chart) => chart.chartId === binding.sourceCountryChartId);
+      const left = batch?.lineIndices[binding.segmentIndex * 2];
+      const right = batch?.lineIndices[binding.segmentIndex * 2 + 1];
+      if (!batch || left === undefined || right === undefined
+          || batch.vertexChartIndices[left] !== sourceIndex || batch.vertexChartIndices[right] !== sourceIndex) {
+        throw new Error("native replacement country segment binding changed source ownership");
+      }
+      return `${binding.batchId}:${binding.segmentIndex}`;
+    }));
+    if (expectedSegments.size !== declaredSegments.size
+        || [...expectedSegments].some((key) => !declaredSegments.has(key))) {
+      throw new Error("native replacement country segment binding set is incomplete");
+    }
+    if (override.dependentConsumers.anchors === "require-none"
+        && anchorCatalog?.anchors.some((anchor) => anchor.chartId === override.nativeChart.chartId)) {
+      throw new Error("native material chart override has an unmapped POI or focus anchor");
+    }
+  }
   return Object.freeze({
-    core: deepFreeze(rawCore),
+    core: deepFreeze(combinedCore),
     paletteCatalog: deepFreeze(rawCatalog),
     paletteEntries,
     spatialBatches,
     lineBatches,
     anchorCatalog: anchorCatalog ? deepFreeze(anchorCatalog) : null,
+    correctionCatalog: correctionCatalog ? deepFreeze(correctionCatalog) : null,
   });
 }
 
