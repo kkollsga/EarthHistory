@@ -80,21 +80,23 @@ export interface PreparedCaoChartIdentity {
   readonly inversePoseQuaternion: QuaternionWxyz;
 }
 
+export interface PreparedMaterialCorrections {
+  readonly qualifiedActiveCharts: number;
+  readonly uncertainActiveCharts: number;
+  readonly formationUncertainActiveCharts: number;
+  readonly modelInferredPoseActiveCharts: number;
+  readonly overriddenNativeCharts: number;
+  readonly activeSourceIds: readonly string[];
+  readonly correctionIds: readonly string[];
+}
+
 export interface PreparedCaoRevision {
   readonly identity: string;
   readonly requestId: number;
   readonly packageId: string;
   readonly packageRevision: string;
   readonly materialCorrectionIdentity: string | null;
-  readonly materialCorrections: Readonly<{
-    qualifiedActiveCharts: number;
-    uncertainActiveCharts: number;
-    formationUncertainActiveCharts: number;
-    modelInferredPoseActiveCharts: number;
-    overriddenNativeCharts: number;
-    activeSourceIds: readonly string[];
-    correctionIds: readonly string[];
-  }>;
+  readonly materialCorrections: PreparedMaterialCorrections;
   readonly requestedAgeMa: number;
   readonly frameIdentity: string;
   readonly display: Readonly<{

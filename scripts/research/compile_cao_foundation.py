@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage native Cao coastline patches; public promotion is a separate gate."""
+"""Stage native Cao continental-outline patches; public promotion is a separate gate."""
 
 from __future__ import annotations
 
@@ -23,14 +23,28 @@ OUT = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1"
 )
-SOURCE = "shapes_coasts.gpmlz"
-SOURCE_SHA = "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f"
 ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 ROTATION_SHAS = (
     "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
     "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
 )
 ROTATION_SHA = "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f"
+LAYERS = {
+    "continents": {
+        "source": "shapes_continents.gpmlz",
+        "sourceSha": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616",
+        "prefix": "cao-continent",
+        "surfaceReason": "Cao continental-outline model geometry is not a dated exposed-land or height observation",
+        "classification": "staged Cao source-native continental-outline patches; not exposed-land or topography",
+    },
+    "coasts": {
+        "source": "shapes_coasts.gpmlz",
+        "sourceSha": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+        "prefix": "cao-coast",
+        "surfaceReason": "Cao model-derived coastline-class geometry is not a dated exposed-land or height observation",
+        "classification": "staged Cao source-native coastline-class patches; not exposed-land or topography",
+    },
+}
 
 
 def sha(path):
@@ -64,7 +78,12 @@ def dot(a, b):
     return sum(x * y for x, y in zip(a, b))
 
 
-def main():
+def main(layer: str = "continents"):
+    if layer not in LAYERS:
+        raise SystemExit(f"unknown layer {layer!r}; expected one of {sorted(LAYERS)}")
+    cfg = LAYERS[layer]
+    SOURCE = cfg["source"]
+    SOURCE_SHA = cfg["sourceSha"]
     policy = json.loads((OUT / "policy.json").read_text())
     if (
         sha(MODEL / SOURCE) != SOURCE_SHA
@@ -90,7 +109,7 @@ def main():
                 directions.extend(point.to_xyz() for point in ring)
                 ring_records.append({"offset": offset, "count": len(ring)})
             source_id = str(feature.get_feature_id())
-            patch_id = f"cao-coast:{source_id}:{feature_order}:{geometry_order}"
+            patch_id = f"{cfg['prefix']}:{source_id}:{feature_order}:{geometry_order}"
             oldest, youngest = feature.get_valid_time()
             patch = {
                 "patchId": patch_id,
@@ -113,7 +132,7 @@ def main():
                 "interiorDirection": list(geometry.get_interior_centroid().to_xyz()),
                 "surfaceEvidence": {
                     "kind": "unknown",
-                    "reason": "Cao model-derived coastline-class geometry is not a dated exposed-land or height observation",
+                    "reason": cfg["surfaceReason"],
                 },
                 "heightDatum": {
                     "kind": "neutral-display-synthesis",
@@ -130,7 +149,7 @@ def main():
     metadata = {
         "schemaVersion": 1,
         "classification": "staged source rings awaiting validated constrained triangulation",
-        "source": {"path": SOURCE, "sha256": SOURCE_SHA},
+        "source": {"path": SOURCE, "sha256": SOURCE_SHA, "layer": layer},
         "patches": patches,
     }
     meta_bytes = (json.dumps(metadata, separators=(",", ":")) + "\n").encode()
@@ -192,7 +211,8 @@ def main():
             accepted += 1
     final_meta = {
         "schemaVersion": 1,
-        "classification": "staged Cao source-native coastline-class patches; not exposed-land or topography",
+        "classification": cfg["classification"],
+        "source": {"path": SOURCE, "sha256": SOURCE_SHA, "layer": layer},
         "frame": {
             "modelId": "cao-et-al-2024",
             "modelVersion": "2.4",
@@ -230,9 +250,21 @@ def main():
     if len(final_bytes) > 8 * 1024 * 1024:
         raise SystemExit("metadata single-file cap")
     (OUT / "coast-patches.json").write_bytes(final_bytes)
-    stage = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())
+    measured = [
+        OUT / name
+        for name in (
+            "coast-patches.json",
+            "coast-rings.json",
+            "coast-indices.u32",
+            "coast-indices.u32.json",
+            "coast-reference-directions.f32",
+            "policy.json",
+        )
+        if (OUT / name).is_file()
+    ]
+    stage = sum(p.stat().st_size for p in measured)
     if stage > policy["stageMaximumBytes"]:
-        raise SystemExit("stage cap")
+        raise SystemExit(f"stage cap: {stage} > {policy['stageMaximumBytes']}")
     print(
         json.dumps(
             {
@@ -249,4 +281,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--layer", choices=sorted(LAYERS), default="continents")
+    main(**vars(parser.parse_args()))

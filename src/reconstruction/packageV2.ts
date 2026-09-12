@@ -227,6 +227,47 @@ function unit(direction: readonly number[]): boolean {
   return direction.length === 3 && direction.every(Number.isFinite) && Math.abs(Math.hypot(...direction) - 1) <= 2e-6;
 }
 
+type MotionBinding = NonNullable<RigidMaterialChartV2["motionBindings"]>[number];
+
+function motionBindingSignature(
+  chart: RigidMaterialChartV2,
+  paletteId: string,
+  interval: ReconstructionAgeDomain,
+): readonly string[] | null {
+  const bindings = (chart.motionBindings ?? (chart.motionBinding ? [{ ...chart.motionBinding,
+    validTimeMa: chart.lifecycle.validTimeMa }] : []))
+    .filter((binding) => binding.paletteId === paletteId)
+    .slice()
+    .sort((left, right) => left.validTimeMa.youngest - right.validTimeMa.youngest
+      || left.validTimeMa.oldest - right.validTimeMa.oldest
+      || left.entryId.localeCompare(right.entryId));
+  const signature: string[] = [];
+  let cursor = interval.youngest;
+  while (cursor < interval.oldest) {
+    const matches = bindings.filter((binding) => binding.validTimeMa.youngest <= cursor
+      && cursor < binding.validTimeMa.oldest);
+    if (matches.length !== 1) return null;
+    const binding: MotionBinding = matches[0]!;
+    const next = Math.min(binding.validTimeMa.oldest, interval.oldest);
+    if (next <= cursor) return null;
+    signature.push(`${binding.entryId}:${cursor}:${next}`);
+    cursor = next;
+  }
+  return signature;
+}
+
+function sameMotionBindingSignature(
+  candidate: RigidMaterialChartV2,
+  native: RigidMaterialChartV2,
+  paletteId: string,
+  interval: ReconstructionAgeDomain,
+): boolean {
+  const left = motionBindingSignature(candidate, paletteId, interval);
+  const right = motionBindingSignature(native, paletteId, interval);
+  return left !== null && right !== null && left.length === right.length
+    && left.every((value, index) => value === right[index]);
+}
+
 export function validateReconstructionPackageManifestV2(manifest: ReconstructionPackageManifestV2): void {
   const domain = manifest.ageDomainMa;
   if (manifest.schemaVersion !== 2 || !manifest.packageId || !manifest.revision
@@ -312,26 +353,29 @@ export function validateMaterialCorrectionCatalogV1(
     const validReplacementCharts = override.replacementChartIds.length > 0
       && override.replacementChartIds.every((chartId) => catalog.charts.some((candidate) => candidate.chartId === chartId));
     const suppression = override.suppression.validTimeMa;
-    const nativeBinding = match[0]?.motionBindings?.find((binding) =>
-      binding.validTimeMa.youngest <= suppression.youngest
-      && binding.validTimeMa.oldest >= suppression.oldest);
+    const nativeChart = match[0];
+    const paletteId = manifest.motionPalette.id;
+    const nativeSignature = nativeChart
+      ? motionBindingSignature(nativeChart, paletteId, suppression) : null;
     const sourceCountryCharts = override.dependentConsumers?.sourceCountryChartIds.map((chartId) =>
       nativeCore?.charts.find((candidate) => candidate.chartId === chartId));
     const sourceCountryChartsValid = Boolean(sourceCountryCharts?.length)
       && new Set(override.dependentConsumers.sourceCountryChartIds).size
-        === override.dependentConsumers.sourceCountryChartIds.length
+      === override.dependentConsumers.sourceCountryChartIds.length
       && sourceCountryCharts!.every((candidate) => candidate?.role === "country-reference"
         && candidate.sourceFeatureIds.includes(target.sourceFeatureId)
-        && candidate.motionBindings?.some((binding) => binding.paletteId === nativeBinding?.paletteId
-          && binding.entryId === nativeBinding.entryId
-          && binding.validTimeMa.youngest <= suppression.youngest
-          && binding.validTimeMa.oldest >= suppression.oldest));
+        && nativeChart !== undefined
+        && sameMotionBindingSignature(candidate, nativeChart, paletteId, suppression));
     const replacementBindingsValid = override.replacementChartIds.every((chartId) => {
       const candidate = catalog.charts.find((chart_) => chart_.chartId === chartId);
-      return candidate?.motionBindings?.some((binding) => binding.paletteId === nativeBinding?.paletteId
-        && binding.entryId === nativeBinding.entryId
-        && binding.validTimeMa.youngest <= candidate.lifecycle.validTimeMa.youngest
-        && binding.validTimeMa.oldest >= candidate.lifecycle.validTimeMa.oldest);
+      if (candidate === undefined || nativeChart === undefined
+          || motionBindingSignature(candidate, paletteId, candidate.lifecycle.validTimeMa) === null) return false;
+      const overlap = {
+        youngest: Math.max(candidate.lifecycle.validTimeMa.youngest, suppression.youngest),
+        oldest: Math.min(candidate.lifecycle.validTimeMa.oldest, suppression.oldest),
+      };
+      return overlap.oldest <= overlap.youngest
+        || sameMotionBindingSignature(candidate, nativeChart, paletteId, overlap);
     });
     const replacementFragments = new Set(override.replacementChartIds.map((chartId) =>
       catalog.charts.find((candidate) => candidate.chartId === chartId)?.fragmentOrCohortId));
@@ -368,7 +412,7 @@ export function validateMaterialCorrectionCatalogV1(
         || override.dependentConsumers?.maximumDomainMatchKm !== 12
         || !Number.isSafeInteger(override.dependentConsumers?.expectedSourceSegmentCount)
         || override.dependentConsumers.expectedSourceSegmentCount < 1
-        || !sourceCountryChartsValid || !replacementBindingsValid || !segmentBindingsValid || !nativeBinding
+        || !sourceCountryChartsValid || !replacementBindingsValid || !segmentBindingsValid || !nativeSignature
         || override.sourceIds.length === 0 || !override.reason) {
       throw new Error("invalid native material chart override");
     }
@@ -438,6 +482,7 @@ export function validateReconstructionCoreV2(
         || !chart.fragmentOrCohortId || !chart.sourceFeatureIds.length || !chart.sourceFeatureTypes.length
         || !chart.evidence.sourceIds.length || !validateMaterialLifecycle(chart.lifecycle)
         || bindings.length === 0 || (chart.motionBinding !== undefined && chart.motionBindings !== undefined)
+        || motionBindingSignature(chart, palette.id, chart.lifecycle.validTimeMa) === null
         || bindings.some((binding, index) => binding.paletteId !== palette.id || !boundEntries[index]
           || binding.validTimeMa.youngest < boundEntries[index]!.youngestAgeMa
           || binding.validTimeMa.oldest > boundEntries[index]!.oldestAgeMa

@@ -25,6 +25,7 @@ MEMBERS = {
     "250-0_plate_boundaries.gpml": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4",
     "410-250_plate_boundaries.gpml": "6516dbac4d7928e7ad71244b0bbabc65eb25e6e89dc79d4becb9a82a25a6fc91",
     "1000-410_plate_boundaries.gpml": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1",
+    "1800-1000_plate_boundaries.gpml": "759a76605bc907197928214f4101403dd6221e7ba8d4ecacde57999bc3675dce",
     "TopologyBuildingBlocks.gpml": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297",
     "1000_0_rotfile.rot": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c",
     "1800_1000_rotfile.rot": "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { StaticAssetFetcher } from "./assetLoader";
+import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { loadVerifiedCaoFoundation } from "./loaderV2";
 import {
@@ -17,7 +17,7 @@ const packageRoot = resolve("public/data/reconstruction/cao-v2.4");
 
 const diskFetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-  const bytes = await readFile(resolve(packageRoot, url));
+  const bytes = await readFile(resolve(packageRoot, packageAssetPath(url)));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 
@@ -234,7 +234,7 @@ describe("native material chart override consumers", () => {
       [anchorAsset.url, anchorBytes],
     ]);
     const alteredFetcher: StaticAssetFetcher = async (url, signal) => {
-      const bytes = altered.get(url);
+      const bytes = altered.get(packageAssetPath(url));
       return bytes ? arrayBuffer(bytes) : diskFetcher(url, signal);
     };
     await expect(loadVerifiedCaoFoundation(mutatedManifest, alteredFetcher))

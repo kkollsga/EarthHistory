@@ -6,14 +6,22 @@ import {
   numberScalarOps,
   type MaterialAddress,
   type PreparedCaoRevision,
+  type UnitDirection,
 } from "../reconstruction";
 import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
 import { lonLatToVector3, vector3ToLonLat } from "./math";
+import {
+  createCurvedGuideLabelMesh,
+  createPolarSectorTickLines,
+  createReferenceGuideLines,
+  REFERENCE_GUIDE_LABELS,
+} from "./globeGuides";
 import { setInspectionLightPosition, type InspectionLightScratch } from "./inspectionLight";
 import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
 } from "./reconstruction/caoFoundation";
+import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
   WebGl2SubmissionFence,
@@ -23,28 +31,6 @@ import {
 export type SpatialFocusKind = "poi" | "place" | "area";
 type RequestedQuality = "auto" | "high" | "low";
 type SurfaceDetail = "coarse" | "regional";
-
-const REFERENCE_GUIDE_LABELS: readonly Readonly<{ text: string; coordinates: LonLat }>[] = [
-  { text: "North pole", coordinates: [25, 86] },
-  { text: "South pole", coordinates: [25, -86] },
-  { text: "Equator", coordinates: [-15, 0] },
-  { text: "Hadley edge · 30° N", coordinates: [-40, 30] },
-  { text: "Hadley edge · 30° S", coordinates: [-40, -30] },
-  { text: "Polar cell edge · 60° N", coordinates: [-70, 60] },
-  { text: "Polar cell edge · 60° S", coordinates: [-70, -60] },
-  { text: "Prime meridian", coordinates: [4, 50] },
-  { text: "Antimeridian", coordinates: [176, 50] },
-];
-const REFERENCE_GUIDE_POLES: readonly LonLat[] = [[0, 90], [0, -90]];
-
-function createReferenceGuideLines(): readonly LonLat[][] {
-  const latitude = (value: number): LonLat[] => Array.from({ length: 181 }, (_, index) =>
-    [-180 + index * 2, value] as LonLat);
-  const meridian = (value: number): LonLat[] => Array.from({ length: 45 }, (_, index) =>
-    [value, -88 + index * 4] as LonLat);
-  return [latitude(0), latitude(30), latitude(-30), latitude(60), latitude(-60),
-    latitude(87.5), latitude(-87.5), meridian(0), meridian(180)];
-}
 
 function isReferenceDirectionAboveHorizon(
   directionDotCamera: number,
@@ -274,62 +260,37 @@ function createMarkerTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-function createGuideLabelTexture(text: string): THREE.CanvasTexture {
+/** Soft ring for locked material/location follow — quieter than POI dots. */
+function createFocusLockMarkerTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = 384;
+  canvas.width = 64;
   canvas.height = 64;
   const context = canvas.getContext("2d");
-  if (context === null) throw new Error("Unable to create guide-label texture");
-  context.font = "600 36px system-ui, sans-serif";
-  context.letterSpacing = "1px";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.shadowColor = "rgba(1, 8, 10, 0.95)";
-  context.shadowBlur = 5;
-  context.fillStyle = "rgba(188, 216, 211, 0.9)";
-  context.fillText(text.toUpperCase(), 192, 32, 360);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-  texture.premultiplyAlpha = true;
-  return texture;
-}
-
-function createPoleMarkerTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = 96;
-  canvas.height = 96;
-  const context = canvas.getContext("2d");
-  if (context === null) throw new Error("Unable to create pole-marker texture");
-  context.strokeStyle = "rgba(220, 242, 237, 0.96)";
-  context.lineWidth = 5;
-  context.shadowColor = "rgba(1, 8, 10, 0.95)";
-  context.shadowBlur = 7;
+  if (context === null) throw new Error("Unable to create focus-lock marker texture");
+  context.clearRect(0, 0, 64, 64);
   context.beginPath();
-  context.arc(48, 48, 20, 0, Math.PI * 2);
-  context.moveTo(48, 8);
-  context.lineTo(48, 33);
-  context.moveTo(48, 63);
-  context.lineTo(48, 88);
-  context.moveTo(8, 48);
-  context.lineTo(33, 48);
-  context.moveTo(63, 48);
-  context.lineTo(88, 48);
+  context.arc(32, 32, 18, 0, Math.PI * 2);
+  context.strokeStyle = "rgba(214, 232, 226, 0.55)";
+  context.lineWidth = 3;
   context.stroke();
-  context.fillStyle = "rgba(238, 251, 247, 1)";
   context.beginPath();
-  context.arc(48, 48, 5, 0, Math.PI * 2);
+  context.arc(32, 32, 4.5, 0, Math.PI * 2);
+  context.fillStyle = "rgba(232, 244, 238, 0.72)";
+  context.fill();
+  const halo = context.createRadialGradient(32, 32, 4, 32, 32, 28);
+  halo.addColorStop(0, "rgba(180, 210, 200, 0.2)");
+  halo.addColorStop(1, "rgba(180, 210, 200, 0)");
+  context.fillStyle = halo;
+  context.beginPath();
+  context.arc(32, 32, 28, 0, Math.PI * 2);
   context.fill();
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
   texture.premultiplyAlpha = true;
+  texture.generateMipmaps = false;
   return texture;
 }
+
 
 function createAtmosphere(): THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> {
   const geometry = new THREE.SphereGeometry(1.006, 128, 64);
@@ -425,6 +386,12 @@ interface PreparedAnchorMarker {
   readonly address: MaterialAddress;
 }
 
+export interface CaoMotionAnchorMarker {
+  readonly id: string;
+  readonly direction: UnitDirection;
+  readonly address: MaterialAddress;
+}
+
 export class GlobeScene {
   static async create(
     mount: HTMLDivElement,
@@ -447,6 +414,10 @@ export class GlobeScene {
   private readonly sunLight = new THREE.DirectionalLight(0xfff4df, 3.2);
   private readonly atmosphereMesh = createAtmosphere();
   private readonly markerTexture = createMarkerTexture();
+  private readonly focusLockMarkerTexture = createFocusLockMarkerTexture();
+  private focusLockMarker: THREE.Sprite | null = null;
+  /** World-space unit direction for continuous location follow while scrubbing. */
+  private followTarget: THREE.Vector3 | null = null;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly frameTimes: number[] = [];
@@ -473,6 +444,7 @@ export class GlobeScene {
   private preparedAnchors: readonly PreparedAnchorMarker[] = [];
   private pendingCaoDiagnostics: CaoFoundationDiagnostics | null = null;
   private hasNativePublication = false;
+  private caoFoundationWithheld = false;
   private autoRotate = true;
   private verticalExaggeration = 8;
   private disposed = false;
@@ -515,8 +487,8 @@ export class GlobeScene {
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend),
-      { maxBatches: 512, maxVertices: 300_000, maxTriangles: 400_000,
-        maxRetainedSourceBytes: 24 * 1024 * 1024, maxTextureSize: maximumTextureSize,
+      { maxBatches: 512, maxVertices: 400_000, maxTriangles: 600_000,
+        maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );
 
@@ -530,6 +502,7 @@ export class GlobeScene {
     renderer.domElement.setAttribute("aria-label", "Interactive three-dimensional Earth");
     renderer.domElement.dataset.rendererBackend = backend;
     renderer.domElement.dataset.focusKind = "none";
+    renderer.domElement.dataset.focusMarker = "false";
     renderer.domElement.dataset.legacySurfacePipeline = "removed";
     renderer.domElement.dataset.cubeStatus = "removed";
     renderer.domElement.dataset.cubeWorkerPoolSize = "0";
@@ -602,7 +575,110 @@ export class GlobeScene {
     this.onCaoFoundationState = callback;
   }
 
+  private applyCaoFoundationWithheldState(): CaoFoundationDiagnostics {
+    const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
+    this.pendingCaoDiagnostics = null;
+    this.markerGroup.visible = false;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoFoundationStatus = "waiting";
+    dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
+    dataset.caoFoundationDrawCount = "0";
+    dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
+    dataset.caoQualifiedMaterialCharts = "0";
+    dataset.caoUncertainMaterialCharts = "0";
+    dataset.caoFormationUncertainMaterialCharts = "0";
+    dataset.caoModelInferredPoseCharts = "0";
+    dataset.caoOverriddenNativeCharts = "0";
+    dataset.caoFoundationNativeBoundarySegments = "0";
+    dataset.caoFoundationNativeBoundarySourceAgeMa = "";
+    dataset.caoFoundationTopologyOwnershipRings = "0";
+    dataset.caoFoundationTopologyOwnershipSourceAgeMa = "";
+    dataset.caoFoundationAnchorMarkers = "0";
+    dataset.caoFoundationAnchorAgeMa = "";
+    dataset.focusMarker = "false";
+    dataset.surfaceStatus = "waiting";
+    this.onCaoFoundationState?.({ status: "loading",
+      requestedAgeMa: diagnostics.requestedAgeMa ?? undefined, resolvedVertices: 0 });
+    return diagnostics;
+  }
+
+  setCaoFoundationWithheld(withheld: boolean): CaoFoundationDiagnostics | null {
+    if (withheld === this.caoFoundationWithheld) {
+      return withheld ? this.applyCaoFoundationWithheldState() : null;
+    }
+    this.caoFoundationWithheld = withheld;
+    // Recovery makes the group visible only after a current revision or motion
+    // frame updates its marker poses; the retained sprites may still be stale.
+    return withheld ? this.applyCaoFoundationWithheldState() : null;
+  }
+
+  retargetCaoMotion(
+    paletteValues: Float32Array,
+    entryCount: number,
+    displayFraction: number,
+    chartPoses: Float32Array,
+    chartActive: Uint8Array,
+    requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
+    anchorMarkers: readonly CaoMotionAnchorMarker[],
+  ): CaoFoundationDiagnostics | null {
+    if (!this.hasNativePublication) return null;
+    try {
+      this.caoFoundationRenderer.retargetMotion(
+        paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa,
+        materialCorrections);
+      this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
+      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
+      this.markerGroup.visible = true;
+      const diagnostics = this.caoFoundationRenderer.diagnostics();
+      this.pendingCaoDiagnostics = diagnostics;
+      const dataset = this.renderer.domElement.dataset;
+      dataset.caoFoundationStatus = "ready";
+      dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
+      dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
+      dataset.caoFoundationNativeBoundarySegments = String(diagnostics.nativeBoundarySegments);
+      dataset.caoFoundationNativeBoundarySourceAgeMa = diagnostics.nativeBoundarySourceAgeMa === null
+        ? "" : String(diagnostics.nativeBoundarySourceAgeMa);
+      dataset.caoFoundationTopologyOwnershipRings = String(diagnostics.topologyOwnershipRings);
+      dataset.caoFoundationTopologyOwnershipSourceAgeMa =
+        diagnostics.topologyOwnershipSourceAgeMa === null
+          ? "" : String(diagnostics.topologyOwnershipSourceAgeMa);
+      const correctionState = diagnostics.materialCorrections;
+      dataset.caoFoundationGeographySupport = correctionState.formationUncertainActiveCharts > 0
+        ? "cao-plus-formation-range-material"
+        : correctionState.uncertainActiveCharts > 0
+        ? correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-and-uncertain-material"
+          : "cao-plus-uncertain-material"
+        : correctionState.modelInferredPoseActiveCharts > 0
+          ? "cao-plus-model-pose-material"
+        : correctionState.qualifiedActiveCharts > 0
+          ? "cao-plus-qualified-material"
+          : "native-cao-foundation";
+      dataset.caoQualifiedMaterialCharts = String(correctionState.qualifiedActiveCharts);
+      dataset.caoUncertainMaterialCharts = String(correctionState.uncertainActiveCharts);
+      dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
+      dataset.caoModelInferredPoseCharts = String(correctionState.modelInferredPoseActiveCharts);
+      dataset.caoOverriddenNativeCharts = String(correctionState.overriddenNativeCharts);
+      dataset.surfaceStatus = "ready";
+      this.onCaoFoundationState?.({ status: "ready",
+        requestedAgeMa: diagnostics.requestedAgeMa ?? undefined,
+        displayedAgeMa: diagnostics.requestedAgeMa ?? undefined,
+        resolvedVertices: diagnostics.vertices });
+      // Refresh prepared anchor markers from the continuous poses when App supplies them.
+      return diagnostics;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Cao motion retarget failed";
+      this.onCaoFoundationState?.({ status: "error", error: message });
+      throw error;
+    }
+  }
+
   setPreparedCaoRevision(revision: PreparedCaoRevision | null): CaoFoundationDiagnostics | null {
+    // null clears the foundation (out-of-domain / prepare failure). App keeps the
+    // previous PreparedCaoRevision prop during in-domain age transitions so this
+    // path is not used for ordinary scrubbing — that avoids a blank globe.
     if (revision === null) {
       this.caoFoundationRenderer.clear();
       this.hasNativePublication = false;
@@ -632,11 +708,15 @@ export class GlobeScene {
       this.hasNativePublication = true;
       this.preparedAnchors = Object.freeze(preparedAnchors);
       this.rebuildMarkers();
+      this.markerGroup.visible = !this.caoFoundationWithheld;
+      this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
       this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.pendingCaoDiagnostics = diagnostics;
       const dataset = this.renderer.domElement.dataset;
       dataset.caoFoundationStatus = "updating";
       dataset.caoFoundationIdentity = diagnostics.identity ?? "";
+      dataset.caoFoundationGeometryIdentity = diagnostics.staticGeometryIdentity ?? "";
       dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
       dataset.caoFoundationBatches = String(diagnostics.batches);
       dataset.caoFoundationVertices = String(diagnostics.vertices);
@@ -707,9 +787,21 @@ export class GlobeScene {
         0.12 + (environment.cloudCover ?? 0.5) * 0.34, 0.12, 0.42,
       );
       const age = snapshot.requestedAgeMa ?? snapshot.ageMa;
-      if (!this.hasNativePublication && age > 540) {
+      if (age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
+        const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
         this.renderer.domElement.dataset.caoFoundationStatus = "unsupported";
+        this.renderer.domElement.dataset.caoFoundationRequestedAgeMa = String(age);
         this.renderer.domElement.dataset.caoFoundationGeographySupport = "unsupported-editorial-uniform";
+        this.renderer.domElement.dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
+        this.renderer.domElement.dataset.caoQualifiedMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoUncertainMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoFormationUncertainMaterialCharts = "0";
+        this.renderer.domElement.dataset.caoModelInferredPoseCharts = "0";
+        this.renderer.domElement.dataset.caoOverriddenNativeCharts = "0";
+        this.renderer.domElement.dataset.caoFoundationNativeBoundarySegments = "0";
+        this.renderer.domElement.dataset.caoFoundationNativeBoundarySourceAgeMa = "";
+        this.renderer.domElement.dataset.caoFoundationTopologyOwnershipRings = "0";
+        this.renderer.domElement.dataset.caoFoundationTopologyOwnershipSourceAgeMa = "";
         this.renderer.domElement.dataset.surfaceStatus = "ready";
         this.onCaoFoundationState?.({ status: "unsupported", requestedAgeMa: age,
           displayedAgeMa: age, resolvedVertices: 0 });
@@ -762,18 +854,30 @@ export class GlobeScene {
   focus(coordinates: LonLat, requestedDistance?: number, kind: SpatialFocusKind = "area"): void {
     this.renderer.domElement.dataset.focusKind = kind;
     const direction = lonLatToVector3(coordinates).applyQuaternion(this.globeGroup.quaternion).normalize();
+    this.followTarget = direction.clone();
+    this.setFocusLockMarker(kind === "area" || kind === "place" ? direction : null);
+    const toDistance = requestedDistance === undefined ? this.camera.position.length()
+      : THREE.MathUtils.clamp(requestedDistance, 1.15, 5.8);
+    // Continuous scrub retargets only the follow aim; keep an in-flight blend alive
+    // without restarting distance so zoom is preserved while plates move.
+    if (this.focusAnimation !== null) {
+      this.focusAnimation.to = direction;
+      if (requestedDistance !== undefined) this.focusAnimation.toDistance = toDistance;
+      return;
+    }
     this.focusAnimation = {
       from: this.camera.position.clone().normalize(),
       to: direction,
       fromDistance: this.camera.position.length(),
-      toDistance: requestedDistance === undefined ? this.camera.position.length()
-        : THREE.MathUtils.clamp(requestedDistance, 1.15, 5.8),
+      toDistance,
       started: performance.now(),
     };
   }
 
   clearFocus(): void {
     this.focusAnimation = null;
+    this.followTarget = null;
+    this.setFocusLockMarker(null);
     this.cancelControlInertia();
     this.renderer.domElement.dataset.focusKind = "none";
   }
@@ -800,6 +904,8 @@ export class GlobeScene {
     this.controls.dispose();
     this.caoFoundationRenderer.disposeForRendererTeardown();
     this.markerTexture.dispose();
+    this.focusLockMarkerTexture.dispose();
+    this.focusLockMarker = null;
     this.scene.traverse((object) => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Line
           || object instanceof THREE.Points || object instanceof THREE.Sprite) {
@@ -837,8 +943,36 @@ export class GlobeScene {
     this.atmosphereMesh.material.color.set(hot ? 0xff6a2f : 0x87d5ff);
   }
 
+  private setFocusLockMarker(direction: THREE.Vector3 | null): void {
+    if (direction === null) {
+      if (this.focusLockMarker !== null) {
+        this.markerGroup.remove(this.focusLockMarker);
+        this.focusLockMarker.material.dispose();
+        this.focusLockMarker = null;
+      }
+      this.renderer.domElement.dataset.focusMarker = "false";
+      return;
+    }
+    if (this.focusLockMarker === null) {
+      const marker = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: this.focusLockMarkerTexture, color: 0xd7e8e2, transparent: true, opacity: 0.62,
+        alphaTest: 0.02, depthTest: true, depthWrite: false,
+      }));
+      marker.userData.focusLockMarker = true;
+      marker.userData.markerTargetPixels = 14;
+      marker.renderOrder = 6;
+      marker.frustumCulled = false;
+      this.focusLockMarker = marker;
+      this.markerGroup.add(marker);
+    }
+    this.focusLockMarker.position.copy(direction).multiplyScalar(1.032);
+    this.renderer.domElement.dataset.focusMarker = "true";
+  }
+
   private rebuildMarkers(): void {
     clearGroup(this.markerGroup);
+    // clearGroup disposes sprites; drop the stale focus-lock handle and recreate below.
+    this.focusLockMarker = null;
     const add = (id: string, direction: THREE.Vector3, address?: MaterialAddress) => {
       const marker = new THREE.Sprite(new THREE.SpriteMaterial({
         map: this.markerTexture, color: 0x98dddc, transparent: true, opacity: 0.84,
@@ -854,14 +988,53 @@ export class GlobeScene {
     if (this.preparedAnchors.length > 0) {
       for (const anchor of this.preparedAnchors) add(anchor.id, anchor.direction, anchor.address);
     } else if (!this.hasNativePublication && this.snapshot !== null
-        && (this.snapshot.requestedAgeMa ?? this.snapshot.ageMa) > 540) {
+        && (this.snapshot.requestedAgeMa ?? this.snapshot.ageMa) > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
       for (const id of this.snapshot.poiIds) {
         const coordinates = this.snapshot.poiCoordinates?.[id];
         if (coordinates !== undefined) add(id, lonLatToVector3(coordinates).normalize());
       }
     }
     this.setSelectedPoi(this.selectedPoiId);
+    if (this.followTarget !== null && this.renderer.domElement.dataset.focusKind === "area") {
+      this.setFocusLockMarker(this.followTarget);
+    } else if (this.followTarget !== null && this.renderer.domElement.dataset.focusKind === "place") {
+      this.setFocusLockMarker(this.followTarget);
+    } else {
+      this.renderer.domElement.dataset.focusMarker = "false";
+    }
     this.renderer.domElement.dataset.caoFoundationAnchorMarkers = String(this.preparedAnchors.length);
+  }
+
+  private updatePreparedAnchorMarkers(
+    markers: readonly CaoMotionAnchorMarker[],
+    requestedAgeMa: number,
+  ): void {
+    const next = Object.freeze(markers.map((marker) => Object.freeze({
+      id: marker.id,
+      direction: new THREE.Vector3(...gplatesToRendererDirection(numberScalarOps, marker.direction)).normalize(),
+      address: marker.address,
+    })));
+    const existing = new Map(this.markerGroup.children.flatMap((child) => {
+      const id = child.userData.poiId;
+      return typeof id === "string" ? [[id, child] as const] : [];
+    }));
+    const sameSet = existing.size === next.length && next.every((marker) => existing.has(marker.id));
+    this.preparedAnchors = next;
+    if (!sameSet) {
+      this.rebuildMarkers();
+    } else {
+      for (const marker of next) {
+        const sprite = existing.get(marker.id)!;
+        sprite.position.copy(marker.direction).multiplyScalar(1.028);
+        sprite.userData.materialAddress = marker.address;
+      }
+      if (this.followTarget !== null && (this.renderer.domElement.dataset.focusKind === "area"
+          || this.renderer.domElement.dataset.focusKind === "place")) {
+        this.setFocusLockMarker(this.followTarget);
+      }
+      this.renderer.domElement.dataset.caoFoundationAnchorMarkers = String(next.length);
+    }
+    this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(requestedAgeMa);
   }
 
   private rebuildOverlays(): void {
@@ -889,36 +1062,11 @@ export class GlobeScene {
       this.overlayGroup.add(line);
     }
     for (const label of REFERENCE_GUIDE_LABELS) {
-      const texture = createGuideLabelTexture(label.text);
-      const printed = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: texture, color: 0xb7ccc5, transparent: true, opacity: 0.48,
-        alphaTest: 0.025, depthTest: true, depthWrite: false,
-      }));
-      const direction = lonLatToVector3(label.coordinates).normalize();
-      printed.position.copy(direction).multiplyScalar(1.0018);
-      printed.scale.set(0.25, 0.042, 1);
-      printed.renderOrder = 2.9;
-      printed.userData.overlayLayer = "guides";
-      printed.userData.guideLabelDirection = direction;
-      printed.userData.ownedTexture = texture;
-      this.overlayGroup.add(printed);
+      this.overlayGroup.add(createCurvedGuideLabelMesh(label));
     }
-    for (const coordinates of REFERENCE_GUIDE_POLES) {
-      const direction = lonLatToVector3(coordinates).normalize();
-      const texture = createPoleMarkerTexture();
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: texture, transparent: true, opacity: 0.96, alphaTest: 0.025,
-        depthTest: true, depthWrite: false,
-      }));
-      sprite.position.copy(direction).multiplyScalar(1.00011);
-      sprite.scale.setScalar(0.05);
-      sprite.renderOrder = 3;
-      sprite.userData.overlayLayer = "guides";
-      sprite.userData.guideLabelDirection = direction;
-      sprite.userData.guidePoleMarker = true;
-      sprite.userData.ownedTexture = texture;
-      this.overlayGroup.add(sprite);
-    }
+    // Flat polar sector ticks on the sphere — short meridian marks, not upright sprites.
+    this.overlayGroup.add(createPolarSectorTickLines(1));
+    this.overlayGroup.add(createPolarSectorTickLines(-1));
     this.renderer.domElement.dataset.referenceGuideVisible = "true";
   }
 
@@ -927,15 +1075,11 @@ export class GlobeScene {
     this.guideInverseGlobeQuaternion.copy(this.globeGroup.quaternion).invert();
     this.guideCameraDirection.copy(this.camera.position).normalize()
       .applyQuaternion(this.guideInverseGlobeQuaternion);
-    const scale = THREE.MathUtils.clamp(this.camera.position.length() / 1.38, 1, 2.8);
     for (const child of this.overlayGroup.children) {
       const direction = child.userData.guideLabelDirection as THREE.Vector3 | undefined;
       if (direction === undefined) continue;
       child.visible = isReferenceDirectionAboveHorizon(direction.dot(this.guideCameraDirection),
         this.camera.position.length(), 1.03, child.userData.guidePoleMarker === true ? 0 : 0.08);
-      if (child instanceof THREE.Sprite && child.userData.guidePoleMarker === true) {
-        child.scale.setScalar(0.05 * scale);
-      }
     }
   }
 
@@ -1020,6 +1164,7 @@ export class GlobeScene {
       ? sphereHit === undefined ? null : this.globeGroup.worldToLocal(sphereHit.point.clone()).normalize()
       : new THREE.Vector3(...caoHit.position).normalize();
     if (localDirection === null) return;
+    if (this.caoFoundationWithheld) return;
 
     if (this.renderer.domElement.dataset.focusKind !== "none") {
       this.onSelectSurface(vector3ToLonLat(localDirection), caoHit?.materialAddress);
@@ -1075,7 +1220,7 @@ export class GlobeScene {
       if (this.frameTimes.length > 300) this.frameTimes.shift();
     }
     this.controls.autoRotate = this.autoRotate && !this.reducedMotion.matches
-      && this.focusAnimation === null && !this.cameraInteractionActive;
+      && this.focusAnimation === null && this.followTarget === null && !this.cameraInteractionActive;
     this.controls.update();
     if (this.focusAnimation !== null) {
       const focus = this.focusAnimation;
@@ -1086,6 +1231,14 @@ export class GlobeScene {
         THREE.MathUtils.lerp(focus.fromDistance, focus.toDistance, eased)));
       this.camera.lookAt(0, 0, 0);
       if (progress >= 1) this.focusAnimation = null;
+    } else if (this.followTarget !== null && !this.cameraInteractionActive) {
+      // Keep locked material under the view while age scrubbing reconstructs pose.
+      const distance = this.camera.position.length();
+      const current = this.camera.position.clone().normalize();
+      const blend = this.reducedMotion.matches ? 1 : Math.min(1, Math.max(0.08, frameTime * 0.01));
+      const direction = current.lerp(this.followTarget, blend).normalize();
+      this.camera.position.copy(direction.multiplyScalar(distance));
+      this.camera.lookAt(0, 0, 0);
     }
     const nextDetail: SurfaceDetail = this.effectiveQuality === "low"
       ? "coarse" : this.camera.position.length() <= 1.5 ? "regional" : "coarse";
@@ -1120,8 +1273,9 @@ export class GlobeScene {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Cao foundation render failed";
       this.pendingCaoDiagnostics = null;
-      this.caoFoundationRenderer.clear();
-      this.hasNativePublication = false;
+      // Keep the last published foundation visible. Clearing here permanently
+      // blanks the globe when App still holds a revision (no automatic republish),
+      // which showed up when scrubbing to today (0 Ma).
       this.renderer.domElement.dataset.caoFoundationStatus = "error";
       this.renderer.domElement.dataset.surfaceStatus = "error";
       this.onCaoFoundationState?.({ status: "error", error: message });

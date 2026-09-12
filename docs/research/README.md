@@ -16,6 +16,7 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 
 | Memo | What it resolves |
 | --- | --- |
+| [Cao Caribbean / Panama / Cuba](cao-caribbean-panama-cuba.md) | 0 Ma diagnosis: Cuba layers correct; oversized Cao Jamacia shelf and missing Panama 229/230 coasts explain the isthmus look |
 | [Cao foundation adoption](reconstruction-cao-foundation-adoption.md) | Current native Cao scope, source semantics, actual-app integration evidence and remaining acceptance work |
 | [Regional material model lineage](regional-material-model-lineage.md) | Documented 410 Ma reconstruction junction, coastline versus continental coverage, and additional native COB candidates |
 | [Regional material correction review](regional-material-corrections-review.md) | Independent review of the five regional material inputs, guarded native replacements, lifecycle and identity checks, mutation evidence, and current validation status |

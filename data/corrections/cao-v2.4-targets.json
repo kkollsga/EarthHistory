@@ -1,7 +1,21 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceCollection": "shapes_coasts.gpmlz",
   "sourceSha256": "c660bc074aa84b366600d81d7ccf3a45658db81ab8cdd8f6bda26e094c0dc71f",
+  "coordinateFrame": {
+    "absoluteFrameId": "palaeomagnetic",
+    "anchorPlateId": 0,
+    "axisConvention": "gplates-x0e-y90e-znorth",
+    "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+    "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+  },
+  "topologySources": [
+    {"path": "250-0_plate_boundaries.gpml", "sha256": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4"},
+    {"path": "410-250_plate_boundaries.gpml", "sha256": "6516dbac4d7928e7ad71244b0bbabc65eb25e6e89dc79d4becb9a82a25a6fc91"},
+    {"path": "1000-410_plate_boundaries.gpml", "sha256": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1"},
+    {"path": "1800-1000_plate_boundaries.gpml", "sha256": "759a76605bc907197928214f4101403dd6221e7ba8d4ecacde57999bc3675dce"},
+    {"path": "TopologyBuildingBlocks.gpml", "sha256": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297"}
+  ],
   "geometryHashEncoding": "earthhistory-cao-staged-geometry-f32le-xyz-rings-v1",
   "targets": [
     {

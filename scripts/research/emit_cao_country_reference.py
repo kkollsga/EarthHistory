@@ -4,12 +4,14 @@
 from __future__ import annotations
 import hashlib, json, math, struct
 from pathlib import Path
+from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
 
 ROOT = Path(__file__).resolve().parents[2]
 STAGE = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1"
 SOURCE = STAGE / "source-inputs/natural-earth-countries.geojson"
-OUT = STAGE / "full-package"
+DEFAULT_OUT = STAGE / "full-package"
+OUT = DEFAULT_OUT
 MODEL = ROOT.parent / "EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
 SOURCE_SHA = "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f"
 MAX_EDGE = math.radians(1)
@@ -35,7 +37,9 @@ def rings(geometry):
         for polygon in geometry["coordinates"]: yield from polygon
 
 
-def main():
+def main(out: Path | None = None):
+    global OUT
+    OUT = Path(out) if out else DEFAULT_OUT
     assert sha(SOURCE) == SOURCE_SHA
     core_path=OUT/"core.json";core=json.loads(core_path.read_text());palette=json.loads((OUT/"motion-palette.json").read_text())
     static=list(pygplates.FeatureCollection(str(MODEL/"static_polygons.gpmlz")))
@@ -46,7 +50,7 @@ def main():
         if plate is None:continue
         oldest, youngest = feature.get_valid_time()
         validity = (max(0.0, youngest if math.isfinite(youngest) else 0.0),
-                    min(540.0, oldest if math.isfinite(oldest) else 540.0))
+                    min(CAO_SOURCE_OLDEST_MA, oldest if math.isfinite(oldest) else CAO_SOURCE_OLDEST_MA))
         for geometry in feature.get_all_geometries():
             if isinstance(geometry,pygplates.PolygonOnSphere):polygons.append((plate,str(feature.get_feature_id()),validity,geometry))
     entry_by_plate={}
@@ -125,4 +129,8 @@ def main():
     print(json.dumps({"charts":len(charts),"vertices":len(vertices),"segments":len(indices)//2,"unsupported":len(unsupported),"bytes":len(data)}))
 
 
-if __name__=="__main__":main()
+if __name__=="__main__":
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=None)
+    main(**vars(parser.parse_args()))

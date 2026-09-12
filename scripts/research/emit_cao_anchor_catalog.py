@@ -4,11 +4,13 @@
 from __future__ import annotations
 import hashlib, json, math
 from pathlib import Path
+from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
 
 ROOT=Path(__file__).resolve().parents[2]
 MODEL=ROOT.parent/"EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
-OUT=ROOT.parent/"EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
+DEFAULT_OUT=ROOT.parent/"EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
+OUT=DEFAULT_OUT
 POIS={
  "chengjiang-biota":((102.9,24.7),(517.32,518.74),30,"yang-chengjiang-2018"),
  "cairo-fossil-forest":((-74,42.3),(383,388),25,"stein-cairo-forest-2020"),
@@ -25,7 +27,9 @@ def asset(path):return {"url":path.name,"bytes":path.stat().st_size,"sha256":sha
 def xyz(lon,lat):
  a,b=math.radians(lat),math.radians(lon);return [math.cos(a)*math.cos(b),math.cos(a)*math.sin(b),math.sin(a)]
 
-def main():
+def main(out=None):
+ global OUT
+ OUT=Path(out) if out else DEFAULT_OUT
  core_path=OUT/"core.json";core=json.loads(core_path.read_text());palette=json.loads((OUT/"motion-palette.json").read_text())
  core["charts"]=[chart for chart in core["charts"] if chart["role"] not in ("poi-anchor","focus-anchor")]
  entries={}
@@ -43,7 +47,7 @@ def main():
    unsupported.append({"anchorId":anchor_id,"candidatePlateIds":plates,"reason":"missing-unique-supported-Cao-static-fragment"})
    continue
   plate=plates[0];feature=sorted((f for f in matches if f.get_reconstruction_plate_id(None)==plate),key=lambda f:str(f.get_feature_id()))[0]
-  oldest,youngest=feature.get_valid_time();validity=(max(0,youngest if math.isfinite(youngest) else 0),min(540,oldest if math.isfinite(oldest) else 540))
+  oldest,youngest=feature.get_valid_time();validity=(max(0,youngest if math.isfinite(youngest) else 0),min(CAO_SOURCE_OLDEST_MA,oldest if math.isfinite(oldest) else CAO_SOURCE_OLDEST_MA))
   bindings=[{"paletteId":palette["id"],"entryId":entry["entryId"],"validTimeMa":{
               "youngest":max(validity[0],entry["youngestAgeMa"]),"oldest":min(validity[1],entry["oldestAgeMa"])}}
             for entry in entries[plate] if max(validity[0],entry["youngestAgeMa"])<=min(validity[1],entry["oldestAgeMa"])]
@@ -70,4 +74,8 @@ def main():
  (OUT/"anchor-compiler-report.json").write_text(json.dumps({"supported":len(anchors),"unsupported":unsupported},indent=2)+"\n")
  print(json.dumps({"supported":len(anchors),"unsupported":unsupported,"catalogSha256":sha(path)}))
 
-if __name__=="__main__":main()
+if __name__=="__main__":
+ import argparse
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument("--out", type=Path, default=None)
+ main(**vars(parser.parse_args()))

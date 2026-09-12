@@ -1,11 +1,46 @@
-# Regional material corrections: final independent review
+# Regional material corrections: integrated release review
 
-Reviewed 2026-09-12T17:35:00Z against Cao v2.4 correction catalog SHA-256
-`17c377d61694e304d99c071b9afb8db836dc4a782102e105999001602c3b08d7`.
+Reviewed 2026-09-12T18:55:09Z as the integrated EarthHistory v0.1.4 release
+candidate against Cao v2.4 correction catalog SHA-256 `a173bdaa3336564ffcd820f78090bbf11a74c2fce1dcda0986ebb176a1459023`.
 The review covers the seven regional operations, the two exact native-chart
 replacements, their direct consumers, and the final static package. It does not
 turn a material footprint into a palaeoshoreline, exposure map, or precise
 terrane reconstruction.
+
+## Full-domain baseline rebase
+
+The correction catalog remains qualified only over 0–540 Ma while the native
+layered Cao package now spans 0–1800 Ma. All 90 tracked coastline targets retain
+their source feature, plate, lifecycle, and staged-geometry hashes. The native
+land binary retains its 149,492 vertices and 213,117 triangles byte for byte;
+the shelf batch is a separate native continental-outline layer. The full
+topology aggregate is
+`3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c`;
+the target catalog records its five-file union and constituent SHA-256 values.
+
+The upstream core mislabeled all 2,921 coastline charts as continental-outline
+evidence. The corrected core SHA-256 is
+`cf5e863f16bd80169aff097d39016a8de7a2e579277038d37e4dc35f5cdb2223`.
+An exact structural diff changes only each coastline chart's evidence
+limitation and surface-evidence reason; geometry assets, chart identity,
+lifecycles, bindings, batches, and checkpoints are unchanged.
+
+The full-domain palette also exposed a sparse-interpolation defect at
+fractional ages, including 402.5 Ma. Twenty-four affected native entries retain
+their IDs, intervals, and every old sample value while gaining 22,708 exact
+source-derived intermediate samples (454,160 bytes). Nine dedicated correction
+entries add 404 samples over 410–540 Ma, with no nearest-entry holding. The
+resulting palette catalog and binary SHA-256 values are
+`aeb8daefa5b7c95afbfb755ebb8e9f33873454dafbec62943c99512d1c0f7217` and
+`e4eb223ef765b62ea19fc65ff50f532a127f837699f626ec6c910c52cfac94ed`.
+Against the unchanged pinned rotation aggregate
+`80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f`,
+0.025 Ma probes across every refined span peak at 0.000003366 rad and all
+tracked-target and correction checks—including 402.5, 409, 410, 410.001,
+430, 430.001, 505±0.000001, and 540 Ma—peak at 0.000009339 rad, below the
+existing 0.00001 rad limit. The machine-readable
+`cao-correction-baseline-rebase-proof.json` and
+`cao-correction-motion-oracle.json` preserve the exact deltas and samples.
 
 ## Regional result and remaining evidence gaps
 
@@ -152,14 +187,14 @@ hemisphere.
 
 The catalog contains seven operations, 84 charts, two overrides, and six pose
 alignment witnesses. Its qualified batch has 7,850 vertices / 9,291 triangles;
-the gray uncertainty batch has 11,196 / 12,738. With 149,492 native land
-vertices, 213,117 native triangles, and 20,036 country vertices / 10,018 line
-segments, the complete static resource is 188,574 vertices and 245,164
-primitives across three spatial batches plus one line batch. This is below the
-measured 190,000-vertex and 246,000-primitive package limits. The latter was
-recorded before final performance measurement after the first expanded build
-showed that 4,722 additional triangles were required to preserve the source
-boundaries at the unchanged 400 m display shell.
+the gray uncertainty batch has 11,196 / 12,738. The layered native package has
+153,904 shelf vertices / 251,187 triangles and 149,492 land vertices / 213,117
+triangles. With corrections it contains 322,442 spatial vertices and 486,333
+triangles. The upstream country-reference core contributes 20,028 vertices /
+10,014 segments, for 342,470 aggregate vertices and 496,347 triangle/line
+primitives. The earlier correction checkpoint contained 20,036 / 10,018; the
+8-vertex / 4-segment difference is already present in `origin/main` and is not
+loss from correction remapping.
 
 The first expanded build left 559 of 17,307 correction triangles below the
 opaque globe because ear-clipping diagonals reached 10.9304°. The emitter now
@@ -185,44 +220,79 @@ surfaces at all three positions. Their matched native panels establish that
 the rejected voids came from correction-triangle occlusion rather than source
 or native geometry gaps.
 
-## Independent checks
+## Integrated release acceptance
 
-The final focused TypeScript run passed five files and 24 tests covering exact
-override suppression, 0/0.001/1/410/410.001 lifecycles, stable line resources,
-country-domain activation, saved-address remap, mutation rejection, uncertainty
-batches/counters, package validation, native picking precedence, and regional
-coverage. The correction mutation self-test passed, the offline source oracle
-validated all five regional manifests, and the combined regional Python run
-passed all 48 tests. `npm run typecheck` passed. The deterministic `make gate`
-inside the final `make gate-full` run reported 24 files / 98 tests and all 555
-application artifacts; all 13 Playwright tests and the final artifact check also
-passed.
+The first integrated `make gate-full` attempt reached the browser phase and
+passed 15 of 17 cases. It remains a failed run: one case exposed a real race in
+which a delayed exact-checkpoint failure could withhold a newer successful
+motion frame, while the other still treated 720 Ma as unsupported after the Cao
+package domain expanded to 1800 Ma. The repaired runtime records the requested
+age with each prepare failure, ignores stale failures after a newer retarget,
+withholds stale exact overlays, anchors and picking during an active failure,
+and refreshes source-linked markers on every continuous motion frame. The
+domain test now uses 2200 Ma.
 
-The first final `make gate-full` attempt preserved three browser failures before
-stopping: the present-day support assertion expected
-`native-cao-foundation` and received `cao-plus-model-pose-material`; the 450 Ma
-label expected only the native checkpoint plus uncertain continuations and
-received the checkpoint plus four qualified, eleven continuation, two
-model-pose, and one formation-range charts; and the 410 Ma boundary expected
-native-only with zero corrections and received
-`cao-plus-formation-range-material` with 10 qualified, zero continuation, two
-formation-range, and 10 model-pose charts. These were stale expectations from
-the earlier additive-only package. The browser contract now checks those exact
-replacement/phase counts and preserves the native-boundary assertions. Its
-focused rerun passed all 13 tests.
+The focused recovery and continuous-motion set passed 5/5, and the synchronized
+delayed-failure regression passed 1/1. Removing the latest-age guard reproduced
+the stuck `waiting` state, proving the regression can fail; the guard was then
+restored. The final deterministic `make gate` passed 30 files / 118 tests, the
+production build, all 1,186 artifacts, and the 40.37 MiB distribution. Workflow
+lint with `actionlint .github/workflows/pages.yml` also passed. The release gate
+history therefore retains the 15/17 full-gate failure and uses the focused
+recovery plus final deterministic gate as the post-fix evidence; it does not
+claim a second blanket full-gate pass.
 
-The final headed Apple M4 comparison passed every written stop. At 411 Ma the
-native control and correction candidate measured 389.5 ms and 434.4 ms median
-ready time, a 44.9 ms or 11.53% increase. Both frame-time p50 medians were
-16.7 ms, both forced-WebGL2 runs passed, all nine paired captures completed
-without error, and the measured package contained 188,574 aggregate vertices
-and 245,164 triangle/line primitives. Independent and root visual review found
-the western false holes removed, modern 0 and 0.001 Ma coverage intact, Arctic
-native coverage unchanged at 409 Ma, the intended regional additions visible
-at 411 Ma, and the uncertain Novaya footprint visible in gray at 430.001 Ma.
-The faint 0.001 Ma western water pattern also occurs in the matched native
-control and is not a correction regression. No concrete defect remains in the
-final candidate.
+The frozen production artifact was then compared on Apple M4 Metal with the
+exact upstream native-data manifest, core, and motion-palette bytes pinned at
+commit `6af9bd9ca7836adb58eb658d37b2f7743b9de68c`. Both sides used the same final
+frontend renderer, so this controls the integrated data addition rather than
+claiming comparison with previously deployed JavaScript. At 411 Ma, native
+control and candidate median ready times were 562.7 ms and 586.0 ms: a 23.3 ms
+or 4.14% increase, within the prospective `max(250 ms, 20%)` stop. Stationary,
+409.01–410.99 Ma seam-scrub, 0.001–1 Ma modern-scrub, and forced-WebGL2 seam
+p50 values were all 16.7 ms. Every requested scrub age was evaluated in the
+same document with at most `2.85e-13` Ma error and one unchanged static geometry
+identity.
+
+The candidate measured 322,442 spatial vertices / 486,333 triangles and 20,028
+country vertices / 10,014 unique segments: 342,470 aggregate vertices, 496,347
+unique primitives, and 506,361 drawn triangle/line primitives when the country
+underlay and stroke are counted separately. It used four spatial plus one
+country storage batches and six base draw passes. Candidate active source bytes
+at 411 Ma exceeded the pinned native control by 1,265,469 bytes. The native
+0/410/411 anchors, candidate 540/1000/1800 domain probes, correction inactivity
+beyond 540 Ma, automatic WebGPU path, and two forced-WebGL2 runs all passed.
+
+All nine same-age, same-camera pairs completed without console errors. The
+release coordinator accepted each visual: the modern 0/0.001 Ma western
+replacement remains continuous without false holes; the 0.001 Ma pale-ocean
+pattern also occurs in the native control; the uncertain Novaya continuation is
+visible at 430.001 Ma; Arctic native coverage is preserved at 409 Ma; and the
+411 Ma additions and western replacements are intended. Image hashes, compact
+diagnostics, stop results, machine metadata, and the tracked bounded harness
+are retained in `regional-material-corrections-performance.json`. No concrete
+defect remains in the integrated release candidate.
+
+## Pre-rebase complete-regional checkpoint
+
+Before the full-domain native rebase, the focused TypeScript run passed five
+files and 24 tests covering exact override suppression, 0/0.001/1/410/410.001
+lifecycles, stable line resources, country-domain activation, saved-address
+remap, mutation rejection, uncertainty batches/counters, package validation,
+native picking precedence, and regional coverage. The correction mutation
+self-test passed, the offline source oracle validated all five regional
+manifests, and the combined regional Python run passed all 48 tests. That
+checkpoint's `make gate-full` reported 24 files / 98 tests, all 555 application
+artifacts, 13/13 Playwright cases, and a passing final artifact check.
+
+The checkpoint's first full-gate attempt preserved three browser failures:
+stale expectations for present-day model-pose support, 450 Ma regional
+phase-counts, and the exact 410 Ma replacement boundary. Its corrected focused
+rerun passed 13/13. The headed Apple M4 comparison then measured 389.5 ms versus
+434.4 ms median ready time, equal 16.7 ms frame-time p50, two passing forced
+WebGL2 runs, nine accepted image pairs, 188,574 aggregate vertices, and 245,164
+triangle/line primitives. Those numbers and image hashes remain historical
+evidence for the pre-rebase package; they are not the final v0.1.4 acceptance.
 
 ## Historical first-round checkpoint
 

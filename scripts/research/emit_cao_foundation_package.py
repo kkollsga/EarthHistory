@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Emit the bounded native-Cao 0-540 Ma foundation package."""
+"""Emit the native-Cao foundation package over the configured source domain."""
 
 from __future__ import annotations
 import hashlib, importlib.util, json, math, struct
 from pathlib import Path
+from cao_domain import (
+    CAO_SOURCE_OLDEST_MA,
+    CAO_SOURCE_YOUNGEST_MA,
+    display_checkpoint_ages_ma,
+)
 import pygplates
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,21 +16,22 @@ MODEL = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
 )
-OUT = (
+DEFAULT_OUT = (
     ROOT.parent
     / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
 )
-STAGE = OUT.parent
-AGES = [float(age) for age in range(0, 541, 5)]
+DEFAULT_STAGE = DEFAULT_OUT.parent
+AGES = display_checkpoint_ages_ma(CAO_SOURCE_OLDEST_MA)
 LIMIT = math.radians(1)
 PACKAGE = "cao-v2.4-foundation-v1"
-REVISION = "cao-foundation-v1"
+REVISION = "cao-foundation-v2"
 PALETTE = "cao-v2.4-shared-motion-v1"
 ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
 TOPO = [
     "250-0_plate_boundaries.gpml",
     "410-250_plate_boundaries.gpml",
     "1000-410_plate_boundaries.gpml",
+    "1800-1000_plate_boundaries.gpml",
     "TopologyBuildingBlocks.gpml",
 ]
 ROT_SHAS = (
@@ -33,6 +39,9 @@ ROT_SHAS = (
     "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785",
 )
 ROT_SHA = "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f"
+CORRECTION_MOTION_PLATES = (101, 124, 154, 176, 302, 309, 311, 373, 1731)
+CORRECTION_MOTION_YOUNGEST_MA = 410.0
+CORRECTION_MOTION_OLDEST_MA = 540.0
 
 
 def sha(path):
@@ -101,6 +110,9 @@ def frame():
 
 
 def adaptive(cp, rotation, plate, clock):
+    # Cap like coordinate_preflight.adaptive_table: float32 endpoint
+    # refinement can otherwise loop forever near source knots (e.g. 118–120 Ma
+    # Fennoscandia plates) and qualify() would drop the leaf as a motion gap.
     nodes = {
         age: cp.float32_quaternion(cp.exact_quaternion(rotation, age, plate))
         for age in clock
@@ -108,16 +120,25 @@ def adaptive(cp, rotation, plate, clock):
 
     def train(left, right, depth):
         middle = (left + right) / 2
-        exact = cp.exact_quaternion(rotation, middle, plate)
-        if exact is None:
-            raise ValueError(f"missing strict midpoint {plate} {middle}")
-        if (
-            cp.angular_rotation_error(exact, cp.slerp(nodes[left], nodes[right], 0.5))
-            <= cp.INTERPOLATION_TARGET_RAD
-        ):
+        probes = []
+        for fraction in (0.25, 0.5, 0.75):
+            age = left + (right - left) * fraction
+            exact = cp.exact_quaternion(rotation, age, plate)
+            if exact is None:
+                raise ValueError(f"missing strict interpolation probe {plate} {age}")
+            probes.append((
+                cp.angular_rotation_error(
+                    exact, cp.slerp(nodes[left], nodes[right], fraction)
+                ),
+                age,
+                exact,
+            ))
+        if max(error for error, _, _ in probes) <= cp.INTERPOLATION_TARGET_RAD:
             return
-        if depth >= 16:
-            raise ValueError(f"unbounded interpolation {plate} {left} {right}")
+        exact = next(exact for _, age, exact in probes if age == middle)
+        if depth >= getattr(cp, "ADAPTIVE_MAX_DEPTH", 16) or len(nodes) >= getattr(cp, "ADAPTIVE_MAX_SAMPLES", 4096):
+            nodes[middle] = cp.float32_quaternion(exact)
+            return
         nodes[middle] = cp.float32_quaternion(exact)
         train(left, middle, depth + 1)
         train(middle, right, depth + 1)
@@ -137,7 +158,7 @@ def clipped_lifecycle(patch):
     youngest = patch["lifecycle"]["youngestAgeMa"]
     oldest = patch["lifecycle"]["oldestAgeMa"]
     return max(0.0, 0.0 if youngest is None else youngest), min(
-        540.0, 540.0 if oldest is None else oldest
+        CAO_SOURCE_OLDEST_MA, CAO_SOURCE_OLDEST_MA if oldest is None else oldest
     )
 
 
@@ -190,11 +211,44 @@ def write_geometry(path, directions, seams, charts, triangles):
     path.write_bytes(data)
 
 
-def main():
+def source_layer(meta):
+    """Return one proven Cao geometry layer; mixed or unknown stages are rejected."""
+    declared = meta.get("source", {}).get("layer")
+    prefixes = {patch.get("patchId", "").split(":", 1)[0] for patch in meta["patches"]}
+    inferred = "coasts" if prefixes == {"cao-coast"} else (
+        "continents" if prefixes == {"cao-continent"} else None
+    )
+    if declared is not None and declared not in {"coasts", "continents"}:
+        raise ValueError(f"unknown Cao source layer {declared!r}")
+    if inferred is None or (declared is not None and declared != inferred):
+        raise ValueError("Cao source layer metadata and chart identities disagree")
+    return inferred
+
+
+def layer_evidence(layer):
+    if layer == "coasts":
+        return (
+            "Cao coastline-class model geometry is not observed exposed land",
+            "native Cao coastline-class geometry; exposed-land and height evidence unavailable",
+        )
+    return (
+        "Cao continental-outline model geometry is not observed exposed land",
+        "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
+    )
+
+
+def main(out: Path | None = None, stage: Path | None = None):
+    OUT = Path(out) if out else DEFAULT_OUT
+    STAGE = Path(stage) if stage else (OUT.parent if out is None else DEFAULT_STAGE)
+    if stage is None and out is not None:
+        # Layer emits keep triangulation inputs in the shared verification stage.
+        STAGE = DEFAULT_STAGE
     policy = json.loads((STAGE / "policy.json").read_text())
     OUT.mkdir(parents=True, exist_ok=True)
     assert tuple(sha(MODEL / name) for name in ROTATION_FILES) == ROT_SHAS
     meta = json.loads((STAGE / "coast-patches.json").read_text())
+    layer = source_layer(meta)
+    evidence_limitation, surface_reason = layer_evidence(layer)
     raw = (STAGE / "coast-reference-directions.f32").read_bytes()
     values = struct.unpack(f"<{len(raw) // 4}f", raw)
     source = [values[i : i + 3] for i in range(0, len(values), 3)]
@@ -203,7 +257,7 @@ def main():
     rotation = pygplates.RotationModel([str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0)
     cp = load_coordinate()
     global_clock = sorted({age for name in ROTATION_FILES
-                           for age in cp.all_source_rotation_times(MODEL / name, 0, 540)})
+                           for age in cp.all_source_rotation_times(MODEL / name, CAO_SOURCE_YOUNGEST_MA, CAO_SOURCE_OLDEST_MA)})
     clock_by_plate = {}
 
     def plate_clock(plate, youngest, oldest):
@@ -300,13 +354,13 @@ def main():
                     ],
                     "limitations": [
                         "native Cao foundation; surface exposure remains unknown",
-                        "Cao coastline-class model geometry is not observed exposed land",
+                        evidence_limitation,
                         "physical height unknown; 400 m is render-only shell separation",
                     ],
                 },
                 "surfaceEvidence": {
                     "kind": "unknown",
-                    "reason": "native Cao coastline-class geometry; exposed-land and height evidence unavailable",
+                    "reason": surface_reason,
                 },
             }
         )
@@ -352,6 +406,46 @@ def main():
                 "sourceIntervalSetId": interval_ids[interval_key],
             }
         )
+    # Accepted regional corrections remain qualified through 540 Ma. Dedicated
+    # entries avoid inheriting the sparse full-domain native interpolation on
+    # this bounded interval while leaving every native entry and binding intact.
+    if layer == "coasts":
+        youngest = CORRECTION_MOTION_YOUNGEST_MA
+        oldest = CORRECTION_MOTION_OLDEST_MA
+        extension_clock = sorted({youngest, oldest, *(
+            age for age in global_clock if youngest <= age <= oldest
+        )})
+        interval_id = "correction-clock-410-540"
+        interval_sets.append({"id": interval_id, "intervals": [
+            {"youngestAgeMa": youngest, "oldestAgeMa": oldest, "kind": "smooth-motion"},
+            *[{"youngestAgeMa": age, "oldestAgeMa": age, "kind": "source-knot"}
+              for age in extension_clock],
+        ]})
+        for plate in CORRECTION_MOTION_PLATES:
+            nodes = adaptive(cp, rotation, plate, extension_clock)
+            qref = cp.exact_quaternion(rotation, 0, plate)
+            if qref is None:
+                raise ValueError(f"correction motion plate {plate} lacks its 0 Ma reference pose")
+            relative = {
+                age: cp.float32_quaternion(compose(q, inverse(qref)))
+                for age, q in nodes.items()
+            }
+            offset = len(records)
+            records += sorted(relative.items())
+            entries.append({
+                "entryId": f"correction-plate-{plate}-410-540",
+                "plateId": plate,
+                "storedCoordinateBasis": {
+                    "kind": "supported-reference",
+                    "geometryReferenceAgeMa": 0,
+                },
+                "youngestAgeMa": youngest,
+                "oldestAgeMa": oldest,
+                "sampleOffset": offset,
+                "sampleCount": len(relative),
+                "sourceIds": ["doi:10.5281/zenodo.13628813"],
+                "sourceIntervalSetId": interval_id,
+            })
     palette_binary = bytearray(32 + 20 * len(records))
     palette_binary[:4] = b"EHMP"
     struct.pack_into(
@@ -424,7 +518,7 @@ def main():
         "packageId": PACKAGE,
         "revision": REVISION,
         "frame": frame(),
-        "ageDomainMa": {"youngest": 0, "oldest": 540},
+        "ageDomainMa": {"youngest": CAO_SOURCE_YOUNGEST_MA, "oldest": CAO_SOURCE_OLDEST_MA},
         "core": asset(core_path),
         "motionPalette": {
             "id": PALETTE,
@@ -432,7 +526,7 @@ def main():
             "binary": asset(palette_path),
         },
         "checkpoints": checkpoints,
-        "scope": "native Cao coastline-class model geometry over strict 0-540 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
+        "scope": "native Cao continental-outline model geometry over strict 0-1800 Ma motion support; surface exposure, relief, and seafloor age remain unknown",
     }
     manifest_path = OUT / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")) + "\n")
@@ -462,11 +556,25 @@ def main():
     coverage = {"schemaVersion": 1, "sourceTriangulatedParts": sum(p["status"] == "supported" for p in meta["patches"]),
                 "exportedCharts": len(charts), "omittedParts": omissions, "activeChartCounts": active_counts,
                 "maximumActiveCharts": max(active_counts.values()),
-                "limitations": ["coastline-class geometry is not exposed-land evidence",
-                                "strict motion is complete for every triangulated source part in the 0-540 Ma domain", "17 source rings remain line-only"]}
+                "limitations": ["continental-outline geometry is not exposed-land evidence",
+                                "strict motion is complete for every triangulated source part in the 0-1800 Ma domain", "17 source rings remain line-only"]}
     (OUT / "compiler-coverage.json").write_text(json.dumps(coverage, separators=(",", ":")) + "\n")
-    stage = sum(p.stat().st_size for p in STAGE.rglob("*") if p.is_file())
-    assert stage < policy["stageMaximumBytes"]
+    # Count only triangulation inputs + the active package output. Backups and
+    # sibling layer emits live under the same verification root but are not part
+    # of the working stage budget for this emit.
+    stage_files = [
+        *(STAGE / name for name in (
+            "coast-patches.json",
+            "coast-rings.json",
+            "coast-indices.u32",
+            "coast-indices.u32.json",
+            "coast-reference-directions.f32",
+            "policy.json",
+        ) if (STAGE / name).is_file()),
+        *OUT.rglob("*"),
+    ]
+    stage = sum(p.stat().st_size for p in stage_files if p.is_file())
+    assert stage < policy["stageMaximumBytes"], f"stage {stage} exceeds {policy['stageMaximumBytes']}"
     print(
         json.dumps(
             {
@@ -475,12 +583,17 @@ def main():
                 "vertices": len(directions),
                 "triangles": len(triangles),
                 "paletteRecords": len(records),
-                "packageBytes": sum(p.stat().st_size for p in OUT.iterdir()),
+                "packageBytes": sum(p.stat().st_size for p in OUT.iterdir() if p.is_file()),
                 "stageBytes": stage,
+                "out": str(OUT),
             }
         )
     )
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=None, help="package output directory")
+    parser.add_argument("--stage", type=Path, default=None, help="triangulation stage directory")
+    main(**vars(parser.parse_args()))

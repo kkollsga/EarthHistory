@@ -2,6 +2,100 @@
 
 All notable changes to EarthHistory will be recorded here.
 
+## [0.1.4] - 2026-09-12
+
+### Added
+
+- Add source-qualified regional material corrections for northern Canada,
+  Pearya, Svalbard, Barents and western Laurentia, with static provenance,
+  licensing, uncertainty, validation and performance records.
+- Add a deterministic correction-package gate covering acquisition and
+  compilation contracts, source checksums, emitted geometry and manifests.
+
+### Changed
+
+- Ship the live cao-v2.4 package over the full compiled Cao source domain
+  (`ageDomainMa` 0–1800 Ma): 235 display checkpoints (5 Ma to 540 Ma, then
+  10 Ma), layered coastline-class land over continental-outline shelf, native
+  boundaries/ownership including `1800-1000_plate_boundaries.gpml`, and a
+  shared motion palette sampled on every qualified source knot plus bounded,
+  source-derived interior samples. Public transitive size stays under the
+  50 MB Pages budget without PaleoDEM bins.
+- Scrubbing continuously interpolates Cao plate motion from the resident shared
+  palette between display knots, retargeting the published foundation in place
+  instead of waiting for discrete prepare snaps. Adjacent checkpoints are
+  prefetched only as a bounded aid on top of that interpolation.
+- Timeline ranges are Phanerozoic (ICS 538.8–0 Ma) and Precambrian (authored
+  deep-time / live Cao oldest through today at 0 Ma), so Precambrian mode can
+  still scrub forward through the Phanerozoic; the Recent Earth range is removed.
+- Age-domain gating and continuous play follow the live package `ageDomainMa`
+  (cao-v2.4 declares 0–1800 Ma) rather than hard-coded ceilings.
+- Replace two materially misleading western North America native charts with
+  guarded, source-domain fragments whose lifecycles preserve independently
+  supported old material and withhold younger or unknown-age domains.
+- Remap affected modern-country reference segments to replacement domains and
+  expose correction evidence, status and limitations in the interface.
+
+### Fixed
+
+- Recover empty globe after Cao package promotes that keep the same filenames:
+  load verified assets with content-addressed `?h=<sha256>` URLs and `cache: no-store`
+  so a stale browser/CDN body cannot fail checksum verification against a newer
+  manifest (full-domain 0–1800 ship reused `cao-foundation-v1` paths).
+- Keep Fennoscandia (and other Eurasian plates) visible through 118–120 Ma:
+  cap adaptive refinement so the compiled palette retains explicit continuous
+  bindings, and reject any package binding gap instead of inventing a
+  nearest-endpoint pose.
+- Refine native and correction motion intervals with pinned source-derived
+  samples where endpoint interpolation exceeded the angular pose contract;
+  oracle checks stay below `1e-5` radians across the affected native entry
+  spans and correction bindings through 540 Ma.
+- Keep continents visible when scrubbing to today (0 Ma): retain the last
+  prepared foundation until the next exact-knot prepare is ready, withhold an
+  actively failed exact checkpoint, and ignore that failure after a later age
+  has successfully retargeted the surface.
+- Precambrian timeline range again spans deep time through today (0 Ma): the
+  scrubber is no longer clamped to ages older than ICS 538.8 Ma, and switching
+  into Precambrian mode keeps the current age instead of jumping to the Cambrian
+  base.
+- Stop flooding `history.replaceState` on every continuous age tick while
+  scrubbing or playing; coalesce explorer hash sync (~4 Hz) so Chromium does
+  not throttle navigation IPC and hang the tab, while globe motion still
+  interpolates every frame.
+- Complete the material location-lock follow path: camera tracks the tagged
+  Cao material through continuous scrub and chapter changes, with a subtle
+  on-globe marker and an Unlock control while focus is active.
+- Retarget source-linked globe markers on every continuous motion frame so
+  anchors remain aligned with the moving foundation between display knots.
+- Draw reference-guide labels as curved surface ribbons fixed in geographic
+  space and replace upright pole sprites with flat polar sector ticks on the
+  globe (globus-style guides).
+- Keep corrected material, picking and dependent country references aligned
+  through native precedence, source-age transitions and reconstructed motion.
+- Subdivide long spherical correction triangles so their rendered edges follow
+  the globe instead of visibly sagging through it.
+
+### Known limitations
+
+- Cao Caribbean / Panama at 0 Ma: Cuba land, shelf and `country:cub` are
+  correctly placed; the oversized Cao `Jamacia` continental outline and missing
+  Central/Eastern Panama (plates 230/229) coast/continent rings make the isthmus
+  look broken or “crossed”. See `docs/research/cao-caribbean-panama-cuba.md`.
+- This foundation deliberately uses neutral surfaces. Calibrated mountains,
+  bathymetry, shallow-sea masks, global seafloor ages and historical biome
+  detail are deferred; previous modern-only detail is no longer rendered.
+- Native coast-class polygons are model geography, not independently validated
+  exposed-land outlines. Unsupported country fragments and POIs are omitted.
+- Correction footprints describe supported material domains, not exposed land,
+  palaeoshorelines, elevation or exact terrane reconstructions. Northern
+  Canada, Pearya, Svalbard and Barents retain explicit uncovered target areas;
+  western replacements withhold material where source age or affinity remains
+  unresolved.
+- Display checkpoints coarsen to 10 Ma beyond 540 Ma so the Pages budget
+  remains reachable; continuous motion still follows the qualified source-knot
+  clock through 1800 Ma. Editorial chapter globe states may still apply where
+  authored narrative exceeds the compiled evidence for a scene.
+
 ## [0.1.3] - 2026-09-10
 
 ### Changed

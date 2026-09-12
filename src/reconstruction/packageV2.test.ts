@@ -86,6 +86,25 @@ describe("material correction catalog v1", () => {
         sourceIds: ["geology"], reason: "source-bounded domain replacement",
       }] } satisfies MaterialCorrectionCatalogV1;
     expect(() => validateMaterialCorrectionCatalogV1(overrideCatalog, manifest, core)).not.toThrow();
+    const segmentedNative = { ...nativeChart, motionBindings: [
+      { paletteId: "palette", entryId: "plate-younger", validTimeMa: { youngest: 0, oldest: 130 } },
+      { paletteId: "palette", entryId: "plate-older", validTimeMa: { youngest: 130, oldest: 410 } },
+    ] };
+    const segmentedReplacement = { ...replacement, motionBindings: segmentedNative.motionBindings };
+    const segmentedCountry = { ...countryChart, motionBindings: segmentedNative.motionBindings };
+    expect(() => validateMaterialCorrectionCatalogV1({ ...overrideCatalog,
+      charts: [catalog.charts[0]!, segmentedReplacement] }, manifest,
+    { ...core, charts: [segmentedNative, segmentedCountry] })).not.toThrow();
+    expect(() => validateMaterialCorrectionCatalogV1({ ...overrideCatalog,
+      charts: [catalog.charts[0]!, { ...segmentedReplacement, motionBindings: [
+        segmentedReplacement.motionBindings[0]!,
+        { ...segmentedReplacement.motionBindings[1]!, validTimeMa: { youngest: 131, oldest: 410 } },
+      ] }] }, manifest, { ...core, charts: [segmentedNative, segmentedCountry] })).toThrow();
+    expect(() => validateMaterialCorrectionCatalogV1({ ...overrideCatalog,
+      charts: [catalog.charts[0]!, { ...segmentedReplacement, motionBindings: [
+        { ...segmentedReplacement.motionBindings[0]!, entryId: "foreign" },
+        segmentedReplacement.motionBindings[1]!,
+      ] }] }, manifest, { ...core, charts: [segmentedNative, segmentedCountry] })).toThrow();
     expect(() => validateMaterialCorrectionCatalogV1({ ...overrideCatalog,
       nativeChartOverrides: [{ ...overrideCatalog.nativeChartOverrides![0]!,
         nativeTarget: { ...overrideCatalog.nativeChartOverrides![0]!.nativeTarget,

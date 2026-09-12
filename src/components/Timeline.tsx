@@ -4,6 +4,9 @@ import type { TimeSlice } from "../data";
 
 const CURVE = 5;
 
+/** ICS 2026/06 base-Cambrian / Phanerozoic base used for range switching. */
+export const PHANEROZOIC_MAX_MA = 538.8;
+
 export const sliderToAge = (value: number, maxAge: number) =>
   maxAge * ((Math.exp((value / 1000) * CURVE) - 1) / (Math.exp(CURVE) - 1));
 
@@ -30,6 +33,8 @@ interface TimelineProps {
   ageMa: number;
   geographicSourceAgeMa?: number;
   geographicSourceAgeBracketMa?: readonly [number, number];
+  /** Live Cao package domain; Precambrian oldest bound extends at least to this age. */
+  caoAgeDomainMa?: readonly [number, number];
   slices: TimeSlice[];
   playing: boolean;
   onPlayingChange: (playing: boolean) => void;
@@ -39,18 +44,16 @@ interface TimelineProps {
 }
 
 const EON_BOUNDARIES = [
-  { name: "Phanerozoic", youngest: 0, oldest: 538.8 },
-  { name: "Proterozoic", youngest: 538.8, oldest: 2500 },
+  { name: "Phanerozoic", youngest: 0, oldest: PHANEROZOIC_MAX_MA },
+  { name: "Proterozoic", youngest: PHANEROZOIC_MAX_MA, oldest: 2500 },
   { name: "Archean", youngest: 2500, oldest: 4031 },
   { name: "Hadean", youngest: 4031, oldest: 4567 },
 ];
 
-const PHANEROZOIC_MAX = 538.8;
-const RECENT_MAX = 2.58;
 const ERA_BOUNDARIES = [
   { name: "Cenozoic", youngest: 0, oldest: 66 },
   { name: "Mesozoic", youngest: 66, oldest: 251.902 },
-  { name: "Paleozoic", youngest: 251.902, oldest: PHANEROZOIC_MAX },
+  { name: "Paleozoic", youngest: 251.902, oldest: PHANEROZOIC_MAX_MA },
 ];
 const PERIOD_BOUNDARIES = [
   { name: "Quaternary", youngest: 0, oldest: 2.58 },
@@ -64,14 +67,10 @@ const PERIOD_BOUNDARIES = [
   { name: "Devonian", youngest: 358.86, oldest: 419.62 },
   { name: "Silurian", youngest: 419.62, oldest: 443.1 },
   { name: "Ordovician", youngest: 443.1, oldest: 486.85 },
-  { name: "Cambrian", youngest: 486.85, oldest: PHANEROZOIC_MAX },
-];
-const RECENT_BOUNDARIES = [
-  { name: "Holocene", youngest: 0, oldest: 0.0117 },
-  { name: "Pleistocene", youngest: 0.0117, oldest: RECENT_MAX },
+  { name: "Cambrian", youngest: 486.85, oldest: PHANEROZOIC_MAX_MA },
 ];
 
-type ScaleMode = "deep" | "phanerozoic" | "recent";
+type ScaleMode = "phanerozoic" | "precambrian";
 
 export function selectVisibleChapters(
   slices: TimeSlice[],
@@ -79,11 +78,17 @@ export function selectVisibleChapters(
   width: number,
   currentAge: number,
   linear = false,
+  minAge = 0,
 ) {
-  const sorted = [...slices].sort((left, right) => left.ageMa - right.ageMa);
+  const sorted = [...slices]
+    .filter((slice) => slice.ageMa >= minAge - 1e-9 && slice.ageMa <= maxAge + 1e-9)
+    .sort((left, right) => left.ageMa - right.ageMa);
   if (sorted.length <= 1) return sorted;
+  const span = Math.max(1e-9, maxAge - minAge);
   const position = (slice: TimeSlice) =>
-    ((linear ? slice.ageMa / maxAge : ageToSlider(slice.ageMa, maxAge) / 1000) * width);
+    ((linear
+      ? (slice.ageMa - minAge) / span
+      : ageToSlider(slice.ageMa - minAge, span) / 1000) * width);
   const current = sorted.reduce((closest, slice) =>
     Math.abs(slice.ageMa - currentAge) < Math.abs(closest.ageMa - currentAge) ? slice : closest,
   );
@@ -122,6 +127,7 @@ export function Timeline({
   ageMa,
   geographicSourceAgeMa,
   geographicSourceAgeBracketMa,
+  caoAgeDomainMa,
   slices,
   playing,
   onPlayingChange,
@@ -131,25 +137,36 @@ export function Timeline({
 }: TimelineProps) {
   const chaptersRef = useRef<HTMLDivElement>(null);
   const [scaleMode, setScaleMode] = useState<ScaleMode>(() =>
-    ageMa <= RECENT_MAX ? "recent" : ageMa <= PHANEROZOIC_MAX ? "phanerozoic" : "deep",
+    ageMa > PHANEROZOIC_MAX_MA ? "precambrian" : "phanerozoic",
   );
   const [chaptersWidth, setChaptersWidth] = useState(() => window.innerWidth - 92);
-  const deepMaxAge = Math.max(4567.3, ...slices.map((slice) => slice.ageMa));
-  const maxAge = scaleMode === "deep" ? deepMaxAge : scaleMode === "phanerozoic" ? PHANEROZOIC_MAX : RECENT_MAX;
-  const sliderPosition = (age: number) => scaleMode === "deep"
-    ? ageToSlider(age, deepMaxAge)
-    : (Math.min(maxAge, Math.max(0, age)) / maxAge) * 1000;
-  const sliderAge = (value: number) => scaleMode === "deep"
-    ? sliderToAge(value, deepMaxAge)
-    : (value / 1000) * maxAge;
+  const chapterDeepMax = Math.max(PHANEROZOIC_MAX_MA, ...slices.map((slice) => slice.ageMa));
+  const caoOldest = caoAgeDomainMa?.[1] ?? 0;
+  // Precambrian range mode keeps a deep-time scrubber from the greater of authored
+  // deep-time chapters and the live Cao package oldest age (never invented) all the
+  // way to today (0 Ma), so Phanerozoic ages stay reachable without leaving the mode.
+  const precambrianMaxAge = Math.max(chapterDeepMax, caoOldest, PHANEROZOIC_MAX_MA);
+  const rangeMin = 0;
+  const rangeMax = scaleMode === "phanerozoic" ? PHANEROZOIC_MAX_MA : precambrianMaxAge;
+  const span = Math.max(1e-9, rangeMax - rangeMin);
+  const linear = scaleMode === "phanerozoic";
+  const sliderPosition = (age: number) => {
+    const clamped = Math.min(rangeMax, Math.max(rangeMin, age));
+    if (linear) return ((clamped - rangeMin) / span) * 1000;
+    return ageToSlider(clamped - rangeMin, span);
+  };
+  const sliderAge = (value: number) => {
+    if (linear) return rangeMin + (value / 1000) * span;
+    return rangeMin + sliderToAge(value, span);
+  };
   const chapterMarks = useMemo(() => [...slices].sort((a, b) => a.ageMa - b.ageMa), [slices]);
   const visibleScaleChapters = useMemo(
-    () => scaleMode === "deep" ? chapterMarks : chapterMarks.filter((slice) => slice.ageMa <= maxAge),
-    [chapterMarks, maxAge, scaleMode],
+    () => chapterMarks.filter((slice) => slice.ageMa >= rangeMin - 1e-9 && slice.ageMa <= rangeMax + 1e-9),
+    [chapterMarks, rangeMax, rangeMin],
   );
   const visibleChapters = useMemo(
-    () => selectVisibleChapters(visibleScaleChapters, maxAge, chaptersWidth, ageMa, scaleMode !== "deep"),
-    [ageMa, chaptersWidth, maxAge, visibleScaleChapters],
+    () => selectVisibleChapters(visibleScaleChapters, rangeMax, chaptersWidth, ageMa, linear, rangeMin),
+    [ageMa, chaptersWidth, linear, rangeMax, rangeMin, visibleScaleChapters],
   );
   const ageDifference = geographicSourceAgeMa == null ? 0 : Math.abs(ageMa - geographicSourceAgeMa);
 
@@ -162,17 +179,25 @@ export function Timeline({
   }, []);
 
   useEffect(() => {
-    if (ageMa > PHANEROZOIC_MAX && scaleMode !== "deep") setScaleMode("deep");
-    else if (ageMa > RECENT_MAX && scaleMode === "recent") setScaleMode("phanerozoic");
+    if (ageMa > PHANEROZOIC_MAX_MA && scaleMode !== "precambrian") setScaleMode("precambrian");
+    else if (ageMa <= PHANEROZOIC_MAX_MA && scaleMode === "precambrian" && ageMa < PHANEROZOIC_MAX_MA - 1e-6) {
+      // Stay on Precambrian until the user switches; auto-follow only when jumping older.
+    }
   }, [ageMa, scaleMode]);
 
   const chooseScale = (next: ScaleMode) => {
     setScaleMode(next);
-    if (next === "recent" && ageMa > RECENT_MAX) onAgeChange(RECENT_MAX);
-    else if (next === "phanerozoic" && ageMa > PHANEROZOIC_MAX) onAgeChange(PHANEROZOIC_MAX);
+    // Leaving Precambrian for Phanerozoic clamps ages older than the ICS bound;
+    // entering Precambrian keeps the current age so the scrubber can still reach today.
+    if (next === "phanerozoic" && ageMa > PHANEROZOIC_MAX_MA) onAgeChange(PHANEROZOIC_MAX_MA);
   };
 
   const handlePercent = sliderPosition(ageMa) / 10;
+  const majorBands = scaleMode === "phanerozoic"
+    ? ERA_BOUNDARIES
+    : EON_BOUNDARIES.filter(
+      (unit) => unit.youngest < rangeMax + 1e-9 && unit.oldest > rangeMin - 1e-9,
+    );
 
   return (
     <section className="timeline" aria-label="Geological timeline">
@@ -208,12 +233,13 @@ export function Timeline({
             value={scaleMode}
             onChange={(event) => chooseScale(event.target.value as ScaleMode)}
           >
-            <option value="recent">Recent Earth</option>
             <option value="phanerozoic">Phanerozoic</option>
-            <option value="deep">Deep time</option>
+            <option value="precambrian">Precambrian</option>
           </select>
         </div>
-        <span className="timeline-direction">{scaleMode === "deep" ? "Nonlinear full history" : scaleMode === "phanerozoic" ? "Linear last 538.8 Ma" : "Linear last 2.58 Ma"}</span>
+        <span className="timeline-direction">{scaleMode === "phanerozoic"
+          ? `Linear ${formatAge(PHANEROZOIC_MAX_MA)}–present`
+          : `Nonlinear ${formatAge(precambrianMaxAge)}–present`}</span>
       </div>
 
       <div className="timeline-track-wrap">
@@ -230,7 +256,7 @@ export function Timeline({
           type="range"
           min="0"
           max="1000"
-          step="1"
+          step="any"
           value={sliderPosition(ageMa)}
           onChange={(event) => onAgeChange(sliderAge(Number(event.target.value)))}
           aria-label={`Geological age, ${formatAge(ageMa)}`}
@@ -259,11 +285,14 @@ export function Timeline({
           </span>
         ))}
       </div>
-      <div className={`geological-bands ${scaleMode}`} aria-label={scaleMode === "deep" ? "Geological eons" : scaleMode === "phanerozoic" ? "Geological eras and periods" : "Recent geological periods and epochs"}>
+      <div
+        className={`geological-bands ${scaleMode}`}
+        aria-label={scaleMode === "phanerozoic" ? "Geological eras and periods" : "Geological eons through deep time"}
+      >
         <div className="geological-band major-band">
-        {(scaleMode === "deep" ? EON_BOUNDARIES : scaleMode === "phanerozoic" ? ERA_BOUNDARIES : [{ name: "Quaternary", youngest: 0, oldest: RECENT_MAX }]).map((unit) => {
-          const start = sliderPosition(unit.youngest) / 10;
-          const end = sliderPosition(unit.oldest) / 10;
+        {majorBands.map((unit) => {
+          const start = sliderPosition(Math.max(rangeMin, unit.youngest)) / 10;
+          const end = sliderPosition(Math.min(rangeMax, unit.oldest)) / 10;
           return (
             <span
               key={`${unit.name}-${unit.youngest}`}
@@ -275,9 +304,9 @@ export function Timeline({
           );
         })}
         </div>
-        {scaleMode !== "deep" && (
+        {scaleMode === "phanerozoic" && (
           <div className="geological-band period-band">
-            {(scaleMode === "phanerozoic" ? PERIOD_BOUNDARIES : RECENT_BOUNDARIES).map((unit) => {
+            {PERIOD_BOUNDARIES.map((unit) => {
               const start = sliderPosition(unit.youngest) / 10;
               const end = sliderPosition(unit.oldest) / 10;
               return (
@@ -292,7 +321,9 @@ export function Timeline({
             })}
           </div>
         )}
-        <small className="scale-source">ICS 2026/06 · authored chapters</small>
+        <small className="scale-source">ICS 2026/06 · authored chapters{caoAgeDomainMa
+          ? ` · Cao ${formatAge(caoAgeDomainMa[0])}–${formatAge(caoAgeDomainMa[1])}`
+          : ""}</small>
       </div>
     </section>
   );

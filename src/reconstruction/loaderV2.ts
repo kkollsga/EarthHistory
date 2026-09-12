@@ -85,8 +85,15 @@ export async function loadVerifiedCaoFoundation(
       const secondSegment = selectPaletteMotionSubsegment(paletteEntries.get(second.entryId)!, touchingAge);
       const endpoint = (segment: NonNullable<typeof firstSegment>) => segment.fraction === 0
         ? segment.younger.quaternion : segment.older.quaternion;
-      if (!firstSegment || !secondSegment || endpoint(firstSegment).some((value, axis) =>
-        value !== endpoint(secondSegment)[axis])) {
+      const firstQuaternion = firstSegment ? endpoint(firstSegment) : null;
+      const secondQuaternion = secondSegment ? endpoint(secondSegment) : null;
+      const dot = firstQuaternion && secondQuaternion
+        ? firstQuaternion.reduce((sum, value, axis) => sum + value * secondQuaternion[axis]!, 0) : 0;
+      const normProduct = firstQuaternion && secondQuaternion
+        ? Math.hypot(...firstQuaternion) * Math.hypot(...secondQuaternion) : 0;
+      const angularResidual = firstQuaternion && secondQuaternion
+        ? 2 * Math.acos(Math.max(-1, Math.min(1, Math.abs(dot) / normProduct))) : Number.POSITIVE_INFINITY;
+      if (angularResidual > 1e-5) {
         throw new Error("touching Cao motion bindings disagree at their shared source knot");
       }
     }

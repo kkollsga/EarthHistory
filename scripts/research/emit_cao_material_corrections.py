@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 OUT = PUBLIC / "corrections/material-v1"
 CATALOG_ID = "earthhistory-cao-v2.4-material-corrections-v1"
-CATALOG_VERSION = "2"
+CATALOG_VERSION = "3"
 QUALIFIED_COLOR = [0.58, 0.52, 0.28]
 UNCERTAIN_COLOR = [0.34, 0.38, 0.35]
 MAX_EDGE_RADIANS = math.radians(1)
@@ -225,14 +225,53 @@ def palette_data():
     return manifest, catalog, records
 
 
-def entry_for(catalog, plate_id, youngest, oldest):
-    matches = [entry for entry in catalog["entries"] if entry["plateId"] == plate_id
-               and entry["youngestAgeMa"] <= youngest and entry["oldestAgeMa"] >= oldest]
-    if len(matches) != 1:
-        raise contract.CorrectionError(
-            f"plate {plate_id}: expected one baseline palette entry covering {youngest}-{oldest} Ma"
-        )
-    return matches[0]
+def entries_covering(catalog, plate_id, youngest, oldest):
+    """Return an unambiguous, gap-free palette partition for an interval."""
+    if oldest < youngest:
+        raise contract.CorrectionError(f"plate {plate_id}: reversed motion interval")
+    candidates = sorted(
+        (entry for entry in catalog["entries"] if entry["plateId"] == plate_id),
+        key=lambda entry: (entry["youngestAgeMa"], entry["oldestAgeMa"], entry["entryId"]),
+    )
+    if youngest == oldest:
+        matches = [entry for entry in candidates
+                   if entry["youngestAgeMa"] <= youngest <= entry["oldestAgeMa"]]
+        if not matches:
+            raise contract.CorrectionError(
+                f"plate {plate_id}: baseline palette does not cover {youngest} Ma"
+            )
+        return [(matches[0], youngest, oldest)]
+    selected = []
+    cursor = youngest
+    while cursor < oldest:
+        matches = [entry for entry in candidates
+                   if entry["youngestAgeMa"] <= cursor < entry["oldestAgeMa"]]
+        correction_matches = [entry for entry in matches
+                              if entry["entryId"].startswith("correction-plate-")]
+        native_matches = [entry for entry in matches
+                          if not entry["entryId"].startswith("correction-plate-")]
+        if cursor >= 410 and correction_matches:
+            matches = correction_matches
+        elif cursor < 410 and native_matches:
+            matches = native_matches
+        if len(matches) != 1:
+            raise contract.CorrectionError(
+                f"plate {plate_id}: expected one baseline palette entry at {cursor} Ma, "
+                f"found {len(matches)}"
+            )
+        entry = matches[0]
+        next_cursor = min(float(entry["oldestAgeMa"]), oldest)
+        if native_matches and cursor < 410 < next_cursor and correction_matches == []:
+            starts = [candidate["youngestAgeMa"] for candidate in candidates
+                      if candidate["entryId"].startswith("correction-plate-")
+                      and cursor < candidate["youngestAgeMa"] < next_cursor]
+            if starts:
+                next_cursor = min(next_cursor, min(starts))
+        selected.append((entry, cursor, next_cursor))
+        if next_cursor <= cursor:
+            raise contract.CorrectionError(f"plate {plate_id}: non-advancing motion partition")
+        cursor = next_cursor
+    return selected
 
 
 def quaternion_at(entry, records, age_ma):
@@ -246,6 +285,73 @@ def quaternion_at(entry, records, age_ma):
             return slerp(unit(younger[1:]), unit(older[1:]),
                          (target - younger[0]) / (older[0] - younger[0]))
     raise contract.CorrectionError(f"motion entry {entry['entryId']} has no sample bracketing {age_ma} Ma")
+
+
+def quaternion_for_plate_at(catalog, records, plate_id, age_ma, *, correction_preferred=False):
+    """Resolve a covered age; never hold a nearest palette entry across a gap."""
+    matches = [entry for entry in catalog["entries"] if entry["plateId"] == plate_id
+               and entry["youngestAgeMa"] <= age_ma <= entry["oldestAgeMa"]]
+    correction_matches = [entry for entry in matches
+                          if entry["entryId"].startswith("correction-plate-")]
+    if correction_preferred and correction_matches:
+        matches = correction_matches
+    if not matches:
+        raise contract.CorrectionError(f"plate {plate_id}: baseline palette does not cover {age_ma} Ma")
+    quaternions = [quaternion_at(entry, records, age_ma) for entry in matches]
+    reference = quaternions[0]
+    for candidate in quaternions[1:]:
+        cosine = abs(dot(unit(reference), unit(candidate)))
+        residual = 2 * math.acos(max(-1, min(1, cosine)))
+        if residual > 1e-5:
+            raise contract.CorrectionError(
+                f"plate {plate_id}: ambiguous baseline pose at {age_ma} Ma ({residual:.9g} radians)"
+            )
+    return reference
+
+
+def palette_bindings(catalog, plate_id, youngest, oldest):
+    return [
+        {
+            "paletteId": catalog["id"],
+            "entryId": entry["entryId"],
+            "validTimeMa": {
+                "youngest": binding_youngest,
+                "oldest": binding_oldest,
+            },
+        }
+        for entry, binding_youngest, binding_oldest in entries_covering(
+            catalog, plate_id, youngest, oldest
+        )
+    ]
+
+
+def chart_binding_signature(chart, palette_id, youngest, oldest):
+    bindings = sorted(
+        (binding for binding in chart.get("motionBindings", [])
+         if binding.get("paletteId") == palette_id),
+        key=lambda binding: (binding["validTimeMa"]["youngest"],
+                             binding["validTimeMa"]["oldest"], binding["entryId"]),
+    )
+    signature = []
+    cursor = youngest
+    while cursor < oldest:
+        matches = [binding for binding in bindings
+                   if binding["validTimeMa"]["youngest"] <= cursor
+                   < binding["validTimeMa"]["oldest"]]
+        if len(matches) != 1:
+            raise contract.CorrectionError(
+                f"{chart.get('chartId')}: expected one native motion binding at {cursor} Ma, "
+                f"found {len(matches)}"
+            )
+        binding = matches[0]
+        next_cursor = min(float(binding["validTimeMa"]["oldest"]), oldest)
+        signature.append({
+            "entryId": binding["entryId"],
+            "youngest": cursor,
+            "oldest": next_cursor,
+        })
+        cursor = next_cursor
+    return signature
 
 
 def polygons(geometry):
@@ -481,21 +587,20 @@ def native_override_rows(native_core):
                                  if chart["chartId"] == raw["nativeChart"]["chartId"]), None)
             if native_chart is None:
                 raise contract.CorrectionError(f"{raw.get('overrideId')}: native chart is missing")
-            native_bindings = native_chart.get("motionBindings", [])
+            if any(native_chart.get(key) != value for key, value in raw["nativeChart"].items()):
+                raise contract.CorrectionError(f"{raw.get('overrideId')}: native chart identity changed")
             suppression = raw["suppression"]["validTimeMa"]
-            native_binding = next((binding for binding in native_bindings
-                                   if binding["validTimeMa"]["youngest"] <= suppression["youngest"]
-                                   and binding["validTimeMa"]["oldest"] >= suppression["oldest"]), None)
-            if native_binding is None:
-                raise contract.CorrectionError(f"{raw.get('overrideId')}: native motion binding is missing")
+            native_signature = chart_binding_signature(
+                native_chart, "cao-v2.4-shared-motion-v1",
+                suppression["youngest"], suppression["oldest"],
+            )
             source_country_chart_ids = sorted(chart["chartId"] for chart in native_core["charts"]
                 if chart["role"] == "country-reference"
                 and target["sourceFeatureId"] in chart.get("sourceFeatureIds", [])
-                and any(binding["paletteId"] == native_binding["paletteId"]
-                        and binding["entryId"] == native_binding["entryId"]
-                        and binding["validTimeMa"]["youngest"] <= suppression["youngest"]
-                        and binding["validTimeMa"]["oldest"] >= suppression["oldest"]
-                        for binding in chart.get("motionBindings", [])))
+                and chart_binding_signature(
+                    chart, "cao-v2.4-shared-motion-v1",
+                    suppression["youngest"], suppression["oldest"],
+                ) == native_signature)
             if not source_country_chart_ids:
                 raise contract.CorrectionError(f"{raw.get('overrideId')}: source country consumers are missing")
             segment_bindings = country_segment_bindings(native_core, source_country_chart_ids, geojson)
@@ -525,8 +630,10 @@ def normalize_direction(direction, feature, palette, records):
     reference_age = feature["geometryReferenceAgeMa"]
     if reference_age == 0:
         return direction
-    entry = entry_for(palette, feature["pose"]["plateId"], 0, reference_age)
-    relative = quaternion_at(entry, records, reference_age)
+    relative = quaternion_for_plate_at(
+        palette, records, feature["pose"]["plateId"], reference_age,
+        correction_preferred=reference_age >= 410,
+    )
     normalized = rotate(inverse(relative), direction)
     round_trip = rotate(relative, normalized)
     error = math.degrees(math.acos(max(-1, min(1, dot(round_trip, direction)))))
@@ -543,16 +650,22 @@ def alignment_witnesses(rows, palette, records):
         reference_age = feature["geometryReferenceAgeMa"]
         if reference_age == 0:
             continue
-        pose_entry = entry_for(palette, feature["pose"]["plateId"], 0, 540)
         target_plate = feature["sourceBasis"]["targetPlateIds"][0]
-        target_entry = entry_for(palette, target_plate, reference_age, 540)
         for source in feature["pose"]["alignmentWitnesses"]:
             reference = lon_lat_direction(source["referenceLonLat"])
-            pose_reference = quaternion_at(pose_entry, records, reference_age)
+            pose_reference = quaternion_for_plate_at(
+                palette, records, feature["pose"]["plateId"], reference_age,
+                correction_preferred=reference_age >= 410,
+            )
             normalized = rotate(inverse(pose_reference), reference)
-            pose_411 = quaternion_at(pose_entry, records, 411)
-            target_reference = quaternion_at(target_entry, records, reference_age)
-            target_411 = quaternion_at(target_entry, records, 411)
+            pose_411 = quaternion_for_plate_at(
+                palette, records, feature["pose"]["plateId"], 411,
+                correction_preferred=True,
+            )
+            target_reference = quaternion_for_plate_at(
+                palette, records, target_plate, reference_age
+            )
+            target_411 = quaternion_for_plate_at(palette, records, target_plate, 411)
             palette_target_411 = rotate(compose(target_411, inverse(target_reference)), reference)
             independent = next(item for item in source["olderPoseComparisons"] if item["ageMa"] == 411)
             expected_411 = lon_lat_direction(independent["expectedLonLat"])
@@ -671,7 +784,6 @@ def chart(manifest, feature, phase, palette):
     intervals = {name: (youngest, oldest) for name, youngest, oldest
                  in contract.feature_phase_intervals(feature, feature["correctionFeatureId"])}
     youngest, oldest = intervals[phase]
-    entry = entry_for(palette, feature["pose"]["plateId"], youngest, oldest)
     feature_id = feature["correctionFeatureId"]
     correction_id = manifest["correctionId"]
     source_ids = [str(value) for value in feature["sourceIds"]]
@@ -698,8 +810,9 @@ def chart(manifest, feature, phase, palette):
         "fragmentOrCohortId": feature_id,
         "lifecycle": lifecycle,
         "geometryReferenceAgeMa": 0,
-        "motionBindings": [{"paletteId": palette["id"], "entryId": entry["entryId"],
-                            "validTimeMa": {"youngest": youngest, "oldest": oldest}}],
+        "motionBindings": palette_bindings(
+            palette, feature["pose"]["plateId"], youngest, oldest
+        ),
         "sourceFeatureIds": [target["sourceFeatureId"] for target in feature["targets"]],
         "sourceFeatureTypes": ["EarthHistoryDomainFragmentReplacement" if replacement is not None
                                else "EarthHistorySourceQualifiedMaterialCorrection"],

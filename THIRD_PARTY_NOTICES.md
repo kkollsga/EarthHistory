@@ -21,6 +21,41 @@ below apply only to the identified third-party software and datasets.
   domain. EarthHistory subdivides and binds present-day reference lines to Cao
   plate coordinates offline, retaining ambiguity and validity limitations.
   These reference lines do not represent historical political borders.
+- **Geological Survey of Canada Arctic geology** — Harrison et al. (2011),
+  [Geological Map of the Arctic, Map 2159A](https://doi.org/10.4095/287868),
+  and Harrison, Lynds, Ford and Rainbird (2016),
+  [Canadian Geoscience Map 80](https://doi.org/10.4095/297416), licensed under
+  the [Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada).
+  EarthHistory redistributes clipped and classified derivative geometry for
+  northern Canada, Pearya and the Barents region, with source-unit rules,
+  uncertainty and changes documented in the regional manifests. Contains
+  information licensed under the Open Government Licence – Canada; source:
+  Natural Resources Canada, Geological Survey of Canada. This derivative is
+  not affiliated with or endorsed by Natural Resources Canada.
+- **Norwegian Polar Institute, Geology, Svalbard — Geological units
+  1:750,000** —
+  [official service metadata](https://geodata.npolar.no/arcgis/rest/services/Temadata/G_Geologi_Svalbard_S250_S750/MapServer/10?f=pjson),
+  licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  EarthHistory redistributes a clipped old-material derivative; its model pose,
+  exposure and palaeoshoreline limits remain explicit. © Norwegian Polar
+  Institute.
+- **U.S. Geological Survey regional geology** — Lund et al. (2015),
+  [Data Series 898](https://doi.org/10.3133/ds898); Irwin and Wentworth (2012),
+  [Open-File Report 2012-1228](https://pubs.usgs.gov/publication/ofr20121228);
+  and Reed and Bush (2005),
+  [Generalized Geologic Map of the Conterminous United States](https://pubs.usgs.gov/atlas/geologic/).
+  USGS-authored U.S. Government data are generally public domain under
+  17 USC 105. EarthHistory clips and classifies these sources into western
+  Laurentia material-domain derivatives while preserving source-scale,
+  interpretation and warranty caveats.
+- **Northern Cordillera terrane compilation** — Colpron, Nelson and
+  collaborators, revised through 2015 by the British Columbia and Yukon
+  geological surveys,
+  [official open-data record](https://open.canada.ca/data/en/dataset/16d06638-87a8-40a4-8550-910370d2fd76),
+  licensed under the Open Government Licence – Canada. EarthHistory
+  redistributes clipped domain fragments for the western North America
+  correction; unit ages constrain material scenarios and do not establish
+  ancient pose, assembly time, surface exposure or elevation.
 
 ## Historical data and research
 

@@ -3,7 +3,7 @@ import type { FrameKey, MaterialAddress, MaterialLifecycle, MaterialPose, Motion
 
 const HEADER_BYTES = 32;
 const RECORD_BYTES = 20;
-const MAX_AGE_MICRO_MA = 540_000_000;
+const MAX_AGE_MICRO_MA = 1_800_000_000;
 
 function frameIdentity(frame: FrameKey): string {
   return [frame.modelId, frame.modelVersion, frame.absoluteFrameId, frame.anchorPlateId,
@@ -33,7 +33,7 @@ export function decodeMotionTable(catalog: MotionCatalog, buffer: ArrayBuffer): 
       catalog.sourceIds.length === 0 || catalog.license.length === 0 || catalog.sourceIntervals.length === 0 ||
       catalog.sourceIntervals.some((interval) => interval.kind === "source-seam") ||
       catalog.sourceIntervals.some((interval) => !Number.isFinite(interval.youngestAgeMa) ||
-        !Number.isFinite(interval.oldestAgeMa) || interval.youngestAgeMa < 0 || interval.oldestAgeMa > 540 ||
+        !Number.isFinite(interval.oldestAgeMa) || interval.youngestAgeMa < 0 || interval.oldestAgeMa > 1_800 ||
         interval.youngestAgeMa > interval.oldestAgeMa) ||
       buffer.byteLength !== catalog.binary.bytes ||
       buffer.byteLength < HEADER_BYTES) throw new Error("invalid compact motion catalog or length");
@@ -94,7 +94,7 @@ export async function decodeVerifiedMotionTable(
 
 export function validateMaterialLifecycle(lifecycle: MaterialLifecycle): boolean {
   const { oldest, youngest } = lifecycle.validTimeMa;
-  if (!Number.isFinite(oldest) || !Number.isFinite(youngest) || youngest < 0 || oldest > 540 || youngest > oldest
+  if (!Number.isFinite(oldest) || !Number.isFinite(youngest) || youngest < 0 || oldest > 1_800 || youngest > oldest
       || (youngest === oldest && (lifecycle.youngestExclusive === true || lifecycle.oldestExclusive === true))) {
     return false;
   }
@@ -165,7 +165,7 @@ export function evaluateMaterialPose(
   catalog: MotionCatalog, interval: MotionInterval, address: MaterialAddress,
   lifecycle: MaterialLifecycle, requestedAgeMa: number,
 ): MaterialPose {
-  if (!Number.isFinite(requestedAgeMa) || requestedAgeMa < 0 || requestedAgeMa > 540) {
+  if (!Number.isFinite(requestedAgeMa) || requestedAgeMa < 0 || requestedAgeMa > 1_800) {
     return { address, requestedAgeMa, direction: null, support: { kind: "unsupported", reason: "outside-domain" } };
   }
   if (interval.catalogId !== catalog.id || interval.payloadSha256 !== catalog.binary.sha256 ||

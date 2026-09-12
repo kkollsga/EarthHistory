@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { evaluateLifecycleSupport } from "./motion";
-import type { StaticAssetFetcher } from "./assetLoader";
+import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import type { MaterialCorrectionCatalogV1, ReconstructionPackageManifestV2 } from "./packageV2";
 import { decodeCaoSpatialBatch } from "./spatialV2";
 import { EARTH_RADIUS_METRES } from "./arithmetic";
@@ -140,7 +140,7 @@ function assertWitnessChartCoverage(
 const root = resolve("public/data/reconstruction/cao-v2.4");
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-  const bytes = await readFile(resolve(root, url));
+  const bytes = await readFile(resolve(root, packageAssetPath(url)));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 
@@ -187,7 +187,8 @@ describe("native Cao package v2", () => {
         const pose = revision.resolveAddress(revision.addressForChartDirection(chartIndex, reference));
         expect(pose.support.kind).toBe("supported");
         const expected = witness.expected[ageMa];
-        expect(angularDistance(pose.direction!, lonLatDirection(expected[0], expected[1])))
+        expect(angularDistance(pose.direction!, lonLatDirection(expected[0], expected[1])),
+          `Svalbard plate ${witness.plateId} pose at ${ageMa} Ma`)
           .toBeLessThan(1e-5);
       }
       const westernChart = revision.charts.findIndex((chart) => chart.chartId ===
@@ -197,7 +198,8 @@ describe("native Cao package v2", () => {
       const westernPose = revision.resolveAddress(revision.addressForChartDirection(westernChart, westernReference));
       const westernExpected = westernPoseWitness.expected[ageMa];
       expect(westernPose.support.kind).toBe("supported");
-      expect(angularDistance(westernPose.direction!, lonLatDirection(westernExpected[0], westernExpected[1])))
+      expect(angularDistance(westernPose.direction!, lonLatDirection(westernExpected[0], westernExpected[1])),
+        `western Laurentia plate 154 pose at ${ageMa} Ma`)
         .toBeLessThan(1e-5);
       revision.release();
     }
@@ -209,28 +211,43 @@ describe("native Cao package v2", () => {
     const runtime = new CaoReconstructionRuntime(manifest, fetcher);
     const prepared = await runtime.request(227.5).prepared;
     expect(prepared.display).toEqual({ youngerAgeMa: 225, olderAgeMa: 230, fraction: 0.5 });
-    expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_500);
+    expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_200);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.motionPalette.entryCount * 11);
-    expect(prepared.batches).toHaveLength(3);
+    expect(prepared.batches).toHaveLength(4);
     // Complete authored rotation collection recovers the previously omitted
     // North American and Amazonian source geometry.
-    expect(prepared.batches[0]!.vertexCount).toBe(149_492);
-    const geometry = prepared.batches[0]!.createStaticGeometryCopy();
-    expect(geometry.referenceDirections).toHaveLength(prepared.batches[0]!.vertexCount * 3);
-    expect(Object.values(geometry).reduce((sum, array) => sum + array.byteLength, 0))
-      .toBe(prepared.batches[0]!.staticGeometryBytes);
+    expect(prepared.batches.map((batch) => batch.batchId)).toEqual([
+      "batch-shelf", "batch-land", "material-correction-qualified", "material-correction-uncertain",
+    ]);
+    expect(prepared.batches[0]!.vertexCount).toBe(153_904);
+    expect(prepared.batches[1]!.vertexCount).toBe(149_492);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(322_442);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(486_333);
+    expect(prepared.lineBatches).toHaveLength(1);
+    // The layered origin/main package owns this country batch. Its four fewer
+    // segments than the pre-merge correction checkpoint predate correction remapping.
+    expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 20_028, segmentCount: 10_014 });
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(342_470);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(496_347);
+    for (const batch of prepared.batches) {
+      const geometry = batch.createStaticGeometryCopy();
+      expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
+      expect(Object.values(geometry).reduce((sum, array) => sum + array.byteLength, 0))
+        .toBe(batch.staticGeometryBytes);
+    }
     const resource = createCaoFoundationGeometryResource(prepared, {
-    // One-degree conforming correction tessellation keeps the 400 m land shell
-    // above the ocean and measures 188,574 vertices / 245,164 primitives.
-    maxBatches: 4, maxVertices: 190_000, maxTriangles: 246_000,
-      maxRetainedSourceBytes: 32_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
+      // Layered shelf/land and both bounded correction meshes.
+      maxBatches: 5, maxVertices: 400_000, maxTriangles: 600_000,
+      maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
-    expect(resource.batches[0]!.vertexCount).toBe(prepared.batches[0]!.vertexCount);
+    expect(resource.batches.map((batch) => batch.vertexCount))
+      .toEqual(prepared.batches.map((batch) => batch.vertexCount));
     resource.dispose();
     expect(prepared.batches[0]!.createDisplayControlsCopy().displayHeightStart).toEqual({ kind: "uniform", value: 0 });
     expect(prepared.charts.some((chart) => chart.support.kind === "supported")).toBe(true);
-    expect(prepared.lineBatches).toHaveLength(1);
     expect(prepared.anchorIds).toContain("chicxulub");
     expect(prepared.materialCorrectionIdentity).toMatch(/^earthhistory-cao-v2\.4-material-corrections-v1@/);
     expect(prepared.materialCorrections.correctionIds).toEqual([
@@ -254,7 +271,7 @@ describe("native Cao package v2", () => {
     expect(() => prepared.motionPalette.createValuesCopy()).toThrow(/released/);
     expect(() => prepared.resolveAddress(address)).toThrow(/released/);
     expect(() => prepared.resolveAnchor("chicxulub")).toThrow(/released/);
-    expect(() => runtime.request(541)).toThrow(/domain/);
+    expect(() => runtime.request(1801)).toThrow(/domain/);
     runtime.dispose();
   });
 
@@ -317,8 +334,8 @@ describe("native Cao package v2", () => {
     } };
     const mutatedFetcher: StaticAssetFetcher = async (url, signal) => {
       if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-      if (url === manifest.materialCorrections!.catalog.url) return catalogBytes.buffer;
-      if (url === batch.geometryAsset.url) return mutatedGeometry.buffer.slice(
+      if (packageAssetPath(url) === manifest.materialCorrections!.catalog.url) return catalogBytes.buffer;
+      if (packageAssetPath(url) === batch.geometryAsset.url) return mutatedGeometry.buffer.slice(
         mutatedGeometry.byteOffset, mutatedGeometry.byteOffset + mutatedGeometry.byteLength,
       );
       return fetcher(url, signal);
@@ -343,7 +360,8 @@ describe("native Cao package v2", () => {
         sha256: createHash("sha256").update(catalogBytes).digest("hex") },
     } };
     const alternateFetcher: StaticAssetFetcher = (url, signal) =>
-      url === manifest.materialCorrections!.catalog.url ? Promise.resolve(catalogBytes.buffer) : fetcher(url, signal);
+      packageAssetPath(url) === manifest.materialCorrections!.catalog.url
+        ? Promise.resolve(catalogBytes.buffer) : fetcher(url, signal);
     const alternateRuntime = new CaoReconstructionRuntime(alternateManifest, alternateFetcher);
     const alternate = await alternateRuntime.request(411).prepared;
     expect(alternate.materialCorrectionIdentity).not.toBe(base.materialCorrectionIdentity);

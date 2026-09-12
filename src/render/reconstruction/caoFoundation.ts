@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DoubleSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
+import { DoubleSide, FrontSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
 import type Node from "three/src/nodes/core/Node.js";
 import type UniformNode from "three/src/nodes/core/UniformNode.js";
 import { attribute, float, int, ivec2, step, textureLoad, uniform, vec3 } from "three/tsl";
@@ -30,9 +30,16 @@ import { intersectRayTriangle } from "./picking";
 import type { Vec3Tuple } from "./bounds";
 
 /** Display separation only; source physical height remains zero/unknown. */
+export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 80;
 export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 400;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
+
+export function caoFoundationShellOffsetMetres(batchId: string): number {
+  if (batchId === "batch-shelf") return CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES;
+  if (batchId === "batch-land" || batchId === "batch-0") return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
+  return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
+}
 export const CAO_FOUNDATION_PALETTE_TEXEL_WIDTH = 256;
 
 type PreparedCaoLineGeometryCopy = ReturnType<
@@ -107,6 +114,7 @@ export interface CaoFoundationLineMaterialGraph {
 
 export interface CaoFoundationDiagnostics {
   readonly identity: string | null;
+  readonly staticGeometryIdentity: string | null;
   readonly materialCorrectionIdentity: string | null;
   readonly materialCorrections: Readonly<{
     qualifiedActiveCharts: number;
@@ -302,21 +310,20 @@ function createChartSpatialIndex(
   return { chartRanges, chartBounds };
 }
 
-export function packPreparedCaoPalette(
-  revision: PreparedCaoRevision,
+export function packCaoPaletteValues(
+  values: Float32Array,
+  entryCount: number,
   maxTextureSize: number,
 ): PackedCaoPalette {
-  const palette = revision.motionPalette;
-  if (palette.stride !== PREPARED_MOTION_PALETTE_STRIDE || !Number.isSafeInteger(palette.entryCount)
-      || palette.entryCount < 1 || !Number.isSafeInteger(maxTextureSize) || maxTextureSize < 3) {
+  if (!Number.isSafeInteger(entryCount) || entryCount < 1
+      || !Number.isSafeInteger(maxTextureSize) || maxTextureSize < 3) {
     throw new Error("invalid prepared Cao palette shape");
   }
-  const values = palette.createValuesCopy();
-  const expectedValues = palette.entryCount * PREPARED_MOTION_PALETTE_STRIDE;
+  const expectedValues = entryCount * PREPARED_MOTION_PALETTE_STRIDE;
   if (!Number.isSafeInteger(expectedValues) || values.length !== expectedValues || !allFinite(values)) {
     throw new Error("invalid prepared Cao palette values");
   }
-  for (let entry = 0; entry < palette.entryCount; entry += 1) {
+  for (let entry = 0; entry < entryCount; entry += 1) {
     const offset = entry * PREPARED_MOTION_PALETTE_STRIDE;
     const youngerNorm = Math.hypot(values[offset]!, values[offset + 1]!, values[offset + 2]!, values[offset + 3]!);
     const olderNorm = Math.hypot(values[offset + 4]!, values[offset + 5]!, values[offset + 6]!, values[offset + 7]!);
@@ -327,17 +334,28 @@ export function packPreparedCaoPalette(
       throw new Error("invalid prepared Cao palette entry");
     }
   }
-  const texelCount = palette.entryCount * 3;
+  const texelCount = entryCount * 3;
   const width = Math.min(CAO_FOUNDATION_PALETTE_TEXEL_WIDTH, maxTextureSize);
   const height = Math.ceil(texelCount / width);
   if (height > maxTextureSize) throw new Error("prepared Cao palette exceeds backend texture bound");
   const data = new Float32Array(width * height * 4);
-  for (let entry = 0; entry < palette.entryCount; entry += 1) {
+  for (let entry = 0; entry < entryCount; entry += 1) {
     const source = entry * PREPARED_MOTION_PALETTE_STRIDE;
     const target = entry * 12;
     data.set(values.subarray(source, source + PREPARED_MOTION_PALETTE_STRIDE), target);
   }
-  return Object.freeze({ data, width, height, entryCount: palette.entryCount });
+  return Object.freeze({ data, width, height, entryCount });
+}
+
+export function packPreparedCaoPalette(
+  revision: PreparedCaoRevision,
+  maxTextureSize: number,
+): PackedCaoPalette {
+  const palette = revision.motionPalette;
+  if (palette.stride !== PREPARED_MOTION_PALETTE_STRIDE) {
+    throw new Error("invalid prepared Cao palette shape");
+  }
+  return packCaoPaletteValues(palette.createValuesCopy(), palette.entryCount, maxTextureSize);
 }
 
 function tuple4(node: Node<"vec4">): QuaternionWxyz<Node<"float">> {
@@ -408,6 +426,8 @@ export function createCaoFoundationMaterial(
   display: PreparedCaoDisplayControlsCopy,
   displayFractionValue: number,
   verticalExaggerationValue: number,
+  shellOffsetMetres: number = CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+  appearance: "land" | "shelf" = "land",
 ): CaoFoundationMaterialGraph {
   const displayHeightStart = display.displayHeightStart.kind === "uniform"
     ? float(display.displayHeightStart.value) : attribute<"float">("displayHeightStartMetres", "float");
@@ -415,25 +435,52 @@ export function createCaoFoundationMaterial(
     ? float(display.displayHeightEnd.value) : attribute<"float">("displayHeightEndMetres", "float");
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
     displayFractionValue, verticalExaggerationValue, displayHeightStart,
-    displayHeightEnd, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES);
-  const material = new MeshStandardNodeMaterial({ side: DoubleSide, roughness: 0.82, metalness: 0 });
+    displayHeightEnd, shellOffsetMetres);
+  // Shelf plates light up brighter than the MeshPhysical globe ocean; keep them
+  // front-faced, rougher, and slightly dimmed so they sit near deep-sea tone.
+  const material = new MeshStandardNodeMaterial({
+    side: appearance === "shelf" ? FrontSide : DoubleSide,
+    roughness: appearance === "shelf" ? 0.94 : 0.82,
+    metalness: 0,
+  });
   material.positionNode = pose.position;
   material.normalNode = pose.direction;
-  material.colorNode = display.baseColor.kind === "uniform"
-    ? vec3(...display.baseColor.value) : attribute<"vec3">("color", "vec3");
+  if (display.baseColor.kind === "uniform") {
+    const [r, g, b] = display.baseColor.value;
+    const dim = appearance === "shelf" ? 0.58 : 1;
+    material.colorNode = vec3(r * dim, g * dim, b * dim);
+  } else {
+    material.colorNode = attribute<"vec3">("color", "vec3");
+  }
   return Object.freeze({ material, displayFraction: pose.displayFraction,
     verticalExaggeration: pose.verticalExaggeration });
 }
+
+export type CaoFoundationCountryLineStyle = "stroke" | "underlay";
 
 export function createCaoFoundationCountryLineMaterial(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
   displayFractionValue: number,
+  style: CaoFoundationCountryLineStyle = "stroke",
 ): CaoFoundationLineMaterialGraph {
+  // Underlay sits slightly lower; main stroke above. Soft slate beats near-black
+  // 1px hairlines, which alias hard on the globe (WebGL linewidth is effectively 1).
+  const shellOffset = style === "underlay"
+    ? CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120
+    : CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
-    displayFractionValue, 1, float(0), float(0), CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
-  const material = new LineBasicNodeMaterial({ color: 0x739a91, transparent: true,
-    opacity: 0.78, depthTest: true, depthWrite: false });
+    displayFractionValue, 1, float(0), float(0), shellOffset);
+  const material = new LineBasicNodeMaterial({
+    transparent: true,
+    opacity: style === "underlay" ? 0.34 : 0.72,
+    depthTest: true,
+    depthWrite: false,
+  });
+  // Muted ink — stronger than the first soft pass, still not near-black hairlines.
+  material.colorNode = style === "underlay"
+    ? vec3(0.1, 0.12, 0.15)
+    : vec3(0.14, 0.17, 0.2);
   material.positionNode = pose.position;
   return Object.freeze({ material, displayFraction: pose.displayFraction });
 }
@@ -589,6 +636,7 @@ interface CaoTopologyOwnershipRing extends TopologyOwnershipRingV2 {
 
 class CaoFoundationPublicationResource implements OwnedPrototypeResources {
   private disposed = false;
+  private scrubAgeMa: number;
 
   constructor(
     readonly group: THREE.Group,
@@ -596,18 +644,42 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     readonly paletteEntries: number,
     readonly activeSourceBytes: number,
     readonly materialCorrectionIdentity: string | null,
-    readonly materialCorrections: PreparedCaoRevision["materialCorrections"],
+    public materialCorrections: PreparedCaoRevision["materialCorrections"],
     readonly chartPoses: Float32Array,
     readonly chartActive: Uint8Array,
-    readonly nativeBoundarySegments: number,
-    readonly nativeBoundarySourceAgeMa: number | null,
-    readonly topologyOwnership: CaoTopologyOwnershipState | null,
+    private readonly publishedNativeBoundarySegments: number,
+    private readonly publishedNativeBoundarySourceAgeMa: number | null,
+    private readonly nativeBoundaryObject: THREE.Object3D | null,
+    private readonly publishedTopologyOwnership: CaoTopologyOwnershipState | null,
     private readonly palette: THREE.DataTexture,
     private readonly materials: readonly THREE.Material[],
+    private readonly displayFractions: readonly UniformNode<"float", number>[],
     private readonly verticalExaggerations: readonly UniformNode<"float", number>[],
     private readonly publicationGeometries: readonly THREE.BufferGeometry[],
     private readonly retirement: GpuRetirementOwner,
-  ) {}
+    initialAgeMa: number,
+  ) {
+    this.scrubAgeMa = initialAgeMa;
+  }
+
+  get requestedAgeMa(): number {
+    return this.scrubAgeMa;
+  }
+
+  get nativeBoundarySegments(): number {
+    return this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa
+      ? this.publishedNativeBoundarySegments : 0;
+  }
+
+  get nativeBoundarySourceAgeMa(): number | null {
+    return this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa
+      ? this.publishedNativeBoundarySourceAgeMa : null;
+  }
+
+  get topologyOwnership(): CaoTopologyOwnershipState | null {
+    return this.publishedTopologyOwnership?.sourceAgeMa === this.scrubAgeMa
+      ? this.publishedTopologyOwnership : null;
+  }
 
   disposeUnsubmitted(): void {
     this.dispose();
@@ -615,6 +687,45 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
 
   setVerticalExaggeration(value: number): void {
     for (const exaggeration of this.verticalExaggerations) exaggeration.value = value;
+  }
+
+  setNativeBoundaryLayerVisibility(visible: boolean): void {
+    if (this.nativeBoundaryObject) {
+      this.nativeBoundaryObject.visible = visible
+        && this.publishedNativeBoundarySourceAgeMa === this.scrubAgeMa;
+    }
+  }
+
+  retargetMotion(
+    packed: PackedCaoPalette,
+    displayFraction: number,
+    chartPoses: Float32Array,
+    chartActive: Uint8Array,
+    requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
+  ): void {
+    if (this.disposed) throw new Error("Cao foundation publication is disposed");
+    if (packed.entryCount !== this.paletteEntries || packed.width !== this.palette.image.width
+        || packed.height !== this.palette.image.height
+        || chartPoses.length !== this.chartPoses.length || chartActive.length !== this.chartActive.length
+        || !Number.isFinite(displayFraction) || displayFraction < 0 || displayFraction > 1
+        || !Number.isFinite(requestedAgeMa) || requestedAgeMa < 0) {
+      throw new Error("Cao motion retarget shape mismatch");
+    }
+    const image = this.palette.image as { data: Float32Array; width: number; height: number };
+    if (!(image.data instanceof Float32Array) || image.data.length !== packed.data.length) {
+      throw new Error("Cao palette texture storage mismatch");
+    }
+    image.data.set(packed.data);
+    this.palette.needsUpdate = true;
+    this.chartPoses.set(chartPoses);
+    this.chartActive.set(chartActive);
+    this.materialCorrections = materialCorrections;
+    for (const fraction of this.displayFractions) fraction.value = displayFraction;
+    this.scrubAgeMa = requestedAgeMa;
+    if (this.nativeBoundaryObject) {
+      this.nativeBoundaryObject.visible = this.publishedNativeBoundarySourceAgeMa === requestedAgeMa;
+    }
   }
 
   identifyTopology(direction: UnitDirection): InstantaneousOwnershipResult | null {
@@ -930,6 +1041,7 @@ function createPublicationResource(
 ): CaoFoundationPublicationResource {
   const paletteTexture = createCaoFoundationPaletteTexture(packed);
   const materials: THREE.Material[] = [];
+  const displayFractions: UniformNode<"float", number>[] = [];
   const verticalExaggerations: UniformNode<"float", number>[] = [];
   const publicationGeometries: THREE.BufferGeometry[] = [];
   const group = new THREE.Group();
@@ -944,9 +1056,12 @@ function createPublicationResource(
           || display.baseColor.kind !== "uniform") {
         throw new Error("Cao foundation v1 requires uniform placeholder height/color controls");
       }
+      const shellOffset = caoFoundationShellOffsetMetres(batch.batchId);
+      const appearance = batch.batchId === "batch-shelf" ? "shelf" as const : "land" as const;
       const graph = createCaoFoundationMaterial(paletteTexture, packed.width, display,
-        revision.display.fraction, verticalExaggeration);
+        revision.display.fraction, verticalExaggeration, shellOffset, appearance);
       materials.push(graph.material);
+      displayFractions.push(graph.displayFraction);
       verticalExaggerations.push(graph.verticalExaggeration);
       const mesh = new THREE.Mesh(batch.geometry, graph.material);
       // Source batches do not yet carry qualified moving interval bounds.
@@ -956,7 +1071,9 @@ function createPublicationResource(
         graph.material.depthTest = true;
         graph.material.depthWrite = false;
       }
-      mesh.renderOrder = batch.nativePrecedence ? 0.9 : 1;
+      // Shelf under corrections, with source land last so native land keeps
+      // visual precedence where it overlaps a corrected material footprint.
+      mesh.renderOrder = batch.nativePrecedence ? 1.5 : batch.batchId === "batch-shelf" ? 1 : 2;
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
@@ -965,15 +1082,19 @@ function createPublicationResource(
       if (!prepared || prepared.batchId !== batch.batchId) {
         throw new Error("Cao country line batch order/identity changed");
       }
-      const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
-        revision.display.fraction);
-      materials.push(graph.material);
-      const lines = new THREE.LineSegments(batch.geometry, graph.material);
-      lines.frustumCulled = false;
-      lines.renderOrder = 3;
-      lines.userData.overlayLayer = "borders";
-      lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
-      group.add(lines);
+      for (const style of ["underlay", "stroke"] as const) {
+        const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
+          revision.display.fraction, style);
+        materials.push(graph.material);
+        displayFractions.push(graph.displayFraction);
+        const lines = new THREE.LineSegments(batch.geometry, graph.material);
+        lines.frustumCulled = false;
+        lines.renderOrder = style === "underlay" ? 3 : 4;
+        lines.userData.overlayLayer = "borders";
+        lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
+        lines.userData.countryLineStyle = style;
+        group.add(lines);
+      }
     }
     const nativeBoundary = createNativeBoundaryObject(revision);
     if (nativeBoundary.object !== null && nativeBoundary.geometry !== null
@@ -993,9 +1114,10 @@ function createPublicationResource(
       revision.materialCorrectionIdentity, revision.materialCorrections,
       pickState.chartPoses, pickState.chartActive,
       nativeBoundary.segmentCount, nativeBoundary.sourceAgeMa,
-      topologyOwnership,
-      paletteTexture, Object.freeze(materials), Object.freeze(verticalExaggerations),
-      Object.freeze(publicationGeometries), retirement);
+      nativeBoundary.object, topologyOwnership,
+      paletteTexture, Object.freeze(materials), Object.freeze(displayFractions),
+      Object.freeze(verticalExaggerations),
+      Object.freeze(publicationGeometries), retirement, revision.requestedAgeMa);
   } catch (error) {
     materials.forEach((material) => material.dispose());
     publicationGeometries.forEach((geometry_) => geometry_.dispose());
@@ -1066,10 +1188,11 @@ export function intersectCaoFoundationSurface(
   const gplatesOrigin = rendererToGplatesDirection(numberScalarOps, rayOrigin);
   const gplatesDirection = rendererToGplatesDirection(numberScalarOps, rayDirection);
   let testedTriangles = 0;
-  let nearestNative: CaoFoundationSurfaceHit | null = null;
+  let nearestNativeLand: CaoFoundationSurfaceHit | null = null;
+  let nearestShelf: CaoFoundationSurfaceHit | null = null;
   let nearestCorrection: CaoFoundationSurfaceHit | null = null;
-  const shellRadius = 1 + CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES / EARTH_RADIUS_METRES;
   for (const batch of geometry.batches) {
+    const shellRadius = 1 + caoFoundationShellOffsetMetres(batch.batchId) / EARTH_RADIUS_METRES;
     for (let rangeOffset = 0, boundsOffset = 0;
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
       const chartIndex = batch.chartRanges[rangeOffset]!;
@@ -1095,7 +1218,8 @@ export function intersectCaoFoundationSurface(
           vertices[0], vertices[1], vertices[2]);
         const visibleBeforeOpaqueGlobe = hit && (opaqueGlobeDistance === null
           || hit.distance <= opaqueGlobeDistance + 1e-7);
-        const nearest = batch.nativePrecedence ? nearestCorrection : nearestNative;
+        const nearest = batch.nativePrecedence ? nearestCorrection
+          : batch.batchId === "batch-shelf" ? nearestShelf : nearestNativeLand;
         if (!hit || !visibleBeforeOpaqueGlobe || (nearest !== null && hit.distance >= nearest.distance)) continue;
         const posed = rotateDirection(numberScalarOps, pose, hit.position);
         const rendererPosition = gplatesToRendererDirection(numberScalarOps, posed);
@@ -1112,11 +1236,12 @@ export function intersectCaoFoundationSurface(
             localCoordinate: Object.freeze({ kind: "chart-direction" as const,
               directionAtReference: Object.freeze([...referenceDirection]) as UnitDirection }) }) };
         if (batch.nativePrecedence) nearestCorrection = candidate;
-        else nearestNative = candidate;
+        else if (batch.batchId === "batch-shelf") nearestShelf = candidate;
+        else nearestNativeLand = candidate;
       }
     }
   }
-  return nearestNative ?? nearestCorrection;
+  return nearestNativeLand ?? nearestCorrection ?? nearestShelf;
 }
 
 /**
@@ -1127,6 +1252,7 @@ export class CaoFoundationSurfaceRenderer {
   private readonly publisher = new AtomicPrototypePublisher<CaoFoundationPublicationResource>();
   private staticGeometry: CaoFoundationGeometryResource | null = null;
   private disposed = false;
+  private domainVisible = true;
 
   constructor(
     private readonly parent: THREE.Group,
@@ -1179,6 +1305,7 @@ export class CaoFoundationSurfaceRenderer {
         throw new Error("Cao foundation publication commit failed");
       }
       if (previous) this.parent.remove(previous.resources.group);
+      this.domainVisible = true;
       resource = null;
       revision.release();
       return this.diagnostics();
@@ -1194,6 +1321,7 @@ export class CaoFoundationSurfaceRenderer {
     const batches = this.staticGeometry?.batches ?? [];
     return Object.freeze({
       identity: current?.requestId ?? null,
+      staticGeometryIdentity: this.staticGeometry?.key ?? null,
       materialCorrectionIdentity: current?.resources.materialCorrectionIdentity ?? null,
       materialCorrections: current?.resources.materialCorrections ?? Object.freeze({
         qualifiedActiveCharts: 0,
@@ -1204,20 +1332,22 @@ export class CaoFoundationSurfaceRenderer {
         activeSourceIds: Object.freeze([]),
         correctionIds: Object.freeze([]),
       }),
-      requestedAgeMa: current?.ageMa ?? null,
+      requestedAgeMa: current?.resources.requestedAgeMa ?? current?.ageMa ?? null,
       batches: batches.length,
       vertices: batches.reduce((sum, batch) => sum + batch.vertexCount, 0),
       triangles: batches.reduce((sum, batch) => sum + batch.triangleCount, 0),
-      drawCount: current?.resources.group.children.length ?? 0,
+      drawCount: this.domainVisible
+        ? current?.resources.group.children.filter((child) => child.visible).length ?? 0 : 0,
       countryLineBatches: this.staticGeometry?.lineBatches.length ?? 0,
       countryLineVertices: this.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.vertexCount, 0) ?? 0,
       countryLineSegments: this.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.segmentCount, 0) ?? 0,
-      nativeBoundarySegments: current?.resources.nativeBoundarySegments ?? 0,
-      nativeBoundarySourceAgeMa: current?.resources.nativeBoundarySourceAgeMa ?? null,
-      topologyOwnershipRings: current?.resources.topologyOwnership?.rings.length ?? 0,
-      topologyOwnershipSourceAgeMa: current?.resources.topologyOwnership?.sourceAgeMa ?? null,
+      nativeBoundarySegments: this.domainVisible ? current?.resources.nativeBoundarySegments ?? 0 : 0,
+      nativeBoundarySourceAgeMa: this.domainVisible ? current?.resources.nativeBoundarySourceAgeMa ?? null : null,
+      topologyOwnershipRings: this.domainVisible ? current?.resources.topologyOwnership?.rings.length ?? 0 : 0,
+      topologyOwnershipSourceAgeMa: this.domainVisible
+        ? current?.resources.topologyOwnership?.sourceAgeMa ?? null : null,
       retainedStaticBytes: this.staticGeometry?.byteLength ?? 0,
       activeSourceBytes: current?.resources.activeSourceBytes ?? 0,
       retainedPublicationBytes: this.publisher.retainedBytes(),
@@ -1233,14 +1363,21 @@ export class CaoFoundationSurfaceRenderer {
     maximumTestedTriangles = 65_536,
   ): CaoFoundationSurfaceHit | null {
     const current = this.publisher.current();
-    if (!this.staticGeometry || !current) return null;
+    if (!this.domainVisible || !this.staticGeometry || !current) return null;
     return intersectCaoFoundationSurface(this.staticGeometry, current.resources,
       rayOrigin, rayDirection, maximumTestedTriangles);
   }
 
   identifyTopology(rendererDirection: UnitDirection): InstantaneousOwnershipResult | null {
     const current = this.publisher.current();
-    return current?.resources.identifyTopology(rendererDirection) ?? null;
+    return this.domainVisible ? current?.resources.identifyTopology(rendererDirection) ?? null : null;
+  }
+
+  setDomainVisibility(visible: boolean): CaoFoundationDiagnostics {
+    this.domainVisible = visible;
+    const current = this.publisher.current();
+    if (current) current.resources.group.visible = visible;
+    return this.diagnostics();
   }
 
   setLayerVisibility(borders: boolean, tectonics: boolean): void {
@@ -1250,6 +1387,32 @@ export class CaoFoundationSurfaceRenderer {
       if (child.userData.overlayLayer === "borders") child.visible = borders;
       if (child.userData.overlayLayer === "tectonics") child.visible = tectonics;
     }
+    current.resources.setNativeBoundaryLayerVisibility(tectonics);
+  }
+
+  /**
+   * Continuous scrub path: update the resident palette/poses/display fraction
+   * without tearing down static geometry or blanking the globe.
+   */
+  retargetMotion(
+    paletteValues: Float32Array,
+    entryCount: number,
+    displayFraction: number,
+    chartPoses: Float32Array,
+    chartActive: Uint8Array,
+    requestedAgeMa: number,
+    materialCorrections: PreparedCaoRevision["materialCorrections"],
+  ): CaoFoundationDiagnostics {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    const current = this.publisher.current();
+    if (!current) throw new Error("Cao foundation has no published surface to retarget");
+    const packed = packCaoPaletteValues(paletteValues, entryCount, this.limits.maxTextureSize);
+    current.resources.retargetMotion(
+      packed, displayFraction, chartPoses, chartActive, requestedAgeMa, materialCorrections,
+    );
+    this.domainVisible = true;
+    current.resources.group.visible = true;
+    return this.diagnostics();
   }
 
   setVerticalExaggeration(value: number): void {

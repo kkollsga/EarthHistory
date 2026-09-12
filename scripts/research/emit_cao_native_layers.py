@@ -4,16 +4,19 @@
 from __future__ import annotations
 import hashlib, json, math, struct
 from pathlib import Path
+from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA, display_checkpoint_ages_ma
 import pygplates
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = ROOT.parent / "EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
-OUT = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
+DEFAULT_OUT = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1/full-package"
 PACKAGE = "cao-v2.4-foundation-v1"
 REVISION = "cao-foundation-v1"
-AGES = tuple(range(0, 541, 5))
+AGES = tuple(display_checkpoint_ages_ma(CAO_SOURCE_OLDEST_MA))
 ROTATION_FILES = ("1000_0_rotfile.rot", "1800_1000_rotfile.rot")
-FILES = ("250-0_plate_boundaries.gpml", "410-250_plate_boundaries.gpml", "1000-410_plate_boundaries.gpml", "TopologyBuildingBlocks.gpml")
+FILES = ("250-0_plate_boundaries.gpml", "410-250_plate_boundaries.gpml", "1000-410_plate_boundaries.gpml", "1800-1000_plate_boundaries.gpml", "TopologyBuildingBlocks.gpml")
+OUT = DEFAULT_OUT
+PACKAGE_FRAME = None
 
 
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -21,6 +24,8 @@ def asset(path): return {"url": path.name, "bytes": path.stat().st_size, "sha256
 
 
 def frame():
+    if PACKAGE_FRAME is not None:
+        return PACKAGE_FRAME
     return {
         "modelId": "cao-et-al-2024", "modelVersion": "2.4",
         "absoluteFrameId": "palaeomagnetic", "anchorPlateId": 0,
@@ -83,7 +88,7 @@ def boundary_records(age, features, rotations):
             records.append({"exactSlotSegmentId": f"{age:g}:{feature.get_feature_id()}:part:{part}",
                             "sourceFeatureId": str(feature.get_feature_id()), "resolvedPart": part,
                             "sourceType": source_type, "polarity": polarity,
-                            "validTimeMa": [finite_time(oldest, 540), finite_time(youngest, 0)],
+                            "validTimeMa": [finite_time(oldest, CAO_SOURCE_OLDEST_MA), finite_time(youngest, CAO_SOURCE_YOUNGEST_MA)],
                             "geometryLatLon": [point.to_lat_lon() for point in shared.get_resolved_geometry_points()],
                             "sideOwners": sides})
     return records
@@ -104,7 +109,7 @@ def emit_boundaries(age_result):
         segments.append({
             "segmentId": record["exactSlotSegmentId"], "sourceFeatureId": record["sourceFeatureId"],
             "sourcePart": record["resolvedPart"], "sourceFeatureType": record["sourceType"],
-            "validTimeMa": {"youngest": finite(valid[1], 0), "oldest": finite(valid[0], 540)},
+            "validTimeMa": {"youngest": finite(valid[1], CAO_SOURCE_YOUNGEST_MA), "oldest": finite(valid[0], CAO_SOURCE_OLDEST_MA)},
             "kind": boundary_kind(record["sourceType"]), "polarity": polarity,
             "rightTopologyId": right["topologyFeatureId"] if right else None,
             "leftTopologyId": left["topologyFeatureId"] if left else None,
@@ -149,8 +154,11 @@ def emit_ownership(age, features, rotations):
     return {"sourceAgeMa": age, "catalog": asset(path), "binary": asset(binary)}
 
 
-def main():
+def main(out: Path | None = None):
+    global OUT, PACKAGE_FRAME
+    OUT = Path(out) if out else DEFAULT_OUT
     OUT.mkdir(parents=True, exist_ok=True)
+    PACKAGE_FRAME = json.loads((OUT / "manifest.json").read_text())["frame"]
     features = [feature for name in FILES for feature in pygplates.FeatureCollection(str(MODEL / name))]
     rotations = pygplates.RotationModel([str(MODEL / name) for name in ROTATION_FILES], default_anchor_plate_id=0)
     result = {"boundary": {}, "ownership": {}}
@@ -177,10 +185,17 @@ def main():
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")) + "\n")
     (OUT / "native-layer-assets.json").write_text(json.dumps(result, indent=2) + "\n")
     total = sum(path.stat().st_size for path in OUT.iterdir() if path.is_file())
-    if total > 50 * 1024 * 1024: raise ValueError("candidate package exceeds app budget")
-    print(json.dumps({"packageBytes": total,
-                      "boundaryBytes": sum(v["catalog"]["bytes"] + v["binary"]["bytes"] for v in result["boundary"].values()),
-                      "ownershipBytes": sum(v["catalog"]["bytes"] + v["binary"]["bytes"] for v in result["ownership"].values())}))
+    report = {"packageBytes": total,
+              "boundaryBytes": sum(v["catalog"]["bytes"] + v["binary"]["bytes"] for v in result["boundary"].values()),
+              "ownershipBytes": sum(v["catalog"]["bytes"] + v["binary"]["bytes"] for v in result["ownership"].values()),
+              "overBudget": total > 50 * 1024 * 1024}
+    print(json.dumps(report))
+    if total > 50 * 1024 * 1024:
+        raise SystemExit(f"candidate package exceeds app budget: {total} bytes")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=None)
+    main(**vars(parser.parse_args()))

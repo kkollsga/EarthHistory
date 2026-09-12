@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { BufferAttribute, Group, IntType, Mesh } from "three";
+import { BufferAttribute, Group, IntType, LineSegments, Mesh } from "three";
 import {
   CaoReconstructionRuntime,
+  chartPickStateFromMotionFrame,
   type PreparedCaoRevision,
   type ReconstructionPackageManifestV2,
+  packageAssetPath,
   type StaticAssetFetcher,
 } from "../../reconstruction";
 import {
@@ -92,31 +94,58 @@ describe("Cao foundation renderer boundary", () => {
     const manifest = JSON.parse(await readFile(resolve(packageRoot, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
     const fetcher: StaticAssetFetcher = async (path) => {
-      const bytes = await readFile(resolve(packageRoot, path));
+      const bytes = await readFile(resolve(packageRoot, packageAssetPath(path)));
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     };
     const runtime = new CaoReconstructionRuntime(manifest, fetcher);
     const revision = await runtime.request(0).prepared;
     const packageLimits = {
       ...limits,
-      maxVertices: 190_000,
-      // Conforming correction tessellation measures 245,164 primitives and
-      // prevents source-supported triangles from sagging through the ocean.
-      maxTriangles: 246_000,
-      maxRetainedSourceBytes: 24 * 1024 * 1024,
+      maxVertices: 400_000,
+      maxTriangles: 600_000,
+      maxRetainedSourceBytes: 48 * 1024 * 1024,
+      maxPublicationBytes: 2 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(3);
+    expect(resource.batches).toHaveLength(4);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
     const staticKey = resource.key;
     const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 2_000_000);
-    const surface = new CaoFoundationSurfaceRenderer(new Group(), retirement, packageLimits);
+    const group = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(group, retirement, packageLimits);
     const presentDiagnostics = surface.publish(revision, 8);
     expect(presentDiagnostics.countryLineSegments).toBeGreaterThan(0);
     expect(presentDiagnostics.nativeBoundarySegments).toBeGreaterThan(0);
     expect(presentDiagnostics.nativeBoundarySourceAgeMa).toBe(0);
+    const publishedGroup = group.children[0];
+    const geometryChildren = () => group.children[0]?.children
+      .filter((child): child is Mesh | LineSegments => child instanceof Mesh || child instanceof LineSegments) ?? [];
+    const publishedGeometries = geometryChildren().map((child) => child.geometry);
+    const publishedIndexBuffers = publishedGeometries.map((geometry) => geometry.index?.array ?? null);
+    for (const ageMa of [410, 410.001, 430.001, 0]) {
+      const frame = await runtime.evaluateMotion(ageMa);
+      const pick = chartPickStateFromMotionFrame(frame);
+      const retargeted = surface.retargetMotion(frame.paletteValues, frame.entryCount,
+        frame.display.fraction, pick.chartPoses, pick.chartActive, frame.requestedAgeMa,
+        frame.materialCorrections);
+      expect(retargeted.identity).toBe(presentDiagnostics.identity);
+      expect(retargeted.staticGeometryIdentity).toBe(staticKey);
+      expect(retargeted.requestedAgeMa).toBe(ageMa);
+      expect(group.children[0]).toBe(publishedGroup);
+      const retargetedGeometries = geometryChildren().map((child) => child.geometry);
+      expect(retargetedGeometries).toHaveLength(publishedGeometries.length);
+      retargetedGeometries.forEach((geometry, index) => {
+        expect(geometry).toBe(publishedGeometries[index]);
+        expect(geometry.index?.array ?? null).toBe(publishedIndexBuffers[index]);
+      });
+      expect(retargeted.nativeBoundarySourceAgeMa).toBe(ageMa === 0 ? 0 : null);
+      expect(retargeted.topologyOwnershipSourceAgeMa).toBe(ageMa === 0 ? 0 : null);
+      expect(retargeted.drawCount).toBe(ageMa === 0
+        ? presentDiagnostics.drawCount : presentDiagnostics.drawCount - 1);
+    }
+    expect(surface.diagnostics().materialCorrections).toEqual(revision.materialCorrections);
     resource.dispose();
     const olderRevision = await runtime.request(450).prepared;
     const olderResource = createCaoFoundationGeometryResource(olderRevision, packageLimits);
@@ -152,7 +181,7 @@ describe("Cao foundation renderer boundary", () => {
     resource.dispose();
   });
 
-  it("gives visible native material draw and pick precedence across unequal tessellation", () => {
+  it("orders shelf, corrections, and native land consistently for drawing and picking", () => {
     const base = fixture(3);
     const makeBatch = (batchId: string, points: readonly (readonly [number, number])[],
       chartIndex: number, nativePrecedence: boolean) => {
@@ -175,26 +204,42 @@ describe("Cao foundation renderer boundary", () => {
       materialId: chartId, fragmentOrCohortId: chartId });
     const revision = { ...base,
       batches: [
-        makeBatch("native-coarse", [[-0.5, -0.5], [0.5, -0.5], [0, 0.5]], 0, false),
-        makeBatch("native-far", [[160, -20], [-160, -20], [180, 20]], 1, false),
+        makeBatch("batch-shelf", [[-0.5, -0.5], [0.5, -0.5], [0, 0.5]], 0, false),
+        makeBatch("batch-land", [[-0.25, -0.25], [0.25, -0.25], [0, 0.25]], 1, false),
         makeBatch("correction-fine", [[-0.05, -0.05], [0.05, -0.05], [0, 0.05]], 2, true),
-      ], charts: [chart("native-coarse"), chart("native-far"), chart("correction")],
+      ], charts: [chart("native-shelf"), chart("native-land"), chart("correction")],
     } satisfies PreparedCaoRevision;
     const resource = createCaoFoundationGeometryResource(revision, limits);
     const identityPoses = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0,
       1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
     const overlap = intersectCaoFoundationSurface(resource,
-      { chartPoses: identityPoses, chartActive: new Uint8Array([1, 0, 1]) },
+      { chartPoses: identityPoses, chartActive: new Uint8Array([1, 1, 1]) },
       [3, 0, 0], [-1, 0, 0]);
-    expect(overlap?.batchId).toBe("native-coarse");
+    expect(overlap?.batchId).toBe("batch-land");
     const grazing = intersectCaoFoundationSurface(resource,
+      { chartPoses: identityPoses, chartActive: new Uint8Array([1, 1, 1]) },
+      [3, 0, -0.002], [-1, 0, 0]);
+    expect(grazing?.batchId).toBe("batch-land");
+    const correctionOverShelf = intersectCaoFoundationSurface(resource,
       { chartPoses: identityPoses, chartActive: new Uint8Array([1, 0, 1]) },
-      [3, 0, -0.004], [-1, 0, 0]);
-    expect(grazing?.batchId).toBe("native-coarse");
-    const farSideOnly = intersectCaoFoundationSurface(resource,
-      { chartPoses: identityPoses, chartActive: new Uint8Array([0, 1, 1]) },
       [3, 0, 0], [-1, 0, 0]);
-    expect(farSideOnly?.batchId).toBe("correction-fine");
+    expect(correctionOverShelf?.batchId).toBe("correction-fine");
+
+    const shellEdgePoints = [[-0.5, -0.5], [0.5, -0.5], [0, 0.5]] as const;
+    const shelfEdgeRevision = { ...base,
+      batches: [makeBatch("batch-shelf", shellEdgePoints, 0, false)],
+      charts: [chart("native-shelf")],
+    } satisfies PreparedCaoRevision;
+    const landEdgeRevision = { ...shelfEdgeRevision,
+      batches: [makeBatch("batch-land", shellEdgePoints, 0, false)],
+      charts: [chart("native-land")],
+    } satisfies PreparedCaoRevision;
+    const shelfEdgeResource = createCaoFoundationGeometryResource(shelfEdgeRevision, limits);
+    const landEdgeResource = createCaoFoundationGeometryResource(landEdgeRevision, limits);
+    const edgeRay = [[3, 0.008726646, 0], [-1, 0, 0]] as const;
+    const onePose = { chartPoses: identityPoses.subarray(0, 8), chartActive: new Uint8Array([1]) };
+    expect(intersectCaoFoundationSurface(shelfEdgeResource, onePose, ...edgeRay)).toBeNull();
+    expect(intersectCaoFoundationSurface(landEdgeResource, onePose, ...edgeRay)?.batchId).toBe("batch-land");
 
     // A grazing ray can hit both the front and occluded side of the globe while
     // both hit positions still have a positive dot product with the camera.
@@ -219,8 +264,10 @@ describe("Cao foundation renderer boundary", () => {
       if (Array.isArray(mesh.material)) throw new Error("Cao surface mesh unexpectedly has multiple materials");
       return [mesh.renderOrder, mesh.material.depthWrite, mesh.material.depthTest];
     }))
-      .toEqual([[1, true, true], [1, true, true], [0.9, false, true]]);
+      .toEqual([[1, true, true], [2, true, true], [1.5, false, true]]);
     surface.disposeForRendererTeardown();
+    shelfEdgeResource.dispose();
+    landEdgeResource.dispose();
     nearLimbResource.dispose();
     resource.dispose();
   });
@@ -271,12 +318,17 @@ describe("Cao foundation renderer boundary", () => {
     const group = new Group();
     const surface = new CaoFoundationSurfaceRenderer(group, retirement, limits);
     const diagnostics = surface.publish(revision, 8);
-    expect(diagnostics).toMatchObject({ drawCount: 3, countryLineBatches: 1,
+    expect(diagnostics).toMatchObject({ drawCount: 4, countryLineBatches: 1,
       countryLineSegments: 1, nativeBoundarySegments: 1, nativeBoundarySourceAgeMa: 0,
       topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0 });
     expect(surface.identifyTopology([1, 0, 0])).toEqual({ kind: "instantaneous-owner",
       plateId: 101, topologyId: "topology", sourceAgeMa: 0 });
     expect(surface.identifyTopology([-1, 0, 0])).toBeNull();
+    expect(surface.setDomainVisibility(false)).toMatchObject({ drawCount: 0,
+      nativeBoundarySegments: 0, nativeBoundarySourceAgeMa: null,
+      topologyOwnershipRings: 0, topologyOwnershipSourceAgeMa: null });
+    expect(surface.identifyTopology([1, 0, 0])).toBeNull();
+    expect(group.children[0]!.visible).toBe(false);
     surface.setLayerVisibility(false, false);
     expect(group.children[0]!.children.filter((child) => child.userData.overlayLayer).every(
       (child) => !child.visible,
@@ -361,7 +413,57 @@ describe("Cao foundation renderer boundary", () => {
     resource.dispose();
   });
 
-  it("blocks another publication while the bounded retirement fence is stalled", async () => {
+  it("retargets motion to 0 Ma without clearing the published foundation", () => {
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => undefined }, 2, 1_000_000);
+    const surface = new CaoFoundationSurfaceRenderer(new Group(), retirement, limits);
+    const first = fixture();
+    surface.publish(first, 1);
+    const before = surface.diagnostics();
+    expect(before.drawCount).toBeGreaterThan(0);
+    expect(before.requestedAgeMa).toBe(0);
+
+    const entryCount = first.motionPalette.entryCount;
+    const chartCount = first.charts.length;
+    const paletteValues = new Float32Array(entryCount * 11);
+    for (let entry = 0; entry < entryCount; entry += 1) {
+      paletteValues.set([1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1], entry * 11);
+    }
+    const chartPoses = new Float32Array(chartCount * 8);
+    const chartActive = new Uint8Array(chartCount).fill(1);
+    for (let chart = 0; chart < chartCount; chart += 1) {
+      chartPoses.set([1, 0, 0, 0, 1, 0, 0, 0], chart * 8);
+    }
+    const after = surface.retargetMotion(
+      paletteValues, entryCount, 0, chartPoses, chartActive, 0, first.materialCorrections,
+    );
+    expect(after.drawCount).toBe(before.drawCount);
+    expect(after.vertices).toBe(before.vertices);
+    expect(after.requestedAgeMa).toBe(0);
+    expect(surface.diagnostics().drawCount).toBeGreaterThan(0);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("swaps a 0 Ma publication over a prior age without an empty clear gap", () => {
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => undefined }, 4, 4_000_000);
+    const surface = new CaoFoundationSurfaceRenderer(new Group(), retirement, limits);
+    const older = { ...fixture(), identity: "cao@r1:100", requestId: 100, requestedAgeMa: 100,
+      display: { youngerAgeMa: 100, olderAgeMa: 100, fraction: 0 } };
+    surface.publish(older, 1);
+    expect(surface.diagnostics().requestedAgeMa).toBe(100);
+    expect(surface.diagnostics().drawCount).toBeGreaterThan(0);
+
+    const today = { ...fixture(), identity: "cao@r1:0", requestId: 0, requestedAgeMa: 0,
+      display: { youngerAgeMa: 0, olderAgeMa: 0, fraction: 0 } };
+    // Publish replaces in place — clear() must not be required for age→0.
+    surface.publish(today, 1);
+    const diagnostics = surface.diagnostics();
+    expect(diagnostics.requestedAgeMa).toBe(0);
+    expect(diagnostics.drawCount).toBeGreaterThan(0);
+    expect(diagnostics.vertices).toBeGreaterThan(0);
+    surface.disposeForRendererTeardown();
+  });
+
+    it("blocks another publication while the bounded retirement fence is stalled", async () => {
     const completions: Array<() => void> = [];
     const retirement = new GpuRetirementOwner({ waitForSubmittedWork: () => (
       new Promise<void>((resolve) => completions.push(resolve))

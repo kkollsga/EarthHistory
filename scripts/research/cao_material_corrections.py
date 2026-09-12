@@ -30,8 +30,15 @@ FRAME = {
     "anchorPlateId": 0,
     "axisConvention": "gplates-x0e-y90e-znorth",
     "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
-    "topologySha256": "411bd3e5e5a2004ea42792a5c1be11942a46b52e3657efdb06507c147fbfdf1a",
+    "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c",
 }
+TOPOLOGY_SOURCES = [
+    {"path": "250-0_plate_boundaries.gpml", "sha256": "4a9f97f6368860e5917f4e6fbf78d6d7c3caf77e1736e854250d067540bb60d4"},
+    {"path": "410-250_plate_boundaries.gpml", "sha256": "6516dbac4d7928e7ad71244b0bbabc65eb25e6e89dc79d4becb9a82a25a6fc91"},
+    {"path": "1000-410_plate_boundaries.gpml", "sha256": "488e4b6330e2586fc363a1ad8dada659ac1409742846186fc275a213db306fb1"},
+    {"path": "1800-1000_plate_boundaries.gpml", "sha256": "759a76605bc907197928214f4101403dd6221e7ba8d4ecacde57999bc3675dce"},
+    {"path": "TopologyBuildingBlocks.gpml", "sha256": "7603af2502a8d261256f293be71487d28fe5a6b5a8fadd4bdc7845dc67b72297"},
+]
 GEOMETRY_HASH_DOMAIN = b"earthhistory-cao-staged-geometry-f32le-xyz-rings-v1\0"
 
 
@@ -198,8 +205,10 @@ def load_tracked_targets() -> dict[str, dict]:
         data = json.loads(TRACKED_TARGETS.read_text())
     except (OSError, json.JSONDecodeError) as error:
         fail(str(TRACKED_TARGETS.relative_to(ROOT)), f"cannot read target witness catalog: {error}")
-    if (data.get("schemaVersion") != 1 or data.get("sourceCollection") != SOURCE_COLLECTION
+    if (data.get("schemaVersion") != 2 or data.get("sourceCollection") != SOURCE_COLLECTION
             or data.get("sourceSha256") != SOURCE_SHA256
+            or data.get("coordinateFrame") != FRAME
+            or data.get("topologySources") != TOPOLOGY_SOURCES
             or data.get("geometryHashEncoding") != GEOMETRY_HASH_DOMAIN[:-1].decode()):
         fail(str(TRACKED_TARGETS.relative_to(ROOT)), "invalid Cao target witness authority")
     rows = require_list(data.get("targets"), "cao-v2.4-targets.targets")
@@ -441,9 +450,70 @@ def validate_manifest(path: Path, targets: dict[str, dict], seen_targets: dict[t
     return manifest
 
 
+def validate_native_layer_evidence(core: dict) -> None:
+    """Keep source-collection labels aligned with each native Cao chart layer."""
+    expected = {
+        "cao-coast:": (
+            "Cao coastline-class model geometry is not observed exposed land",
+            "native Cao coastline-class geometry; exposed-land and height evidence unavailable",
+        ),
+        "cao-continent:": (
+            "Cao continental-outline model geometry is not observed exposed land",
+            "native Cao continental-outline geometry; exposed-land and height evidence unavailable",
+        ),
+    }
+    counts = {prefix: 0 for prefix in expected}
+    for chart in core.get("charts", []):
+        prefix = next((candidate for candidate in expected if chart.get("chartId", "").startswith(candidate)), None)
+        if prefix is None:
+            continue
+        counts[prefix] += 1
+        limitation, reason = expected[prefix]
+        if (limitation not in chart.get("evidence", {}).get("limitations", [])
+                or chart.get("surfaceEvidence", {}).get("reason") != reason):
+            fail(chart.get("chartId", "native Cao chart"),
+                 "source-collection layer and evidence label disagree")
+    if any(count == 0 for count in counts.values()):
+        fail("public Cao core", "must contain both coastline and continental-outline source layers")
+
+
+def validate_chart_binding_partition(chart: dict) -> None:
+    life = chart.get("lifecycle", {}).get("validTimeMa", {})
+    youngest, oldest = life.get("youngest"), life.get("oldest")
+    bindings = sorted(chart.get("motionBindings", []), key=lambda binding: (
+        binding.get("validTimeMa", {}).get("youngest", math.inf),
+        binding.get("validTimeMa", {}).get("oldest", math.inf),
+    ))
+    if not isinstance(youngest, (int, float)) or not isinstance(oldest, (int, float)) or not bindings:
+        fail(chart.get("chartId", "correction chart"), "has no valid motion-binding partition")
+    if youngest == oldest:
+        interval = bindings[0].get("validTimeMa", {})
+        if len(bindings) != 1 or interval != {"youngest": youngest, "oldest": oldest}:
+            fail(chart.get("chartId", "correction chart"),
+                 "instantaneous motion binding must equal the chart lifecycle")
+        return
+    cursor = youngest
+    for binding in bindings:
+        interval = binding.get("validTimeMa", {})
+        if interval.get("youngest") != cursor or not isinstance(interval.get("oldest"), (int, float)) \
+                or interval["oldest"] <= cursor:
+            fail(chart.get("chartId", "correction chart"),
+                 "motion bindings must form one exact contiguous, non-overlapping partition")
+        cursor = interval["oldest"]
+    if cursor != oldest:
+        fail(chart.get("chartId", "correction chart"),
+             "motion bindings must cover the complete chart lifecycle")
+
+
 def validate_generated_catalog(manifests: list[dict]) -> None:
     package_path = ROOT / "public/data/reconstruction/cao-v2.4/manifest.json"
     package = json.loads(package_path.read_text())
+    core_path = package_path.parent / require_string(package.get("core", {}).get("url"),
+                                                     "public Cao manifest.core.url")
+    if (not core_path.is_file() or core_path.stat().st_size != package["core"].get("bytes")
+            or sha256(core_path) != package["core"].get("sha256")):
+        fail("public Cao manifest.core", "core asset identity mismatch")
+    validate_native_layer_evidence(json.loads(core_path.read_text()))
     descriptor = require_dict(package.get("materialCorrections"), "public Cao manifest.materialCorrections")
     catalog_path = package_path.parent / require_string(descriptor.get("catalog", {}).get("url"),
                                                         "materialCorrections.catalog.url")
@@ -469,6 +539,8 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     }:
         fail("material correction catalog.baseline", "does not match the immutable public base package")
     charts = {chart["chartId"]: chart for chart in catalog.get("charts", [])}
+    for chart in charts.values():
+        validate_chart_binding_partition(chart)
     expected_chart_ids = set()
     expected_witness_ids = set()
     for manifest in manifests:
@@ -618,6 +690,33 @@ def self_test() -> None:
             except CorrectionError:
                 continue
             fail("self-test", f"{label} mutation was accepted")
+    package_path = ROOT / "public/data/reconstruction/cao-v2.4/manifest.json"
+    package = json.loads(package_path.read_text())
+    core = json.loads((package_path.parent / package["core"]["url"]).read_text())
+    validate_native_layer_evidence(core)
+    mutated = deepcopy(core)
+    coast = next(chart for chart in mutated["charts"] if chart["chartId"].startswith("cao-coast:"))
+    coast["surfaceEvidence"]["reason"] = (
+        "native Cao continental-outline geometry; exposed-land and height evidence unavailable"
+    )
+    try:
+        validate_native_layer_evidence(mutated)
+    except CorrectionError:
+        pass
+    else:
+        fail("self-test", "source-collection evidence-label mutation was accepted")
+    catalog_path = package_path.parent / package["materialCorrections"]["catalog"]["url"]
+    catalog = json.loads(catalog_path.read_text())
+    partitioned = next(chart for chart in catalog["charts"] if len(chart["motionBindings"]) > 1)
+    validate_chart_binding_partition(partitioned)
+    mutated = deepcopy(partitioned)
+    mutated["motionBindings"][0]["validTimeMa"]["oldest"] += 1
+    try:
+        validate_chart_binding_partition(mutated)
+    except CorrectionError:
+        pass
+    else:
+        fail("self-test", "overlapping correction motion-binding mutation was accepted")
 
 
 def main() -> int:
@@ -660,9 +759,11 @@ def main() -> int:
                 fail("--refresh-targets", f"unknown Cao targets: {', '.join(missing)}")
             TRACKED_TARGETS.parent.mkdir(parents=True, exist_ok=True)
             TRACKED_TARGETS.write_text(json.dumps({
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "sourceCollection": SOURCE_COLLECTION,
                 "sourceSha256": SOURCE_SHA256,
+                "coordinateFrame": FRAME,
+                "topologySources": TOPOLOGY_SOURCES,
                 "geometryHashEncoding": GEOMETRY_HASH_DOMAIN[:-1].decode(),
                 "targets": [targets[patch_id] for patch_id in sorted(set(patch_ids))],
             }, indent=2) + "\n")

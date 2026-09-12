@@ -6,7 +6,8 @@ import type {
   WorldSnapshot,
 } from "../data";
 import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
-import type { MaterialAddress, PreparedCaoRevision } from "../reconstruction";
+import type { CaoMotionFrame, MaterialAddress, PreparedCaoRevision } from "../reconstruction";
+import { chartPickStateFromMotionFrame } from "../reconstruction";
 
 export interface FocusTarget {
   kind: SpatialFocusKind;
@@ -26,6 +27,8 @@ export interface PeriodCoordinateRenderState {
 
 export interface GlobeViewProps {
   caoRevision?: PreparedCaoRevision | null;
+  caoMotionFrame?: CaoMotionFrame | null;
+  caoWithheld?: boolean;
   snapshot: WorldSnapshot | null;
   layers: LayerVisibility;
   selectedPoiId: string | null;
@@ -42,6 +45,8 @@ export interface GlobeViewProps {
 
 export function GlobeView({
   caoRevision = null,
+  caoMotionFrame = null,
+  caoWithheld = false,
   snapshot,
   layers,
   selectedPoiId,
@@ -60,6 +65,8 @@ export function GlobeView({
   const [renderError, setRenderError] = useState<string | null>(null);
   const latestProps = useRef({
     caoRevision,
+    caoMotionFrame,
+    caoWithheld,
     snapshot,
     layers,
     selectedPoiId,
@@ -75,6 +82,8 @@ export function GlobeView({
   });
   latestProps.current = {
     caoRevision,
+    caoMotionFrame,
+    caoWithheld,
     snapshot,
     layers,
     selectedPoiId,
@@ -112,6 +121,7 @@ export function GlobeView({
         scene.setCallbacks(current.onSelectPoi, current.onSelectSurface, current.onStats);
         scene.setVerticalExaggeration(current.verticalExaggeration);
         scene.setPreparedCaoRevision(current.caoRevision);
+        scene.setCaoFoundationWithheld(current.caoWithheld);
         scene.setEditorialSnapshot(current.snapshot);
         scene.setLayers(current.layers);
         scene.setSelectedPoi(current.selectedPoiId);
@@ -154,6 +164,11 @@ export function GlobeView({
     sceneRef.current?.setCallbacks(onSelectPoi, onSelectSurface, onStats);
   }, [onSelectPoi, onSelectSurface, onStats]);
 
+  // Clear a prior withheld flag before a recovered revision/frame publishes.
+  useEffect(() => {
+    sceneRef.current?.setCaoFoundationWithheld(caoWithheld);
+  }, [caoWithheld]);
+
   useEffect(() => {
     const scene = sceneRef.current;
     if (scene === null) {
@@ -166,6 +181,28 @@ export function GlobeView({
     scene.setPreparedCaoRevision(caoRevision);
     return undefined;
   }, [caoRevision]);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (scene === null || caoMotionFrame === null || caoRevision === null) return;
+    const pick = chartPickStateFromMotionFrame(caoMotionFrame);
+    const anchors = caoMotionFrame.anchorIds.flatMap((id) => {
+      const resolved = caoMotionFrame.resolveAnchor(id);
+      return resolved?.pose.support.kind === "supported" && resolved.pose.direction !== null
+        ? [{ id, direction: resolved.pose.direction, address: resolved.pose.address }]
+        : [];
+    });
+    scene.retargetCaoMotion(
+      caoMotionFrame.paletteValues,
+      caoMotionFrame.entryCount,
+      caoMotionFrame.display.fraction,
+      pick.chartPoses,
+      pick.chartActive,
+      caoMotionFrame.requestedAgeMa,
+      caoMotionFrame.materialCorrections,
+      anchors,
+    );
+  }, [caoMotionFrame, caoRevision]);
 
   useEffect(() => {
     sceneRef.current?.setEditorialSnapshot(snapshot);
