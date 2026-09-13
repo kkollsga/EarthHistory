@@ -2,7 +2,17 @@ import * as THREE from "three";
 import { DoubleSide, FrontSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
 import type Node from "three/src/nodes/core/Node.js";
 import type UniformNode from "three/src/nodes/core/UniformNode.js";
-import { attribute, float, int, ivec2, step, textureLoad, uniform, vec3 } from "three/tsl";
+import {
+  attribute,
+  float,
+  int,
+  ivec2,
+  step,
+  textureLoad,
+  transformNormalToView,
+  uniform,
+  vec3,
+} from "three/tsl";
 import {
   EARTH_RADIUS_METRES,
   PREPARED_MOTION_PALETTE_STRIDE,
@@ -447,7 +457,9 @@ export function createCaoFoundationMaterial(
     metalness: 0,
   });
   material.positionNode = pose.position;
-  material.normalNode = pose.direction;
+  // NodeMaterial consumes a custom normalNode in view space. The reconstructed
+  // radial direction is mesh-local, so transform it exactly once before lighting.
+  material.normalNode = transformNormalToView(pose.direction);
   if (display.baseColor.kind === "uniform") {
     const [r, g, b] = display.baseColor.value;
     const dim = appearance === "shelf" ? 0.58 : 1;
@@ -480,10 +492,10 @@ export function createCaoFoundationCountryLineMaterial(
     depthTest: true,
     depthWrite: false,
   });
-  // Muted ink — stronger than the first soft pass, still not near-black hairlines.
+  // Mid-tone slate stays visible across both pale land and dark shelf water.
   material.colorNode = style === "underlay"
     ? vec3(0.1, 0.12, 0.15)
-    : vec3(0.14, 0.17, 0.2);
+    : vec3(0.44, 0.54, 0.56);
   material.positionNode = pose.position;
   return Object.freeze({ material, displayFraction: pose.displayFraction });
 }

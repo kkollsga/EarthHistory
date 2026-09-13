@@ -45,7 +45,10 @@ import {
   createThrottledHistoryWriter,
   serializeAge,
 } from "./explorerHash";
-import { CaoReconstructionRuntime, type CaoMotionFrame, type PreparedCaoRevision,
+import {
+  CaoReconstructionRuntime,
+  contentAddressedAssetCacheMode,
+  type CaoMotionFrame, type CaoTimelineLoadingState, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -190,6 +193,10 @@ export default function App() {
   materialFocusAddressRef.current = materialFocusAddress;
   const [caoAnchorCoordinates, setCaoAnchorCoordinates] = useState<Readonly<Record<string, LonLat>>>({});
   const [caoRuntimeReady, setCaoRuntimeReady] = useState(0);
+  const [caoTimelineLoading, setCaoTimelineLoading] = useState<CaoTimelineLoadingState>({
+    status: "idle", foregroundStatus: "idle", requestedAgeMa: null,
+    motionTier: "requested-age", error: null,
+  });
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
@@ -214,20 +221,26 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    let unsubscribeTimeline: (() => void) | null = null;
     const controller = new AbortController();
     const manifestUrl = new URL("data/reconstruction/cao-v2.4/manifest.json", document.baseURI).toString();
     void fetch(manifestUrl, { signal: controller.signal, cache: "no-store" }).then(async (response) => {
       if (!response.ok) throw new Error(`Could not load Cao reconstruction manifest (${response.status})`);
       const manifest = await response.json() as ReconstructionPackageManifestV2;
       const fetcher: StaticAssetFetcher = async (path, signal) => {
-        // no-store + content-addressed ?h=sha from loadVerifiedBytes defeat stale
-        // CDN/browser cache after package promotes that keep the same filenames.
-        const assetResponse = await fetch(new URL(path, manifestUrl), { signal, cache: "no-store" });
+        // The manifest stays no-store. Hash-qualified payload URLs are immutable,
+        // so refreshes may reuse them without mixing bytes across promotions.
+        const assetResponse = await fetch(new URL(path, manifestUrl), {
+          signal,
+          cache: contentAddressedAssetCacheMode(path),
+        });
         if (!assetResponse.ok) throw new Error(`Could not load Cao reconstruction asset (${assetResponse.status})`);
         return assetResponse.arrayBuffer();
       };
       if (!active) return;
-      caoRuntimeRef.current = new CaoReconstructionRuntime(manifest, fetcher);
+      const runtime = new CaoReconstructionRuntime(manifest, fetcher);
+      caoRuntimeRef.current = runtime;
+      unsubscribeTimeline = runtime.subscribeTimelineLoading(setCaoTimelineLoading);
       setCaoSourceAges(Object.freeze(manifest.checkpoints.map((checkpoint) => checkpoint.ageMa)));
       setCaoAgeDomainMa(Object.freeze([manifest.ageDomainMa.youngest, manifest.ageDomainMa.oldest]));
       setCaoRuntimeReady((value) => value + 1);
@@ -238,6 +251,7 @@ export default function App() {
     });
     return () => {
       active = false;
+      unsubscribeTimeline?.();
       controller.abort();
       caoRuntimeRef.current?.dispose();
       caoRuntimeRef.current = null;
@@ -465,6 +479,7 @@ export default function App() {
   useEffect(() => {
     const runtime = caoRuntimeRef.current;
     if (!runtime || !caoRuntimeReady) return;
+    runtime.prioritizeRequestedAge(ageMa);
     const domain = runtime.manifest.ageDomainMa;
     if (ageMa < domain.youngest || ageMa > domain.oldest) {
       // Outside the live Cao package domain: keep the resident foundation for
@@ -486,6 +501,13 @@ export default function App() {
     caoScrubPumpRef.current?.pump();
     caoPumpRef.current?.pump();
   }, [ageMa, caoRuntimeReady]);
+
+  useEffect(() => {
+    const runtime = caoRuntimeRef.current;
+    if (!runtime || periodCoordinateState.status !== "ready"
+        || periodCoordinateState.displayedAgeMa !== ageMa) return;
+    runtime.markRendered(ageMa);
+  }, [ageMa, periodCoordinateState.displayedAgeMa, periodCoordinateState.status]);
 
   const selectedPoiRecord = useMemo(
     () => pointsOfInterest.find((poi) => poi.id === selectedPoiId) ?? null,
@@ -520,9 +542,15 @@ export default function App() {
   const contextSnapshot = displayedSnapshot;
   const inCaoDomain = caoAgeDomainMa !== null
     && ageMa >= caoAgeDomainMa[0] && ageMa <= caoAgeDomainMa[1];
+  const currentCaoMotionFrame = caoMotionFrame?.requestedAgeMa === ageMa ? caoMotionFrame : null;
   const displayedCao = !inCaoDomain ? null
-    : caoMotionFrame?.requestedAgeMa === ageMa ? caoMotionFrame
-      : caoRevision?.requestedAgeMa === ageMa ? caoRevision : null;
+    : currentCaoMotionFrame ?? (caoRevision?.requestedAgeMa === ageMa ? caoRevision : null);
+  const exactCaoCheckpoint = caoSourceAges.includes(ageMa);
+  const requestedMotionAvailable = exactCaoCheckpoint
+    ? caoRevision?.requestedAgeMa === ageMa
+    : caoMotionFrame?.requestedAgeMa === ageMa || caoRevision?.requestedAgeMa === ageMa;
+  const foregroundMotionWithheld = inCaoDomain && caoRevision !== null
+    && (caoTimelineLoading.foregroundStatus === "loading" || !requestedMotionAvailable);
   const foundationStatus = caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "outside compiled domain"
     : periodCoordinateState.status === "error" ? "render unavailable"
       : caoRevision === null ? "preparing"
@@ -533,8 +561,12 @@ export default function App() {
   const surfaceInfoState = caoLoadError !== null || periodCoordinateState.status === "error" ? "error"
     : foundationStatus === "rendered" ? "ready" : foundationStatus === "outside compiled domain" ? "editorial" : "loading";
   const surfaceInfoSummary = surfaceInfoState === "error" ? "Surface withheld"
-    : surfaceInfoState === "ready" ? "Cao surface"
-      : surfaceInfoState === "editorial" ? "Editorial surface" : "Preparing surface";
+    : surfaceInfoState === "ready" && caoTimelineLoading.status === "loading"
+      ? `${formatAge(ageMa)} ready · Loading timeline…`
+      : surfaceInfoState === "ready" && caoTimelineLoading.status === "paused"
+        ? `${formatAge(ageMa)} ready · Timeline loading paused`
+        : surfaceInfoState === "ready" ? "Cao surface"
+          : surfaceInfoState === "editorial" ? "Editorial surface" : `Loading ${formatAge(ageMa)}…`;
   const observedMaterialVisible = (displayedCao?.materialCorrections.observedActiveCharts ?? 0) > 0;
   const classifiedShallowMarineVisible =
     (displayedCao?.materialCorrections.classifiedShallowMarineActiveCharts ?? 0) > 0;
@@ -958,11 +990,16 @@ export default function App() {
         aria-label="Interactive Earth reconstruction"
         data-cao-last-prepare-failed-age-ma={caoLastPrepareFailure?.failedAgeMa}
         data-cao-last-prepare-failure-observed-age-ma={caoLastPrepareFailure?.observedAgeMa}
+        data-cao-motion-tier={caoTimelineLoading.motionTier}
+        data-cao-motion-foreground-status={caoTimelineLoading.foregroundStatus}
+        data-cao-timeline-loading-status={caoTimelineLoading.status}
+        data-cao-requested-age-ma={ageMa}
+        data-cao-displayed-age-ma={periodCoordinateState.displayedAgeMa}
       >
         <GlobeView
           caoRevision={caoRevision}
-          caoMotionFrame={caoMotionFrame}
-          caoWithheld={caoLoadError !== null}
+          caoMotionFrame={currentCaoMotionFrame}
+          caoWithheld={caoLoadError !== null || foregroundMotionWithheld}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
@@ -1019,6 +1056,15 @@ export default function App() {
               <span role="status">Cao reconstruction · {foundationStatus}</span>
               {caoLoadError !== null && (
                 <span role="status">Cao reconstruction unavailable · surface withheld</span>
+              )}
+              {caoTimelineLoading.status === "loading" && (
+                <span role="status">Current age ready · loading timeline data</span>
+              )}
+              {caoTimelineLoading.status === "paused" && (
+                <span role="status">
+                  Current age ready · timeline loading paused
+                  <button type="button" onClick={() => caoRuntimeRef.current?.retryTimelineLoading()}>Retry</button>
+                </span>
               )}
               {areaFocusStatus === "unresolved" && <span role="status">Tracked material unavailable at this age · tag retained</span>}
               <span>Elevation not represented</span>

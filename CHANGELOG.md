@@ -4,6 +4,35 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-13
+
+### Added
+
+- Complete the schematic globe graticule with four cardinal meridians and
+  compact one-degree ticks at the minor-longitude crossings.
+- Show the URL-requested Cao age from a verified 25 Ma motion window, then
+  verify the full timeline motion and checkpoint assets in the background with
+  cancellable age priority, accurate loading status, and retry after failure.
+
+### Fixed
+
+- Reuse byte- and SHA-256-verified content-addressed reconstruction payloads
+  across page refreshes while continuing to revalidate the package manifest.
+- Keep reconstructed land and shelf normals in the renderer's expected view
+  space, and keep inspection lighting aligned with the camera so orbiting cannot
+  turn the visible globe into an unlit side.
+- Restore source-backed native land around Australia and Oceania where valid
+  Cao polygons were lost to triangulation, with refined motion bindings across
+  the affected source intervals.
+- Add exact-present observed land across the Panama isthmus while retaining its
+  source-bounded single-age lifecycle.
+- Complete the exact-present modern-country reference overlay from the pinned
+  Natural Earth source, improve line contrast, and keep unsupported historical
+  fragments absent rather than assigning speculative motion.
+- Represent two discontinuous plate-626 source seams as explicit unsupported
+  intervals so affected charts disappear inside the gaps and reacquire their
+  authored poses at both endpoints.
+
 ## [0.1.5] - 2026-09-13
 
 ### Changed

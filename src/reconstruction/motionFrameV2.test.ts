@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
-import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, resolveChartMotionSegment } from "./motionFrameV2";
+import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, resolveChartMotionSegment,
+  resolveChartMotionSupportGap } from "./motionFrameV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validateReconstructionCoreV2, type ReconstructionCoreV2,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -58,6 +59,14 @@ describe("continuous Cao motion frames", () => {
 
     const foundation = await loadVerifiedCaoFoundation(manifest, fetcher);
     expect(resolveChartMotionSegment(malformedBindings, foundation.paletteEntries, 0)).toBeNull();
+  });
+
+  it("marks only the strict interior of an explicit source seam as unsupported", () => {
+    const gaps = [{ validTimeMa: { youngest: 79.1, oldest: 79.100001 },
+      reason: "source-seam" as const }];
+    expect(resolveChartMotionSupportGap(gaps, 79.1)).toBeNull();
+    expect(resolveChartMotionSupportGap(gaps, 79.1000005)?.reason).toBe("source-seam");
+    expect(resolveChartMotionSupportGap(gaps, 79.100001)).toBeNull();
   });
 
   it("interpolates motion continuously between checkpoints and reuses evaluateMotion", async () => {
@@ -174,12 +183,56 @@ describe("continuous Cao motion frames", () => {
       expect(atGap.support.kind).toBe("supported");
       expect(Math.hypot(...atGap.poseQuaternion)).toBeCloseTo(1, 5);
     }
-    const countrySwe = mid.charts.filter((chart) => chart.materialId === "country:swe");
+    const countrySwe = mid.charts.filter((chart) => chart.materialId === "country:swe"
+      && !chart.chartId.startsWith("country-present-reference:"));
     expect(countrySwe.length).toBeGreaterThan(0);
     expect(countrySwe.every((chart) => chart.support.kind === "supported")).toBe(true);
     const supportedAtGap = mid.charts.filter((chart) => chart.support.kind === "supported").length;
     const supportedAt118 = younger.charts.filter((chart) => chart.support.kind === "supported").length;
     expect(supportedAtGap).toBeGreaterThanOrEqual(supportedAt118 - 5);
+  });
+
+  it("honors the composed plate 626 source seams and exact-present singleton consumers", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
+      ReconstructionPackageManifestV2;
+    const foundation = await loadVerifiedCaoFoundation(manifest, fetcher);
+    const gapChartIds = foundation.core.charts.filter((chart) => chart.motionSupportGaps?.length === 2)
+      .map((chart) => chart.chartId);
+    expect(gapChartIds).toHaveLength(4);
+    for (const [youngerAge, interiorAge, olderAge] of [
+      [79.1, 79.1000005, 79.100001],
+      [119.999999, 119.9999995, 120],
+    ]) {
+      const younger = evaluateCaoMotionFrame(manifest, foundation, youngerAge);
+      const interior = evaluateCaoMotionFrame(manifest, foundation, interiorAge);
+      const older = evaluateCaoMotionFrame(manifest, foundation, olderAge);
+      for (const chartId of gapChartIds) {
+        expect(younger.charts.find((chart) => chart.chartId === chartId)?.support.kind).toBe("supported");
+        expect(interior.charts.find((chart) => chart.chartId === chartId)?.support)
+          .toEqual({ kind: "unsupported", reason: "source-seam" });
+        expect(older.charts.find((chart) => chart.chartId === chartId)?.support.kind).toBe("supported");
+      }
+    }
+
+    for (const entryId of ["panama-observed-land-plate-229-0",
+      "panama-observed-land-plate-230-0", "panama-observed-land-plate-911-0",
+      "country-present-reference-plate-0-identity"]) {
+      expect(foundation.paletteEntries.get(entryId)?.sampleCount).toBe(1);
+    }
+    const modern = evaluateCaoMotionFrame(manifest, foundation, 0);
+    const postModern = evaluateCaoMotionFrame(manifest, foundation, 0.000001);
+    const exactCountryIds = foundation.core.charts.filter((chart) =>
+      chart.chartId.startsWith("country-present-reference:")).map((chart) => chart.chartId);
+    const panamaIds = foundation.core.charts.filter((chart) =>
+      chart.chartId.startsWith("correction:earthhistory-regional-panama-observed-land-v1:"))
+      .map((chart) => chart.chartId);
+    expect(exactCountryIds).toHaveLength(149);
+    expect(panamaIds).toHaveLength(5);
+    for (const chartId of [...exactCountryIds, ...panamaIds]) {
+      expect(modern.charts.find((chart) => chart.chartId === chartId)?.support.kind).toBe("supported");
+      expect(postModern.charts.find((chart) => chart.chartId === chartId)?.support)
+        .toEqual({ kind: "inactive", reason: "unborn" });
+    }
   });
 
 });

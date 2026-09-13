@@ -44,6 +44,8 @@ EXPECTED_ADDED_VERTICES = 2_348
 EXPECTED_ADDED_TRIANGLES = 2_387
 OLD_HEIGHT_LIMITATION = "physical height unknown; 400 m is render-only shell separation"
 HEIGHT_LIMITATION = "physical height unknown; renderer-only shell offsets are not source elevation"
+NATIVE_RECOVERY_REVISION = "cao-foundation-v2"
+NATIVE_RECOVERY_CHARTS = 15
 
 
 class BuildError(ValueError):
@@ -423,7 +425,12 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
                     for value in core["charts"])
     new_count = sum(HEIGHT_LIMITATION in value.get("evidence", {}).get("limitations", [])
                     for value in core["charts"])
-    if old_count != 0 or new_count != 3_784:
+    recovered_native = [value for value in core["charts"]
+                        if value.get("chartRevision") == NATIVE_RECOVERY_REVISION]
+    if (len(recovered_native) not in (0, NATIVE_RECOVERY_CHARTS)
+            or any(HEIGHT_LIMITATION not in value.get("evidence", {}).get("limitations", [])
+                   for value in recovered_native)
+            or old_count != 0 or new_count != 3_784 + len(recovered_native)):
         raise BuildError("render-only shell metadata was not rebound exactly")
     if original_geometry is not None:
         old_v, old_i = len(original_geometry["directions"]), len(original_geometry["indices"])
@@ -453,7 +460,7 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
     for batch in catalog["spatialBatches"]:
         geometry = decode_ehgb((package / batch["geometryAsset"]["url"]).read_bytes())
         chart_indices.extend(geometry["charts"])
-    expected_correction_indices = set(range(4826, 4826 + len(catalog["charts"])))
+    expected_correction_indices = set(range(len(core["charts"]), len(core["charts"]) + len(catalog["charts"])))
     if set(chart_indices) != expected_correction_indices:
         raise BuildError("material correction chart indices were not shifted exactly after shelf append")
     for key in ("catalog", "binary"):

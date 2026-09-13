@@ -46,6 +46,11 @@ type ChartMotionBinding = {
   readonly validTimeMa: { readonly youngest: number; readonly oldest: number };
 };
 
+type ChartMotionSupportGap = {
+  readonly validTimeMa: { readonly youngest: number; readonly oldest: number };
+  readonly reason: "source-seam";
+};
+
 /** Resolves a chart only inside an explicitly authored motion-binding interval. */
 export function resolveChartMotionSegment(
   bindings: readonly ChartMotionBinding[],
@@ -60,6 +65,15 @@ export function resolveChartMotionSegment(
     return entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
   }
   return null;
+}
+
+/** Returns only explicitly declared open source gaps; authored endpoint poses remain usable. */
+export function resolveChartMotionSupportGap(
+  gaps: readonly ChartMotionSupportGap[],
+  requestedAgeMa: number,
+): ChartMotionSupportGap | null {
+  return gaps.find((gap) => requestedAgeMa > gap.validTimeMa.youngest
+    && requestedAgeMa < gap.validTimeMa.oldest) ?? null;
 }
 
 export interface CaoDisplayBracket {
@@ -127,18 +141,19 @@ export function evaluateCaoMotionFrame(
   foundation: LoadedCaoFoundation,
   requestedAgeMa: number,
 ): CaoMotionFrame {
+  const { core, paletteEntries, correctionCatalog, spatialBatches, anchorCatalog } = foundation;
   const display = resolveCaoDisplayBracket(manifest, requestedAgeMa);
-  const allOverrides = foundation.correctionCatalog?.nativeChartOverrides ?? [];
+  const allOverrides = correctionCatalog?.nativeChartOverrides ?? [];
   const countrySegmentDescriptors = allOverrides.flatMap((override) =>
     override.dependentConsumers.countrySegmentBindings.map((binding) => {
-      const sourceChartIndex = foundation.core.charts.findIndex(
+      const sourceChartIndex = core.charts.findIndex(
         (chart) => chart.chartId === binding.sourceCountryChartId,
       );
       if (sourceChartIndex < 0) throw new Error("native replacement country source chart is missing");
       return Object.freeze({ override, binding, sourceChartIndex });
     }));
   const values = new Float32Array(
-    (foundation.core.charts.length + countrySegmentDescriptors.length) * PREPARED_MOTION_PALETTE_STRIDE,
+    (core.charts.length + countrySegmentDescriptors.length) * PREPARED_MOTION_PALETTE_STRIDE,
   );
   const activeOverrides = allOverrides
     .filter((override) => evaluateLifecycleSupport(override.suppression, requestedAgeMa) === null);
@@ -146,17 +161,18 @@ export function evaluateCaoMotionFrame(
   const overriddenCountryChartIds = new Set(activeOverrides.flatMap(
     (override) => override.dependentConsumers.sourceCountryChartIds,
   ));
-  const baseCharts = foundation.core.charts.map((chart, chartIndex) => {
+  const baseCharts = core.charts.map((chart, chartIndex) => {
     const bindings = chart.motionBindings ?? (chart.motionBinding ? [{ ...chart.motionBinding,
       validTimeMa: chart.lifecycle.validTimeMa }] : []);
-    const segment = resolveChartMotionSegment(bindings, foundation.paletteEntries, requestedAgeMa);
+    const segment = resolveChartMotionSegment(bindings, paletteEntries, requestedAgeMa);
+    const declaredGap = resolveChartMotionSupportGap(chart.motionSupportGaps ?? [], requestedAgeMa);
     const lifecycle = evaluateLifecycleSupport(chart.lifecycle, requestedAgeMa);
     const support: SupportState = overriddenNativeChartIds.has(chart.chartId)
         || overriddenCountryChartIds.has(chart.chartId)
       ? { kind: "inactive", reason: "replaced" }
       : lifecycle ?? (segment
       ? { kind: "supported", method: "compiled-rigid" }
-      : { kind: "unsupported", reason: "missing-motion" });
+      : { kind: "unsupported", reason: declaredGap?.reason ?? "missing-motion" });
     const offset = chartIndex * PREPARED_MOTION_PALETTE_STRIDE;
     const youngerQuaternion = segment?.younger.quaternion ?? [1, 0, 0, 0];
     const olderQuaternion = segment?.older.quaternion ?? youngerQuaternion;
@@ -187,7 +203,7 @@ export function evaluateCaoMotionFrame(
         ? { kind: "supported", method: "compiled-rigid" }
         : { kind: "inactive", reason: "replaced" }
       : source.support;
-    const chartIndex = foundation.core.charts.length + descriptorIndex;
+    const chartIndex = core.charts.length + descriptorIndex;
     const sourceOffset = descriptor.sourceChartIndex * PREPARED_MOTION_PALETTE_STRIDE;
     const targetOffset = chartIndex * PREPARED_MOTION_PALETTE_STRIDE;
     values.set(values.subarray(sourceOffset, sourceOffset + PREPARED_MOTION_PALETTE_STRIDE), targetOffset);
@@ -195,7 +211,7 @@ export function evaluateCaoMotionFrame(
     values[targetOffset + 10] = values[targetOffset + 9];
     charts.push(Object.freeze({
       chartId: `country-segment:${descriptor.override.overrideId}:${descriptor.binding.batchId}:${descriptor.binding.segmentIndex}`,
-      chartRevision: `${source.chartRevision}+${foundation.correctionCatalog?.version ?? "native"}`,
+      chartRevision: `${source.chartRevision}+${correctionCatalog?.version ?? "native"}`,
       materialId: source.materialId,
       fragmentOrCohortId: `${source.fragmentOrCohortId}:segment:${descriptor.binding.segmentIndex}`,
       role: source.role,
@@ -215,9 +231,9 @@ export function evaluateCaoMotionFrame(
     triangleCount: number;
   }[]>();
   const allReplacementChartIndices = new Set(allOverrides.flatMap((override) =>
-    override.replacementChartIds.map((chartId) => foundation.core.charts.findIndex((chart) =>
+    override.replacementChartIds.map((chartId) => core.charts.findIndex((chart) =>
       chart.chartId === chartId))));
-  for (const batch of foundation.spatialBatches.values()) {
+  for (const batch of spatialBatches.values()) {
     for (const range of batch.chartTriangleRanges) {
       if (!allReplacementChartIndices.has(range.chartIndex)) continue;
       const records = replacementTriangleRanges.get(range.chartIndex) ?? [];
@@ -277,7 +293,7 @@ export function evaluateCaoMotionFrame(
         support: { kind: "unsupported" as const, reason: "invalid-address" as const } });
     }
     if (chart.support.kind === "inactive" && chart.support.reason === "replaced") {
-      const override = foundation.correctionCatalog?.nativeChartOverrides?.find(
+      const override = correctionCatalog?.nativeChartOverrides?.find(
         (candidate) => candidate.nativeChart.chartId === chart.chartId,
       );
       if (override && overriddenNativeChartIds.has(chart.chartId)) {
@@ -297,10 +313,10 @@ export function evaluateCaoMotionFrame(
         ? rotateDirection(numberScalarOps, chart.poseQuaternion, direction) : null,
       support: chart.support });
   };
-  const anchorIds = Object.freeze(foundation.anchorCatalog?.anchors.map((anchor) => anchor.anchorId) ?? []);
-  const anchorRecords = Object.freeze((foundation.anchorCatalog?.anchors ?? []).map((anchor) => Object.freeze({
+  const anchorIds = Object.freeze(anchorCatalog?.anchors.map((anchor) => anchor.anchorId) ?? []);
+  const anchorRecords = Object.freeze((anchorCatalog?.anchors ?? []).map((anchor) => Object.freeze({
     ...anchor,
-    chartIndex: foundation.core.charts.findIndex((chart) => chart.chartId === anchor.chartId),
+    chartIndex: core.charts.findIndex((chart) => chart.chartId === anchor.chartId),
   })));
   const resolveAnchor = (anchorId: string) => {
     const anchor = anchorRecords.find((candidate) => candidate.anchorId === anchorId);
@@ -335,7 +351,7 @@ export function evaluateCaoMotionFrame(
       && (chart.evidence.correction !== undefined || (chart.surfaceEvidence.kind === "classified"
         && chart.surfaceEvidence.surfaceClass === "shallow-marine")))
       .flatMap((chart) => chart.evidence.sourceIds))].sort()),
-    correctionIds: Object.freeze([...(foundation.correctionCatalog?.correctionIds ?? [])]),
+    correctionIds: Object.freeze([...(correctionCatalog?.correctionIds ?? [])]),
   });
   return Object.freeze({
     requestedAgeMa,

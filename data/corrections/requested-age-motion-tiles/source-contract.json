@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "cao-requested-age-motion-tiles-v1",
+  "version": "1",
+  "description": "Optional 25 Ma requested-age motion windows copied byte-for-byte from the verified all-age Cao palette; the full palette remains authoritative and loads in the background.",
+  "windowSizeMicroMa": 25000000,
+  "windowSelection": "youngest-inclusive-oldest-exclusive-final-oldest-inclusive",
+  "sourcePackage": {
+    "packageId": "cao-v2.4-foundation-v1",
+    "revision": "cao-foundation-v1",
+    "ageDomainMa": {
+      "youngest": 0.0,
+      "oldest": 1800.0
+    },
+    "frame": {
+      "modelId": "cao-et-al-2024",
+      "modelVersion": "2.4",
+      "absoluteFrameId": "palaeomagnetic",
+      "anchorPlateId": 0,
+      "axisConvention": "gplates-x0e-y90e-znorth",
+      "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+      "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+    },
+    "core": {
+      "url": "core.json",
+      "bytes": 6110352,
+      "sha256": "78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b"
+    },
+    "motionPalette": {
+      "id": "cao-v2.4-shared-motion-v1",
+      "catalog": {
+        "url": "motion-palette.json",
+        "bytes": 747420,
+        "sha256": "88ce5edcd0c224685b14120a1e3d7f436966985d5fb134d6f08cbc59ec985b0a"
+      },
+      "binary": {
+        "url": "motion-palette.bin",
+        "bytes": 5604992,
+        "sha256": "1b54a2b8c08bad838035195deb12a23c488796ea13649344b3c2eb3e24a4d830"
+      }
+    },
+    "materialCorrections": {
+      "id": "earthhistory-cao-v2.4-material-corrections-v1",
+      "catalog": {
+        "url": "corrections/material-v1/catalog.json",
+        "bytes": 198006,
+        "sha256": "881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41"
+      }
+    }
+  },
+  "derivation": {
+    "method": "For each canonical 25 Ma window, select every palette entry reachable through a lifecycle-overlapping core or material-correction chart binding. Copy all original records inside the window and the immediate younger and older bracketing records when available. Preserve touching binding entries at closed endpoints.",
+    "recordSemantics": "Every EHMT record is an exact byte slice of motion-palette.bin. Tiles add no rotation, interpolation, reconstruction, palaeogeographic, or surface evidence.",
+    "sourceRecordIndices": "Each tile descriptor hashes the ordered little-endian uint32 indices of its records in the full palette binary.",
+    "expectedTileCount": 72,
+    "expectedTilePayloadBytes": 5710232,
+    "expectedRecordCount": 280974,
+    "expectedEntryDescriptorCount": 11056,
+    "expectedIndexBytes": 28068,
+    "expectedIndexSha256": "8eaaab15d8513dd3569e68be34b9794c6c2103a7f146d7eac8bf7ccdc69ac3a3",
+    "outputLimitBytes": 6610000,
+    "cleanupOwner": "root",
+    "scratchRoot": "/tmp/earthhistory-requested-age/data"
+  },
+  "source": {
+    "sourceId": "doi:10.5281/zenodo.13628813",
+    "title": "Cao et al. 2024 global plate model v2.4, EarthHistory verified compiled motion palette",
+    "url": "https://doi.org/10.5281/zenodo.13628813",
+    "publicationOrVersionDate": "2.4",
+    "retrievedAt": "2026-09-09",
+    "license": "CC BY 4.0",
+    "temporalRangeMa": [0, 1800],
+    "geographicBasis": "Cao v2.4 palaeomagnetic frame with anchor plate 0 and the package-pinned rotation/topology identities",
+    "evidenceRole": "transport partition of the existing verified motion controls only"
+  },
+  "limitations": [
+    "A tile is valid only with the exact bound core, correction catalog, motion catalog, full binary identity, package revision, and frame.",
+    "The eight unreferenced legacy palette entries need not appear because the full palette remains the background authority.",
+    "Explicit source-seam gaps remain unsupported; tiles must not interpolate across them.",
+    "The static geometry, material evidence, country references, chart IDs, picking IDs, and scientific support state are unchanged."
+  ]
+}

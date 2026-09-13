@@ -1,0 +1,557 @@
+{
+  "schemaVersion": 1,
+  "id": "cao-requested-age-progressive-loading-performance-2026-09-13",
+  "status": "accepted-after-scoped-witness-corrections",
+  "scope": "Matched production first-visible, warm-refresh and cadence evidence for optional requested-age Cao motion tiles. No scientific geometry or motion content changed.",
+  "artifacts": {
+    "baseline": {
+      "indexSha256": "10e6d3cf73e18487fd41bdb4dd253287687e5977fbae0877712d8a94510567bc",
+      "bytes": 45820514,
+      "entryAssets": {
+        "index-ClbnCUE6.js": {
+          "bytes": 1315521,
+          "sha256": "7646f0ffd3c368d4e9485b2f62f629512e1898c912ad1dda9b119451f764e5ca"
+        },
+        "index-woRa3M4H.css": {
+          "bytes": 29020,
+          "sha256": "e8d24a0d97f6dbabebc0c3e17665fac300b8c1cc1d34b59a0f438dcced0b2d10"
+        }
+      }
+    },
+    "candidate": {
+      "indexSha256": "2f7ddc8f3eafd3d39826a179a7c0b8bd6f769893cdcc0604aa6dfd2d6b562749",
+      "bytes": 51594886,
+      "entryAssets": {
+        "index-C45NZc1k.js": {
+          "bytes": 1331687,
+          "sha256": "491ed383f25cc6e8c3b1ad6f4c080a9bb099f698dff692f6b015da599b4d8b42"
+        },
+        "index-woRa3M4H.css": {
+          "bytes": 29020,
+          "sha256": "e8d24a0d97f6dbabebc0c3e17665fac300b8c1cc1d34b59a0f438dcced0b2d10"
+        }
+      }
+    }
+  },
+  "network": {
+    "latencyMs": 50,
+    "downloadBytesPerSecond": 2500000,
+    "uploadBytesPerSecond": 1250000
+  },
+  "browser": "152.0.7977.83",
+  "machine": {
+    "platform": "darwin 25.6.0 arm64",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "totalMemoryBytes": 17179869184,
+    "gpu": {
+      "vendorId": 4203,
+      "deviceId": 0,
+      "vendorString": "Google Inc. (Apple)",
+      "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+      "driverVendor": "Apple",
+      "driverVersion": "26.6.2"
+    },
+    "desktopSession": "The macOS login screen was locked for the run. Headed Playwright Chrome reported visible and focused for every primary row; baseline and candidate used the same session and launch flags."
+  },
+  "protocol": {
+    "repeats": 3,
+    "alternatingOrder": true,
+    "viewport": "1440x900 DPR1",
+    "reducedMotion": true,
+    "firstVisibleEndpoint": "first post-render canvas ready for exact URL age with nonzero draw count and candidate foreground motion ready",
+    "coldStop": "At least 250ms or20% improvement at each requested age.",
+    "warmStop": "Candidate within max(250ms,20%) of baseline.",
+    "cadenceStop": "After actual full background completion, candidate at least90% baseline and p50 <=33.33ms.",
+    "notes": [
+      "A completed but UI-invalid ocean-centered 411/1800 timing remains in the raw primary record. Repeated full-globe rows supply the required visible-land witnesses.",
+      "The initial raw out-of-domain predicate grouped metadata with motion payload. The scoped fetch-start record applies the accepted payload definition: EHMT tiles or motion-palette.bin."
+    ]
+  },
+  "primaryRawRecord": {
+    "scratchPath": "/tmp/earthhistory-requested-age/data/requested-age-performance.json",
+    "bytes": 591429,
+    "sha256": "6030d4b6b343ff4c6bda4bd09f18338d08f908467d98d1afc39a4c3c88374f8f",
+    "reportedPass": false,
+    "reportedChecks": {
+      "everyColdAgeMeaningful": true,
+      "warmRefreshPreserved": true,
+      "scienceAndPickingExact": false,
+      "candidateFullPaletteAfterReady": true,
+      "candidateRequestedAgeReady": true,
+      "noRuntimeErrors": true,
+      "outDomainWithholdsMotion": false,
+      "steadyCadence": true
+    },
+    "preservation": "Retained unchanged. Its false scienceAndPickingExact and outDomainWithholdsMotion flags are expected from the two overbroad premises described above."
+  },
+  "scopedRecords": {
+    "overview411And1800": {
+      "scratchPath": "/tmp/earthhistory-requested-age/data/requested-age-overview-recheck.json",
+      "bytes": 60051,
+      "sha256": "fa6144acd44d8ab5b50148dcd6d41cd50e7aef6661f65cd371df1b2d7fd9cd65"
+    },
+    "pick411": {
+      "scratchPath": "/tmp/earthhistory-requested-age/data/requested-age-overview-pick-411.json",
+      "bytes": 431,
+      "sha256": "048c37bba81a2fb63df0ed35142b1ebc05c83515535864e3775465e86c987fdb"
+    },
+    "outOfDomainFetchStarts": {
+      "scratchPath": "/tmp/earthhistory-requested-age/data/requested-age-outdomain-starts.json",
+      "bytes": 2652,
+      "sha256": "4a2901581b71b4785d69f7a6713382063269752ded4b582b3040325524fe00cf"
+    }
+  },
+  "coldFirstVisible": [
+    {
+      "ageMa": 0,
+      "camera": "regional -42,72",
+      "baselineReadyMs": [
+        5749.100000023842,
+        5795,
+        5737.199999928474
+      ],
+      "candidateReadyMs": [
+        4669.100000023842,
+        4665,
+        4660.899999976158
+      ],
+      "baselineMedianMs": 5749.100000023842,
+      "candidateMedianMs": 4665,
+      "gainMs": 1084.1000000238419,
+      "gainRatio": 0.18856864553049105,
+      "meaningfulGain": true
+    },
+    {
+      "ageMa": 74,
+      "camera": "regional -42,72",
+      "baselineReadyMs": [
+        5766.299999952316,
+        5759.700000047684,
+        5770.899999976158
+      ],
+      "candidateReadyMs": [
+        4673.100000023842,
+        4647.5,
+        4681.800000071526
+      ],
+      "baselineMedianMs": 5766.299999952316,
+      "candidateMedianMs": 4673.100000023842,
+      "gainMs": 1093.1999999284744,
+      "gainRatio": 0.18958430881804875,
+      "meaningfulGain": true
+    },
+    {
+      "ageMa": 411,
+      "camera": "default full-globe overview",
+      "baselineReadyMs": [
+        5742.699999928474,
+        5736.399999976158,
+        5739.200000047684
+      ],
+      "candidateReadyMs": [
+        4589.199999928474,
+        4582,
+        4607.600000023842
+      ],
+      "baselineMedianMs": 5739.200000047684,
+      "candidateMedianMs": 4589.199999928474,
+      "gainMs": 1150.0000001192093,
+      "gainRatio": 0.2003763590935417,
+      "meaningfulGain": true
+    },
+    {
+      "ageMa": 1800,
+      "camera": "default full-globe overview",
+      "baselineReadyMs": [
+        5647.600000023842,
+        5690.100000023842,
+        5630
+      ],
+      "candidateReadyMs": [
+        4512,
+        4569.300000071526,
+        4507.399999976158
+      ],
+      "baselineMedianMs": 5647.600000023842,
+      "candidateMedianMs": 4512,
+      "gainMs": 1135.6000000238419,
+      "gainRatio": 0.20107656349937103,
+      "meaningfulGain": true
+    }
+  ],
+  "warmRefresh": {
+    "0": {
+      "baselineMedianMs": 570.0999999046326,
+      "candidateMedianMs": 616.3999999761581,
+      "gainMs": -46.300000071525574,
+      "gainRatio": -0.08121382227551434,
+      "passesMeaningfulGain": null
+    },
+    "74": {
+      "baselineMedianMs": 568,
+      "candidateMedianMs": 610.6999999284744,
+      "gainMs": -42.699999928474426,
+      "gainRatio": -0.07517605621210287,
+      "passesMeaningfulGain": null
+    },
+    "411": {
+      "baselineMedianMs": 560.8000000715256,
+      "candidateMedianMs": 608.3999999761581,
+      "gainMs": -47.59999990463257,
+      "gainRatio": -0.08487874446961763,
+      "passesMeaningfulGain": null
+    },
+    "1800": {
+      "baselineMedianMs": 563.8000000715256,
+      "candidateMedianMs": 603.6000000238419,
+      "gainMs": -39.799999952316284,
+      "gainRatio": -0.07059240856202044,
+      "passesMeaningfulGain": null
+    }
+  },
+  "fullPaletteAttribution": {
+    "fullPaletteBinaryDecodedBytes": 5604992,
+    "fullPaletteTransferBytes": 3018235,
+    "rows": [
+      {
+        "ageMa": 0,
+        "fetchStartAfterReadyMs": [
+          2.799999952316284,
+          3,
+          3.100000023841858
+        ],
+        "networkBodyMs": [
+          1264.6000000238419,
+          1266.6999999284744,
+          1268.7000000476837
+        ],
+        "verificationAndHandoffAfterBodyMs": [
+          122.39999997615814,
+          122.40000009536743,
+          120.5
+        ],
+        "fullTierAfterReadyMs": [
+          1390,
+          1392.2000000476837,
+          1392.4000000953674
+        ],
+        "longTaskTotalMs": [
+          106,
+          106,
+          104
+        ],
+        "medianFullTierAfterReadyMs": 1392.2000000476837
+      },
+      {
+        "ageMa": 74,
+        "fetchStartAfterReadyMs": [
+          3.0,
+          2.600000023841858,
+          2.399999976158142
+        ],
+        "networkBodyMs": [
+          1265.0,
+          1265.0,
+          1265.8999999761581
+        ],
+        "verificationAndHandoffAfterBodyMs": [
+          109.39999997615814,
+          109.69999992847443,
+          106.69999992847443
+        ],
+        "fullTierAfterReadyMs": [
+          1377.6000000238419,
+          1377.3999999761581,
+          1375.0999999046326
+        ],
+        "longTaskTotalMs": [
+          180,
+          94,
+          92
+        ],
+        "medianFullTierAfterReadyMs": 1377.3999999761581
+      },
+      {
+        "ageMa": 411,
+        "fetchStartAfterReadyMs": [
+          2.5,
+          2.6999999284744263,
+          2.5
+        ],
+        "networkBodyMs": [
+          1266.7999999523163,
+          1269.1999999284744,
+          1265.2000000476837
+        ],
+        "verificationAndHandoffAfterBodyMs": [
+          101.70000004768372,
+          100.90000009536743,
+          103.89999997615814
+        ],
+        "fullTierAfterReadyMs": [
+          1371.1000000238419,
+          1373,
+          1371.7000000476837
+        ],
+        "longTaskTotalMs": [
+          85,
+          173,
+          86
+        ],
+        "medianFullTierAfterReadyMs": 1371.7000000476837
+      },
+      {
+        "ageMa": 1800,
+        "fetchStartAfterReadyMs": [
+          2.6999999284744263,
+          2.899999976158142,
+          2.700000047683716
+        ],
+        "networkBodyMs": [
+          1266.7000000476837,
+          1265.1999999284744,
+          1263.6999999284744
+        ],
+        "verificationAndHandoffAfterBodyMs": [
+          99.5,
+          102.5,
+          100.5
+        ],
+        "fullTierAfterReadyMs": [
+          1369,
+          1370.6999999284744,
+          1367.1000000238419
+        ],
+        "longTaskTotalMs": [
+          170,
+          174,
+          83
+        ],
+        "medianFullTierAfterReadyMs": 1369
+      }
+    ],
+    "conclusion": "The controlled matrix places full-palette fetch starts after first ready. Median full-tier handoff is1.37-1.39s after first ready; the body transfer is about1.27s and bounded verification/handoff follows. This supersedes a coarse5s-poll diagnostic that made the handoff appear near30s."
+  },
+  "cadenceDuringBoundedBackground": {
+    "0": {
+      "baselineHz": 59.88023952095792,
+      "candidateHz": 59.88023952095792,
+      "candidateToBaselineRatio": 1,
+      "candidateP50Ms": 16.700000000000045
+    },
+    "74": {
+      "baselineHz": 59.88023952095792,
+      "candidateHz": 59.88023952095792,
+      "candidateToBaselineRatio": 1,
+      "candidateP50Ms": 16.700000000000045
+    },
+    "411": {
+      "baselineHz": 59.88023952095792,
+      "candidateHz": 59.88023952095792,
+      "candidateToBaselineRatio": 1,
+      "candidateP50Ms": 16.700000000000045
+    },
+    "1800": {
+      "baselineHz": 59.88023952095833,
+      "candidateHz": 59.88023952095792,
+      "candidateToBaselineRatio": 0.9999999999999932,
+      "candidateP50Ms": 16.700000000000045
+    }
+  },
+  "steadyCadenceAfterFullCompletion": {
+    "baseline": {
+      "frames": 120,
+      "p50Ms": 16.699999999999818,
+      "p95Ms": 18.600000000000364,
+      "cadenceHz": 59.88023952095874
+    },
+    "candidate": {
+      "frames": 120,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 18.599999999998545,
+      "cadenceHz": 59.880239520968516
+    },
+    "candidateToBaselineRatio": 1.0000000000001632,
+    "passes": true
+  },
+  "scienceAndPicking": {
+    "staticAndRenderedCounts": {
+      "0Ma": "exact across all primary rows",
+      "74Ma": "exact across all primary rows",
+      "411Ma": "exact across all overview rows",
+      "1800Ma": "exact across all overview rows"
+    },
+    "picking": [
+      {
+        "ageMa": 0,
+        "chartIndex": 3391,
+        "triangleIndex": 181903,
+        "camera": "regional -42,72"
+      },
+      {
+        "ageMa": 74,
+        "chartIndex": 882,
+        "triangleIndex": 1123,
+        "camera": "regional -42,72"
+      },
+      {
+        "ageMa": 411,
+        "chartIndex": 3088,
+        "triangleIndex": 157987,
+        "camera": "default full-globe overview",
+        "screenFraction": [
+          0.5,
+          0.8
+        ]
+      },
+      {
+        "ageMa": 1800,
+        "chartIndex": 451,
+        "triangleIndex": 133322,
+        "camera": "default full-globe overview",
+        "screenFraction": [
+          0.5,
+          0.4
+        ]
+      }
+    ],
+    "note": "Each listed baseline/candidate pick matched exactly. The original 411/1800 regional camera had no land under the sampled pixels; its null picks are retained only in the raw record and are not treated as parity evidence."
+  },
+  "outOfDomain": {
+    "ageMa": 2000,
+    "status": "unsupported",
+    "drawCount": 0,
+    "metadataAndStaticFetchStarts": [
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/manifest.json",
+        "at": 78.90000009536743
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/core.json?h=78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b",
+        "at": 89.10000002384186
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/motion-palette.json?h=88ce5edcd0c224685b14120a1e3d7f436966985d5fb134d6f08cbc59ec985b0a",
+        "at": 89.20000004768372
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json?h=881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41",
+        "at": 89.30000007152557
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/motion-tiles/index.json?h=8eaaab15d8513dd3569e68be34b9794c6c2103a7f146d7eac8bf7ccdc69ac3a3",
+        "at": 89.40000009536743
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/batch-shelf.ehgb?h=2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077",
+        "at": 183.10000002384186
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/batch-land.ehgb?h=423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443",
+        "at": 276.2000000476837
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/corrections/material-v1/observed.ehgb?h=a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb",
+        "at": 373.60000002384186
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb?h=d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745",
+        "at": 375.10000002384186
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb?h=2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8",
+        "at": 379.60000002384186
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/country-reference.ehgl?h=8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a",
+        "at": 401.90000009536743
+      },
+      {
+        "url": "http://127.0.0.1:4197/EarthHistory/data/reconstruction/cao-v2.4/anchors.json?h=94a68079c1c82c2b615ebcb0f73d526bd10cc7e1fdfe5fa907602b0fa0a135fa",
+        "at": 408.8000000715256
+      }
+    ],
+    "motionPayloadFetchStarts": [],
+    "passes": true,
+    "payloadDefinition": "EHMT file or motion-palette.bin; verified from fetch starts, not completed ResourceTiming."
+  },
+  "captures": [
+    {
+      "ageMa": 0,
+      "variant": "baseline",
+      "camera": "regional -42,72",
+      "path": "/tmp/earthhistory-requested-age/data/baseline-0-cold.png",
+      "bytes": 411679,
+      "sha256": "1e7028596d7c2263165262c483cc712659082ba3aa247e4d15efb75b0c1a00df"
+    },
+    {
+      "ageMa": 0,
+      "variant": "candidate",
+      "camera": "regional -42,72",
+      "path": "/tmp/earthhistory-requested-age/data/candidate-0-cold.png",
+      "bytes": 412238,
+      "sha256": "3a1b6c4bb61959787f7434d6ea5077509bf7f9b7826f4f52fe1a482c9875ffc8"
+    },
+    {
+      "ageMa": 74,
+      "variant": "baseline",
+      "camera": "regional -42,72",
+      "path": "/tmp/earthhistory-requested-age/data/baseline-74-cold.png",
+      "bytes": 375817,
+      "sha256": "a61edab47998381981024c8413d959fbca15bb38bdc85f5a387203656f28b170"
+    },
+    {
+      "ageMa": 74,
+      "variant": "candidate",
+      "camera": "regional -42,72",
+      "path": "/tmp/earthhistory-requested-age/data/candidate-74-cold.png",
+      "bytes": 375937,
+      "sha256": "f00b4d24f3a6d6c704898661b277acbcff95126102971330d55869ca98ee3df4"
+    },
+    {
+      "ageMa": 411,
+      "variant": "baseline",
+      "camera": "default full-globe overview",
+      "path": "/tmp/earthhistory-requested-age/data/baseline-411-overview.png",
+      "bytes": 208314,
+      "sha256": "614b16e1be40f9c58782ad1768fdeee498398c8abe36fcb8de13ed2748784da0"
+    },
+    {
+      "ageMa": 411,
+      "variant": "candidate",
+      "camera": "default full-globe overview",
+      "path": "/tmp/earthhistory-requested-age/data/candidate-411-overview.png",
+      "bytes": 208986,
+      "sha256": "556b58df571b88ba6ce14e436cc01fafdd8731aee1a2490349303f44e27ac1b3"
+    },
+    {
+      "ageMa": 1800,
+      "variant": "baseline",
+      "camera": "default full-globe overview",
+      "path": "/tmp/earthhistory-requested-age/data/baseline-1800-overview.png",
+      "bytes": 194802,
+      "sha256": "75743bf40878ab1b0dd8318159d3aa903ec602f3bd5e9e1b05124240d72a36aa"
+    },
+    {
+      "ageMa": 1800,
+      "variant": "candidate",
+      "camera": "default full-globe overview",
+      "path": "/tmp/earthhistory-requested-age/data/candidate-1800-overview.png",
+      "bytes": 195754,
+      "sha256": "d7196b9131227bd97b485bbd6e4ea1e22a7698d53573f043adeef02f5835e109"
+    }
+  ],
+  "finalChecks": {
+    "meaningfulColdGainAtEveryAge": true,
+    "warmRefreshPreserved": true,
+    "fullPaletteStartsAfterFirstReady": true,
+    "exactRequestedAgeReady": true,
+    "noRuntimeErrors": true,
+    "exactVisibleGeometryCountsAndPicking": true,
+    "outOfDomainNoMotionPayload": true,
+    "steadyCadence": true,
+    "artifactUnder50MiB": true
+  },
+  "result": "pass"
+}

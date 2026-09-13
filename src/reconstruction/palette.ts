@@ -134,7 +134,8 @@ export function decodeMotionPalette(
     if (!entry.entryId || ids.has(entry.entryId) || !Number.isInteger(entry.plateId) || entry.plateId < 0
         || !validAge(entry.youngestAgeMa) || !validAge(entry.oldestAgeMa)
         || entry.youngestAgeMa > entry.oldestAgeMa || entry.sampleOffset !== expectedOffset
-        || !Number.isInteger(entry.sampleCount) || entry.sampleCount < 2
+        || !Number.isInteger(entry.sampleCount) || entry.sampleCount < 1
+        || (entry.sampleCount === 1 && entry.youngestAgeMa !== entry.oldestAgeMa)
         || entry.sampleOffset + entry.sampleCount > recordCount || entry.sourceIds.length === 0
         || (!entry.sourceIntervals && !entry.sourceIntervalSetId)
         || (entry.sourceIntervals && entry.sourceIntervalSetId)
@@ -160,7 +161,11 @@ export function decodeMotionPalette(
     }
     const youngestMicro = Math.round(entry.youngestAgeMa * 1e6);
     const oldestMicro = Math.round(entry.oldestAgeMa * 1e6);
+    const smoothIntervals = sourceIntervals.filter((interval) => interval.kind === "smooth-motion");
     if (sampleAges[0] !== youngestMicro || sampleAges.at(-1) !== oldestMicro
+        || (entry.sampleCount === 1 && (smoothIntervals.length !== 1
+          || smoothIntervals[0]!.youngestAgeMa !== entry.youngestAgeMa
+          || smoothIntervals[0]!.oldestAgeMa !== entry.oldestAgeMa))
         || sourceIntervals.some((interval) => !validAge(interval.youngestAgeMa)
           || !validAge(interval.oldestAgeMa) || interval.youngestAgeMa > interval.oldestAgeMa
           || interval.kind === "source-seam")

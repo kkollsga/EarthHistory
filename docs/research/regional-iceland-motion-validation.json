@@ -13,24 +13,24 @@
   },
   "packageAssets": {
     "core": {
-      "url": "core.json",
-      "bytes": 5937171,
-      "sha256": "14c33ff9dc79feea337811f1e21c771765adb46857984d3ae2adc2545531bda8"
+      "bytes": 6110352,
+      "sha256": "78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b",
+      "url": "core.json"
     },
     "motionPaletteCatalog": {
-      "url": "motion-palette.json",
-      "bytes": 457445,
-      "sha256": "bacde9c52c9fd755fb208d4cabef38537bb2f6e6eff7a01b4a30c9d371460e21"
+      "bytes": 747420,
+      "sha256": "88ce5edcd0c224685b14120a1e3d7f436966985d5fb134d6f08cbc59ec985b0a",
+      "url": "motion-palette.json"
     },
     "motionPaletteBinary": {
-      "url": "motion-palette.bin",
-      "bytes": 5172072,
-      "sha256": "17195d05d09864c6385feeaa0d73a965aca2fea0627271d5602954bc9ae6b2f7"
+      "bytes": 5604992,
+      "sha256": "1b54a2b8c08bad838035195deb12a23c488796ea13649344b3c2eb3e24a4d830",
+      "url": "motion-palette.bin"
     },
     "materialCorrectionCatalog": {
-      "url": "corrections/material-v1/catalog.json",
       "bytes": 198006,
-      "sha256": "9fb715d2f5eee35fc3008ea409cf3e85aad0f4794e67d152171d895d62c0768a"
+      "sha256": "881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41",
+      "url": "corrections/material-v1/catalog.json"
     }
   },
   "testedPlateIds": [

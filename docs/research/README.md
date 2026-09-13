@@ -16,7 +16,13 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 
 | Memo | What it resolves |
 | --- | --- |
+| [Cao requested-age motion tiles](cao-requested-age-motion-tiles.md) | Transport-only 25 Ma windows that preserve exact palette records and requested-age support while the full palette loads in the background |
+| [Requested-age progressive loading validation](requested-age-progressive-loading-validation.md) | Publication, cancellation, Retry, memory, visual, gate and production loading evidence for showing the URL-requested age first |
+| [Requested-age motion-tile performance](cao-requested-age-motion-tiles-performance.json) | Three-run cold/warm measurements at 0, 74, 411 and 1800 Ma, background handoff timing, cadence, picks, raw failed premises and corrected scoped witnesses |
 | [Cao Caribbean / Panama / Cuba](cao-caribbean-panama-cuba.md) | 0 Ma diagnosis: Cuba layers correct; oversized Cao Jamacia shelf and missing Panama 229/230 coasts explain the isthmus look |
+| [Panama observed-modern land correction](regional-panama-observed-land.md) | Natural Earth 1:50m exact-present missing-land geometry, Cao static ownership, native precedence, country-reference limitation and validation contract |
+| [Canadian Arctic shelf audit at 74 Ma](regional-canadian-arctic-shelf-74ma.md) | Five active Cao coast/continental-outline identities, packaged shelf coverage, quantitative area witness, camera and no-data-change verdict |
+| [Australian native Cao triangulation repair](regional-australia-native-triangulation.md) | Emitted-float32 validation, stable spherical-area oracle and paired source-connectivity repair for 13 omitted native Australian charts |
 | [Cao foundation adoption](reconstruction-cao-foundation-adoption.md) | Current native Cao scope, source semantics, actual-app integration evidence and remaining acceptance work |
 | [Regional material model lineage](regional-material-model-lineage.md) | Documented 410 Ma reconstruction junction, coastline versus continental coverage, and additional native COB candidates |
 | [Regional material correction review](regional-material-corrections-review.md) | Independent review of the five regional material inputs, guarded native replacements, lifecycle and identity checks, mutation evidence, and current validation status |
@@ -30,6 +36,9 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 | [Regional Iceland independent review](regional-iceland-independent-review.json) | Final composed-package motion oracle, uncertain non-modern evidence, native Cao geometry, coast-chart, and prior-target invariants |
 | [Post-0.1.4 interface validation](post-0.1.4-interface-validation.md) | Compact map key, lock-marker visibility, touch acquisition, browser checks and matched production performance |
 | [Post-0.1.4 interface performance](post-0.1.4-interface-performance.json) | Five paired published/candidate production runs with fixed views, resolved lock, continuous scrub, cadence, geometry, framing, artifact and machine evidence |
+| [Post-0.1.5 rendering and geography validation](post-0.1.5-rendering-validation.md) | Australia and Panama coverage, viewer-facing lighting, exact-present country references, browser/visual acceptance and matched 0.1.5 production performance |
+| [Post-0.1.5 rendering performance](post-0.1.5-rendering-performance.json) | Compact five-pair released/candidate production record with individual fixed and scrub rows, controls, stop rules and artifact identities |
+| [Reconstruction refresh/loading validation](refresh-loading-validation.md) | End-to-visible cold/warm loading attribution, verified content-addressed cache behavior, schematic guide cadence and final gate evidence |
 | [Regional Canada Franklinian correction](regional-canada-franklinian-correction.md) | Source-bounded Franklinian and Laurentian substrate material across the Canadian Arctic, with explicit 410–540 Ma confidence phases |
 | [Regional Pearya correction](regional-pearya-correction.md) | Separate disputed Pearya and Laurentian-affinity fragments, shared exact targets, pose scenarios, and unresolved residuals |
 | [Regional Western Laurentia correction](regional-western-laurentia-correction.md) | Older-material masks plus source-domain replacements for exact western native charts, including formation ranges and retained unknown-age source semantics |

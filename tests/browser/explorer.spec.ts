@@ -43,6 +43,41 @@ async function setContinuousAge(page: Page, ageMa: number) {
   }, ageMa, { timeout: 20_000 });
 }
 
+async function screenshotLuminanceSamples(page: Page) {
+  const screenshot = await globe(page).screenshot();
+  return page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("screenshot luminance canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const sample = (left: number, top: number, width: number, height: number) => {
+      const pixels = context.getImageData(
+        Math.round(bitmap.width * left),
+        Math.round(bitmap.height * top),
+        Math.round(bitmap.width * width),
+        Math.round(bitmap.height * height),
+      ).data;
+      let sum = 0;
+      for (let offset = 0; offset < pixels.length; offset += 4) {
+        sum += 0.2126 * pixels[offset] + 0.7152 * pixels[offset + 1] + 0.0722 * pixels[offset + 2];
+      }
+      return sum / (pixels.length / 4);
+    };
+    // Two eastward drags center the released 0 Ma Asia/Australia view. The first
+    // patch is mainland Asia and the second is its adjacent Pacific control.
+    const samples = {
+      land: sample(0.334, 0.191, 0.094, 0.153),
+      ocean: sample(0.625, 0.222, 0.113, 0.184),
+    };
+    bitmap.close();
+    return samples;
+  }, screenshot.toString("base64"));
+}
+
 test("loads one local Cao reconstruction and the complete chapter picker", { tag: "@ci" }, async ({ page, baseURL }) => {
   const external = new Set<string>();
   const failures: string[] = [];
@@ -77,6 +112,121 @@ test("loads one local Cao reconstruction and the complete chapter picker", { tag
   expect(external).toEqual(new Set());
   expect(failures).toEqual([]);
 });
+
+test("reloads fresh manifests while reusing only hash-qualified package bytes", async ({ page }) => {
+  await page.goto("./#age=0");
+  await waitForCao(page);
+  const firstPayloadUrls = new Set(await page.evaluate(() => performance.getEntriesByType("resource")
+    .map((entry) => entry.name)
+    .filter((url) => url.includes("/data/reconstruction/cao-v2.4/") && new URL(url).searchParams.has("h"))));
+  await page.reload();
+  await waitForCao(page);
+  const reloadResources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => {
+    const timing = entry as PerformanceResourceTiming;
+    return { url: timing.name, transferSize: timing.transferSize };
+  }).filter((entry) => entry.url.includes("/data/reconstruction/cao-v2.4/")));
+  const manifest = reloadResources.find((entry) => entry.url.endsWith("/manifest.json"));
+  const reusedPayloads = reloadResources.filter((entry) => firstPayloadUrls.has(entry.url));
+  const requiredPayloads = ["core.json", "motion-palette.json", "motion-tiles/index.json",
+    "motion-tiles/tile-0000-0025ma.ehmt", "batch-land.ehgb"];
+  expect(manifest?.transferSize).toBeGreaterThan(0);
+  for (const filename of requiredPayloads) {
+    expect([...firstPayloadUrls].some((url) => new URL(url).pathname.endsWith(`/${filename}`))).toBe(true);
+    expect(reusedPayloads.some((entry) => new URL(entry.url).pathname.endsWith(`/${filename}`))).toBe(true);
+  }
+  expect(reusedPayloads.length).toBeGreaterThan(10);
+  expect(reusedPayloads.filter((entry) => entry.transferSize !== 0)
+    .map((entry) => new URL(entry.url).pathname)).toEqual([]);
+});
+
+test("publishes the requested URL age before background timeline loading and keeps it on failure", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let fullPaletteRequests = 0;
+  let canvasStatusAtFirstRequest: string | null = null;
+  const requestedPaths: string[] = [];
+  page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
+  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-palette\.bin\?h=/, async (route) => {
+    fullPaletteRequests += 1;
+    if (fullPaletteRequests === 1) {
+      canvasStatusAtFirstRequest = await globe(page).getAttribute("data-cao-foundation-status");
+      await route.abort("failed");
+    } else {
+      await route.continue();
+    }
+  });
+  await page.goto("./#age=411");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "411");
+  await expect(page.locator(".globe-stage")).toHaveAttribute("data-cao-displayed-age-ma", "411");
+  expect(requestedPaths.some((path) => path.endsWith("/motion-tiles/tile-0400-0425ma.ehmt"))).toBe(true);
+  expect(requestedPaths.some((path) => path.endsWith("/motion-tiles/tile-0000-0025ma.ehmt"))).toBe(false);
+  await expect.poll(() => fullPaletteRequests).toBe(1);
+  expect(canvasStatusAtFirstRequest).toBe("ready");
+  const stage = page.locator(".globe-stage");
+  await expect(stage).toHaveAttribute("data-cao-timeline-loading-status", "paused");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
+  await expect(globe(page)).not.toHaveAttribute("data-cao-foundation-draw-count", "0");
+  const currentIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
+  await openSurfaceInfo(page);
+  const retry = page.getByRole("button", { name: "Retry" });
+  const retryBox = await retry.boundingBox();
+  expect(retryBox?.width).toBeGreaterThanOrEqual(44);
+  expect(retryBox?.height).toBeGreaterThanOrEqual(44);
+  await retry.click();
+  await expect.poll(() => fullPaletteRequests).toBe(2);
+  await expect(stage).toHaveAttribute("data-cao-motion-tier", "full", { timeout: 20_000 });
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
+  await expect(stage).toHaveAttribute("data-cao-displayed-age-ma", "411");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", currentIdentity!);
+});
+
+test("withholds an old surface while a newer motion window is pending", async ({ page }) => {
+  let releaseTile: (() => void) | undefined;
+  let tileStarted = false;
+  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-palette\.bin\?h=/,
+    (route) => route.abort("failed"));
+  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-tiles\/tile-0400-0425ma\.ehmt\?h=/,
+    (route) => new Promise<void>((resolvePromise) => {
+      tileStarted = true;
+      releaseTile = () => { void route.continue().finally(resolvePromise); };
+    }));
+  await page.goto("./#age=0");
+  await waitForCao(page);
+  await expect(page.locator(".globe-stage")).toHaveAttribute("data-cao-timeline-loading-status", "paused");
+  await page.locator("#timeline-scale").selectOption("phanerozoic");
+  await page.locator("#geological-age").evaluate((element, age) => {
+    if (!(element instanceof HTMLInputElement)) throw new Error("geological age range is missing");
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element,
+      String(age / 538.8 * 1000));
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, 411);
+  const stage = page.locator(".globe-stage");
+  await expect.poll(async () => Number(await stage.getAttribute("data-cao-requested-age-ma")))
+    .toBeCloseTo(411, 8);
+  await expect.poll(() => tileStarted).toBe(true);
+  await expect(stage).toHaveAttribute("data-cao-motion-foreground-status", "loading");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "waiting");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-draw-count", "0");
+  releaseTile!();
+  await waitForCao(page);
+  await expect.poll(async () => Number(await globe(page)
+    .getAttribute("data-cao-foundation-requested-age-ma"))).toBeCloseTo(411, 8);
+  await expect.poll(async () => Number(await stage.getAttribute("data-cao-displayed-age-ma")))
+    .toBeCloseTo(411, 8);
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "");
+});
+
+test("withholds the surface when hash-qualified package bytes are corrupt", async ({ page }) => {
+  await page.route(/\/data\/reconstruction\/cao-v2\.4\/core\.json\?h=/, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: "{}",
+  }));
+  await page.goto("./");
+  await expect(page.locator(".surface-info")).toHaveAttribute("data-status", "error", { timeout: 20_000 });
+  await expect(page.locator(".surface-info summary strong[role='status']")).toHaveText("Surface withheld");
+  await expect(globe(page)).not.toHaveAttribute("data-cao-foundation-status", "ready");
+});
 test("supports the TSL WebGL2 fallback", { tag: "@ci" }, async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -86,12 +236,53 @@ test("supports the TSL WebGL2 fallback", { tag: "@ci" }, async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+for (const renderer of [
+  { label: "automatic renderer", query: "", backend: null },
+  { label: "WebGL2", query: "?renderer=webgl2", backend: "webgl2" },
+]) {
+  test(`keeps reconstructed surface lighting viewer-facing through an orbit gesture in ${renderer.label}`, async ({ page }) => {
+    test.setTimeout(75_000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(`./${renderer.query}`);
+    await waitForCao(page);
+    const activeBackend = await globe(page).getAttribute("data-renderer-backend");
+    expect(["webgpu", "webgl2"]).toContain(activeBackend);
+    if (renderer.backend) expect(activeBackend).toBe(renderer.backend);
+    if (renderer.query === "" && process.env.EARTHHISTORY_EXPECT_AUTO_WEBGPU === "1") {
+      expect(activeBackend).toBe("webgpu");
+    }
+    const box = await globe(page).boundingBox();
+    expect(box).not.toBeNull();
+    const center = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+    for (let index = 0; index < 2; index += 1) {
+      await page.mouse.move(center.x, center.y);
+      await page.mouse.down();
+      await page.mouse.move(center.x - 400, center.y, { steps: 20 });
+      await page.mouse.up();
+      await page.waitForTimeout(1_000);
+    }
+    await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-longitude")))
+      .toBeGreaterThan(100);
+    await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
+    await expect(globe(page)).toHaveAttribute("data-inspection-light-camera-dot", "1");
+
+    const { land: landLuminance, ocean: oceanLuminance } = await screenshotLuminanceSamples(page);
+    expect(landLuminance, `post-orbit land luminance in ${renderer.label}`).toBeGreaterThan(105);
+    expect(landLuminance - oceanLuminance,
+      `post-orbit land/ocean luminance separation in ${renderer.label}`).toBeGreaterThan(45);
+  });
+}
+
 test("locks a global surface position without changing zoom", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./");
   await waitForCao(page);
   await page.locator("#landscape-jump").selectOption("amazon-rainforest");
   await expect(globe(page)).toHaveAttribute("data-focus-kind", "place");
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-longitude")))
+    .toBeCloseTo(-62, 1);
+  await expect.poll(async () => Number(await globe(page).getAttribute("data-camera-latitude")))
+    .toBeCloseTo(-4, 1);
   const box = await globe(page).boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -223,7 +414,7 @@ test("withholds a failed checkpoint and recovers without stale land", async ({ p
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "450");
 });
 
-test("ignores a stale checkpoint failure after a newer age retargets", async ({ page }) => {
+test("cancels a stale checkpoint failure when a newer age takes priority", async ({ page }) => {
   let reject450: (() => Promise<void>) | undefined;
   await page.route("**/checkpoint-450ma.json*", async (route) => {
     await new Promise<void>((resolve) => {
@@ -242,9 +433,11 @@ test("ignores a stale checkpoint failure after a newer age retargets", async ({ 
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "445");
   await reject450!();
   const stage = page.locator(".globe-stage");
-  await expect(stage).toHaveAttribute("data-cao-last-prepare-failed-age-ma", "450");
-  await expect(stage).toHaveAttribute("data-cao-last-prepare-failure-observed-age-ma", "445");
   await waitForCao(page);
+  await expect(stage).not.toHaveAttribute("data-cao-last-prepare-failed-age-ma", "450");
+  await expect(stage).not.toHaveAttribute("data-cao-last-prepare-failure-observed-age-ma", "445");
+  await expect(stage).toHaveAttribute("data-cao-motion-foreground-status", "ready");
+  await expect(stage).toHaveAttribute("data-cao-displayed-age-ma", "445");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "445");
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", geometryIdentity!);
   await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);

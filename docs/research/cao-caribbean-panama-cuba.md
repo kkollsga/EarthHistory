@@ -1,8 +1,10 @@
 # Cao Caribbean / Panama / Cuba at present day
 
-Research status: diagnosis of a user report, 2026-09-11. Not a plate-model
-edit. Evidence is from Cao 2024 v2.4 (`doi:10.5281/zenodo.13628813`) as shipped
-in `cao-v2.4-foundation-v1`, plus the Natural Earth country remap.
+Research status: diagnosis of a user report, 2026-09-11; updated 2026-09-13
+after approval of a separate exact-present observed-land correction. This is
+not a plate-model edit. Evidence is from Cao 2024 v2.4
+(`doi:10.5281/zenodo.13628813`) as shipped in `cao-v2.4-foundation-v1`, plus the
+Natural Earth country remap.
 
 ## Report
 
@@ -79,18 +81,20 @@ Panama window in packaged coordinates. No app remapping fix is indicated for
 Cuba at present day. Deeper-time Caribbean kinematics follow Cao rotations;
 this note does not recalibrate them.
 
-## Why we do not “fix” the polygons
+## Correction boundary
 
 - Replacing Cao Jamacia / Panama rings would invent geology.
-- Promoting static-only plates 229/230 into shelf/land without coast/continent
-  source rings would also invent outlines.
+- Promoting static-only plates 229/230 into historical shelf/land without a
+  dated source would invent outlines.
 - Widening the country remap onto plates without palette entries would place
   locators without motion support.
 
-Acceptable follow-ups (separate work): surface the unsupported Panama locator
-gap in the UI/quality panel; cite Cao’s continental-outline limits more
-visibly in the Caribbean; or adopt a future Cao release that publishes
-consistent isthmus coasts.
+Natural Earth 1:50m now supports a separately typed generalized observed-land
+correction at exact 0 Ma. Cao static polygons supply present ownership only;
+the geometry is never backdated and makes no shelf or water-depth claim. See
+[Panama exact-present observed land](regional-panama-observed-land.md). A
+separate exact-present country-reference completion may address the modern
+locator gap while leaving historical fragments unchanged.
 
 ## Method
 

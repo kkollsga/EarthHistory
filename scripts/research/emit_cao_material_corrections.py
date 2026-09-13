@@ -880,15 +880,36 @@ def refresh_outer_manifest():
     foundation["processing"] = (
         "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and "
         "shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth "
-        "generalized 0-200 m Iceland shelf overlay; Natural Earth country locator lines; "
-        "native boundaries/ownership over the compiled Cao domain."
+        "generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama "
+        "land only outside the emitted native coast footprint; exact-modern completion of "
+        "Natural Earth country locator lines; native boundaries/ownership over the compiled "
+        "Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision "
+        "validator are recovered at emitted float32 precision; the paired Arunta/Musgrave "
+        "source crossing is repaired by a vertex-preserving 2-opt operation."
     )
     foundation["scope"] = (
         "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline "
         "shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; "
-        "Natural Earth country locator lines; native boundaries/ownership. Country lines remain "
-        "modern locators only; the shelf overlay is not a palaeoshoreline or growth simulation."
+        "five observed Panama land charts and complete Natural Earth country locator lines at "
+        "exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; "
+        "the Panama geometry is not backdated and the shelf overlay is not a palaeoshoreline or "
+        "growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown "
+        "surface exposure."
     )
+    foundation["compilerRevision"] = (
+        "cao-foundation-v2 emitted-float32 triangulation with stable spherical-area validation"
+    )
+    root_manifest["inputs"]["natural-earth-panama-50m"] = {
+        "url": "https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-0-countries-2/",
+        "title": "Natural Earth 1:50m Admin 0 Countries",
+        "publicationOrVersionDate": "5.1.1",
+        "retrievalDate": "2026-09-12",
+        "license": "Public domain",
+        "bytes": 799734,
+        "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
+        "geographicBasis": "WGS84 generalized present-day country land polygon; ADM0_A3=PAN",
+        "evidenceRole": "generalized observed present-day Panama land boundary at exactly 0 Ma",
+    }
     catalog_path = PUBLIC / package["materialCorrections"]["catalog"]["url"]
     catalog = json.loads(catalog_path.read_text())
     correction_paths = [catalog_path, *(PUBLIC / batch["geometryAsset"]["url"]
@@ -901,6 +922,11 @@ def refresh_outer_manifest():
         "scope": "Iceland is observed exposed land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
         "outputs": correction_outputs,
     }
+    root_manifest["retrievedAt"] = "2026-09-12"
+    root_manifest["generatedBy"] = (
+        "Cao layered coasts/continents foundation with source-native triangulation recovery, "
+        "regional evidence overlays, and exact-modern Natural Earth reference completion"
+    )
     temporary = root_manifest_path.with_name(root_manifest_path.name + ".correction-stage")
     temporary.write_text(json.dumps(root_manifest, indent=2) + "\n")
     os.replace(temporary, root_manifest_path)
