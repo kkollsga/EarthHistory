@@ -10,6 +10,18 @@ export interface GuideLabelSpec {
   readonly path: GuideLabelPath;
 }
 
+export const REFERENCE_GUIDE_LATITUDES = Object.freeze([
+  0, 30, -30, 60, -60, 87.5, -87.5,
+] as const);
+
+export const REFERENCE_GUIDE_MAIN_LONGITUDES = Object.freeze([
+  0, 90, 180, 270,
+] as const);
+
+export const REFERENCE_GUIDE_MINOR_LONGITUDES = Object.freeze([
+  30, 60, 120, 150, 210, 240, 300, 330,
+] as const);
+
 /** Schematic climate / graticule labels fixed in geographic space. */
 export const REFERENCE_GUIDE_LABELS: readonly GuideLabelSpec[] = Object.freeze([
   { text: "North pole", coordinates: [25, 86], path: "parallel" },
@@ -28,8 +40,62 @@ export function createReferenceGuideLines(): readonly LonLat[][] {
     [-180 + index * 2, value] as LonLat);
   const meridian = (value: number): LonLat[] => Array.from({ length: 45 }, (_, index) =>
     [value, -88 + index * 4] as LonLat);
-  return [latitude(0), latitude(30), latitude(-30), latitude(60), latitude(-60),
-    latitude(87.5), latitude(-87.5), meridian(0), meridian(180)];
+  return [
+    ...REFERENCE_GUIDE_LATITUDES.map(latitude),
+    ...REFERENCE_GUIDE_MAIN_LONGITUDES.map(meridian),
+  ];
+}
+
+/** Short meridian marks centered on every minor-longitude / latitude-guide crossing. */
+export function createLongitudeCrossingTickGeometry(
+  radius = 1.0014,
+  halfLatitudeSpanDegrees = 0.5,
+): THREE.BufferGeometry {
+  if (!(radius > 0) || !(halfLatitudeSpanDegrees > 0)
+      || halfLatitudeSpanDegrees > 0.5) {
+    throw new Error("invalid longitude crossing tick shape");
+  }
+  const tickCount = REFERENCE_GUIDE_MINOR_LONGITUDES.length
+    * REFERENCE_GUIDE_LATITUDES.length;
+  const positions = new Float32Array(tickCount * 2 * 3);
+  let positionOffset = 0;
+  for (const latitude of REFERENCE_GUIDE_LATITUDES) {
+    for (const longitude of REFERENCE_GUIDE_MINOR_LONGITUDES) {
+      const start = lonLatToVector3(
+        [longitude, latitude - halfLatitudeSpanDegrees], radius);
+      const end = lonLatToVector3(
+        [longitude, latitude + halfLatitudeSpanDegrees], radius);
+      positions[positionOffset] = start.x;
+      positions[positionOffset + 1] = start.y;
+      positions[positionOffset + 2] = start.z;
+      positions[positionOffset + 3] = end.x;
+      positions[positionOffset + 4] = end.y;
+      positions[positionOffset + 5] = end.z;
+      positionOffset += 6;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+export function createLongitudeCrossingTickLines(): THREE.LineSegments {
+  const geometry = createLongitudeCrossingTickGeometry();
+  const material = new THREE.LineBasicMaterial({
+    color: 0xc5ddd6,
+    transparent: true,
+    opacity: 0.7,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const lines = new THREE.LineSegments(geometry, material);
+  lines.renderOrder = 3;
+  lines.frustumCulled = false;
+  lines.userData.overlayLayer = "guides";
+  lines.userData.evidence = "schematic-geographic-reference";
+  lines.userData.guideLongitudeCrossingTicks = true;
+  return lines;
 }
 
 export function createGuideLabelTexture(text: string): THREE.CanvasTexture {

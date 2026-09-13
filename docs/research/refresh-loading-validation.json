@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-13",
+  "scope": "Warm page refresh through the first rendered and visibly populated Cao foundation frame; cold controls and fixed-scene cadence.",
+  "stopRule": {
+    "minimumWarmImprovement": "20% or 250 ms on a reproducibly slow path",
+    "minimumRelativeCadence": 0.9,
+    "maximumCandidateFrameP50Ms": 33.33,
+    "correctness": "fresh manifest; verified content-addressed bytes; no partial surface publication"
+  },
+  "environment": {
+    "os": "macOS 26.6.2 (25G83)",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "memoryBytes": 17179869184,
+    "browser": "Google Chrome 152.0.7977.83",
+    "mode": "headed",
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  "network": {
+    "latencyMs": 50,
+    "downloadBytesPerSecond": 2500000,
+    "uploadBytesPerSecond": 1250000,
+    "label": "bounded representative constrained-network discriminator"
+  },
+  "artifacts": {
+    "baseline": {
+      "root": "/tmp/earthhistory-refresh-guides/baseline",
+      "bytes": 45819316,
+      "indexSha256": "7d8a6194a3e5544f2a6c6c78aabc4d1691e6fb3545a9e920cd9e1701679c3d1b",
+      "entrySha256": "89167b66d1329c45e527f975494c07cf470f6d012409000b23328c1fc93723c3",
+      "outerManifestSha256": "194ca507542d46b50c66c7b5b9acc9aa34bf933f53bcb54804d87c8aad76a982"
+    },
+    "candidate": {
+      "root": "dist",
+      "bytes": 45820514,
+      "indexSha256": "10e6d3cf73e18487fd41bdb4dd253287687e5977fbae0877712d8a94510567bc",
+      "entrySha256": "7646f0ffd3c368d4e9485b2f62f629512e1898c912ad1dda9b119451f764e5ca",
+      "outerManifestSha256": "194ca507542d46b50c66c7b5b9acc9aa34bf933f53bcb54804d87c8aad76a982"
+    }
+  },
+  "protocol": {
+    "refresh": {
+      "repeats": 3,
+      "agesMa": [
+        0,
+        411
+      ],
+      "backends": [
+        "automatic WebGPU",
+        "forced WebGL2"
+      ],
+      "cacheStates": [
+        "fresh context",
+        "same-context reload"
+      ],
+      "network": {
+        "latencyMs": 50,
+        "downloadBytesPerSecond": 2500000,
+        "uploadBytesPerSecond": 1250000,
+        "label": "bounded representative constrained-network discriminator"
+      }
+    },
+    "visibleWitness": "Canvas screenshot after data-cao-foundation-status=ready; status is published after renderer.render returns.",
+    "cadence": {
+      "ageMa": 411,
+      "at": [
+        -42,
+        72
+      ],
+      "layers": [
+        "guides"
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "durationMs": 2000
+    }
+  },
+  "refresh": {
+    "baseline": {
+      "auto-0-cold": {
+        "renderedValuesMs": [
+          6780.5,
+          6770.6,
+          6732.7
+        ],
+        "renderedMedianMs": 6770.6,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6738.8,
+        "postAssetToRenderedMedianMs": 29.5
+      },
+      "auto-0-warm": {
+        "renderedValuesMs": [
+          6556.8,
+          6555.4,
+          6540.3
+        ],
+        "renderedMedianMs": 6555.4,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6527.7,
+        "postAssetToRenderedMedianMs": 24.3
+      },
+      "auto-411-cold": {
+        "renderedValuesMs": [
+          6760,
+          6766.9,
+          6771
+        ],
+        "renderedMedianMs": 6766.9,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6701.9,
+        "postAssetToRenderedMedianMs": 65
+      },
+      "auto-411-warm": {
+        "renderedValuesMs": [
+          6566.1,
+          6589.8,
+          6591.2
+        ],
+        "renderedMedianMs": 6589.8,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6522.8,
+        "postAssetToRenderedMedianMs": 66.9
+      },
+      "webgl2-0-cold": {
+        "renderedValuesMs": [
+          6754.2,
+          6752.6,
+          6762.2
+        ],
+        "renderedMedianMs": 6754.2,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6736.8,
+        "postAssetToRenderedMedianMs": 19.9
+      },
+      "webgl2-0-warm": {
+        "renderedValuesMs": [
+          6554.2,
+          6579.3,
+          6568.1
+        ],
+        "renderedMedianMs": 6568.1,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6543.5,
+        "postAssetToRenderedMedianMs": 24.6
+      },
+      "webgl2-411-cold": {
+        "renderedValuesMs": [
+          6763.6,
+          6759.4,
+          6748.2
+        ],
+        "renderedMedianMs": 6759.4,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6700.5,
+        "postAssetToRenderedMedianMs": 63.1
+      },
+      "webgl2-411-warm": {
+        "renderedValuesMs": [
+          6582.3,
+          6603,
+          6603.5
+        ],
+        "renderedMedianMs": 6603,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6536,
+        "postAssetToRenderedMedianMs": 65.5
+      }
+    },
+    "candidate": {
+      "auto-0-cold": {
+        "renderedValuesMs": [
+          6790,
+          6776.8,
+          6758.8
+        ],
+        "renderedMedianMs": 6776.8,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6747.9,
+        "postAssetToRenderedMedianMs": 26
+      },
+      "auto-0-warm": {
+        "renderedValuesMs": [
+          445,
+          442.2,
+          430.5
+        ],
+        "renderedMedianMs": 442.2,
+        "transferSizeBytes": [
+          13319,
+          13319,
+          13319
+        ],
+        "lastResponseMedianMs": 384.8,
+        "postAssetToRenderedMedianMs": 55.3
+      },
+      "auto-411-cold": {
+        "renderedValuesMs": [
+          6768.2,
+          6772.6,
+          6789.5
+        ],
+        "renderedMedianMs": 6772.6,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6708.8,
+        "postAssetToRenderedMedianMs": 66.5
+      },
+      "auto-411-warm": {
+        "renderedValuesMs": [
+          413.7,
+          422,
+          406
+        ],
+        "renderedMedianMs": 413.7,
+        "transferSizeBytes": [
+          13319,
+          13319,
+          13319
+        ],
+        "lastResponseMedianMs": 366.2,
+        "postAssetToRenderedMedianMs": 47.5
+      },
+      "webgl2-0-cold": {
+        "renderedValuesMs": [
+          6758,
+          6758.1,
+          6772.4
+        ],
+        "renderedMedianMs": 6758.1,
+        "transferSizeBytes": [
+          13875690,
+          13875690,
+          13875690
+        ],
+        "lastResponseMedianMs": 6739.7,
+        "postAssetToRenderedMedianMs": 26.2
+      },
+      "webgl2-0-warm": {
+        "renderedValuesMs": [
+          440.4,
+          445.3,
+          437.9
+        ],
+        "renderedMedianMs": 440.4,
+        "transferSizeBytes": [
+          13319,
+          13319,
+          13319
+        ],
+        "lastResponseMedianMs": 385,
+        "postAssetToRenderedMedianMs": 54.6
+      },
+      "webgl2-411-cold": {
+        "renderedValuesMs": [
+          6745.2,
+          6775,
+          6768.9
+        ],
+        "renderedMedianMs": 6768.9,
+        "transferSizeBytes": [
+          13763004,
+          13763004,
+          13763004
+        ],
+        "lastResponseMedianMs": 6704.8,
+        "postAssetToRenderedMedianMs": 61.5
+      },
+      "webgl2-411-warm": {
+        "renderedValuesMs": [
+          436,
+          427.8,
+          435.9
+        ],
+        "renderedMedianMs": 435.9,
+        "transferSizeBytes": [
+          13319,
+          13319,
+          13319
+        ],
+        "lastResponseMedianMs": 387.7,
+        "postAssetToRenderedMedianMs": 47.6
+      }
+    },
+    "candidateMinusBaseline": {
+      "auto-0-cold": {
+        "deltaMs": 6.2,
+        "percent": -0.092
+      },
+      "auto-0-warm": {
+        "deltaMs": -6113.2,
+        "percent": 93.254
+      },
+      "auto-411-cold": {
+        "deltaMs": 5.7,
+        "percent": -0.084
+      },
+      "auto-411-warm": {
+        "deltaMs": -6176.1,
+        "percent": 93.722
+      },
+      "webgl2-0-cold": {
+        "deltaMs": 3.9,
+        "percent": -0.058
+      },
+      "webgl2-0-warm": {
+        "deltaMs": -6127.7,
+        "percent": 93.295
+      },
+      "webgl2-411-cold": {
+        "deltaMs": 9.5,
+        "percent": -0.141
+      },
+      "webgl2-411-warm": {
+        "deltaMs": -6167.1,
+        "percent": 93.398
+      }
+    }
+  },
+  "cadence": {
+    "rows": [
+      {
+        "variant": "baseline",
+        "run": 1,
+        "elapsedMs": 2001.3999999761581,
+        "frameSamples": 120,
+        "cadenceFps": 59.95802938014865,
+        "frameP50Ms": 16.699999999999818,
+        "frameP95Ms": 18,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.8201
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      },
+      {
+        "variant": "candidate",
+        "run": 1,
+        "elapsedMs": 2001.2999999523163,
+        "frameSamples": 120,
+        "cadenceFps": 59.96102533496185,
+        "frameP50Ms": 16.699999999999818,
+        "frameP95Ms": 18.59999999999991,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.8201
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      },
+      {
+        "variant": "candidate",
+        "run": 2,
+        "elapsedMs": 2000.6000000238419,
+        "frameSamples": 120,
+        "cadenceFps": 59.98200539766566,
+        "frameP50Ms": 16.700000000000045,
+        "frameP95Ms": 18.40000000000009,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.82
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      },
+      {
+        "variant": "baseline",
+        "run": 2,
+        "elapsedMs": 2001.0999999046326,
+        "frameSamples": 120,
+        "cadenceFps": 59.967018142880875,
+        "frameP50Ms": 16.699999999999818,
+        "frameP95Ms": 18.5,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.82
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      },
+      {
+        "variant": "baseline",
+        "run": 3,
+        "elapsedMs": 2000.5,
+        "frameSamples": 120,
+        "cadenceFps": 59.98500374906273,
+        "frameP50Ms": 16.699999999999818,
+        "frameP95Ms": 18.59999999999991,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.82
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      },
+      {
+        "variant": "candidate",
+        "run": 3,
+        "elapsedMs": 2001.6000000238419,
+        "frameSamples": 120,
+        "cadenceFps": 59.95203836859045,
+        "frameP50Ms": 16.700000000000045,
+        "frameP95Ms": 18.59999999999991,
+        "backend": "webgpu",
+        "status": "ready",
+        "guides": "true",
+        "geometryIdentity": "cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-shelf:2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:batch-land:423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-observed:a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-qualified:d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:material-correction-uncertain:2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8|cao-v2.4-foundation-v1@cao-foundation-v1+earthhistory-cao-v2.4-material-corrections-v1@881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41:country-reference:8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a:source-domain-segments-v1",
+        "camera": {
+          "longitude": -42,
+          "latitude": 72,
+          "distance": 1.82
+        },
+        "visible": "visible",
+        "focused": true,
+        "errors": []
+      }
+    ],
+    "summary": {
+      "baselineCadenceMedianFps": 59.967018142880875,
+      "candidateCadenceMedianFps": 59.96102533496185,
+      "candidateToBaselineCadenceRatio": 0.9999000649339485,
+      "candidateFrameP50MedianMs": 16.700000000000045,
+      "pass": true
+    }
+  },
+  "guards": {
+    "focusedLoader": "5/5 passed",
+    "focusedBrowser": "2/2 passed",
+    "cachePolicyMutation": "App asset cache forced to no-store; warm reload test failed with every shared package payload retransferred; restored.",
+    "corruptPayload": "Routed core body {} was rejected before surface publication; surface status error and withheld.",
+    "sameFilenamePromotion": "Two descriptors with one filename and different real SHA-256 values requested separate canonical URLs and returned separately verified bytes."
+  },
+  "gate": {
+    "deterministic": "31 files / 135 tests, build and 1,187 artifact descriptors passed; dist 43.70 MiB.",
+    "browser": "25/26 initial full run plus 1/1 synchronized rerun; composed coverage 26/26.",
+    "fixtureCorrection": "The initial lock case canceled Amazon focus before its camera reached -62,-4; synchronized rerun passed with no product change."
+  },
+  "harness": {
+    "refreshPath": "/tmp/earthhistory-refresh-guides/loading/measure-refresh.mjs",
+    "refreshSha256": "bc3811392f8615fdfbb7f6bc38755e2b66b60c4924a8d12592eb1ed61267aa4c",
+    "cadencePath": "/tmp/earthhistory-refresh-guides/loading/measure-fixed-cadence.mjs",
+    "cadenceSha256": "10013cb8f5dcbd7b00b1199cb5d7829209c47fa581352ee6b1c3a7e55b8088fa",
+    "fullBaselinePath": "/tmp/earthhistory-refresh-guides/loading/baseline-refresh-constrained.json",
+    "fullBaselineSha256": "f9cc9af8560937ba81229f0deea7244e7db9b5dbba70baae95a92b1bfbe84aac",
+    "fullCandidatePath": "/tmp/earthhistory-refresh-guides/loading/candidate-refresh-constrained.json",
+    "fullCandidateSha256": "6f5a8edc2df9cd06fa061a15abb76f9153115720cc877b3fcaa6b2e7ad32f331",
+    "fullCadencePath": "/tmp/earthhistory-refresh-guides/loading/fixed-cadence.json",
+    "fullCadenceSha256": "045d991dd8c136b024cf0f3a1126222e70e393f1b8ce78e882a7edd16b44410b"
+  },
+  "limitations": [
+    "Cold first visits still transfer and verify the full reconstruction payload; their measured time was unchanged.",
+    "Warm gains require retained browser cache entries and representative cacheable production responses.",
+    "The manifest is always fetched with no-store so package promotions remain visible; every payload still passes byte-length and SHA-256 verification."
+  ]
+}

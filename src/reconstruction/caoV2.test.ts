@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { evaluateLifecycleSupport } from "./motion";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
@@ -33,6 +33,14 @@ function angularDistance(left: readonly number[], right: readonly number[]) {
   return 2 * Math.asin(Math.min(1, Math.hypot(
     left[0]! - right[0]!, left[1]! - right[1]!, left[2]! - right[2]!,
   ) / 2));
+}
+
+async function waitUntil(predicate: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() >= deadline) throw new Error("timed out waiting for runtime condition");
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 5));
+  }
 }
 
 function dot3(left: readonly number[], right: readonly number[]) {
@@ -250,20 +258,20 @@ describe("native Cao package v2", () => {
       "material-correction-qualified", "material-correction-uncertain",
     ]);
     expect(prepared.batches[0]!.vertexCount).toBe(156_252);
-    expect(prepared.batches[1]!.vertexCount).toBe(149_492);
+    expect(prepared.batches[1]!.vertexCount).toBe(183_333);
     expect(prepared.batches[2]).toMatchObject({
       batchId: "material-correction-observed", vertexCount: 502, triangleCount: 536,
     });
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(361_829);
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(521_541);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(395_670);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(563_986);
     expect(prepared.lineBatches).toHaveLength(1);
-    // The layered origin/main package owns this country batch. Its four fewer
-    // segments than the pre-merge correction checkpoint predate correction remapping.
-    expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 20_028, segmentCount: 10_014 });
+    // Historical reconstructed segments retain their chart ownership; exact 0 Ma
+    // adds the pinned modern-reference complement without assigning it into deep time.
+    expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 24_090, segmentCount: 12_045 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(381_857);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(419_760);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(531_555);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(576_031);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -273,7 +281,7 @@ describe("native Cao package v2", () => {
     const resource = createCaoFoundationGeometryResource(prepared, {
       // Layered shelf/land and bounded correction meshes.
       // Five spatial batches plus the country-reference line batch.
-      maxBatches: 6, maxVertices: 400_000, maxTriangles: 600_000,
+      maxBatches: 6, maxVertices: 450_000, maxTriangles: 600_000,
       maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
@@ -363,7 +371,8 @@ describe("native Cao package v2", () => {
       geometryAsset: { ...batch.geometryAsset, sha256: geometrySha },
     }, ...catalog.spatialBatches.slice(1)] };
     const catalogBytes = new TextEncoder().encode(JSON.stringify(mutatedCatalog));
-    const mutatedManifest = { ...manifest, materialCorrections: { ...manifest.materialCorrections!,
+    const mutatedManifest = { ...manifest, motionPalette: { ...manifest.motionPalette, requestedAgeTiles: undefined },
+      materialCorrections: { ...manifest.materialCorrections!,
       catalog: { ...manifest.materialCorrections!.catalog, bytes: catalogBytes.byteLength,
         sha256: createHash("sha256").update(catalogBytes).digest("hex") },
     } };
@@ -385,12 +394,14 @@ describe("native Cao package v2", () => {
     const rawCatalog = JSON.parse(await readFile(
       resolve(root, manifest.materialCorrections!.catalog.url), "utf8",
     )) as MaterialCorrectionCatalogV1;
-    const baseRuntime = new CaoReconstructionRuntime(manifest, fetcher);
+    const manifestWithoutTiles = { ...manifest,
+      motionPalette: { ...manifest.motionPalette, requestedAgeTiles: undefined } };
+    const baseRuntime = new CaoReconstructionRuntime(manifestWithoutTiles, fetcher);
     const base = await baseRuntime.request(411).prepared;
     const alternateId = `${rawCatalog.id}-identity-witness`;
     const alternateCatalog = { ...rawCatalog, id: alternateId, version: "identity-witness" };
     const catalogBytes = new TextEncoder().encode(JSON.stringify(alternateCatalog));
-    const alternateManifest = { ...manifest, materialCorrections: { id: alternateId,
+    const alternateManifest = { ...manifestWithoutTiles, materialCorrections: { id: alternateId,
       catalog: { ...manifest.materialCorrections!.catalog, bytes: catalogBytes.byteLength,
         sha256: createHash("sha256").update(catalogBytes).digest("hex") },
     } };
@@ -435,6 +446,99 @@ describe("native Cao package v2", () => {
       && chart.support.kind === "supported")).toBe(true);
     devonian.release();
     runtime.dispose();
+  });
+
+  it("loads the requested motion window before starting the all-age background palette", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
+    const requestedUrls: string[] = [];
+    const recordingFetcher: StaticAssetFetcher = async (url, signal) => {
+      requestedUrls.push(packageAssetPath(url));
+      return fetcher(url, signal);
+    };
+    const runtime = new CaoReconstructionRuntime(manifest, recordingFetcher);
+    const prepared = await runtime.request(411).prepared;
+    expect(requestedUrls).toContain("motion-tiles/tile-0400-0425ma.ehmt");
+    expect(requestedUrls).not.toContain(manifest.motionPalette.binary.url);
+    runtime.markRendered(411);
+    await waitUntil(() => requestedUrls.includes(manifest.motionPalette.binary.url));
+    prepared.release();
+    runtime.dispose();
+  });
+
+  it("starts a newer motion window before an older stalled tile can complete", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
+    let stalled = false;
+    let stalledAborted = false;
+    let newestStarted = false;
+    const delayedFetcher: StaticAssetFetcher = async (url, signal) => {
+      const path = packageAssetPath(url);
+      if (path === "motion-tiles/tile-0000-0025ma.ehmt") {
+        stalled = true;
+        return new Promise<ArrayBuffer>((_resolve, reject) => {
+          const abort = () => {
+            stalledAborted = true;
+            reject(new DOMException("aborted", "AbortError"));
+          };
+          if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
+        });
+      }
+      if (path === "motion-tiles/tile-0400-0425ma.ehmt") newestStarted = true;
+      return fetcher(url, signal);
+    };
+    const runtime = new CaoReconstructionRuntime(manifest, delayedFetcher);
+    const stale = runtime.evaluateMotion(0).catch((error: unknown) => error);
+    await waitUntil(() => stalled);
+    expect(runtime.ledger.foregroundReservedSourceBytes).toBeGreaterThan(0);
+    runtime.prioritizeRequestedAge(411);
+    const newest = runtime.evaluateMotion(411);
+    await waitUntil(() => newestStarted);
+    expect(stalledAborted).toBe(true);
+    expect((await newest).requestedAgeMa).toBe(411);
+    expect(await stale).toBeInstanceOf(DOMException);
+    runtime.dispose();
+  });
+
+  it("does not publish a stale full palette after its digest finishes", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
+    const tileIndex = JSON.parse(await readFile(resolve(root,
+      packageAssetPath(manifest.motionPalette.requestedAgeTiles!.url)), "utf8")) as {
+      tiles: Array<{ validTimeMa: { youngest: number; oldest: number }; recordCount: number }>;
+    };
+    const modernTile = tileIndex.tiles.find((tile) => tile.validTimeMa.youngest <= 0
+      && tile.validTimeMa.oldest >= 0)!;
+    const sourceIndexDigestBytes = modernTile.recordCount * Uint32Array.BYTES_PER_ELEMENT;
+    const originalDigest = crypto.subtle.digest.bind(crypto.subtle);
+    let digestStarted = false;
+    let releaseDigest: (() => void) | undefined;
+    const digestGate = new Promise<void>((resolvePromise) => { releaseDigest = resolvePromise; });
+    const digest = vi.spyOn(crypto.subtle, "digest").mockImplementation(async (algorithm, data) => {
+      const result = await originalDigest(algorithm, data);
+      if (data.byteLength === sourceIndexDigestBytes) {
+        digestStarted = true;
+        await digestGate;
+      }
+      return result;
+    });
+    try {
+      const runtime = new CaoReconstructionRuntime(manifest, fetcher);
+      const states: Array<{ requestedAgeMa: number | null; motionTier: string }> = [];
+      runtime.subscribeTimelineLoading((state) => states.push({
+        requestedAgeMa: state.requestedAgeMa, motionTier: state.motionTier,
+      }));
+      const modern = await runtime.request(0).prepared;
+      runtime.markRendered(0);
+      await waitUntil(() => digestStarted);
+      runtime.prioritizeRequestedAge(411);
+      releaseDigest!();
+      expect((await runtime.evaluateMotion(411)).requestedAgeMa).toBe(411);
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+      expect(states.at(-1)).toEqual({ requestedAgeMa: 411, motionTier: "requested-age" });
+      expect(runtime.ledger.backgroundReservedSourceBytes).toBe(0);
+      modern.release();
+      runtime.dispose();
+    } finally {
+      digest.mockRestore();
+    }
   });
 
   it("retains the complete authored rotation collection for present-day craton witnesses", async () => {

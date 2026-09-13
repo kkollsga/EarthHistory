@@ -15,6 +15,9 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    ...(process.env.EARTHHISTORY_TEST_BROWSER_CHANNEL
+      ? { channel: process.env.EARTHHISTORY_TEST_BROWSER_CHANNEL }
+      : {}),
   },
   webServer: {
     command: `EARTHHISTORY_TEST_PORT=${port} node tests/browser/server.mjs`,

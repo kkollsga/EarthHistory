@@ -1,6 +1,9 @@
 import { loadVerifiedBytes, type StaticAssetFetcher } from "./assetLoader";
 import { decodeMotionPalette, selectPaletteMotionSubsegment, type MotionPaletteCatalog,
   type PreparedPaletteEntry } from "./palette";
+import { evaluateLifecycleSupport } from "./motion";
+import { decodeRequestedAgeMotionTile, selectRequestedAgeMotionTile,
+  validateRequestedAgeMotionTileIndex, type RequestedAgeMotionTileIndex } from "./motionTiles";
 import {
   validateReconstructionCheckpointV2,
   validateReconstructionAnchorCatalogV2,
@@ -35,27 +38,90 @@ async function verifiedJson<T>(
   return JSON.parse(new TextDecoder().decode(bytes)) as T;
 }
 
-export interface LoadedCaoFoundation {
+export interface LoadedCaoFoundationMetadata {
   readonly core: ReconstructionCoreV2;
   readonly paletteCatalog: MotionPaletteCatalog;
-  readonly paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>;
-  readonly spatialBatches: ReadonlyMap<string, DecodedCaoSpatialBatch>;
-  readonly lineBatches: ReadonlyMap<string, DecodedCaoLineBatch>;
-  readonly anchorCatalog: ReconstructionAnchorCatalogV2 | null;
+  readonly nativeChartCount: number;
   readonly correctionCatalog: MaterialCorrectionCatalogV1 | null;
 }
 
-/** Loads the fixed package/core/palette identity once; checkpoints remain age-demand loaded. */
-export async function loadVerifiedCaoFoundation(
+export interface LoadedCaoStaticFoundation extends LoadedCaoFoundationMetadata {
+  readonly spatialBatches: ReadonlyMap<string, DecodedCaoSpatialBatch>;
+  readonly lineBatches: ReadonlyMap<string, DecodedCaoLineBatch>;
+  readonly anchorCatalog: ReconstructionAnchorCatalogV2 | null;
+}
+
+export interface LoadedCaoFoundation extends LoadedCaoStaticFoundation {
+  readonly paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>;
+}
+
+export interface LoadedRequestedAgeMotionPalette {
+  readonly index: RequestedAgeMotionTileIndex;
+  readonly descriptor: ReturnType<typeof selectRequestedAgeMotionTile>;
+  readonly entries: ReadonlyMap<string, PreparedPaletteEntry>;
+}
+
+function validateTouchingBindingPoses(
+  core: ReconstructionCoreV2,
+  paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
+): void {
+  for (const chart of core.charts) {
+    const bindings = chart.motionBindings ?? [];
+    for (let left = 0; left < bindings.length; left += 1) for (let right = left + 1; right < bindings.length; right += 1) {
+      const first = bindings[left]!;
+      const second = bindings[right]!;
+      const touchingAge = Math.max(first.validTimeMa.youngest, second.validTimeMa.youngest);
+      if (touchingAge !== Math.min(first.validTimeMa.oldest, second.validTimeMa.oldest)) continue;
+      const firstEntry = paletteEntries.get(first.entryId);
+      const secondEntry = paletteEntries.get(second.entryId);
+      const firstSegment = firstEntry ? selectPaletteMotionSubsegment(firstEntry, touchingAge) : null;
+      const secondSegment = secondEntry ? selectPaletteMotionSubsegment(secondEntry, touchingAge) : null;
+      const endpoint = (segment: NonNullable<typeof firstSegment>) => segment.fraction === 0
+        ? segment.younger.quaternion : segment.older.quaternion;
+      const firstQuaternion = firstSegment ? endpoint(firstSegment) : null;
+      const secondQuaternion = secondSegment ? endpoint(secondSegment) : null;
+      const dot = firstQuaternion && secondQuaternion
+        ? firstQuaternion.reduce((sum, value, axis) => sum + value * secondQuaternion[axis]!, 0) : 0;
+      const normProduct = firstQuaternion && secondQuaternion
+        ? Math.hypot(...firstQuaternion) * Math.hypot(...secondQuaternion) : 0;
+      const angularResidual = firstQuaternion && secondQuaternion
+        ? 2 * Math.acos(Math.max(-1, Math.min(1, Math.abs(dot) / normProduct))) : Number.POSITIVE_INFINITY;
+      if (angularResidual > 1e-5) {
+        throw new Error("touching Cao motion bindings disagree at their shared source knot");
+      }
+    }
+  }
+}
+
+export function validateRequestedAgePaletteCoverage(
+  core: ReconstructionCoreV2,
+  paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
+  requestedAgeMa: number,
+): void {
+  for (const chart of core.charts) {
+    if (evaluateLifecycleSupport(chart.lifecycle, requestedAgeMa) !== null) continue;
+    const bindings = chart.motionBindings ?? (chart.motionBinding ? [{ ...chart.motionBinding,
+      validTimeMa: chart.lifecycle.validTimeMa }] : []);
+    const selected = bindings.filter((binding) => requestedAgeMa >= binding.validTimeMa.youngest
+      && requestedAgeMa <= binding.validTimeMa.oldest)
+      .sort((left, right) => left.entryId.localeCompare(right.entryId))[0];
+    if (!selected) continue;
+    const entry = paletteEntries.get(selected.entryId);
+    if (!entry || !selectPaletteMotionSubsegment(entry, requestedAgeMa)) {
+      throw new Error("requested-age motion tile does not cover a selected Cao chart binding");
+    }
+  }
+}
+
+export async function loadVerifiedCaoFoundationMetadata(
   manifest: ReconstructionPackageManifestV2,
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
-): Promise<LoadedCaoFoundation> {
+): Promise<LoadedCaoFoundationMetadata> {
   validateReconstructionPackageManifestV2(manifest);
-  const [rawCore, rawCatalog, binary, correctionCatalog] = await Promise.all([
+  const [rawCore, rawCatalog, correctionCatalog] = await Promise.all([
     verifiedJson<ReconstructionCoreV2>(manifest.core, fetcher, signal),
     verifiedJson<MotionPaletteCatalog>(manifest.motionPalette.catalog, fetcher, signal),
-    loadVerifiedBytes(manifest.motionPalette.binary, fetcher, signal),
     manifest.materialCorrections
       ? verifiedJson<MaterialCorrectionCatalogV1>(manifest.materialCorrections.catalog, fetcher, signal)
       : Promise.resolve(null),
@@ -73,51 +139,38 @@ export async function loadVerifiedCaoFoundation(
     spatialBatches: [...rawCore.spatialBatches, ...correctionCatalog.spatialBatches],
   } : rawCore;
   validateReconstructionCoreV2(combinedCore, manifest, rawCatalog);
-  const paletteEntries = decodeMotionPalette(rawCatalog, binary);
-  for (const chart of combinedCore.charts) {
-    const bindings = chart.motionBindings ?? [];
-    for (let left = 0; left < bindings.length; left += 1) for (let right = left + 1; right < bindings.length; right += 1) {
-      const first = bindings[left]!;
-      const second = bindings[right]!;
-      const touchingAge = Math.max(first.validTimeMa.youngest, second.validTimeMa.youngest);
-      if (touchingAge !== Math.min(first.validTimeMa.oldest, second.validTimeMa.oldest)) continue;
-      const firstSegment = selectPaletteMotionSubsegment(paletteEntries.get(first.entryId)!, touchingAge);
-      const secondSegment = selectPaletteMotionSubsegment(paletteEntries.get(second.entryId)!, touchingAge);
-      const endpoint = (segment: NonNullable<typeof firstSegment>) => segment.fraction === 0
-        ? segment.younger.quaternion : segment.older.quaternion;
-      const firstQuaternion = firstSegment ? endpoint(firstSegment) : null;
-      const secondQuaternion = secondSegment ? endpoint(secondSegment) : null;
-      const dot = firstQuaternion && secondQuaternion
-        ? firstQuaternion.reduce((sum, value, axis) => sum + value * secondQuaternion[axis]!, 0) : 0;
-      const normProduct = firstQuaternion && secondQuaternion
-        ? Math.hypot(...firstQuaternion) * Math.hypot(...secondQuaternion) : 0;
-      const angularResidual = firstQuaternion && secondQuaternion
-        ? 2 * Math.acos(Math.max(-1, Math.min(1, Math.abs(dot) / normProduct))) : Number.POSITIVE_INFINITY;
-      if (angularResidual > 1e-5) {
-        throw new Error("touching Cao motion bindings disagree at their shared source knot");
-      }
-    }
-  }
+  return Object.freeze({ core: deepFreeze(combinedCore), paletteCatalog: deepFreeze(rawCatalog),
+    nativeChartCount: rawCore.charts.length,
+    correctionCatalog: correctionCatalog ? deepFreeze(correctionCatalog) : null });
+}
+
+export async function loadVerifiedCaoStaticFoundation(
+  manifest: ReconstructionPackageManifestV2,
+  metadata: LoadedCaoFoundationMetadata,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<LoadedCaoStaticFoundation> {
+  const { core: combinedCore, correctionCatalog, nativeChartCount } = metadata;
   const correctionBatchIds = new Set(correctionCatalog?.spatialBatches.map((batch) => batch.batchId) ?? []);
   const spatialBatches = new Map<string, DecodedCaoSpatialBatch>();
   for (const batch of combinedCore.spatialBatches) {
     if (signal?.aborted) throw new DOMException("Cao reconstruction foundation load aborted", "AbortError");
     const decoded = await loadVerifiedCaoSpatialBatch(combinedCore, batch.batchId, fetcher, signal);
     if (correctionBatchIds.has(batch.batchId)
-        && decoded.vertexChartIndices.some((chartIndex) => chartIndex < rawCore.charts.length)) {
+        && decoded.vertexChartIndices.some((chartIndex) => chartIndex < nativeChartCount)) {
       throw new Error("material correction batch cannot bind vertices to native Cao charts");
     }
     spatialBatches.set(batch.batchId, decoded);
   }
   const lineBatches = new Map<string, DecodedCaoLineBatch>();
-  for (const batch of rawCore.lineBatches ?? []) {
+  for (const batch of combinedCore.lineBatches ?? []) {
     if (signal?.aborted) throw new DOMException("Cao reconstruction foundation load aborted", "AbortError");
     const bytes = await loadVerifiedBytes(batch.geometryAsset, fetcher, signal);
     lineBatches.set(batch.batchId, decodeCaoLineBatch(bytes, batch.vertexCount, batch.segmentCount,
       combinedCore.charts.length));
   }
-  const anchorCatalog = rawCore.anchorCatalog
-    ? await verifiedJson<ReconstructionAnchorCatalogV2>(rawCore.anchorCatalog, fetcher, signal)
+  const anchorCatalog = combinedCore.anchorCatalog
+    ? await verifiedJson<ReconstructionAnchorCatalogV2>(combinedCore.anchorCatalog, fetcher, signal)
     : null;
   if (anchorCatalog) validateReconstructionAnchorCatalogV2(anchorCatalog, manifest, combinedCore);
   for (const override of correctionCatalog?.nativeChartOverrides ?? []) {
@@ -157,14 +210,95 @@ export async function loadVerifiedCaoFoundation(
     }
   }
   return Object.freeze({
-    core: deepFreeze(combinedCore),
-    paletteCatalog: deepFreeze(rawCatalog),
-    paletteEntries,
+    ...metadata,
     spatialBatches,
     lineBatches,
     anchorCatalog: anchorCatalog ? deepFreeze(anchorCatalog) : null,
     correctionCatalog: correctionCatalog ? deepFreeze(correctionCatalog) : null,
   });
+}
+
+function withPaletteEntries(
+  foundation: LoadedCaoStaticFoundation,
+  paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
+): LoadedCaoFoundation {
+  return Object.freeze({ ...foundation, paletteEntries });
+}
+
+/** Loads the fixed package/core/palette identity once; checkpoints remain age-demand loaded. */
+export function loadVerifiedCaoFoundation(
+  manifest: ReconstructionPackageManifestV2,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<LoadedCaoFoundation> {
+  const metadata = loadVerifiedCaoFoundationMetadata(manifest, fetcher, signal);
+  return metadata.then(async (loaded) => {
+    const [foundation, paletteEntries] = await Promise.all([
+      loadVerifiedCaoStaticFoundation(manifest, loaded, fetcher, signal),
+      loadVerifiedCaoFullMotionPalette(manifest, loaded, fetcher, signal),
+    ]);
+    return withPaletteEntries(foundation, paletteEntries);
+  });
+}
+
+/** Loads complete static geometry with only the verified motion window needed for one age. */
+export function loadVerifiedCaoFoundationForAge(
+  manifest: ReconstructionPackageManifestV2,
+  requestedAgeMa: number,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<LoadedCaoFoundation> {
+  const metadata = loadVerifiedCaoFoundationMetadata(manifest, fetcher, signal);
+  return metadata.then(async (loaded) => {
+    const [foundation, paletteEntries] = await Promise.all([
+      loadVerifiedCaoStaticFoundation(manifest, loaded, fetcher, signal),
+      loadVerifiedCaoRequestedAgeMotionPalette(manifest, loaded, requestedAgeMa, fetcher, signal),
+    ]);
+    return withPaletteEntries(foundation, paletteEntries.entries);
+  });
+}
+
+export async function loadVerifiedCaoRequestedAgeMotionTileIndex(
+  manifest: ReconstructionPackageManifestV2,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<RequestedAgeMotionTileIndex> {
+  const indexAsset = manifest.motionPalette.requestedAgeTiles;
+  if (!indexAsset) throw new Error("Cao package has no requested-age motion tile index");
+  const index = await verifiedJson<RequestedAgeMotionTileIndex>(indexAsset, fetcher, signal);
+  validateRequestedAgeMotionTileIndex(index, manifest);
+  return deepFreeze(index);
+}
+
+export async function loadVerifiedCaoRequestedAgeMotionPalette(
+  manifest: ReconstructionPackageManifestV2,
+  metadata: Pick<LoadedCaoFoundationMetadata, "core" | "paletteCatalog">,
+  requestedAgeMa: number,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+  loadedIndex?: RequestedAgeMotionTileIndex,
+): Promise<LoadedRequestedAgeMotionPalette> {
+  const indexAsset = manifest.motionPalette.requestedAgeTiles;
+  if (!indexAsset) throw new Error("Cao package has no requested-age motion tile index");
+  const index = loadedIndex ?? await loadVerifiedCaoRequestedAgeMotionTileIndex(manifest, fetcher, signal);
+  const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
+  const buffer = await loadVerifiedBytes(descriptor.asset, fetcher, signal);
+  const entries = decodeRequestedAgeMotionTile(descriptor, metadata.paletteCatalog, buffer);
+  validateRequestedAgePaletteCoverage(metadata.core, entries, requestedAgeMa);
+  return Object.freeze({ index, descriptor, entries });
+}
+
+/** Loads and validates the canonical all-age palette for a resident requested-age foundation. */
+export async function loadVerifiedCaoFullMotionPalette(
+  manifest: ReconstructionPackageManifestV2,
+  foundation: Pick<LoadedCaoFoundationMetadata, "core" | "paletteCatalog">,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<ReadonlyMap<string, PreparedPaletteEntry>> {
+  const buffer = await loadVerifiedBytes(manifest.motionPalette.binary, fetcher, signal);
+  const entries = decodeMotionPalette(foundation.paletteCatalog, buffer);
+  validateTouchingBindingPoses(foundation.core, entries);
+  return entries;
 }
 
 export type LoadedNativeLayer =
@@ -209,6 +343,21 @@ export async function loadVerifiedCaoCheckpoint(
     .reduce((sum, layer) => sum + (layer?.catalog.bytes ?? 0) + (layer?.binary.bytes ?? 0), 0);
   if (actualTransitiveBytes !== asset.transitiveBytes) throw new Error("Cao checkpoint transitive byte ledger mismatch");
   return deepFreeze(checkpoint);
+}
+
+/** Verifies one checkpoint group into the HTTP cache without retaining decoded runtime state. */
+export async function warmVerifiedCaoCheckpointAssets(
+  manifest: ReconstructionPackageManifestV2,
+  core: ReconstructionCoreV2,
+  ageMa: number,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<void> {
+  const checkpoint = await loadVerifiedCaoCheckpoint(manifest, core, ageMa, fetcher, signal);
+  const assets = [checkpoint.nativeBoundaryLayer, checkpoint.topologyOwnershipLayer]
+    .flatMap((layer) => layer ? [layer.catalog, layer.binary] : []);
+  await Promise.all(assets.map((asset) => loadVerifiedBytes(asset, fetcher, signal)));
+  if (signal?.aborted) throw new DOMException("Cao checkpoint warming aborted", "AbortError");
 }
 
 interface PendingCheckpoint {

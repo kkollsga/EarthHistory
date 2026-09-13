@@ -14,6 +14,8 @@ export interface MotionPaletteAsset {
   readonly id: string;
   readonly catalog: PackageAsset;
   readonly binary: PackageAsset;
+  /** Optional verified windows used to prepare the requested age before the all-age binary arrives. */
+  readonly requestedAgeTiles?: PackageAsset;
 }
 
 export interface ReconstructionPackageManifestV2 {
@@ -57,6 +59,13 @@ export interface RigidMaterialChartV2 {
   readonly motionBinding?: { readonly paletteId: string; readonly entryId: string };
   readonly motionBindings?: readonly { readonly paletteId: string; readonly entryId: string;
     readonly validTimeMa: { readonly youngest: number; readonly oldest: number } }[];
+  readonly motionSupportGaps?: readonly {
+    readonly validTimeMa: { readonly youngest: number; readonly oldest: number };
+    readonly youngestExclusive: true;
+    readonly oldestExclusive: true;
+    readonly reason: "source-seam";
+    readonly sourceIds: readonly string[];
+  }[];
   readonly sourceFeatureIds: readonly string[];
   readonly sourceFeatureTypes: readonly string[];
   readonly evidence: MaterialChartEvidence;
@@ -242,19 +251,53 @@ function motionBindingSignature(
     .sort((left, right) => left.validTimeMa.youngest - right.validTimeMa.youngest
       || left.validTimeMa.oldest - right.validTimeMa.oldest
       || left.entryId.localeCompare(right.entryId));
+  const gaps = [...(chart.motionSupportGaps ?? [])].sort(
+    (left, right) => left.validTimeMa.youngest - right.validTimeMa.youngest
+      || left.validTimeMa.oldest - right.validTimeMa.oldest,
+  );
   const signature: string[] = [];
   let cursor = interval.youngest;
   while (cursor < interval.oldest) {
     const matches = bindings.filter((binding) => binding.validTimeMa.youngest <= cursor
       && cursor < binding.validTimeMa.oldest);
-    if (matches.length !== 1) return null;
-    const binding: MotionBinding = matches[0]!;
-    const next = Math.min(binding.validTimeMa.oldest, interval.oldest);
+    const gapMatches = gaps.filter((gap) => gap.validTimeMa.youngest <= cursor
+      && cursor < gap.validTimeMa.oldest);
+    if (matches.length + gapMatches.length !== 1) return null;
+    const binding: MotionBinding | undefined = matches[0];
+    const gap = gapMatches[0];
+    const next = Math.min(
+      binding?.validTimeMa.oldest ?? gap!.validTimeMa.oldest,
+      interval.oldest,
+    );
     if (next <= cursor) return null;
-    signature.push(`${binding.entryId}:${cursor}:${next}`);
+    signature.push(binding
+      ? `${binding.entryId}:${cursor}:${next}`
+      : `gap:${gap!.reason}:${[...gap!.sourceIds].sort().join(",")}:${cursor}:${next}`);
     cursor = next;
   }
   return signature;
+}
+
+function validMotionSupportGaps(chart: RigidMaterialChartV2, bindings: readonly MotionBinding[]): boolean {
+  const gaps = chart.motionSupportGaps ?? [];
+  return gaps.every((gap, index) => {
+    const interval = gap.validTimeMa;
+    return Number.isFinite(interval.youngest) && Number.isFinite(interval.oldest)
+      && interval.youngest < interval.oldest
+      && interval.youngest >= chart.lifecycle.validTimeMa.youngest
+      && interval.oldest <= chart.lifecycle.validTimeMa.oldest
+      && gap.youngestExclusive === true && gap.oldestExclusive === true
+      && gap.reason === "source-seam"
+      && gap.sourceIds.length > 0 && new Set(gap.sourceIds).size === gap.sourceIds.length
+      && gap.sourceIds.every((sourceId) => typeof sourceId === "string" && sourceId.length > 0)
+      && bindings.some((binding) => binding.validTimeMa.oldest === interval.youngest)
+      && bindings.some((binding) => binding.validTimeMa.youngest === interval.oldest)
+      && bindings.every((binding) => Math.max(binding.validTimeMa.youngest, interval.youngest)
+        >= Math.min(binding.validTimeMa.oldest, interval.oldest))
+      && gaps.slice(index + 1).every((other) =>
+        Math.max(interval.youngest, other.validTimeMa.youngest)
+          >= Math.min(interval.oldest, other.validTimeMa.oldest));
+  });
 }
 
 function sameMotionBindingSignature(
@@ -276,6 +319,8 @@ export function validateReconstructionPackageManifestV2(manifest: Reconstruction
       || domain.youngest < 0 || domain.oldest > 1_800 || domain.youngest > domain.oldest
       || !manifest.motionPalette.id || !assetValid(manifest.core)
       || !assetValid(manifest.motionPalette.catalog) || !assetValid(manifest.motionPalette.binary)
+      || (manifest.motionPalette.requestedAgeTiles !== undefined
+        && !assetValid(manifest.motionPalette.requestedAgeTiles))
       || manifest.checkpoints.length < 2 || !manifest.frame.modelId || !manifest.frame.modelVersion
       || !manifest.frame.absoluteFrameId || !Number.isInteger(manifest.frame.anchorPlateId)
       || !SHA256.test(manifest.frame.rotationSha256) || !SHA256.test(manifest.frame.topologySha256)
@@ -492,6 +537,7 @@ export function validateReconstructionCoreV2(
         || !chart.fragmentOrCohortId || !chart.sourceFeatureIds.length || !chart.sourceFeatureTypes.length
         || !chart.evidence.sourceIds.length || !validateMaterialLifecycle(chart.lifecycle)
         || bindings.length === 0 || (chart.motionBinding !== undefined && chart.motionBindings !== undefined)
+        || !validMotionSupportGaps(chart, bindings)
         || motionBindingSignature(chart, palette.id, chart.lifecycle.validTimeMa) === null
         || bindings.some((binding, index) => binding.paletteId !== palette.id || !boundEntries[index]
           || binding.validTimeMa.youngest < boundEntries[index]!.youngestAgeMa

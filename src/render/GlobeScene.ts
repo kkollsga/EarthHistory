@@ -12,11 +12,12 @@ import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
 import { lonLatToVector3, vector3ToLonLat, worldToGlobeLocalDirection } from "./math";
 import {
   createCurvedGuideLabelMesh,
+  createLongitudeCrossingTickLines,
   createPolarSectorTickLines,
   createReferenceGuideLines,
   REFERENCE_GUIDE_LABELS,
 } from "./globeGuides";
-import { setInspectionLightPosition, type InspectionLightScratch } from "./inspectionLight";
+import { setInspectionLightPosition } from "./inspectionLight";
 import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
@@ -61,6 +62,7 @@ export interface EarthHistoryDiagnostics {
   cacheBytes: number;
   rendererMemory: { geometries: number; textures: number };
   cameraDistance: number;
+  inspectionLightCameraDot: number;
   regionalGenerationMs: number;
   transition: "idle" | "crossfade";
   temporal: {
@@ -424,9 +426,6 @@ export class GlobeScene {
   private readonly pointer = new THREE.Vector2();
   private readonly frameTimes: number[] = [];
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  private readonly inspectionLightScratch: InspectionLightScratch = {
-    view: new THREE.Vector3(), right: new THREE.Vector3(), upward: new THREE.Vector3(),
-  };
   private readonly guideCameraDirection = new THREE.Vector3();
   private readonly guideInverseGlobeQuaternion = new THREE.Quaternion();
   private readonly markerWorldPosition = new THREE.Vector3();
@@ -490,7 +489,7 @@ export class GlobeScene {
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend),
-      { maxBatches: 512, maxVertices: 400_000, maxTriangles: 600_000,
+      { maxBatches: 512, maxVertices: 450_000, maxTriangles: 600_000,
         maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );
@@ -546,9 +545,6 @@ export class GlobeScene {
     this.scene.add(new THREE.HemisphereLight(0xd5dde0, 0x6d6555, 0.8));
     this.updateInspectionLight();
     this.scene.add(this.sunLight);
-    const fill = new THREE.DirectionalLight(0x9fb7bf, 0.22);
-    fill.position.set(-3, 1, -4);
-    this.scene.add(fill);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(mount);
@@ -639,7 +635,7 @@ export class GlobeScene {
       const diagnostics = this.caoFoundationRenderer.diagnostics();
       this.pendingCaoDiagnostics = diagnostics;
       const dataset = this.renderer.domElement.dataset;
-      dataset.caoFoundationStatus = "ready";
+      dataset.caoFoundationStatus = "updating";
       dataset.caoFoundationRequestedAgeMa = String(diagnostics.requestedAgeMa ?? "");
       dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
       dataset.caoFoundationNativeBoundarySegments = String(diagnostics.nativeBoundarySegments);
@@ -669,10 +665,9 @@ export class GlobeScene {
       dataset.caoFormationUncertainMaterialCharts = String(correctionState.formationUncertainActiveCharts);
       dataset.caoModelInferredPoseCharts = String(correctionState.modelInferredPoseActiveCharts);
       dataset.caoOverriddenNativeCharts = String(correctionState.overriddenNativeCharts);
-      dataset.surfaceStatus = "ready";
-      this.onCaoFoundationState?.({ status: "ready",
+      dataset.surfaceStatus = "updating";
+      this.onCaoFoundationState?.({ status: "updating",
         requestedAgeMa: diagnostics.requestedAgeMa ?? undefined,
-        displayedAgeMa: diagnostics.requestedAgeMa ?? undefined,
         resolvedVertices: diagnostics.vertices });
       // Refresh prepared anchor markers from the continuous poses when App supplies them.
       return diagnostics;
@@ -1081,6 +1076,7 @@ export class GlobeScene {
     for (const label of REFERENCE_GUIDE_LABELS) {
       this.overlayGroup.add(createCurvedGuideLabelMesh(label));
     }
+    this.overlayGroup.add(createLongitudeCrossingTickLines());
     // Flat polar sector ticks on the sphere — short meridian marks, not upright sprites.
     this.overlayGroup.add(createPolarSectorTickLines(1));
     this.overlayGroup.add(createPolarSectorTickLines(-1));
@@ -1134,8 +1130,7 @@ export class GlobeScene {
   }
 
   private updateInspectionLight(): void {
-    setInspectionLightPosition(this.sunLight.position, this.camera.position,
-      this.camera.quaternion, this.inspectionLightScratch);
+    setInspectionLightPosition(this.sunLight.position, this.camera.position);
   }
 
   private resize(): void {
@@ -1336,6 +1331,8 @@ export class GlobeScene {
       generationMs: 0, staleJobs: 0, cacheBytes: 0,
       rendererMemory: { geometries: memory.geometries ?? 0, textures: memory.textures ?? 0 },
       cameraDistance: Number(this.camera.position.length().toFixed(4)),
+      inspectionLightCameraDot: Number((this.sunLight.position.dot(this.camera.position)
+        / (this.sunLight.position.length() * this.camera.position.length())).toFixed(6)),
       regionalGenerationMs: 0, transition: "idle",
       temporal: { status: "removed", fraction: 0, updateMs: 0, maxChunkMs: 0,
         totalUpdateMs: 0, updateCount: 0, vertices: 0, resolvedVertices: 0,
@@ -1355,6 +1352,7 @@ export class GlobeScene {
     dataset.generationMs = "0";
     dataset.cameraLongitude = this.cameraCenter()[0].toFixed(4);
     dataset.cameraLatitude = this.cameraCenter()[1].toFixed(4);
+    dataset.inspectionLightCameraDot = String(diagnostics.inspectionLightCameraDot);
     dataset.cameraSurfaceClearanceEarthRadii = (diagnostics.cameraDistance - 1).toFixed(6);
     this.onStats?.({ fps: p50 > 0 ? Number((1000 / p50).toFixed(0)) : 0,
       backend: this.backend === "webgpu" ? "WebGPU" : "WebGL 2",

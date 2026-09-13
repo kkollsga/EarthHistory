@@ -174,6 +174,15 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-evidence-key > span::before { content: "·"; margin-right: 6px; color: var(--copper-bright); }
 .surface-info-status { display: grid; gap: 7px; padding-top: 11px; color: var(--dim); font-size: 9px; line-height: 1.35; text-transform: uppercase; letter-spacing: .08em; }
 .surface-info-status .material-key { color: var(--muted); text-transform: none; letter-spacing: .02em; }
+.surface-info-status button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px;
+  margin-left: 8px; padding: 0 12px; border: 1px solid rgba(200, 134, 88, .72); border-radius: 999px;
+  background: rgba(200, 134, 88, .14); color: var(--ink); font: inherit; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+}
+.surface-info-status button:hover, .surface-info-status button:focus-visible {
+  border-color: var(--copper-bright); background: rgba(200, 134, 88, .24);
+}
 .location-lock {
   position: absolute; z-index: 4; left: 14px; bottom: 14px; display: flex; align-items: center; gap: 10px;
   max-width: min(22rem, calc(100% - 28px)); padding: 8px 10px; border: 1px solid rgba(154, 199, 210, .28);

@@ -105,7 +105,7 @@ describe("Cao foundation renderer boundary", () => {
     const revision = await runtime.request(0).prepared;
     const packageLimits = {
       ...limits,
-      maxVertices: 400_000,
+      maxVertices: 450_000,
       maxTriangles: 600_000,
       maxRetainedSourceBytes: 48 * 1024 * 1024,
       maxPublicationBytes: 2 * 1024 * 1024,

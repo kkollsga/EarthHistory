@@ -133,8 +133,36 @@ The same oracle deliberately fails with the former 80 m shelf shell and former
 sphere; it is not a claim that every triangle below that envelope was visibly
 occluded by the lower-resolution rendered globe.
 
+## Post-0.1.5 cartographic evaluation
+
+On 2026-09-13 the released shelf was reported as too rugged to look real. The
+broad lobes are already present in Natural Earth's `K_200` contour. Recombining
+the two published plate features differs from the pre-split polygon by only
+0.000000700° Hausdorff distance, so neither the Cao ridge split nor mesh
+triangulation creates that silhouette. Malmberg's official Marine Research
+Institute bathymetry map independently shows major banks, troughs and a deeply
+indented 200 m contour around Iceland.
+
+The 0.005° simplification does make local corners more angular. On a one-
+kilometre uniform outer-contour sample, the 95th-percentile turn is 23.99° in
+the raw source and 26.34° in the released geometry. An isolated outer-only
+smoothing candidate retained all seven interior coordinate sequences, moved at
+most 2.609 km from the raw source, changed area by 0.04036%, reduced that turn
+measure to 18.25°, and triangulated to 2,620 vertices and 2,653 triangles.
+
+The candidate was rejected after a same-camera production-render comparison at
+18.9° W, 64.9° N and distance 1.4605. It was too subtle to resolve the reported
+overall appearance. Stronger smoothing would erase source-supported broad banks
+and troughs. The renderer has one global shelf material and no per-chart edge-
+distance attribute, so a local feather requires a broader geometry/runtime
+contract. No public geometry or asset changed. Future work should evaluate
+cited multi-band bathymetry or explicit boundary-distance encoding across
+Iceland, Arctic and Barents controls while retaining nominal depth classes,
+exact-modern lifecycle and deeper-water holes.
+
 Primary records: [Natural Earth bathymetry](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-bathymetry/),
 [Natural Earth terms](https://www.naturalearthdata.com/about/terms-of-use/),
 [Harðarson et al. 2008](https://jokull.jorfi.is/articles/jokull2008.58/jokull2008.58.161.pdf),
+the [Marine Research Institute 2004 Iceland Basin report](https://www.hafogvatn.is/static/research/files/fjolrit-109.pdf),
 and the [Marine and Freshwater Research Institute 2026 Southern Shelf Slopes
 report](https://www.hafogvatn.is/static/extras/images/area_shl_2026_techreport_en.html).

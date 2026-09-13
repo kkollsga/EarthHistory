@@ -75,8 +75,15 @@ check-corrections:
 	@python3 scripts/research/regional_iceland_correction.py --runtime
 	@python3 scripts/research/regional_iceland_shelf_correction.py --self-test
 	@python3 scripts/research/regional_iceland_shelf_correction.py
+	@python3 scripts/research/regional_panama_correction.py --self-test
+	@python3 -m unittest scripts/research/apply_cao_native_triangulation_repair_test.py
+	@python3 scripts/research/apply_cao_native_triangulation_repair.py
+	@python3 -m unittest scripts/research/apply_regional_panama_land_test.py
+	@python3 scripts/research/apply_regional_panama_land.py
+	@python3 scripts/research/apply_cao_modern_country_reference.py
 	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
 	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
+	@python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test
 
 # R4: Vite/TypeScript caches have a named owner and explicit bound.
 check-build-cache:

@@ -1,0 +1,1487 @@
+{
+  "schemaVersion": 1,
+  "scope": "Final paired production comparison for post-0.1.5 rendering and exact-present geography fixes.",
+  "recordedAt": "2026-09-13T10:41:56.279Z",
+  "comparator": {
+    "path": "scripts/research/compare_production_performance.mjs",
+    "sha256": "fb6e4c441c7ca2c34f6122a02d5c195544596e607dfec84352b700780d2d157c"
+  },
+  "baselineRelease": {
+    "version": "0.1.5",
+    "commit": "b6412c8cf6204f6d701ae8b4b937825ed69a7df4",
+    "archiveSha256": "32128bd274305bf5132549ac117a6805204f12eb76e805c75dd750b16636eacd"
+  },
+  "artifacts": {
+    "baseline": {
+      "root": "/tmp/earthhistory-post015-fixes/baseline-v0.1.5",
+      "indexSha256": "04d45ce32756a1f31507b9b209761524d552d6706b83d290e890420b619da935",
+      "entry": "index-BxtnUCBV.js",
+      "entrySha256": "2cd46b266d4d28b3dc14fe0e68a6251c7af19b63b4df88d10df68d3e0476b7ae",
+      "assetFiles": [
+        {
+          "name": "index-BxtnUCBV.js",
+          "bytes": 1313052,
+          "sha256": "2cd46b266d4d28b3dc14fe0e68a6251c7af19b63b4df88d10df68d3e0476b7ae"
+        },
+        {
+          "name": "index-woRa3M4H.css",
+          "bytes": 29020,
+          "sha256": "e8d24a0d97f6dbabebc0c3e17665fac300b8c1cc1d34b59a0f438dcced0b2d10"
+        }
+      ],
+      "outerManifestBytes": 303390,
+      "outerManifestSha256": "4c361de2b337c1a0dd315614cc8450f3260d918ac3b45da0a9a448077ed47bb2",
+      "packageManifestBytes": 39277,
+      "packageManifestSha256": "0dd831e5ecc04a719a782e3e21937275c8293ab539d15738bdd8a0e1cc1df3e5"
+    },
+    "candidate": {
+      "root": "/Volumes/EksternalHome/Koding/HTML/EarthHistory/dist",
+      "indexSha256": "7d8a6194a3e5544f2a6c6c78aabc4d1691e6fb3545a9e920cd9e1701679c3d1b",
+      "entry": "index-ik9IdyOv.js",
+      "entrySha256": "89167b66d1329c45e527f975494c07cf470f6d012409000b23328c1fc93723c3",
+      "assetFiles": [
+        {
+          "name": "index-ik9IdyOv.js",
+          "bytes": 1314323,
+          "sha256": "89167b66d1329c45e527f975494c07cf470f6d012409000b23328c1fc93723c3"
+        },
+        {
+          "name": "index-woRa3M4H.css",
+          "bytes": 29020,
+          "sha256": "e8d24a0d97f6dbabebc0c3e17665fac300b8c1cc1d34b59a0f438dcced0b2d10"
+        }
+      ],
+      "outerManifestBytes": 304735,
+      "outerManifestSha256": "194ca507542d46b50c66c7b5b9acc9aa34bf933f53bcb54804d87c8aad76a982",
+      "packageManifestBytes": 39763,
+      "packageManifestSha256": "5d879a6f4facbc1023aaba6244d5d913947486a015aa3a8e3093dfd64d7f8640"
+    }
+  },
+  "machine": {
+    "platform": "darwin 25.6.0 arm64",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "totalMemoryBytes": 17179869184,
+    "freeMemoryBytes": 780976128,
+    "loadAverage": [
+      3.15234375,
+      3.63427734375,
+      4.345703125
+    ]
+  },
+  "browser": {
+    "version": "152.0.7977.83",
+    "mode": "headed",
+    "gpuDevices": [
+      {
+        "vendorId": 4203,
+        "deviceId": 0,
+        "vendorString": "Google Inc. (Apple)",
+        "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Version 26.6.2 (Build 25G83))",
+        "driverVendor": "Apple",
+        "driverVersion": "26.6.2"
+      }
+    ],
+    "featureStatus": {
+      "2d_canvas": "enabled",
+      "direct_rendering_display_compositor": "disabled_off_ok",
+      "gpu_compositing": "enabled",
+      "multiple_raster_threads": "enabled_on",
+      "opengl": "enabled_on",
+      "rasterization": "enabled",
+      "raw_draw": "disabled_off_ok",
+      "skia_graphite": "enabled_on",
+      "trees_in_viz": "disabled_off",
+      "video_decode": "enabled",
+      "video_encode": "enabled",
+      "webgl": "enabled",
+      "webgpu": "enabled",
+      "webnn": "disabled_off"
+    }
+  },
+  "stopRule": {
+    "maximumColdReadyDeltaMs": 250,
+    "maximumColdReadyRatioIncrease": 0.2,
+    "minimumRelativeCadence": 0.9,
+    "maximumFrameP50Ms": 33.33,
+    "minimumFrameSamples": 50,
+    "regionalCameraDistanceEarthRadii": [
+      1.7,
+      1.9
+    ],
+    "requireStableCandidateGeometry": true
+  },
+  "sceneDefinitions": [
+    {
+      "id": "north-atlantic-0",
+      "age": 0,
+      "at": [
+        -42,
+        72
+      ]
+    },
+    {
+      "id": "regional-411",
+      "age": 411,
+      "at": [
+        -42,
+        72
+      ]
+    }
+  ],
+  "regionalZoomProtocol": {
+    "outwardWheelEvents": 24,
+    "inwardWheelDeltaY": -220,
+    "outwardWheelDeltaY": 220,
+    "maximumInwardWheelEvents": 40,
+    "minimumResetDistanceEarthRadii": 3.6,
+    "targetDistanceEarthRadii": [
+      1.76,
+      1.86
+    ]
+  },
+  "materialLocks": {
+    "north-atlantic-0": "{\"chartId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"chartRevision\":\"cao-foundation-v1\",\"materialId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"fragmentOrCohortId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"cellOrTriangleId\":0,\"localCoordinate\":{\"kind\":\"chart-direction\",\"directionAtReference\":[0.2597624313859562,-0.5636372982210508,0.7841150905922744]}}",
+    "regional-411": "{\"chartId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"chartRevision\":\"cao-foundation-v1\",\"materialId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"fragmentOrCohortId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"cellOrTriangleId\":0,\"localCoordinate\":{\"kind\":\"chart-direction\",\"directionAtReference\":[0.2597624313859562,-0.5636372982210508,0.7841150905922744]}}"
+  },
+  "lockDiscovery": {
+    "north-atlantic-0": {
+      "materialAddress": "{\"chartId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"chartRevision\":\"cao-foundation-v1\",\"materialId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"fragmentOrCohortId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"cellOrTriangleId\":0,\"localCoordinate\":{\"kind\":\"chart-direction\",\"directionAtReference\":[0.2597624313859562,-0.5636372982210508,0.7841150905922744]}}",
+      "requestedAt": [
+        -42,
+        72
+      ],
+      "zoom": {
+        "resetCamera": {
+          "longitude": -65.2565,
+          "latitude": 51.6389,
+          "distance": 6.2
+        },
+        "camera": {
+          "longitude": -65.2565,
+          "latitude": 51.6389,
+          "distance": 1.7818
+        },
+        "inwardWheelEvents": 17
+      },
+      "lockedCamera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      }
+    },
+    "regional-411": {
+      "materialAddress": "{\"chartId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"chartRevision\":\"cao-foundation-v1\",\"materialId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"fragmentOrCohortId\":\"cao-coast:GPlates-77c0116a-f6a6-48dc-a40f-80ead6374b17:403:0\",\"cellOrTriangleId\":0,\"localCoordinate\":{\"kind\":\"chart-direction\",\"directionAtReference\":[0.2597624313859562,-0.5636372982210508,0.7841150905922744]}}",
+      "requestedAt": [
+        -42,
+        72
+      ],
+      "zoom": {
+        "resetCamera": {
+          "longitude": -65.2565,
+          "latitude": 51.6389,
+          "distance": 6.2
+        },
+        "camera": {
+          "longitude": -65.2565,
+          "latitude": 51.6389,
+          "distance": 1.7818
+        },
+        "inwardWheelEvents": 17
+      },
+      "lockedCamera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "reusedFrom": "north-atlantic-0",
+      "verifiedAgesMa": [
+        410,
+        411,
+        412
+      ]
+    }
+  },
+  "preflightViews": {
+    "baseline": {
+      "north-atlantic-0": {
+        "0": {
+          "resetCamera": {
+            "longitude": -65.2565,
+            "latitude": 51.6389,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -65.2565,
+            "latitude": 51.6389,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        }
+      },
+      "regional-411": {
+        "410": {
+          "resetCamera": {
+            "longitude": -56.7008,
+            "latitude": -29.571,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -56.7008,
+            "latitude": -29.571,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        },
+        "411": {
+          "resetCamera": {
+            "longitude": -58.5981,
+            "latitude": -29.2104,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -58.5981,
+            "latitude": -29.2104,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        },
+        "412": {
+          "resetCamera": {
+            "longitude": -60.4771,
+            "latitude": -28.8076,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -60.4771,
+            "latitude": -28.8076,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        }
+      }
+    },
+    "candidate": {
+      "north-atlantic-0": {
+        "0": {
+          "resetCamera": {
+            "longitude": -65.2565,
+            "latitude": 51.6389,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -65.2565,
+            "latitude": 51.6389,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        }
+      },
+      "regional-411": {
+        "410": {
+          "resetCamera": {
+            "longitude": -56.7008,
+            "latitude": -29.571,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -56.7008,
+            "latitude": -29.571,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        },
+        "411": {
+          "resetCamera": {
+            "longitude": -58.5981,
+            "latitude": -29.2104,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -58.5981,
+            "latitude": -29.2104,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        },
+        "412": {
+          "resetCamera": {
+            "longitude": -60.4771,
+            "latitude": -28.8076,
+            "distance": 6.2
+          },
+          "camera": {
+            "longitude": -60.4771,
+            "latitude": -28.8076,
+            "distance": 1.7818
+          },
+          "inwardWheelEvents": 17
+        }
+      }
+    }
+  },
+  "post015Attempts": [
+    {
+      "samplesRecorded": 0,
+      "outcome": "stopped-before-measurement",
+      "reason": "The first post-0.1.5 invocation used a Vite preview root that served the /EarthHistory/assets entry request as index HTML. The browser canvas never initialized; no performance sample was recorded. The restored invocation used verified subpath-serving roots for both variants.",
+      "scratchLog": "/tmp/earthhistory-post015-fixes/ui/final-production-performance.log"
+    }
+  ],
+  "fixedRows": [
+    {
+      "variant": "baseline",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 1,
+      "readyMs": 318.2,
+      "elapsedMs": 2000.7,
+      "frameSamples": 120,
+      "cadenceFps": 59.979,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 1,
+      "readyMs": 329.2,
+      "elapsedMs": 2001.3,
+      "frameSamples": 120,
+      "cadenceFps": 59.961,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "candidate",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 1,
+      "readyMs": 346.9,
+      "elapsedMs": 2000.8,
+      "frameSamples": 120,
+      "cadenceFps": 59.976,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.1,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 1,
+      "readyMs": 331.1,
+      "elapsedMs": 2000.9,
+      "frameSamples": 120,
+      "cadenceFps": 59.973,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.2,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 2,
+      "readyMs": 332.4,
+      "elapsedMs": 2002.2,
+      "frameSamples": 120,
+      "cadenceFps": 59.934,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 2,
+      "readyMs": 333.3,
+      "elapsedMs": 2001,
+      "frameSamples": 120,
+      "cadenceFps": 59.97,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "baseline",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 2,
+      "readyMs": 341.3,
+      "elapsedMs": 2000.5,
+      "frameSamples": 120,
+      "cadenceFps": 59.985,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.1,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 2,
+      "readyMs": 323.2,
+      "elapsedMs": 2000.7,
+      "frameSamples": 120,
+      "cadenceFps": 59.979,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.1,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 3,
+      "readyMs": 321.3,
+      "elapsedMs": 2000.6,
+      "frameSamples": 120,
+      "cadenceFps": 59.982,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 3,
+      "readyMs": 320.7,
+      "elapsedMs": 2001.3,
+      "frameSamples": 120,
+      "cadenceFps": 59.961,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.1,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "candidate",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 3,
+      "readyMs": 338.6,
+      "elapsedMs": 2001,
+      "frameSamples": 120,
+      "cadenceFps": 59.97,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.1,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 3,
+      "readyMs": 331.3,
+      "elapsedMs": 2000.4,
+      "frameSamples": 120,
+      "cadenceFps": 59.988,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.2,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 4,
+      "readyMs": 332.2,
+      "elapsedMs": 2000.5,
+      "frameSamples": 120,
+      "cadenceFps": 59.985,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.4,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 4,
+      "readyMs": 334,
+      "elapsedMs": 2000.8,
+      "frameSamples": 120,
+      "cadenceFps": 59.976,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.2,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "baseline",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 4,
+      "readyMs": 323.2,
+      "elapsedMs": 2000.8,
+      "frameSamples": 120,
+      "cadenceFps": 59.976,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.2,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 4,
+      "readyMs": 318.9,
+      "elapsedMs": 2002.2,
+      "frameSamples": 120,
+      "cadenceFps": 59.934,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 5,
+      "readyMs": 331.4,
+      "elapsedMs": 2001.2,
+      "frameSamples": 120,
+      "cadenceFps": 59.964,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.2,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "baseline",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 5,
+      "readyMs": 327.8,
+      "elapsedMs": 2001,
+      "frameSamples": 120,
+      "cadenceFps": 59.97,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 361829,
+        "triangles": 521541,
+        "countryVertices": 20028,
+        "countrySegments": 10014
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+    },
+    {
+      "variant": "candidate",
+      "scene": "north-atlantic-0",
+      "age": 0,
+      "run": 5,
+      "readyMs": 334.8,
+      "elapsedMs": 2001.1,
+      "frameSamples": 120,
+      "cadenceFps": 59.967,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -65.2565,
+        "latitude": 51.6389,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    },
+    {
+      "variant": "candidate",
+      "scene": "regional-411",
+      "age": 411,
+      "run": 5,
+      "readyMs": 333.3,
+      "elapsedMs": 2000.1,
+      "frameSamples": 120,
+      "cadenceFps": 59.997,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 18.3,
+      "status": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -58.5981,
+        "latitude": -29.2104,
+        "distance": 1.7818
+      },
+      "inventory": {
+        "batches": 5,
+        "vertices": 395670,
+        "triangles": 563986,
+        "countryVertices": 24090,
+        "countrySegments": 12045
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "geometryIdentitySha256": "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+    }
+  ],
+  "scrubRows": [
+    {
+      "variant": "baseline",
+      "run": 1,
+      "elapsedMs": 2048.5,
+      "frameSamples": 111,
+      "cadenceFps": 54.186,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.3,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 112,
+      "observedSampleCount": 112,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 10014,
+          "countryVertices": 20028,
+          "triangles": 521541,
+          "vertices": 361829
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "run": 1,
+      "elapsedMs": 2035.9,
+      "frameSamples": 107,
+      "cadenceFps": 52.557,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 108,
+      "observedSampleCount": 108,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 12045,
+          "countryVertices": 24090,
+          "triangles": 563986,
+          "vertices": 395670
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "run": 2,
+      "elapsedMs": 2044.2,
+      "frameSamples": 107,
+      "cadenceFps": 52.343,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 108,
+      "observedSampleCount": 108,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 12045,
+          "countryVertices": 24090,
+          "triangles": 563986,
+          "vertices": 395670
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "run": 2,
+      "elapsedMs": 2044.2,
+      "frameSamples": 111,
+      "cadenceFps": 54.3,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 112,
+      "observedSampleCount": 112,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 10014,
+          "countryVertices": 20028,
+          "triangles": 521541,
+          "vertices": 361829
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "run": 3,
+      "elapsedMs": 2050.6,
+      "frameSamples": 111,
+      "cadenceFps": 54.13,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 32.2,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 112,
+      "observedSampleCount": 112,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 10014,
+          "countryVertices": 20028,
+          "triangles": 521541,
+          "vertices": 361829
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "run": 3,
+      "elapsedMs": 2037.8,
+      "frameSamples": 107,
+      "cadenceFps": 52.508,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 108,
+      "observedSampleCount": 108,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 12045,
+          "countryVertices": 24090,
+          "triangles": 563986,
+          "vertices": 395670
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "run": 4,
+      "elapsedMs": 2036.1,
+      "frameSamples": 106,
+      "cadenceFps": 52.06,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 107,
+      "observedSampleCount": 107,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 12045,
+          "countryVertices": 24090,
+          "triangles": 563986,
+          "vertices": 395670
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "run": 4,
+      "elapsedMs": 2045.3,
+      "frameSamples": 110,
+      "cadenceFps": 53.782,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.3,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 111,
+      "observedSampleCount": 111,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 10014,
+          "countryVertices": 20028,
+          "triangles": 521541,
+          "vertices": 361829
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "run": 5,
+      "elapsedMs": 2036.9,
+      "frameSamples": 110,
+      "cadenceFps": 54.004,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 111,
+      "observedSampleCount": 111,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "d6590606a01d684c1f7b1d971505b641f0607810b289f981acb1a50fbe34cd69"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 10014,
+          "countryVertices": 20028,
+          "triangles": 521541,
+          "vertices": 361829
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "run": 5,
+      "elapsedMs": 2038.4,
+      "frameSamples": 107,
+      "cadenceFps": 52.492,
+      "frameP50Ms": 16.7,
+      "frameP95Ms": 33.4,
+      "finalStatus": "ready",
+      "backend": "webgpu",
+      "focusMarker": "true",
+      "lockStatus": "resolved",
+      "camera": {
+        "longitude": -60.4771,
+        "latitude": -28.8076,
+        "distance": 1.7818
+      },
+      "visibility": "visible",
+      "focused": true,
+      "errors": [],
+      "dispatchedAgeCount": 108,
+      "observedSampleCount": 108,
+      "observedAgeRangeMa": [
+        410,
+        412
+      ],
+      "observedStatuses": [
+        "ready"
+      ],
+      "geometryIdentityCount": 1,
+      "geometryIdentitySha256": [
+        "1d16210e61abc0514815d363ee447fcfdababbb3855e17d325ac28e1c043f0b1"
+      ],
+      "inventoryCount": 1,
+      "inventories": [
+        {
+          "batches": 5,
+          "countrySegments": 12045,
+          "countryVertices": 24090,
+          "triangles": 563986,
+          "vertices": 395670
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "scenes": {
+      "north-atlantic-0": {
+        "samplesPerVariant": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "exactSampleCountPass": true,
+        "pairedSampleRunsPass": true,
+        "sharedMaterialLockPass": true,
+        "cameraSpread": {
+          "longitudeDegrees": 0,
+          "latitudeDegrees": 0,
+          "distanceEarthRadii": 0
+        },
+        "equalFramingPass": true,
+        "baselineReadyMedianMs": 323.2,
+        "candidateReadyMedianMs": 334.8,
+        "readyDeltaMs": 11.600000000000023,
+        "readyPass": true,
+        "baselineFrameP50MedianMs": 16.7,
+        "candidateFrameP50MedianMs": 16.7,
+        "baselineCadenceMedianFps": 59.979,
+        "candidateCadenceMedianFps": 59.97,
+        "candidateToBaselineCadenceRatio": 0.9998499474816186,
+        "relativeCadencePass": true,
+        "absoluteCadencePass": true
+      },
+      "regional-411": {
+        "samplesPerVariant": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "exactSampleCountPass": true,
+        "pairedSampleRunsPass": true,
+        "sharedMaterialLockPass": true,
+        "cameraSpread": {
+          "longitudeDegrees": 0,
+          "latitudeDegrees": 0,
+          "distanceEarthRadii": 0
+        },
+        "equalFramingPass": true,
+        "baselineReadyMedianMs": 323.2,
+        "candidateReadyMedianMs": 333.3,
+        "readyDeltaMs": 10.100000000000023,
+        "readyPass": true,
+        "baselineFrameP50MedianMs": 16.7,
+        "candidateFrameP50MedianMs": 16.7,
+        "baselineCadenceMedianFps": 59.961,
+        "candidateCadenceMedianFps": 59.976,
+        "candidateToBaselineCadenceRatio": 1.0002501626056937,
+        "relativeCadencePass": true,
+        "absoluteCadencePass": true
+      }
+    },
+    "sampleValidationPass": true,
+    "scrubValidationPass": true,
+    "scrubCameraSpread": {
+      "longitudeDegrees": 0,
+      "latitudeDegrees": 0,
+      "distanceEarthRadii": 0
+    },
+    "scrubEqualFramingPass": true,
+    "geometryStable": true,
+    "baselineScrubCadenceMedianFps": 54.13,
+    "candidateScrubCadenceMedianFps": 52.492,
+    "candidateScrubFrameP50MedianMs": 16.7,
+    "scrubCadenceRatio": 0.9697395159800479,
+    "scrubCadencePass": true,
+    "pass": true
+  },
+  "rawScratchRecord": "/tmp/earthhistory-post015-fixes/ui/final-production-performance.json"
+}

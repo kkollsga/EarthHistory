@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateMaterialCorrectionCatalogV1, type MaterialCorrectionCatalogV1,
+import { validateMaterialCorrectionCatalogV1, validateReconstructionCoreV2,
+  type MaterialCorrectionCatalogV1,
   type ReconstructionCoreV2, type ReconstructionPackageManifestV2 } from "./packageV2";
+import type { MotionPaletteCatalog } from "./palette";
 
 const digest = "a".repeat(64);
 const frame = { modelId: "cao", modelVersion: "2.4", absoluteFrameId: "palaeomagnetic",
@@ -140,5 +142,59 @@ describe("material correction catalog v1", () => {
           countrySegmentBindings: [{ ...overrideCatalog.nativeChartOverrides![0]!
             .dependentConsumers.countrySegmentBindings[0]!, maximumMatchKm: 12.001 }] } }] }, manifest, core))
       .toThrow();
+  });
+});
+
+describe("declared chart motion support gaps", () => {
+  const gapPalette: MotionPaletteCatalog = {
+    schemaVersion: 2, id: "palette", packageId: "base", revision: "r1", frame,
+    binary: { ...asset, timeEncoding: "uint32-micro-ma", quaternionEncoding: "float32-wxyz" },
+    entries: [
+      { entryId: "younger", plateId: 626,
+        storedCoordinateBasis: { kind: "supported-reference", geometryReferenceAgeMa: 0 },
+        youngestAgeMa: 0, oldestAgeMa: 1, sampleOffset: 0, sampleCount: 2,
+        sourceIds: ["rotation"], sourceIntervalSetId: "younger-clock" },
+      { entryId: "older", plateId: 626,
+        storedCoordinateBasis: { kind: "supported-reference", geometryReferenceAgeMa: 0 },
+        youngestAgeMa: 2, oldestAgeMa: 3, sampleOffset: 2, sampleCount: 2,
+        sourceIds: ["rotation"], sourceIntervalSetId: "older-clock" },
+    ],
+    sourceIntervalSets: [],
+  };
+  const gapChart = {
+    kind: "rigid" as const, role: "model-geography" as const, chartId: "gap-chart",
+    chartRevision: "gap-chart@1", materialId: "gap", fragmentOrCohortId: "gap",
+    lifecycle: { validTimeMa: { youngest: 0, oldest: 3 } }, geometryReferenceAgeMa: 0,
+    motionBindings: [
+      { paletteId: "palette", entryId: "younger", validTimeMa: { youngest: 0, oldest: 1 } },
+      { paletteId: "palette", entryId: "older", validTimeMa: { youngest: 2, oldest: 3 } },
+    ],
+    motionSupportGaps: [{ validTimeMa: { youngest: 1, oldest: 2 },
+      youngestExclusive: true as const, oldestExclusive: true as const,
+      reason: "source-seam" as const, sourceIds: ["rotation"] }],
+    sourceFeatureIds: ["source"], sourceFeatureTypes: ["gpml:ContinentalFragment"],
+    evidence: { status: "model-output" as const, sourceIds: ["cao"], limitations: ["source seam"] },
+    surfaceEvidence: { kind: "unknown" as const, reason: "surface class unknown" },
+  };
+  const gapCore = { schemaVersion: 2 as const, packageId: "base", revision: "r1", frame,
+    charts: [gapChart], spatialBatches: [{ batchId: "land", vertexCount: 3, triangleCount: 1,
+      geometryAsset: { ...asset, bytes: 104 }, encoding: "ehgb-v2-f32xyz-u32" as const }] };
+
+  it("accepts only a source-backed gap that exactly partitions two authored bindings", () => {
+    expect(() => validateReconstructionCoreV2(gapCore, manifest, gapPalette)).not.toThrow();
+    expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
+      motionSupportGaps: undefined }] }, manifest, gapPalette)).toThrow(/binding/);
+    expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
+      motionSupportGaps: [{ ...gapChart.motionSupportGaps[0]!, sourceIds: [] }] }] },
+    manifest, gapPalette)).toThrow(/binding/);
+    expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
+      motionSupportGaps: [{ ...gapChart.motionSupportGaps[0]!, sourceIds: [626] as never }] }] },
+    manifest, gapPalette)).toThrow(/binding/);
+    expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
+      motionSupportGaps: [{ ...gapChart.motionSupportGaps[0]!,
+        validTimeMa: { youngest: 1, oldest: 2.000001 } }] }] }, manifest, gapPalette)).toThrow(/binding/);
+    expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
+      motionBindings: [{ ...gapChart.motionBindings[0]!, validTimeMa: { youngest: 0, oldest: 1.5 } },
+        gapChart.motionBindings[1]!] }] }, manifest, gapPalette)).toThrow(/binding/);
   });
 });
