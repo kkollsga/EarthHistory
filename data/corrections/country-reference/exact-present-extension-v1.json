@@ -11,7 +11,10 @@
     "publicationOrVersionDate": "5.1.1",
     "retrievedAt": "2026-09-09",
     "license": "Public domain",
-    "temporalRangeMa": [0, 0],
+    "temporalRangeMa": [
+      0,
+      0
+    ],
     "geographicBasis": "WGS84 generalized present-day country polygons subdivided to at most 1 degree angular edges",
     "evidenceRole": "exact-present modern-country locator linework only"
   },
@@ -24,6 +27,8 @@
   "exactPresentComplement": {
     "sourceSubdivisionCount": 12045,
     "segmentCount": 2031,
+    "exactPresentBoundSegmentCount": 322,
+    "sourceFragmentBridgeId": "earthhistory-country-reference-source-fragment-bridge-v1",
     "vertexCount": 4062,
     "countryCount": 149,
     "reverseSharedBorderPairCount": 571,
@@ -37,6 +42,7 @@
     "limitations": [
       "Present-day locator only; not historical borders.",
       "Segments without Cao static-fragment ownership remain unavailable at every age greater than 0 Ma.",
+      "Complement segments that share a float32 endpoint with an accepted native segment are rebound to that segment's Cao static fragment by the source-fragment bridge; only the remaining 322 keep the exact-present locator chart.",
       "The complement is derived against the released native line asset and does not alter historical chart ownership.",
       "The complement retains 571 reverse-oriented shared-border pairs because each Natural Earth country source subdivision keeps its own country identity."
     ]

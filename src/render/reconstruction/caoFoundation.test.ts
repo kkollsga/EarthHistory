@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { BufferAttribute, Group, IntType, LineSegments, Mesh } from "three";
+import { BufferAttribute, Group, InstancedBufferAttribute, InstancedBufferGeometry, IntType, LineSegments, Mesh } from "three";
 import {
   CaoReconstructionRuntime,
   chartPickStateFromMotionFrame,
@@ -15,22 +15,32 @@ import { numberScalarOps } from "../../reconstruction/arithmetic";
 import {
   CAO_FOUNDATION_COUNTRY_LINE_CULL_MARGIN_DEGREES,
   CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET,
+  CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX,
   CAO_FOUNDATION_COUNTRY_LINE_MAX_CHORD_DEGREES,
   CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES,
-  CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES,
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS,
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES,
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT,
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES,
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT,
+  CAO_FOUNDATION_COUNTRY_LINE_WIDTH_CSS_PX,
   CAO_FOUNDATION_MAX_VERTICAL_EXAGGERATION,
   CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS,
   CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
   CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
   CaoFoundationSurfaceRenderer,
-  caoFoundationCountryLineOffsetsPx,
+  caoFoundationCountryLineHalfWidthPx,
+  caoFoundationCountryLinePadPx,
+  caoFoundationCountryLineQuadBytes,
   createCaoFoundationCountryLineMaterial,
   createCaoFoundationGeometryResource,
   caoFoundationMaxDisplayedShellMetres,
   createCaoFoundationPaletteTexture,
   estimateCaoFoundationGeometryReservation,
-  evaluateCountryLineClipOffset,
+  evaluateCountryLineCoverage,
   evaluateCountryLineHorizonVisibility,
+  evaluateCountryLineQuadOffsetPx,
+  evaluateCountryLineSegmentVisibility,
   caoFoundationBatchAppearance,
   caoFoundationSurfaceCoversDirection,
   intersectCaoFoundationSurface,
@@ -114,6 +124,25 @@ function nodeDescendants(root: unknown): Set<unknown> {
   };
   visit(root);
   return seen;
+}
+
+/**
+ * The direct operands of a node, so a test can pin a term rather than mere
+ * reachability. TSL wraps an expression in a single-child VarNode, so the walk
+ * descends through single-child wrappers before returning the operand set.
+ */
+function nodeOperands(root: unknown): Set<unknown> {
+  const childrenOf = (node: unknown) => {
+    const getChildren = (node as { getChildren?: () => Iterable<unknown> })?.getChildren;
+    return typeof getChildren === "function" ? [...getChildren.call(node)] : [];
+  };
+  let node = root;
+  for (let depth = 0; depth < 4; depth += 1) {
+    const children = childrenOf(node);
+    if (children.length !== 1) return new Set(children);
+    node = children[0];
+  }
+  return new Set();
 }
 
 function rendererDirection(longitude: number, latitude: number): [number, number, number] {
@@ -202,64 +231,104 @@ describe("Cao foundation renderer boundary", () => {
     expect(packed.data.slice(0, 12)).toEqual(new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 0.5, 1, 1, 0]));
   });
 
-  it("widens the country outline in screen space instead of drawing a lone hairline", () => {
+  it("draws each country outline segment as one thin analytically shaded quad", () => {
     // A GPU line primitive is one device pixel wide on both backends, so a
-    // single hairline loses coverage to multisampling and reads as beaded.
-    // Each style is drawn once per offset; the union is the solid stroke.
-    const stroke = caoFoundationCountryLineOffsetsPx("stroke");
-    const underlay = caoFoundationCountryLineOffsetsPx("underlay");
-    expect(stroke.filter(([x, y]) => x === 0 && y === 0)).toHaveLength(1);
-    expect(underlay.every(([x, y]) => x !== 0 || y !== 0)).toBe(true);
-    for (const offsets of [stroke, underlay]) {
-      // No screen bearing may be left unwidened: every quadrant is covered.
-      for (const [signX, signY] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-        expect(offsets.some(([x, y]) => Math.sign(x) === signX && Math.sign(y) === signY)).toBe(true);
-      }
-      // A stroke, not a band: the widest offset stays inside a few pixels.
-      expect(Math.max(...offsets.flatMap(([x, y]) => [Math.abs(x), Math.abs(y)]))).toBeLessThanOrEqual(2);
-    }
-    // The underlay halo stays outside the stroke core it contrasts against.
-    expect(Math.min(...underlay.map(([x, y]) => Math.hypot(x, y))))
-      .toBeGreaterThan(Math.max(...stroke.map(([x, y]) => Math.hypot(x, y))));
-    // Every copy costs a draw and a full line vertex pass, so the table is
-    // budgeted here rather than left to grow with the style list.
-    expect(CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET).toBe(9);
-    expect(stroke.length + underlay.length).toBeLessThanOrEqual(CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET);
+    // single hairline loses coverage to multisampling and reads as beaded. The
+    // remedy is a screen-space quad shaded from its own coverage, not extra
+    // copies: the visual core stays one CSS pixel and only the ramp sits
+    // outside it. Pin the width so a later "make it visible" nudge cannot
+    // quietly reintroduce the thickening the user rejected.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_WIDTH_CSS_PX).toBe(1);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX).toBe(1);
+    // Device pixels come from the renderer's pixel ratio: one CSS pixel is two
+    // device pixels at ratio 2 and one at ratio 1, so the stroke keeps the same
+    // apparent width on every display instead of halving on a retina panel.
+    expect(caoFoundationCountryLineHalfWidthPx(1)).toBe(0.5);
+    expect(caoFoundationCountryLineHalfWidthPx(2)).toBe(1);
+    expect(caoFoundationCountryLineHalfWidthPx(1.25)).toBe(0.625);
+    // The quad must reach half a ramp beyond the core or the ramp is clipped.
+    expect(caoFoundationCountryLinePadPx(2)).toBe(1.5);
+    expect(caoFoundationCountryLinePadPx(1)).toBe(1);
+    // Four corners, two triangles, one quad per segment.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS).toHaveLength(12);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES).toHaveLength(6);
+    const corners = [0, 1, 2, 3].map((index) =>
+      CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS.slice(index * 3, index * 3 + 3));
+    // Every (endpoint, side) combination appears exactly once, and the quad is
+    // flat in its own space: the third component carries nothing.
+    expect(corners.map(([along, side]) => `${along},${side}`).sort())
+      .toEqual(["-1,-1", "-1,1", "1,-1", "1,1"]);
+    expect(corners.every(([, , depth]) => depth === 0)).toBe(true);
+    // Both triangles are drawn from those four corners and cover the quad once.
+    expect([...CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES].every((index) => index >= 0 && index < 4))
+      .toBe(true);
+    expect(new Set(CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES).size).toBe(4);
+    // One draw now, not nine: the whole overlay is a single pass over the
+    // expanded geometry, with no second contrast pass to compose with.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET).toBe(1);
 
     const packed = packPreparedCaoPalette(fixture(), 2_048);
     const texture = createCaoFoundationPaletteTexture(packed);
-    const centred = createCaoFoundationCountryLineMaterial(texture, packed.width, 0, "stroke", [0, 0]);
-    const shifted = createCaoFoundationCountryLineMaterial(texture, packed.width, 0, "stroke", stroke[1]!);
-    // Every copy takes the same clip-offset path with the shift in a per-copy
-    // uniform. That is a readback handle, not program sharing: each copy
-    // rebuilds the pose graph and three keys pipelines on node ids, so a
-    // publication compiles one program per copy, nine in all. The 411 Ma
-    // cold-ready median did not regress against the hairline control
-    // (817 ms against 826 ms), which is what makes that affordable.
-    for (const graph of [centred, shifted]) {
-      // A shifted copy is rasterized at a pixel its depth was not computed for,
-      // so occlusion is the analytic horizon term, never the depth buffer.
+    const stroke = createCaoFoundationCountryLineMaterial(texture, packed.width, 0);
+    expect(stroke.material.opacity).toBe(0.92);
+    for (const graph of [stroke]) {
+      // A quad corner is rasterized up to a pixel and a half from the pixel its
+      // depth was computed for, so occlusion is the analytic horizon term,
+      // never the depth buffer.
       expect(graph.material.depthTest).toBe(false);
       expect(graph.material.depthWrite).toBe(false);
       expect(graph.material.transparent).toBe(true);
-      expect(graph.material.opacity).toBe(0.92);
-      // The far hemisphere is hidden by nothing but this term, so pin that the
-      // material's opacity is actually built from it: losing the multiply would
-      // render all 12 045 segments through the planet with the suite green.
+      // The far hemisphere is hidden by nothing but the horizon term, and the
+      // stroke's edge by nothing but the coverage term. Pin that the material's
+      // opacity is actually built from both: losing the horizon multiply would
+      // render all 12 045 segments through the planet, and losing the coverage
+      // multiply would hand back a hard-edged pad-wide band with the suite
+      // green either way.
       expect(graph.material.opacityNode).not.toBeNull();
-      expect(nodeDescendants(graph.material.opacityNode)).toContain(graph.horizonVisibility);
-      // Likewise the join between the offset formula and the clip position: if
-      // vertexNode dropped the offset, all nine copies would draw in one place
-      // and the outline would silently revert to the beaded hairline.
+      const opacityNodes = nodeDescendants(graph.material.opacityNode);
+      expect(opacityNodes).toContain(graph.horizonVisibility);
+      expect(opacityNodes).toContain(graph.coverage);
+      // The coverage term must read the interpolated perpendicular distance and
+      // the device half width; a coverage built from either alone would be
+      // either width-independent or constant across the stroke.
+      // Identity of each term, not reachability: the varying is scaled by a pad
+      // built from the same half width, so every term is reachable from every
+      // other and a graph walk cannot tell a swapped argument from the real one.
+      expect(graph.coverageInputs.distancePixels).toBe(graph.perpendicularPixels);
+      expect(graph.coverageInputs.halfWidthPixels).toBe(graph.halfWidthPixels);
+      expect(nodeDescendants(graph.coverage)).toContain(graph.coverageInputs.distancePixels);
+      expect(nodeDescendants(graph.coverage)).toContain(graph.coverageInputs.halfWidthPixels);
+      expect(nodeDescendants(graph.coverage)).toContain(graph.coverageInputs.featherPixels);
+      // The distance must arrive through a varying. Anything else is a constant
+      // across the quad and the stroke loses its cross-section entirely.
+      expect([...nodeDescendants(graph.perpendicularPixels)]
+        .filter((node) => (node as { isVaryingNode?: boolean }).isVaryingNode)).toHaveLength(1);
+      // And the join between the quad expansion and the clip position: if
+      // vertexNode dropped the offset, all four corners would land on the
+      // centre line and the outline would rasterize nothing at all.
       expect(graph.material.vertexNode).not.toBeNull();
       const vertexNodes = nodeDescendants(graph.material.vertexNode);
-      expect(vertexNodes).toContain(graph.clipOffset[0]);
-      expect(vertexNodes).toContain(graph.clipOffset[1]);
+      expect(vertexNodes).toContain(graph.quadOffsetPixels[0]);
+      expect(vertexNodes).toContain(graph.quadOffsetPixels[1]);
+      // The half width has to reach the geometry too, or the quad would carry a
+      // ramp it never leaves room for.
+      expect(vertexNodes).toContain(graph.halfWidthPixels);
       // And the vertex-stage far-side collapse, which is what keeps back-side
-      // segments from rasterizing now that early-Z is gone.
+      // segments from rasterizing now that early-Z is gone. It must reach both
+      // the corner position and the screen offset: collapsing only the position
+      // would leave a fixed-size square at the globe centre.
       expect(graph.material.positionNode).not.toBeNull();
       expect(nodeDescendants(graph.material.positionNode)).toContain(graph.vertexVisible);
       expect(vertexNodes).toContain(graph.vertexVisible);
+      // Direct operands, not reachability: the collapse factor is reachable from
+      // the offset anyway, because the offset is derived from the collapsed
+      // endpoint positions. Only the immediate children say it was applied.
+      const offsetOperands = nodeOperands(graph.collapsedOffsetPixels);
+      expect(offsetOperands).toContain(graph.vertexVisible);
+      expect(offsetOperands).toContain(graph.quadOffsetVector);
+      expect(nodeDescendants(graph.quadOffsetVector)).toContain(graph.quadOffsetPixels[0]);
+      expect(nodeDescendants(graph.quadOffsetVector)).toContain(graph.quadOffsetPixels[1]);
+      expect(vertexNodes).toContain(graph.collapsedOffsetPixels);
       // The cull margin belongs to the vertex stage only. Without it there, a
       // segment straddling the terminator loses one end and draws a spoke out
       // of the globe centre; with it in the fragment stage, outlines survive a
@@ -279,13 +348,13 @@ describe("Cao foundation renderer boundary", () => {
       expect([constantValue(fragmentCos), constantValue(fragmentSin)]).toEqual([1, 0]);
       // The fragment term must reach the direction through a varying. Reading
       // the pose direction directly there re-emits the whole prepared pose
-      // graph into the fragment shader and runs it per outline fragment.
+      // graph — now twice over, once per endpoint — into the fragment shader
+      // and runs it per outline fragment.
       const fragmentGraph = nodeDescendants(graph.horizonVisibility);
       expect(fragmentGraph).toContain(graph.fragmentDirection);
       expect([...nodeDescendants(graph.fragmentDirection)]
         .filter((node) => (node as { isVaryingNode?: boolean }).isVaryingNode)).toHaveLength(1);
       const vertexTerm = nodeDescendants(graph.vertexVisible);
-      const fragmentTerm = nodeDescendants(graph.horizonVisibility);
       expect(vertexTerm).toContain(vertexCullCos);
       expect(vertexTerm).toContain(vertexCullSin);
       expect(vertexTerm).not.toContain(fragmentCos);
@@ -293,43 +362,118 @@ describe("Cao foundation renderer boundary", () => {
       // before interpolation, and a varying there would be a stage error.
       expect([...vertexTerm].filter((node) =>
         (node as { isVaryingNode?: boolean }).isVaryingNode)).toHaveLength(0);
-      expect(fragmentTerm).toContain(fragmentCos);
-      expect(fragmentTerm).toContain(fragmentSin);
-      expect(fragmentTerm).not.toContain(vertexCullCos);
-      expect(fragmentTerm).not.toContain(vertexCullSin);
+      expect(fragmentGraph).toContain(fragmentCos);
+      expect(fragmentGraph).toContain(fragmentSin);
+      expect(fragmentGraph).not.toContain(vertexCullCos);
+      expect(fragmentGraph).not.toContain(vertexCullSin);
     }
-    expect([centred.screenOffsetPixels.value.x, centred.screenOffsetPixels.value.y]).toEqual([0, 0]);
-    expect([shifted.screenOffsetPixels.value.x, shifted.screenOffsetPixels.value.y])
-      .toEqual([stroke[1]![0], stroke[1]![1]]);
-    for (const graph of [centred, shifted]) graph.material.dispose();
-    expect(() => createCaoFoundationCountryLineMaterial(texture, packed.width, 0, "stroke",
-      [Number.NaN, 0])).toThrow(/screen offset/);
+    stroke.material.dispose();
     texture.dispose();
   });
 
-  it("converts a device-pixel outline offset into a clip-space shift", () => {
+  it("expands a segment into a quad of the stroke's own width", () => {
     // Same formula the material's vertexNode consumes, driven with numbers.
-    const shift = (offset: readonly [number, number], clipW: number) =>
-      evaluateCountryLineClipOffset(numberScalarOps, {
-        offsetPixelX: offset[0], offsetPixelY: offset[1],
-        screenWidthPx: 2_132, screenHeightPx: 1_304, clipW,
+    const offset = (start: readonly [number, number], end: readonly [number, number],
+      along: number, side: number, pad = 1.5) =>
+      evaluateCountryLineQuadOffsetPx(numberScalarOps, {
+        startPixelX: start[0], startPixelY: start[1], endPixelX: end[0], endPixelY: end[1],
+        along, side, padPixels: pad,
       });
-    // A clip shift of 2w/screen is exactly one device pixel after the divide.
-    const [dx, dy] = shift([1, 1], 3.5);
-    expect(dx / 3.5 / 2 * 2_132).toBeCloseTo(1, 12);
-    expect(dy / 3.5 / 2 * 2_132).toBeCloseTo(2_132 / 1_304, 12);
-    // Each axis uses its own extent, so a non-square buffer is not anisotropic.
-    expect(dx / dy).toBeCloseTo(1_304 / 2_132, 12);
-    // Sign is carried through, not folded or flipped, on both axes.
-    expect(shift([-1, -1], 3.5)).toEqual([-dx, -dy]);
-    expect(shift([1, -1], 3.5)).toEqual([dx, -dy]);
-    // Scaling by clip w keeps the post-divide shift constant with depth, so it
-    // must be proportional to w, including at w near zero and behind the eye.
-    expect(shift([0.55, 0.55], 7)[0]).toBeCloseTo(shift([0.55, 0.55], 3.5)[0] * 2, 12);
-    expect(shift([0.55, 0.55], 1e-7)[0]).toBeCloseTo(shift([0.55, 0.55], 1)[0] * 1e-7, 18);
-    expect(shift([0.55, 0.55], 0)).toEqual([0, 0]);
-    expect(shift([0.55, 0.55], -2)[0]).toBeCloseTo(-shift([0.55, 0.55], 2)[0], 12);
-    expect(shift([0, 0], 3.5)).toEqual([0, 0]);
+    // A horizontal segment is widened vertically by exactly the pad, and never
+    // by more: the perpendicular offset magnitude is the half extent itself.
+    expect(offset([0, 0], [10, 0], -1, 1)).toEqual([-1.5, 1.5]);
+    expect(offset([0, 0], [10, 0], 1, 1)).toEqual([1.5, 1.5]);
+    expect(offset([0, 0], [10, 0], 1, -1)).toEqual([1.5, -1.5]);
+    // The end extension is along the segment, so the corner at the start end
+    // overhangs backwards and the one at the end end overhangs forwards. That
+    // overlap is what fills the notch a bare butt join would leave.
+    expect(offset([0, 0], [10, 0], -1, 1)[0]).toBeLessThan(0);
+    expect(offset([0, 0], [10, 0], 1, 1)[0]).toBeGreaterThan(0);
+    // A diagonal is widened perpendicular to itself, not along an axis: the
+    // offset magnitude stays the pad diagonal regardless of bearing.
+    for (const bearing of [0, 17, 45, 90, 143, 270]) {
+      const radians = bearing * Math.PI / 180;
+      const end: readonly [number, number] = [Math.cos(radians) * 7, Math.sin(radians) * 7];
+      const [x, y] = offset([0, 0], end, 1, 1);
+      expect(Math.hypot(x, y)).toBeCloseTo(Math.hypot(1.5, 1.5), 12);
+      // The perpendicular component is exactly the pad, measured against the
+      // segment's own unit direction.
+      const [ux, uy] = [Math.cos(radians), Math.sin(radians)];
+      expect(x * -uy + y * ux).toBeCloseTo(1.5, 12);
+      expect(x * ux + y * uy).toBeCloseTo(1.5, 12);
+    }
+    // Pad scales the whole quad linearly, so the width constant is the only
+    // thing that sets the stroke's size.
+    expect(offset([0, 0], [10, 0], 1, 1, 3)).toEqual([3, 3]);
+    // A segment whose endpoints land on one pixel has no direction. It must
+    // produce a finite square, never a NaN from a zero-length normalise.
+    const degenerate = offset([4, 4], [4, 4], 1, 1);
+    expect(degenerate.every(Number.isFinite)).toBe(true);
+    expect(Math.hypot(...degenerate)).toBeCloseTo(Math.hypot(1.5, 1.5), 12);
+    const subPixel = offset([4, 4], [4 + 1e-9, 4], 1, 1);
+    expect(subPixel.every(Number.isFinite)).toBe(true);
+    // The guard only catches genuinely degenerate segments: a segment a pixel
+    // long still takes its own direction.
+    expect(offset([0, 0], [0, 1], 1, 1)).toEqual([-1.5, 1.5]);
+  });
+
+  it("shades the stroke from analytic coverage across one device pixel", () => {
+    // Same formula the material's opacityNode consumes, driven with numbers.
+    const coverage = (distancePixels: number, halfWidthPixels = 1, featherPixels = 1) =>
+      evaluateCountryLineCoverage(numberScalarOps, { distancePixels, halfWidthPixels, featherPixels });
+    // Fully covered on the centre line, and the ramp is centred on the core
+    // edge, so the half width is exactly the half-coverage contour a reader
+    // perceives as the stroke's boundary.
+    expect(coverage(0)).toBe(1);
+    expect(coverage(1)).toBeCloseTo(0.5, 12);
+    expect(coverage(-1)).toBeCloseTo(0.5, 12);
+    // Nothing outside the ramp; the quad's pad is exactly that far out.
+    expect(coverage(1.5)).toBe(0);
+    expect(coverage(-1.5)).toBe(0);
+    expect(coverage(4)).toBe(0);
+    // And the core itself is opaque, not a peak: a stroke wider than the ramp
+    // has a flat top rather than a spike.
+    expect(coverage(0.5)).toBe(1);
+    expect(coverage(-0.5)).toBe(1);
+    // The ramp is the cubic smoothstep, not a linear fade: pin a point where
+    // the two differ, or the coverage could silently become a straight edge.
+    expect(coverage(1.25)).toBeCloseTo(0.15625, 12);
+    expect(coverage(0.75)).toBeCloseTo(0.84375, 12);
+    // Monotone across the ramp, so no banding.
+    const ramp = [0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4].map((d) => coverage(d));
+    expect(ramp.every((value, index) => index === 0 || value <= ramp[index - 1]!)).toBe(true);
+    // Symmetric about the centre line: the stroke does not lean to one side.
+    for (const distance of [0.25, 0.75, 1.1, 1.49]) {
+      expect(coverage(distance)).toBeCloseTo(coverage(-distance), 12);
+    }
+    // At device pixel ratio 1 the core is half a pixel and the ramp reaches the
+    // full pixel; the centre is still opaque.
+    const thin = caoFoundationCountryLineHalfWidthPx(1);
+    expect(coverage(0, thin)).toBe(1);
+    expect(coverage(thin, thin)).toBeCloseTo(0.5, 12);
+    expect(coverage(thin + CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX / 2, thin)).toBe(0);
+  });
+
+  it("keeps a segment that straddles the terminator and drops one whose chart is gone", () => {
+    // Same formula the material's vertex stage consumes, driven with numbers.
+    const visible = (startVisible: number, endVisible: number,
+      startActive = 1, endActive = 1) =>
+      evaluateCountryLineSegmentVisibility(numberScalarOps,
+        { startVisible, endVisible, startActive, endActive });
+    // Either end inside the widened terminator keeps the whole quad. Requiring
+    // both would erase the outline a full cull margin inside the limb, which is
+    // exactly the band the fragment term is there to cut precisely.
+    expect(visible(1, 1)).toBe(1);
+    expect(visible(1, 0)).toBe(1);
+    expect(visible(0, 1)).toBe(1);
+    expect(visible(0, 0)).toBe(0);
+    // A segment whose chart does not exist at this age has both endpoints at
+    // the globe centre. It must be discarded whole — including its screen
+    // expansion — however visible that centre point happens to be.
+    expect(visible(1, 1, 0, 1)).toBe(0);
+    expect(visible(1, 1, 1, 0)).toBe(0);
+    expect(visible(1, 1, 0, 0)).toBe(0);
+    expect(visible(1, 0, 0, 1)).toBe(0);
   });
 
   it("occludes outlines at the analytic globe horizon rather than by depth", () => {
@@ -396,7 +540,7 @@ describe("Cao foundation renderer boundary", () => {
   it("refuses a display height that would lift the surface through the outline shell", () => {
     // The outlines no longer depth test, so this guard replaces the depth
     // buffer: the tallest shell the controls can reach at the relief ceiling
-    // must stay below the lower outline shell.
+    // must stay below the outline shell.
     expect(CAO_FOUNDATION_MAX_VERTICAL_EXAGGERATION).toBe(30);
     expect(caoFoundationMaxDisplayedShellMetres(0, 0, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES))
       .toBe(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES);
@@ -415,13 +559,13 @@ describe("Cao foundation renderer boundary", () => {
           baseColor: { kind: "uniform" as const, value: [0.37, 0.48, 0.24] as const } }) }],
       } as PreparedCaoRevision;
     };
-    // 800 m shell + 29 m x 30 stays under the 1 680 m underlay shell; 30 m does not.
-    expect(caoFoundationMaxDisplayedShellMetres(29, 0, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES))
-      .toBeLessThan(CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES);
-    expect(caoFoundationMaxDisplayedShellMetres(30, 0, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES))
-      .toBeGreaterThanOrEqual(CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES);
-    expect(() => surface.publish(lifted(29), 8)).not.toThrow();
-    expect(() => surface.publish(lifted(30), 8)).toThrow(/lift the surface through the country-line shell/);
+    // 800 m shell + 33 m x 30 stays under the 1 800 m outline shell; 34 m does not.
+    expect(caoFoundationMaxDisplayedShellMetres(33, 0, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES))
+      .toBeLessThan(CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
+    expect(caoFoundationMaxDisplayedShellMetres(34, 0, CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES))
+      .toBeGreaterThanOrEqual(CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
+    expect(() => surface.publish(lifted(33), 8)).not.toThrow();
+    expect(() => surface.publish(lifted(34), 8)).toThrow(/lift the surface through the country-line shell/);
     surface.disposeForRendererTeardown();
   });
 
@@ -435,6 +579,59 @@ describe("Cao foundation renderer boundary", () => {
     expect((resource.batches[0]!.geometry.getAttribute("preparedEntryIndex") as BufferAttribute).gpuType)
       .toBe(IntType);
     resource.dispose();
+
+    // A line batch's GPU cost is the quad expansion, not the source line form,
+    // so the reservation has to carry it explicitly. A package that shared line
+    // vertices between segments would make "bounded by the source bytes" false,
+    // which is why the ledger is a counted term rather than an assumption.
+    expect(caoFoundationCountryLineQuadBytes(0)).toBe(0);
+    // Four corners of (quad-local corner, start, end, entry) at 40 bytes each,
+    // plus six 32-bit indices.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES).toBe(184);
+    expect(caoFoundationCountryLineQuadBytes(1_000))
+      .toBe(1_000 * CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES);
+    const shared = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    const strip = { ...fixture(), lineBatches: [{ batchId: "countries",
+      staticGeometryIdentity: "countries@1", vertexCount: 3, segmentCount: 2,
+      // A shared-vertex polyline: two segments over three vertices, the shape
+      // whose source bytes would *not* bound the quad expansion.
+      staticGeometryBytes: shared.byteLength + 4 * 4 + 3 * 2 + 3 * 2,
+      createStaticGeometryCopy: () => ({ referenceDirections: new Float32Array(shared),
+        lineIndices: new Uint32Array([0, 1, 1, 2]),
+        preparedEntryIndices: new Uint16Array([0, 0, 0]),
+        materialChartIndices: new Uint16Array([0, 0, 0]) }) }] } as PreparedCaoRevision;
+    // A segment is four expanded corners and two triangles now, not two package
+    // vertices and one line primitive, and the preflight has to say so: the
+    // surface batch contributes three vertices and one triangle, so a ceiling
+    // that admits the two quads exactly is the smallest that passes.
+    expect(() => estimateCaoFoundationGeometryReservation(strip,
+      { ...limits, maxTriangles: 1 + 2 * 2 })).not.toThrow();
+    expect(() => estimateCaoFoundationGeometryReservation(strip,
+      { ...limits, maxTriangles: 2 * 2 })).toThrow(/exceeds renderer limit/);
+    expect(() => estimateCaoFoundationGeometryReservation(strip,
+      { ...limits, maxVertices: 3 + 2 * CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT }))
+      .not.toThrow();
+    expect(() => estimateCaoFoundationGeometryReservation(strip,
+      { ...limits, maxVertices: 2 + 2 * CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT }))
+      .toThrow(/exceeds renderer limit/);
+    const stripReservation = estimateCaoFoundationGeometryReservation(strip, limits);
+    const stripResource = createCaoFoundationGeometryResource(strip, limits);
+    expect(stripResource.byteLength).toBeLessThanOrEqual(stripReservation);
+    // The middle vertex is genuinely reused by both quads, each carrying its own
+    // copy of both endpoints.
+    const stripGeometry = stripResource.lineBatches[0]!.geometry;
+    expect(stripGeometry.getAttribute("position").count).toBe(8);
+    expect(stripGeometry.index?.count).toBe(12);
+    // The second quad's indices address its own corners, not the first quad's.
+    expect([...(stripGeometry.index!.array as Uint32Array)].slice(6))
+      .toEqual([...CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES].map((index) => index + 4));
+    const quadEndpoints = (name: string, quad: number) =>
+      [...(stripGeometry.getAttribute(name).array as Float32Array)].slice(quad * 12, quad * 12 + 3);
+    expect(quadEndpoints("countryLineStart", 0)).toEqual([1, 0, 0]);
+    expect(quadEndpoints("countryLineEnd", 0)).toEqual([0, 1, 0]);
+    expect(quadEndpoints("countryLineStart", 1)).toEqual([0, 1, 0]);
+    expect(quadEndpoints("countryLineEnd", 1)).toEqual([0, 0, 1]);
+    stripResource.dispose();
   });
 
   it("answers chart coverage for a direction without a nearest-hit walk", () => {
@@ -640,7 +837,9 @@ describe("Cao foundation renderer boundary", () => {
     const base = fixture();
     const referenceDirections = new Float32Array([1, 0, 0, 0, 1, 0]);
     const lineIndices = new Uint32Array([0, 1]);
-    const preparedEntryIndices = new Uint16Array([0, 0]);
+    // A non-zero palette entry, so an expansion that only reached the first
+    // corner of a quad could not pass by writing the default zero everywhere.
+    const preparedEntryIndices = new Uint16Array([1, 1]);
     const materialChartIndices = new Uint16Array([0, 0]);
     const corner = 1 / Math.sqrt(1.02);
     const topologyDirections = new Float32Array([
@@ -676,18 +875,46 @@ describe("Cao foundation renderer boundary", () => {
     } satisfies PreparedCaoRevision;
     const resource = createCaoFoundationGeometryResource(revision, limits);
     expect(resource.lineBatches).toHaveLength(1);
-    expect((resource.lineBatches[0]!.geometry.getAttribute("preparedEntryIndex") as BufferAttribute).gpuType)
-      .toBe(IntType);
+    // The package's two-vertex line form is expanded once, at publication, into
+    // one four-corner quad per segment. The corners are materialised rather
+    // than instanced: a software rasterizer charges per-instance setup in full,
+    // and 12 045 four-vertex instances made the overlay three times more
+    // expensive there than the hairline it replaced.
+    const lineGeometry = resource.lineBatches[0]!.geometry;
+    expect(lineGeometry).not.toBeInstanceOf(InstancedBufferGeometry);
+    expect(lineGeometry.getAttribute("position").count)
+      .toBe(CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT);
+    expect(lineGeometry.index?.count).toBe(CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT);
+    const entryAttribute = lineGeometry.getAttribute("countryLineEntryIndex") as BufferAttribute;
+    expect(entryAttribute).not.toBeInstanceOf(InstancedBufferAttribute);
+    expect(entryAttribute.gpuType).toBe(IntType);
+    expect(entryAttribute.count).toBe(4);
+    // The chart binding reaches every corner, so the motion palette still
+    // drives the whole quad.
+    expect([...(entryAttribute.array as Uint32Array)]).toEqual([1, 1, 1, 1]);
+    // Both endpoints reach every corner, which is the whole reason for the
+    // expansion: a corner cannot be placed without the segment direction.
+    const repeated = (values: Float32Array) => [0, 1, 2, 3].flatMap(() => [...values]);
+    expect([...(lineGeometry.getAttribute("countryLineStart").array as Float32Array)])
+      .toEqual(repeated(referenceDirections.subarray(0, 3)));
+    expect([...(lineGeometry.getAttribute("countryLineEnd").array as Float32Array)])
+      .toEqual(repeated(referenceDirections.subarray(3, 6)));
+    // Each corner keeps its own quad-local coordinate, and the indices address
+    // this segment's own four corners.
+    expect([...(lineGeometry.getAttribute("position").array as Float32Array)])
+      .toEqual([...CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS]);
+    expect([...(lineGeometry.index!.array as Uint32Array)])
+      .toEqual([...CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES]);
+    expect(resource.lineBatches[0]!.segmentCount).toBe(1);
     const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 1_000_000);
     const group = new Group();
     const surface = new CaoFoundationSurfaceRenderer(group, retirement, limits);
     const diagnostics = surface.publish(revision, 8);
-    // One spatial batch, one native boundary, and one draw per country-line
-    // screen offset: the widened stroke is drawn as offset copies of the batch.
+    // One spatial batch, one native boundary, and one country-line draw: the
+    // whole overlay is a single pass over the expanded quads.
     const lineDraws = CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET;
-    expect(caoFoundationCountryLineOffsetsPx("underlay").length
-      + caoFoundationCountryLineOffsetsPx("stroke").length).toBe(lineDraws);
-    expect(diagnostics).toMatchObject({ drawCount: 11, countryLineBatches: 1,
+    expect(lineDraws).toBe(1);
+    expect(diagnostics).toMatchObject({ drawCount: 3, countryLineBatches: 1,
       countryLineSegments: 1, nativeBoundarySegments: 1, nativeBoundarySourceAgeMa: 0,
       topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0 });
     expect(group.children[0]!.children.filter(

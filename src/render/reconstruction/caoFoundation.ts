@@ -1,5 +1,11 @@
 import * as THREE from "three";
-import { DoubleSide, FrontSide, LineBasicNodeMaterial, MeshStandardNodeMaterial } from "three/webgpu";
+import {
+  DoubleSide,
+  FrontSide,
+  LineBasicNodeMaterial,
+  MeshBasicNodeMaterial,
+  MeshStandardNodeMaterial,
+} from "three/webgpu";
 import type Node from "three/src/nodes/core/Node.js";
 import type UniformNode from "three/src/nodes/core/UniformNode.js";
 import {
@@ -12,12 +18,14 @@ import {
   materialOpacity,
   modelViewMatrix,
   modelWorldMatrix,
+  screenDPR,
   screenSize,
   step,
   textureLoad,
   transformNormalToView,
   uniform,
   varying,
+  vec2,
   vec3,
   vec4,
 } from "three/tsl";
@@ -52,9 +60,6 @@ import type { Vec3Tuple } from "./bounds";
 export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 400;
 export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 800;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
-/** Underlay halo shell; the lower of the two country-line shells. */
-export const CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES =
-  CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
 
 /**
@@ -176,13 +181,25 @@ export interface CaoFoundationMaterialGraph {
 }
 
 export interface CaoFoundationLineMaterialGraph {
-  readonly material: LineBasicNodeMaterial;
+  readonly material: MeshBasicNodeMaterial;
   readonly displayFraction: UniformNode<"float", number>;
-  /** Device-pixel screen shift this copy is drawn at; one uniform per copy. */
-  readonly screenOffsetPixels: UniformNode<"vec2", THREE.Vector2>;
-  /** Clip-space delta the vertex node must add; exposed so tests pin the wiring. */
-  readonly clipOffset: readonly [Node<"float">, Node<"float">];
-  /** Vertex-stage far-side collapse factor; exposed so tests pin the wiring. */
+  /** Device-pixel corner offset the vertex node must add; exposed so tests pin the wiring. */
+  readonly quadOffsetPixels: readonly [Node<"float">, Node<"float">];
+  /** The two offset components as one vector, before the collapse factor. */
+  readonly quadOffsetVector: Node<"vec2">;
+  /** That offset after the collapse factor, which is what the vertex node adds. */
+  readonly collapsedOffsetPixels: Node<"vec2">;
+  /** Exactly the terms handed to the coverage formula, so a test can pin each one. */
+  readonly coverageInputs: Readonly<{
+    distancePixels: Node<"float">; halfWidthPixels: Node<"float">; featherPixels: Node<"float">;
+  }>;
+  /** Half the visual core width in device pixels, from the renderer's pixel ratio. */
+  readonly halfWidthPixels: Node<"float">;
+  /** The varying carrying the signed perpendicular distance from the centre line. */
+  readonly perpendicularPixels: Node<"float">;
+  /** Fragment-stage analytic coverage; the reason the stroke needs no extra copies. */
+  readonly coverage: Node<"float">;
+  /** Vertex-stage far-side and inactive-chart collapse factor; exposed so tests pin the wiring. */
   readonly vertexVisible: Node<"float">;
   /** Fragment-stage horizon term; the only thing hiding the far hemisphere. */
   readonly horizonVisibility: Node<"float">;
@@ -465,29 +482,44 @@ function tuple3(node: Node<"vec3">): UnitDirection<Node<"float">> {
   return [node.x, node.y, node.z];
 }
 
-function createPreparedCaoPoseNodes(
+/**
+ * Activation below this reads as "this chart does not exist at the requested
+ * age", and the vertex collapses to the globe centre rather than being drawn
+ * somewhere arbitrary. The value sits just above the linear ramp's zero so a
+ * chart that is exactly dead stays collapsed under float rounding.
+ */
+const CAO_FOUNDATION_ACTIVATION_EPSILON = 1.00001e-4;
+
+interface CaoPoseNodes {
+  readonly position: Node<"vec3">;
+  readonly direction: Node<"vec3">;
+  readonly activation: Node<"float">;
+  /** 1 where the owning chart is active at the requested age, 0 where it is not. */
+  readonly activeMask: Node<"float">;
+}
+
+/**
+ * The prepared-pose graph for one reconstructed point, driven by explicit
+ * reference-direction and palette-entry nodes rather than by fixed attribute
+ * names.
+ *
+ * The country-line quad expansion needs *both* endpoints of a segment inside
+ * every vertex invocation — it can only work out a screen-space direction from
+ * the pair — so it evaluates this twice from two instanced attributes. Surface
+ * batches evaluate it once from the geometry's own `position`.
+ */
+function evaluatePreparedCaoPose(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
-  displayFractionValue: number,
-  verticalExaggerationValue: number,
+  displayFraction: UniformNode<"float", number>,
+  verticalExaggeration: UniformNode<"float", number>,
   displayHeightStart: Node<"float">,
   displayHeightEnd: Node<"float">,
   shellOffsetMetres: number,
-): Readonly<{
-  position: Node<"vec3">;
-  direction: Node<"vec3">;
-  activation: Node<"float">;
-  displayFraction: UniformNode<"float", number>;
-  verticalExaggeration: UniformNode<"float", number>;
-}> {
-  if (!Number.isSafeInteger(paletteWidth) || paletteWidth < 1
-      || !Number.isFinite(shellOffsetMetres) || shellOffsetMetres < 0) {
-    throw new Error("invalid Cao palette or shell offset");
-  }
-  const displayFraction = uniform(displayFractionValue, "float");
-  const verticalExaggeration = uniform(verticalExaggerationValue, "float");
-  const entry = int(attribute<"uint">("preparedEntryIndex", "uint"));
-  const baseTexel = entry.mul(3).toInt();
+  referenceDirection: Node<"vec3">,
+  preparedEntryIndex: Node<"int">,
+): CaoPoseNodes {
+  const baseTexel = preparedEntryIndex.mul(3).toInt();
   const texel = (offset: number) => {
     const linear = baseTexel.add(offset).toInt();
     return textureLoad(paletteTexture, ivec2(linear.mod(paletteWidth), linear.div(paletteWidth)));
@@ -495,12 +527,11 @@ function createPreparedCaoPoseNodes(
   const younger = texel(0);
   const older = texel(1);
   const state = texel(2);
-  const reference = attribute<"vec3">("position", "vec3");
   const result = evaluateForwardPatchVertex(tslScalarOps, {
     poseMode: float(0),
-    referenceDirection: tuple3(reference),
-    deformingDirectionStart: tuple3(reference),
-    deformingDirectionEnd: tuple3(reference),
+    referenceDirection: tuple3(referenceDirection),
+    deformingDirectionStart: tuple3(referenceDirection),
+    deformingDirectionEnd: tuple3(referenceDirection),
     motionStart: tuple4(younger),
     motionEnd: tuple4(older),
     motionFraction: state.x,
@@ -512,11 +543,35 @@ function createPreparedCaoPoseNodes(
     activationEnd: state.z,
   });
   const direction = vec3(...result.rendererDirection);
+  const activeMask = step(float(CAO_FOUNDATION_ACTIVATION_EPSILON), result.activation);
   const position = vec3(...result.rendererPosition).add(
     direction.mul(float(shellOffsetMetres / EARTH_RADIUS_METRES)),
-  ).mul(step(float(1.00001e-4), result.activation));
-  return Object.freeze({ position, direction, activation: result.activation,
-    displayFraction, verticalExaggeration });
+  ).mul(activeMask);
+  return Object.freeze({ position, direction, activation: result.activation, activeMask });
+}
+
+function createPreparedCaoPoseNodes(
+  paletteTexture: THREE.DataTexture,
+  paletteWidth: number,
+  displayFractionValue: number,
+  verticalExaggerationValue: number,
+  displayHeightStart: Node<"float">,
+  displayHeightEnd: Node<"float">,
+  shellOffsetMetres: number,
+): Readonly<CaoPoseNodes & {
+  displayFraction: UniformNode<"float", number>;
+  verticalExaggeration: UniformNode<"float", number>;
+}> {
+  if (!Number.isSafeInteger(paletteWidth) || paletteWidth < 1
+      || !Number.isFinite(shellOffsetMetres) || shellOffsetMetres < 0) {
+    throw new Error("invalid Cao palette or shell offset");
+  }
+  const displayFraction = uniform(displayFractionValue, "float");
+  const verticalExaggeration = uniform(verticalExaggerationValue, "float");
+  const pose = evaluatePreparedCaoPose(paletteTexture, paletteWidth, displayFraction,
+    verticalExaggeration, displayHeightStart, displayHeightEnd, shellOffsetMetres,
+    attribute<"vec3">("position", "vec3"), int(attribute<"uint">("preparedEntryIndex", "uint")));
+  return Object.freeze({ ...pose, displayFraction, verticalExaggeration });
 }
 
 export function createCaoFoundationMaterial(
@@ -557,63 +612,167 @@ export function createCaoFoundationMaterial(
     verticalExaggeration: pose.verticalExaggeration });
 }
 
-export type CaoFoundationCountryLineStyle = "stroke" | "underlay";
+/**
+ * Visual core width of a country outline, in CSS pixels.
+ *
+ * Neither backend can widen a GPU line primitive: `linewidth` is ignored by
+ * WebGL2 core profiles and WebGPU has no line width at all, so a line is
+ * exactly one device pixel. On a diagonal that hairline hands most of its
+ * multisample coverage to one of two neighbouring pixel rows, its darkness
+ * swings between a fully covered pixel and a barely visible one along a single
+ * segment, and the outline reads as beaded. Each segment is therefore expanded
+ * into a screen-space quad and shaded from its own analytic coverage, which
+ * fixes the continuity without making the stroke thicker: the core stays one
+ * CSS pixel — two device pixels at ratio 2, one at ratio 1 — and the
+ * antialiasing ramp lives outside it.
+ *
+ * There is no second contrast shell. The overlay used to draw a darker,
+ * slightly wider underlay because neither pass could ever be solid, so the two
+ * together only deepened the hairline union. A quad shaded from its own
+ * coverage reaches full opacity at its core, and a wider darker pass under it
+ * then shows its own margins as two rails around a lighter centre — measured at
+ * 2.0 CSS px against 1.0 for the stroke alone, which is the thickening this
+ * change exists to remove.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_WIDTH_CSS_PX = 1;
 
 /**
- * Device-pixel screen offsets each country-line style is drawn at.
- *
- * Both backends rasterize a GPU line primitive exactly one device pixel wide:
- * `linewidth` is ignored by WebGL2 core profiles and WebGPU has no line width
- * at all. A lone hairline therefore hands most of its multisample coverage to
- * one of two neighbouring pixel rows on any diagonal, so its apparent darkness
- * swings between a fully covered pixel and a barely visible one along a single
- * segment and the outline reads as beaded rather than solid — worse at device
- * pixel ratios above one, where that hairline is under half a CSS pixel.
- *
- * Drawing the same segments once per offset unions the copies into a stroke
- * whose core is covered from every direction. The offsets are diagonal so no
- * line bearing is left unwidened, and the underlay ring sits outside the stroke
- * core as the contrast halo. A shifted copy is rasterized at a pixel its own
- * depth was not computed for, which is why these materials do not depth test at
- * all — see `evaluateCountryLineHorizonVisibility`.
+ * Width of the analytic coverage ramp, in device pixels, centred on the core
+ * edge. One device pixel is the narrowest ramp that still resolves a diagonal
+ * edge; a wider one would blur the stroke, a narrower one would alias it.
  */
-const CAO_FOUNDATION_COUNTRY_LINE_OFFSETS_PX: Readonly<Record<
-  CaoFoundationCountryLineStyle, readonly (readonly [number, number])[]>> = Object.freeze({
-    stroke: Object.freeze(([[0, 0], [0.55, 0.55], [-0.55, 0.55], [0.55, -0.55], [-0.55, -0.55]] as
-      [number, number][]).map((offset) => Object.freeze(offset))),
-    underlay: Object.freeze(([[0.95, 0.95], [-0.95, 0.95], [0.95, -0.95], [-0.95, -0.95]] as
-      [number, number][]).map((offset) => Object.freeze(offset))),
-  });
+export const CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX = 1;
 
 /** Total country-line draws per frame this renderer is allowed to publish. */
-export const CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET = 9;
+export const CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET = 1;
+
+/**
+ * Quad template shared by every country-line segment: four corners in
+ * quad-local coordinates (`along`, `side`, 0) and the two triangles over them.
+ * `along` selects which endpoint of the segment the corner sits at, `side`
+ * which edge of the stroke.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS: readonly number[] = Object.freeze([
+  -1, -1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0,
+]);
+export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES: readonly number[] =
+  Object.freeze([0, 1, 2, 2, 1, 3]);
+/** Corners a segment's quad is drawn from, and indices over them. */
+export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT = 4;
+export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT = 6;
+
+/**
+ * Vertex- and index-buffer bytes each segment costs in the expanded form: four
+ * corners carrying the quad-local corner, both endpoint directions and the
+ * shared palette entry, plus six indices.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES =
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT * (3 * 4 + 3 * 4 + 3 * 4 + 4)
+  + CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT * 4;
+
+/**
+ * GPU bytes the expanded quad form of a line batch occupies.
+ *
+ * The package stores two unshared vertices and an index pair per segment — 40
+ * bytes for the shipped package. The quad form materialises four corners, each
+ * carrying its quad-local coordinate and both endpoint directions, so it costs
+ * 184 bytes per segment instead.
+ * Those extra bytes buy a plain indexed draw: the instanced form is four bytes
+ * *cheaper* per corner but pays a per-instance cost that a software rasterizer
+ * charges in full, which made the overlay three times more expensive there than
+ * the hairline it replaced. The cost is counted explicitly here rather than
+ * assumed to fit under the source-copy bytes, which it no longer does.
+ */
+export function caoFoundationCountryLineQuadBytes(segmentCount: number): number {
+  if (!Number.isSafeInteger(segmentCount) || segmentCount < 0) {
+    throw new Error("invalid Cao country line segment count");
+  }
+  return segmentCount * CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES;
+}
 
 /** Renderer-unit radius of the opaque globe shell (`GlobeScene` globe mesh). */
 export const CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS = 1;
 
-export function caoFoundationCountryLineOffsetsPx(
-  style: CaoFoundationCountryLineStyle,
-): readonly (readonly [number, number])[] {
-  return CAO_FOUNDATION_COUNTRY_LINE_OFFSETS_PX[style];
+/**
+ * Below this squared screen length a segment has no usable direction, so the
+ * quad falls back to an axis-aligned square of its own width rather than
+ * dividing by zero. Squared device pixels.
+ */
+const CAO_FOUNDATION_COUNTRY_LINE_DEGENERATE_PIXELS_SQ = 1e-12;
+
+/**
+ * Half the visual core width in device pixels, and the geometric half-extent
+ * the quad must actually reach to carry the coverage ramp.
+ *
+ * `pixelRatio` is the renderer's own pixel ratio (`screenDPR` in the material),
+ * which is what turns a CSS-pixel width into device pixels; the drawing-buffer
+ * size converts those device pixels back into clip space.
+ */
+export function caoFoundationCountryLineHalfWidthPx(pixelRatio: number): number {
+  return CAO_FOUNDATION_COUNTRY_LINE_WIDTH_CSS_PX * pixelRatio / 2;
+}
+
+export function caoFoundationCountryLinePadPx(pixelRatio: number): number {
+  return caoFoundationCountryLineHalfWidthPx(pixelRatio)
+    + CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX / 2;
 }
 
 /**
- * One screen-offset formula consumed by the TSL material and its unit test.
+ * One quad-expansion formula consumed by the TSL material and its unit test.
  *
- * `screenWidthPx`/`screenHeightPx` are the drawing buffer in device pixels, so
- * the result is a true device-pixel shift at any pixel ratio. Scaling by the
- * clip w undoes the perspective divide, which keeps the shift constant in
- * pixels at any depth and interpolates correctly across a near-plane clip.
+ * `along` is -1 at the segment's start corner and +1 at its end corner, `side`
+ * is -1/+1 across it. The corner is pushed `padPixels` perpendicular to the
+ * screen-space segment direction, and a further `padPixels` *along* that
+ * direction past the endpoint. That end extension is what keeps a join between
+ * two segments from leaving a notch: each quad overruns its endpoint by its own
+ * half-extent, so consecutive quads overlap across the corner instead of
+ * meeting at a point.
+ *
+ * Endpoints that project to the same pixel — a segment shorter than a pixel, or
+ * a segment whose chart is inactive so both ends collapsed to the globe centre
+ * — have no direction at all. The guard substitutes the +x axis so the result
+ * is a finite square rather than a NaN; the caller zeroes the whole offset for
+ * the collapsed case, which turns that square back into a point.
  */
-export function evaluateCountryLineClipOffset<T, C>(
+export function evaluateCountryLineQuadOffsetPx<T, C>(
   ops: ScalarOps<T, C>,
-  input: Readonly<{ offsetPixelX: T; offsetPixelY: T; screenWidthPx: T; screenHeightPx: T; clipW: T }>,
+  input: Readonly<{ startPixelX: T; startPixelY: T; endPixelX: T; endPixelY: T;
+    along: T; side: T; padPixels: T }>,
 ): readonly [T, T] {
-  const two = ops.constant(2);
+  const deltaX = ops.sub(input.endPixelX, input.startPixelX);
+  const deltaY = ops.sub(input.endPixelY, input.startPixelY);
+  const lengthSq = ops.add(ops.mul(deltaX, deltaX), ops.mul(deltaY, deltaY));
+  const degenerate = ops.lessThan(lengthSq, ops.constant(CAO_FOUNDATION_COUNTRY_LINE_DEGENERATE_PIXELS_SQ));
+  const safeX = ops.select(degenerate, ops.constant(1), deltaX);
+  const safeY = ops.select(degenerate, ops.constant(0), deltaY);
+  const safeLengthSq = ops.select(degenerate, ops.constant(1), lengthSq);
+  const inverseLength = ops.div(ops.constant(1), ops.sqrt(safeLengthSq));
+  const unitX = ops.mul(safeX, inverseLength);
+  const unitY = ops.mul(safeY, inverseLength);
   return [
-    ops.mul(ops.div(ops.mul(input.offsetPixelX, two), input.screenWidthPx), input.clipW),
-    ops.mul(ops.div(ops.mul(input.offsetPixelY, two), input.screenHeightPx), input.clipW),
+    ops.mul(ops.sub(ops.mul(unitX, input.along), ops.mul(unitY, input.side)), input.padPixels),
+    ops.mul(ops.add(ops.mul(unitY, input.along), ops.mul(unitX, input.side)), input.padPixels),
   ];
+}
+
+/**
+ * One coverage formula consumed by the TSL material and its unit test.
+ *
+ * `distancePixels` is the signed perpendicular distance from the segment's
+ * centre line in device pixels. Coverage is a smoothstep across a ramp of
+ * `featherPixels` centred on the core edge, so it is 1 on the centre line,
+ * exactly 0.5 at the half width — the edge the reader perceives as the stroke's
+ * boundary — and 0 half a ramp beyond it. That is the analytic replacement for
+ * multisample coverage, which a one-pixel primitive could not supply evenly.
+ */
+export function evaluateCountryLineCoverage<T, C>(
+  ops: ScalarOps<T, C>,
+  input: Readonly<{ distancePixels: T; halfWidthPixels: T; featherPixels: T }>,
+): T {
+  const distance = ops.sqrt(ops.mul(input.distancePixels, input.distancePixels));
+  const outer = ops.add(input.halfWidthPixels, ops.div(input.featherPixels, ops.constant(2)));
+  const ramp = ops.clamp(ops.div(ops.sub(outer, distance), input.featherPixels), 0, 1);
+  return ops.mul(ops.mul(ramp, ramp), ops.sub(ops.constant(3), ops.mul(ops.constant(2), ramp)));
 }
 
 /**
@@ -648,12 +807,14 @@ export function evaluateCountryLineHorizonLimitCos<T, C>(
  * Returns 1 where the outline shell point is visible past the opaque globe and
  * 0 where the globe hides it.
  *
- * The offset copies cannot use the depth buffer: a copy carries the depth of
- * the vertex it was shifted from but is rasterized at a neighbouring pixel, and
- * at grazing incidence the land shell's depth changes far faster per pixel than
- * the 1 000 m gap between the line and land shells, so every inward-shifted
- * copy loses the depth test over almost the whole globe view while every
- * outward-shifted one wins it past the silhouette and draws over the sky.
+ * The screen-space quad cannot use the depth buffer: its corners carry the
+ * depth of the endpoint they were expanded from but are rasterized up to a
+ * pixel and a half away, and at grazing incidence the land shell's depth
+ * changes far faster per pixel than the 1 000 m gap between the line and land
+ * shells, so a corner pushed inward loses the depth test over almost the whole
+ * globe view while one pushed outward wins it past the silhouette and draws
+ * over the sky. (Measured on the earlier multi-copy build at a deliberate 8 px
+ * shift: 18 883 line pixels survived on the outward side against 856 inward.)
  * Nothing in the scene legitimately occludes these lines except the globe body:
  * land and shelf sit below the line shell — an invariant the publication guard
  * enforces, because the display controls could otherwise lift them — and the
@@ -674,93 +835,237 @@ export function evaluateCountryLineHorizonVisibility<T, C>(
   return ops.select(ops.lessThan(limit, input.cosSeparation), ops.constant(1), ops.constant(0));
 }
 
+/**
+ * Whether a segment's quad is drawn at all, from its two endpoints' horizon
+ * visibility and their activation masks.
+ *
+ * *Either* endpoint being within the widened terminator keeps the quad, so a
+ * segment straddling the terminator survives whole and the fragment term cuts
+ * it at the true horizon; requiring both would erase the outline a full cull
+ * margin inside the limb. Both endpoints must be active, because a segment with
+ * one end collapsed to the globe centre is not a line on the surface at all.
+ */
+export function evaluateCountryLineSegmentVisibility<T, C>(
+  ops: ScalarOps<T, C>,
+  input: Readonly<{ startVisible: T; endVisible: T; startActive: T; endActive: T }>,
+): T {
+  const eitherVisible = ops.select(ops.lessThan(input.startVisible, input.endVisible),
+    input.endVisible, input.startVisible);
+  return ops.mul(ops.mul(eitherVisible, input.startActive), input.endActive);
+}
+
 export function createCaoFoundationCountryLineMaterial(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
   displayFractionValue: number,
-  style: CaoFoundationCountryLineStyle = "stroke",
-  offsetPixels: readonly [number, number] = [0, 0],
 ): CaoFoundationLineMaterialGraph {
-  if (!Number.isFinite(offsetPixels[0]) || !Number.isFinite(offsetPixels[1])) {
-    throw new Error("invalid Cao country line screen offset");
-  }
-  // Underlay sits slightly lower; main stroke above. The stroke is a dark
-  // slate: the earlier mid-tone slate read as nearly invisible on phones and
-  // pale land. Width comes from the screen offsets, not from the shell gap.
-  const shellOffset = style === "underlay"
-    ? CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES
-    : CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
-  const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
-    displayFractionValue, 1, float(0), float(0), shellOffset);
-  const material = new LineBasicNodeMaterial({
+  // A dark slate: the earlier mid-tone slate read as nearly invisible on phones
+  // and pale land. Width comes from the screen-space quad, not from any shell
+  // gap, and the single shell is the only thing the display-height guard has to
+  // keep the surface below.
+  const shellOffset = CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
+  const displayFraction = uniform(displayFractionValue, "float");
+  const verticalExaggeration = uniform(1, "float");
+  // `position` is the corner in quad-local coordinates: x = -1 at the segment's
+  // start, +1 at its end; y = -1/+1 across the stroke. Every corner carries both
+  // reconstructed endpoints, because it cannot be placed without knowing both.
+  const corner = attribute<"vec3">("position", "vec3");
+  const along = corner.x;
+  const side = corner.y;
+  const entry = int(attribute<"uint">("countryLineEntryIndex", "uint"));
+  const pose = (reference: Node<"vec3">) => evaluatePreparedCaoPose(paletteTexture, paletteWidth,
+    displayFraction, verticalExaggeration, float(0), float(0), shellOffset, reference, entry);
+  // Both endpoints of a segment are validated to share one palette entry, so
+  // one instanced entry index drives both poses and both share one activation.
+  const startPose = pose(attribute<"vec3">("countryLineStart", "vec3"));
+  const endPose = pose(attribute<"vec3">("countryLineEnd", "vec3"));
+  const material = new MeshBasicNodeMaterial({
     transparent: true,
-    opacity: style === "underlay" ? 0.5 : 0.92,
+    opacity: 0.92,
     // Occlusion comes from the horizon term below, not from the depth buffer.
     depthTest: false,
     depthWrite: false,
+    // A screen-space quad's winding flips with the segment's screen bearing.
+    side: DoubleSide,
   });
   // Dark slate stays visible across pale land and dark shelf water alike.
-  material.colorNode = style === "underlay"
-    ? vec3(0.04, 0.05, 0.07)
-    : vec3(0.12, 0.15, 0.18);
-  // The offset is a per-copy uniform rather than a baked literal so the test can
-  // read back what each copy was built with. It does not make the copies share a
-  // program: each call rebuilds the pose graph, and three keys pipeline reuse on
-  // node ids, so a publication compiles one program per copy. The 411 Ma
-  // cold-ready median did not regress against the single-hairline control
-  // (817 ms against 826 ms), so those compilations are affordable.
-  const screenOffsetPixels = uniform(new THREE.Vector2(offsetPixels[0], offsetPixels[1]), "vec2");
+  material.colorNode = vec3(0.12, 0.15, 0.18);
   const pointRadius = float(1 + shellOffset / EARTH_RADIUS_METRES);
   const cameraDirection = cameraPosition.normalize();
   const cameraRadius = cameraPosition.length();
   const occluderRadius = float(CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS);
   // The reconstructed radial direction stays unit length even where activation
   // collapses the position to the origin, so the horizon term is well defined
-  // for every vertex. The globe centre is the world origin.
-  const worldDirection = modelWorldMatrix.mul(vec4(pose.direction, 0)).xyz.normalize();
-  // Vertex stage: collapse a vertex that is past the terminator by more than the
-  // widest chord in the package. A segment therefore only collapses when both
-  // its endpoints are beyond the terminator, and a half-collapsed segment is
-  // still invisible — every direction interpolated along it stays past the
-  // terminator, so the fragment term zeroes all of it. Far-side segments now
-  // rasterize nothing instead of being shaded and blended away, which the depth
-  // test used to do with early-Z.
+  // for every endpoint. The globe centre is the world origin.
+  const worldDirection = (direction: Node<"vec3">) =>
+    modelWorldMatrix.mul(vec4(direction, 0)).xyz.normalize();
+  const worldStart = worldDirection(startPose.direction);
+  const worldEnd = worldDirection(endPose.direction);
+  // Vertex stage: collapse the whole quad once *both* endpoints are past the
+  // terminator by more than the widest chord in the package. A segment with one
+  // visible end therefore survives intact, and a segment kept with both ends
+  // just past the terminator is still invisible — every direction interpolated
+  // along it stays past the terminator, so the fragment term zeroes all of it.
+  // Far-side segments rasterize nothing instead of being shaded and blended
+  // away, which the depth test used to do with early-Z.
   const margin = CAO_FOUNDATION_COUNTRY_LINE_CULL_MARGIN_DEGREES * Math.PI / 180;
   const vertexCullCos = float(Math.cos(margin));
   const vertexCullSin = float(Math.sin(margin));
-  const vertexVisible = evaluateCountryLineHorizonVisibility(tslScalarOps, {
-    cosSeparation: worldDirection.dot(cameraDirection),
-    pointRadius, cameraRadius, occluderRadius,
-    marginCos: vertexCullCos, marginSin: vertexCullSin,
+  const endpointVisible = (direction: Node<"vec3">) =>
+    evaluateCountryLineHorizonVisibility(tslScalarOps, {
+      cosSeparation: direction.dot(cameraDirection),
+      pointRadius, cameraRadius, occluderRadius,
+      marginCos: vertexCullCos, marginSin: vertexCullSin,
+    });
+  // Either endpoint being active keeps the quad; a segment whose chart does not
+  // exist at this age has already collapsed both endpoints to the globe centre,
+  // and this zeroes its screen expansion too so it stays a zero-area point
+  // instead of a fixed-size square there.
+  const vertexVisible = evaluateCountryLineSegmentVisibility(tslScalarOps, {
+    startVisible: endpointVisible(worldStart), endVisible: endpointVisible(worldEnd),
+    startActive: startPose.activeMask, endActive: endPose.activeMask,
   });
-  const culledPosition = pose.position.mul(vertexVisible);
-  material.positionNode = culledPosition;
-  const clip = cameraProjectionMatrix.mul(modelViewMatrix.mul(vec4(culledPosition, 1)));
-  const [offsetX, offsetY] = evaluateCountryLineClipOffset(tslScalarOps, {
-    offsetPixelX: screenOffsetPixels.x, offsetPixelY: screenOffsetPixels.y,
-    screenWidthPx: screenSize.x, screenHeightPx: screenSize.y, clipW: clip.w,
+  const startPosition = startPose.position.mul(vertexVisible);
+  const endPosition = endPose.position.mul(vertexVisible);
+  const alongFraction = along.mul(0.5).add(0.5);
+  const basePosition = startPosition.add(endPosition.sub(startPosition).mul(alongFraction));
+  material.positionNode = basePosition;
+  const clipOf = (position: Node<"vec3">) =>
+    cameraProjectionMatrix.mul(modelViewMatrix.mul(vec4(position, 1)));
+  const startClip = clipOf(startPosition);
+  const endClip = clipOf(endPosition);
+  // The camera orbits outside the occluder sphere at a radius of at least 1.15,
+  // so every point on either outline shell is in front of the eye and the clip
+  // w is strictly positive; the floor only keeps the divide finite.
+  const halfBuffer = screenSize.mul(0.5);
+  const toPixels = (clip: Node<"vec4">) => clip.xy.div(clip.w.max(float(1e-6))).mul(halfBuffer);
+  const startPixels = toPixels(startClip);
+  const endPixels = toPixels(endClip);
+  const halfWidthPixels = screenDPR.mul(CAO_FOUNDATION_COUNTRY_LINE_WIDTH_CSS_PX / 2);
+  const featherPixels = float(CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX);
+  const padPixels = halfWidthPixels.add(featherPixels.mul(0.5));
+  const quadOffsetPixels = evaluateCountryLineQuadOffsetPx(tslScalarOps, {
+    startPixelX: startPixels.x, startPixelY: startPixels.y,
+    endPixelX: endPixels.x, endPixelY: endPixels.y,
+    along, side, padPixels,
   });
-  material.vertexNode = vec4(clip.x.add(offsetX), clip.y.add(offsetY), clip.z, clip.w);
+  const basePixels = startPixels.add(endPixels.sub(startPixels).mul(alongFraction));
+  // The collapse has to reach the screen expansion as well as the positions:
+  // with only the positions zeroed, a collapsed segment would still be pushed
+  // out into a pad-sized square at the globe centre and rasterize there.
+  const quadOffsetVector = vec2(quadOffsetPixels[0], quadOffsetPixels[1]);
+  const collapsedOffsetPixels = quadOffsetVector.mul(vertexVisible);
+  const cornerPixels = basePixels.add(collapsedOffsetPixels);
+  const baseClip = startClip.add(endClip.sub(startClip).mul(alongFraction));
+  material.vertexNode = vec4(cornerPixels.div(halfBuffer).mul(baseClip.w), baseClip.z, baseClip.w);
   // Fragment stage: the interpolated world direction, renormalised. Passing the
   // direction through a varying is what keeps the prepared pose graph — three
-  // palette texture loads plus a quaternion slerp and rotate — in the vertex
-  // stage; three caches node results per shader stage and only attributes insert
-  // a varying on their own, so reading `worldDirection` directly here would emit
-  // and run that whole graph again for every outline fragment. Varying the 0/1
-  // visibility instead would interpolate it and blur the terminator.
+  // palette texture loads plus a quaternion slerp and rotate, twice over for the
+  // two endpoints — in the vertex stage; three caches node results per shader
+  // stage and only attributes insert a varying on their own, so reading
+  // `worldStart` directly here would emit and run that whole graph again for
+  // every outline fragment. Varying the 0/1 visibility instead would interpolate
+  // it and blur the terminator.
   const fragmentCos = float(1);
   const fragmentSin = float(0);
-  const fragmentDirection = varying(worldDirection);
+  const fragmentDirection = varying(worldStart.add(worldEnd.sub(worldStart).mul(alongFraction)));
   const horizonVisibility = evaluateCountryLineHorizonVisibility(tslScalarOps, {
     cosSeparation: fragmentDirection.normalize().dot(cameraDirection),
     pointRadius, cameraRadius, occluderRadius,
     marginCos: fragmentCos, marginSin: fragmentSin,
   });
-  material.opacityNode = materialOpacity.mul(horizonVisibility);
-  return Object.freeze({ material, displayFraction: pose.displayFraction, screenOffsetPixels,
-    clipOffset: Object.freeze([offsetX, offsetY] as const), vertexVisible, horizonVisibility,
-    fragmentDirection,
+  // The corner's own perpendicular offset, interpolated, *is* the fragment's
+  // signed distance from the centre line: the four corners form a rectangle in
+  // screen space, so the linear term across it is exact up to the perspective
+  // correction, which a segment's endpoint depth spread bounds well below the
+  // ramp (about 0.007 device px at globe zoom, 0.17 px at the closest camera).
+  const perpendicularPixels = varying(side.mul(padPixels));
+  // Held as a record so a test can pin the identity of each term. Every one of
+  // them is also transitively reachable from the others — the varying is scaled
+  // by a pad built from the same half width — so a graph walk alone cannot tell
+  // a swapped argument from the real one.
+  const coverageInputs = Object.freeze({
+    distancePixels: perpendicularPixels, halfWidthPixels, featherPixels,
+  });
+  const coverage = evaluateCountryLineCoverage(tslScalarOps, coverageInputs);
+  material.opacityNode = materialOpacity.mul(coverage).mul(horizonVisibility);
+  return Object.freeze({ material, displayFraction, vertexVisible, horizonVisibility,
+    fragmentDirection, coverage, coverageInputs, halfWidthPixels, perpendicularPixels,
+    quadOffsetVector, collapsedOffsetPixels,
+    quadOffsetPixels: Object.freeze([quadOffsetPixels[0], quadOffsetPixels[1]] as const),
     horizonMargins: Object.freeze({ vertexCullCos, vertexCullSin, fragmentCos, fragmentSin }) });
+}
+
+/**
+ * Expand a country-line batch into one screen-space quad per segment.
+ *
+ * A quad corner cannot be placed without both endpoints of its segment — the
+ * stroke direction is the screen-space direction between them — and the package
+ * offers only two unshared vertices and an index pair per segment. Every corner
+ * therefore carries both endpoint directions.
+ * `validateStaticLineGeometryCopy` has already rejected any segment whose
+ * endpoints disagree on the palette entry, so one entry index drives both poses.
+ *
+ * The corners are materialised rather than instanced over a shared template.
+ * Instancing stores this four times more compactly, and is slightly faster on a
+ * hardware rasterizer, but 12 045 four-vertex instances cost a software
+ * rasterizer a per-instance setup it cannot amortise: measured under
+ * SwiftShader, the instanced form made an orbit frame 1030 ms against 600 ms
+ * with the overlay hidden, while this form measured 595 ms. The browser suite
+ * runs headless on SwiftShader, so that difference is the difference between a
+ * passing and a timing-out orbit test.
+ */
+function createCountryLineQuadGeometry(
+  source: PreparedCaoLineGeometryCopy,
+  segmentCount: number,
+): { geometry: THREE.BufferGeometry; gpuBytes: number } {
+  const perSegment = CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT;
+  const corners = new Float32Array(segmentCount * perSegment * 3);
+  const starts = new Float32Array(segmentCount * perSegment * 3);
+  const ends = new Float32Array(segmentCount * perSegment * 3);
+  const entries = new Uint32Array(segmentCount * perSegment);
+  const indices = new Uint32Array(segmentCount * CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT);
+  for (let segment = 0; segment < segmentCount; segment += 1) {
+    const left = source.lineIndices[segment * 2]!;
+    const right = source.lineIndices[segment * 2 + 1]!;
+    const start = source.referenceDirections.subarray(left * 3, left * 3 + 3);
+    const end = source.referenceDirections.subarray(right * 3, right * 3 + 3);
+    const entry = source.preparedEntryIndices[left]!;
+    for (let corner = 0; corner < perSegment; corner += 1) {
+      const vertex = segment * perSegment + corner;
+      for (let axis = 0; axis < 3; axis += 1) {
+        corners[vertex * 3 + axis] = CAO_FOUNDATION_COUNTRY_LINE_QUAD_CORNERS[corner * 3 + axis]!;
+      }
+      starts.set(start, vertex * 3);
+      ends.set(end, vertex * 3);
+      entries[vertex] = entry;
+    }
+    for (let slot = 0; slot < CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT; slot += 1) {
+      indices[segment * CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT + slot] =
+        segment * perSegment + CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES[slot]!;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(corners, 3));
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.setAttribute("countryLineStart", new THREE.BufferAttribute(starts, 3));
+  geometry.setAttribute("countryLineEnd", new THREE.BufferAttribute(ends, 3));
+  const entryAttribute = new THREE.BufferAttribute(entries, 1);
+  // The TSL graph declares a uint attribute. WebGL2 must therefore bind this
+  // buffer through vertexAttribIPointer rather than float conversion.
+  entryAttribute.gpuType = THREE.IntType;
+  geometry.setAttribute("countryLineEntryIndex", entryAttribute);
+  // `position` holds the quad-local corner, so a computed bounding sphere would
+  // describe quad-local space. Transparent sorting wants the shell the segments
+  // actually live on.
+  geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(),
+    1 + CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES / EARTH_RADIUS_METRES);
+  const gpuBytes = corners.byteLength + indices.byteLength
+    + starts.byteLength + ends.byteLength + entries.byteLength;
+  if (gpuBytes !== caoFoundationCountryLineQuadBytes(segmentCount)) {
+    throw new Error("Cao country line quad byte ledger mismatch");
+  }
+  return { geometry, gpuBytes };
 }
 
 export function estimateCaoFoundationGeometryReservation(
@@ -790,19 +1095,28 @@ export function estimateCaoFoundationGeometryReservation(
       batch.chartTriangleRanges.length * (4 * Uint32Array.BYTES_PER_ELEMENT
         + 6 * Float32Array.BYTES_PER_ELEMENT), "Cao spatial index");
   }
+  let lineQuadBytes = 0;
   for (const batch of revision.lineBatches) {
     sourceBytes = safeAdd(sourceBytes, batch.staticGeometryBytes, "Cao line source");
-    vertices = safeAdd(vertices, batch.vertexCount, "Cao line vertex");
-    triangles = safeAdd(triangles, batch.segmentCount, "Cao line primitive");
+    // Each segment is drawn as a screen-space quad: four expanded corners and
+    // two triangles, not the package's own two vertices and one line primitive.
+    vertices = safeAdd(vertices,
+      batch.segmentCount * CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT, "Cao line vertex");
+    triangles = safeAdd(triangles, batch.segmentCount * 2, "Cao line primitive");
+    lineQuadBytes = safeAdd(lineQuadBytes,
+      caoFoundationCountryLineQuadBytes(batch.segmentCount), "Cao line quad");
   }
   if (sourceBytes > limits.maxRetainedSourceBytes || vertices > limits.maxVertices
       || triangles > limits.maxTriangles || spatialIndexBytes > limits.maxSpatialIndexBytes) {
     throw new Error("Cao foundation geometry exceeds renderer limit");
   }
-  // Source copies remain retained for sparse picking; GPU vertex/index buffers
-  // are bounded above by the complete source-copy byte count.
-  return safeAdd(safeAdd(sourceBytes, sourceBytes, "Cao geometry reservation"),
-    spatialIndexBytes, "Cao geometry reservation");
+  // Source copies remain retained for sparse picking; surface GPU vertex/index
+  // buffers are the same arrays, so the complete source-copy byte count bounds
+  // them. Country-line quads are newly built arrays and are added explicitly
+  // rather than assumed to fit under the source count, because a package that
+  // shared line vertices between segments would make that assumption false.
+  return safeAdd(safeAdd(safeAdd(sourceBytes, sourceBytes, "Cao geometry reservation"),
+    spatialIndexBytes, "Cao geometry reservation"), lineQuadBytes, "Cao geometry reservation");
 }
 
 export function createCaoFoundationGeometryResource(
@@ -852,15 +1166,9 @@ export function createCaoFoundationGeometryResource(
         throw new Error("Cao prepared country line byte ledger mismatch");
       }
       retainedCpuBytes = safeAdd(retainedCpuBytes, cpuBytes, "Cao retained line CPU");
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(source.referenceDirections, 3));
-      const preparedEntryIndex = new THREE.BufferAttribute(source.preparedEntryIndices, 1);
-      preparedEntryIndex.gpuType = THREE.IntType;
-      geometry.setAttribute("preparedEntryIndex", preparedEntryIndex);
-      geometry.setIndex(new THREE.BufferAttribute(source.lineIndices, 1));
-      const gpuBytes = source.referenceDirections.byteLength + source.preparedEntryIndices.byteLength
-        + source.lineIndices.byteLength;
-      trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, gpuBytes, "Cao tracked line GPU");
+      const expanded = createCountryLineQuadGeometry(source, prepared.segmentCount);
+      const geometry = expanded.geometry;
+      trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, expanded.gpuBytes, "Cao tracked line GPU");
       lineResources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
         vertexCount: prepared.vertexCount, segmentCount: prepared.segmentCount }));
     }
@@ -1339,12 +1647,12 @@ function createPublicationResource(
       // The country outlines no longer depth test, so nothing stops a lifted
       // surface shell from drawing over them. This guard is what replaces the
       // depth buffer: the tallest shell the display controls can reach at the
-      // relief ceiling must stay below the lower of the two outline shells.
-      // The package format admits a nonzero display height, so a package that
-      // starts using one must fail here rather than silently bury the outlines.
+      // relief ceiling must stay below the outline shell. The package format
+      // admits a nonzero display height, so a package that starts using one
+      // must fail here rather than silently bury the outlines.
       if (caoFoundationMaxDisplayedShellMetres(display.displayHeightStart.value,
         display.displayHeightEnd.value, shellOffset)
-          >= CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES) {
+          >= CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES) {
         throw new Error("Cao display height would lift the surface through the country-line shell");
       }
       const appearance = caoFoundationBatchAppearance(batch.batchId);
@@ -1372,22 +1680,18 @@ function createPublicationResource(
       if (!prepared || prepared.batchId !== batch.batchId) {
         throw new Error("Cao country line batch order/identity changed");
       }
-      for (const style of ["underlay", "stroke"] as const) {
-        // One draw per screen offset; the union is the widened stroke.
-        for (const offsetPixels of caoFoundationCountryLineOffsetsPx(style)) {
-          const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
-            revision.display.fraction, style, offsetPixels);
-          materials.push(graph.material);
-          displayFractions.push(graph.displayFraction);
-          const lines = new THREE.LineSegments(batch.geometry, graph.material);
-          lines.frustumCulled = false;
-          lines.renderOrder = style === "underlay" ? 3 : 4;
-          lines.userData.overlayLayer = "borders";
-          lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
-          lines.userData.countryLineStyle = style;
-          group.add(lines);
-        }
-      }
+      // One draw for the whole overlay: every segment's quad, shaded from its
+      // own coverage. There is no second contrast pass to compose with.
+      const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
+        revision.display.fraction);
+      materials.push(graph.material);
+      displayFractions.push(graph.displayFraction);
+      const lines = new THREE.Mesh(batch.geometry, graph.material);
+      lines.frustumCulled = false;
+      lines.renderOrder = 4;
+      lines.userData.overlayLayer = "borders";
+      lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
+      group.add(lines);
     }
     const nativeBoundary = createNativeBoundaryObject(revision);
     if (nativeBoundary.object !== null && nativeBoundary.geometry !== null

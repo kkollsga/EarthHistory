@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "bridgeId": "earthhistory-country-reference-source-fragment-bridge-v1",
+  "policy": "A Natural Earth 1:110m complement subdivision is bound to the Cao static fragment that the partitioner positively accepted for a baseline subdivision sharing one of its own float32 endpoints. Ownership is taken from the accepted neighbour that shares the complement segment's first endpoint, otherwise from the accepted neighbour that shares its second endpoint; ties resolve on (chartId, segmentIndex). The segment therefore follows authored Cao plate motion that was verified at one of its own endpoints. No pose, plate assignment, or country-wide default is invented, and a complement subdivision with no accepted neighbour keeps the exact-present locator chart and stays unavailable above 0 Ma.",
+  "origin": {
+    "coreSha256": "78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b",
+    "lineSha256": "8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a"
+  },
+  "lineBatch": {
+    "batchId": "country-reference",
+    "baselineSegmentCount": 10014,
+    "baselineVertexCount": 20028,
+    "totalSegmentCount": 12045,
+    "totalVertexCount": 24090
+  },
+  "bridge": {
+    "complementSegmentCount": 2031,
+    "bridgedSegmentCount": 1709,
+    "exactPresentBoundSegmentCount": 322,
+    "donorChartCount": 983,
+    "bridgedOwnershipSha256": "6eecfab5e0b271a3654a9bd884dac9d359fa0fc6ea5e04334e1317826099eeb6",
+    "exactPresentOwnershipSha256": "38a07fe4a46d49ec24671da06b6fd3baf765b4c6929eb8a48b3eb85cea9ffe73"
+  },
+  "donorEvidence": {
+    "limitations": [
+      "modern-country locator only; not historical borders",
+      "1-degree endpoint-and-midpoint static-fragment binding approximation",
+      "segments without consistent Cao static-fragment ownership are omitted",
+      "one or more segments on this chart carry only the Cao static-fragment ownership verified at a shared endpoint of an accepted neighbouring segment; their opposite endpoint lies in an adjacent fragment"
+    ]
+  },
+  "evidence": {
+    "status": "derived-overlay",
+    "sourceIds": [
+      "natural-earth-countries-110m",
+      "doi:10.5281/zenodo.13628813"
+    ],
+    "limitations": [
+      "Ownership is inherited from one verified endpoint only; the opposite endpoint of a bridged segment lies in an adjacent Cao static fragment and its reconstructed position carries that fragment-boundary difference.",
+      "The bridge never changes segment geometry, country identity, segment order, or the 0 Ma appearance of the overlay; it changes only which Cao static fragment a complement segment follows above 0 Ma.",
+      "Complement subdivisions with no accepted neighbouring subdivision keep the exact-present locator chart and remain unavailable above 0 Ma.",
+      "Complement segments whose only accepted neighbour belongs to a country chart that a regional native chart override already owns as source-domain segments are not bridged; joining them needs that override's offline 12 km nearest-domain corridor."
+    ]
+  }
+}

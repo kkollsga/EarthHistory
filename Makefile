@@ -83,6 +83,8 @@ check-corrections:
 	@python3 -m unittest scripts/research/apply_regional_panama_land_test.py
 	@python3 scripts/research/apply_regional_panama_land.py
 	@python3 scripts/research/apply_cao_modern_country_reference.py
+	@python3 scripts/research/apply_cao_country_segment_bridge.py --self-test
+	@python3 scripts/research/apply_cao_country_segment_bridge.py
 	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
 	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
 	@python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test
