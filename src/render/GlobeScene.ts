@@ -512,7 +512,12 @@ export class GlobeScene {
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend),
-      { maxBatches: 512, maxVertices: 450_000, maxTriangles: 600_000,
+      // Country-line segments are drawn as screen-space quads, four expanded
+      // corners and two triangles each, so the vertex and triangle ceilings
+      // carry 4x and 2x the segment count rather than the package's own line
+      // vertices. Today's package preflights at 444 565 vertices and 588 847
+      // triangles; the headroom above is for segments a later package adds.
+      { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
         maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );

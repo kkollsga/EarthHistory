@@ -4,6 +4,31 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-14
+
+### Fixed
+
+- Keep the modern-country reference outlines thin. 0.1.8 made them continuous
+  by unioning nine overlapping one-pixel copies at sub-pixel offsets, which
+  read as a 2.0 CSS px stroke. Each segment is now expanded into a
+  screen-space quad and shaded from the analytic distance to its own centre
+  line, so the core is 1.0 CSS px at any pixel ratio with the antialiasing ramp
+  outside it and no beading on diagonals. One draw replaces nine, the darker
+  contrast underlay is gone, and the uncapped median frame interval falls from
+  1.7 ms to 1.4 ms at pixel ratio 2 and from 1.1 ms to 0.9 ms on the
+  low-quality profile. Analytic horizon occlusion, the far-side collapse and
+  the display-height guard are unchanged, and no reconstruction geometry
+  changed.
+- Modern-country outlines no longer read as dashed lines at reconstructed ages.
+  The 0 Ma Natural Earth complement bound every subdivision the Cao static-polygon
+  partitioner rejected to an exact-present locator chart with a [0, 0] Ma
+  lifecycle, so 2,031 of 12,045 segments vanished above 0 Ma. A tracked
+  source-fragment bridge rebinds 1,709 of them to the Cao static fragment the
+  partitioner verified at a shared endpoint of an accepted neighbouring segment;
+  the 322 with no accepted neighbour stay unavailable above 0 Ma. Segment
+  geometry, order, country identity and the 0 Ma overlay are unchanged, and
+  central-Africa segments inactive at 71.65 Ma fall from 219 to 13 of 1,236.
+
 ## [0.1.8] - 2026-09-14
 
 ### Fixed

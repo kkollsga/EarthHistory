@@ -161,6 +161,47 @@ the 12 km corridor. At 0, 0.001, and 1 Ma all 20 segments are supported. Tests
 also show identical country-segment indices and static resource identity over
 the `0 → 410 → 0` scrub.
 
+### Source-fragment bridge for complement segments
+
+The 0 Ma exact-present complement originally bound every subdivision the static
+polygon partitioner rejected to a `country-present-reference:<iso>` locator chart
+whose lifecycle is `[0, 0]` Ma. Those 2,031 segments completed the overlay at
+0 Ma and disappeared at every older age, so continuous borders read as dashed
+lines wherever a country crossed a static-fragment boundary — 219 of the 1,236
+segments inside the central-Africa reading box (lon −5°–40°, lat 0°–35°) at
+71.65 Ma.
+
+`scripts/research/apply_cao_country_segment_bridge.py` rebinds a complement
+subdivision to the Cao static fragment that the partitioner positively accepted
+for a baseline subdivision sharing one of the complement segment's own float32
+endpoints. Ownership is read only from baseline subdivisions, so no inferred
+binding is chained onto another; on the released package every bridged segment
+has exactly one candidate donor chart, so the documented `(chartId,
+segmentIndex)` tie-break never fires. The segment then follows authored Cao
+plate motion verified at one of its own endpoints and inherits that fragment's
+lifecycle. 1,709 of the 2,031 complement segments bridge; 322 keep the
+exact-present locator because the source partition accepted no neighbouring
+subdivision for them, and they remain unavailable above 0 Ma.
+
+Complement segments whose only accepted neighbour belongs to one of the three
+country charts a native chart override already owns as source-domain segments
+are not bridged. Joining them would require that override's offline 12 km
+nearest-domain corridor, which is not re-derivable from the package.
+
+The bridge changes no geometry, country identity, segment order, vertex count or
+0 Ma appearance: the complement's `float32GeometrySha256` and
+`float32CountryGeometrySha256` in
+`data/corrections/country-reference/exact-present-extension-v1.json` are
+unchanged, and the requested-age motion tiles keep the same tile count, payload
+bytes, record count and entry-descriptor count. Donor charts carry an added
+limitation recording that one or more of their segments hold only the ownership
+verified at a shared endpoint while the opposite endpoint lies in an adjacent
+fragment. Runtime inactive counts over the whole batch fall from 2,136 to 448 at
+30 Ma, 2,524 to 909 at 71.65 Ma, 2,932 to 1,400 at 150 Ma, 3,567 to 2,190 at
+300 Ma and 5,709 to 4,681 at 411 Ma; the remainder are segments on Cao static
+fragments whose authored validity does not reach that age, which must stay
+absent.
+
 Saved material addresses use a separate consumer path. Interior witnesses in
 both exact native targets resolve at 0 Ma to one supported replacement chart,
 retain the reference direction, and use a pose identical to the suppressed
@@ -335,6 +376,18 @@ stroke copies, nine country-line draws in total, bounded by
 `CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET` — so the base draw passes rise from
 six to thirteen for the same segment geometry. No geometry, vertex, triangle or
 segment count changed with it.
+
+Second dated correction, same day: the nine-copy renderer that paragraph
+describes was replaced the same day and no longer ships. Widening a hairline by
+unioning copies made the outlines 2.0 CSS px wide, which was rejected; each
+segment is now expanded into one screen-space quad and shaded from its own
+analytic coverage, so the overlay is **one** country-line draw, not nine, and
+each segment costs two triangles instead of one line primitive. Measured on the
+shipped renderer at the default globe camera, the base draw passes fall from
+fourteen to six (`dev-docs/temp/outline-thin/report.md`); the renderer's own
+unit fixture asserts three. `CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET` still
+bounds the overlay and is now 1. The paragraph above is left as written because
+it is dated evidence for the renderer that shipped in 0.1.8.
 
 Dated correction, same day: six and thirteen restate this ledger's v0.1.4
 four-batch arithmetic and describe no configuration that was ever measured. The

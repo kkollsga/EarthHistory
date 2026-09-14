@@ -23,8 +23,8 @@
     },
     "core": {
       "url": "core.json",
-      "bytes": 6110352,
-      "sha256": "78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b"
+      "bytes": 6308918,
+      "sha256": "b621f0e5556435b822d3d23f06aa4e5946e75f87cd87172992bba347cfd43011"
     },
     "motionPalette": {
       "id": "cao-v2.4-shared-motion-v1",
@@ -44,7 +44,7 @@
       "catalog": {
         "url": "corrections/material-v1/catalog.json",
         "bytes": 216378,
-        "sha256": "5f3775d274d01a27e153360e6769350d9e71d8306a3d93a00a4e5af22a62c7f0"
+        "sha256": "672914a69a01c5e6bc2ae9be943357e8ba1e8dc04b89f65a94161b4b228b7be7"
       }
     }
   },
@@ -57,7 +57,7 @@
     "expectedRecordCount": 280974,
     "expectedEntryDescriptorCount": 11056,
     "expectedIndexBytes": 28068,
-    "expectedIndexSha256": "6cabefcbb92e4ce90fc06e728aa939ba2656cfe70be73dfd974fa393c8011732",
+    "expectedIndexSha256": "ea717c7a7c4e41ca222942d511c4efc7e01a91778f49b5040eb6064af8014e5c",
     "outputLimitBytes": 6610000,
     "cleanupOwner": "root",
     "scratchRoot": "/tmp/earthhistory-requested-age/data"
@@ -69,7 +69,10 @@
     "publicationOrVersionDate": "2.4",
     "retrievedAt": "2026-09-09",
     "license": "CC BY 4.0",
-    "temporalRangeMa": [0, 1800],
+    "temporalRangeMa": [
+      0,
+      1800
+    ],
     "geographicBasis": "Cao v2.4 palaeomagnetic frame with anchor plate 0 and the package-pinned rotation/topology identities",
     "evidenceRole": "transport partition of the existing verified motion controls only"
   },

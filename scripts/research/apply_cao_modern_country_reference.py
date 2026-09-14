@@ -420,21 +420,35 @@ def validate_applied(package: Path, *, original_geometry=None, original_charts=N
     country_order = [row["chartId"][len(CHART_PREFIX):] for _, row in matches]
     if [row for _, row in matches] != [chart(country, palette["id"]) for country in country_order]:
         raise BuildError("exact-present country chart evidence or motion binding changed")
+    # The complement occupies the contiguous tail after the released native
+    # baseline. Its segment geometry, order and country identity are pinned
+    # here; which chart inside a country owns a complement segment is the
+    # separate source-fragment bridge contract, so this validator reads country
+    # identity from the owning chart's materialId rather than assuming the
+    # exact-present locator chart.
     target_indices = {index for index, _ in matches}
+    expected = contract["exactPresentComplement"]
+    baseline_segments = contract["baselineLineAsset"]["segmentCount"]
     target_segments = []
-    for offset in range(0, len(geometry["indices"]), 2):
+    for offset in range(baseline_segments * 2, len(geometry["indices"]), 2):
         left_index, right_index = geometry["indices"][offset:offset + 2]
         left_chart, right_chart = geometry["charts"][left_index], geometry["charts"][right_index]
-        if left_chart in target_indices or right_chart in target_indices:
-            if left_chart != right_chart or left_chart not in target_indices:
-                raise BuildError("exact-present country segment crosses chart ownership")
-            target_segments.append((
-                geometry["directions"][left_index], geometry["directions"][right_index], left_chart,
-            ))
-    expected = contract["exactPresentComplement"]
+        if left_chart != right_chart:
+            raise BuildError("exact-present country segment crosses chart ownership")
+        target_segments.append((
+            geometry["directions"][left_index], geometry["directions"][right_index], left_chart,
+        ))
+    for offset in range(0, baseline_segments * 2, 2):
+        if any(geometry["charts"][vertex] in target_indices
+               for vertex in geometry["indices"][offset:offset + 2]):
+            raise BuildError("released native country segment carries an exact-present locator chart")
     if len(target_segments) != expected["segmentCount"]:
         raise BuildError("exact-present country segment inventory changed")
-    chart_country = {index: row["chartId"][len(CHART_PREFIX):] for index, row in matches}
+    exact_present_bound = sum(1 for _, _, index in target_segments if index in target_indices)
+    if exact_present_bound != expected["exactPresentBoundSegmentCount"]:
+        raise BuildError("exact-present bound complement inventory changed")
+    chart_country = {index: country_from_chart(core, index)
+                     for _, _, index in target_segments}
     geometry_hash = sha256(b"".join(
         struct.pack("<6f", *(left + right)) for left, right, _ in target_segments
     ))
