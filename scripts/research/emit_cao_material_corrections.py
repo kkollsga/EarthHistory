@@ -16,6 +16,7 @@ from pathlib import Path
 
 import cao_material_corrections as contract
 import regional_iceland_correction as iceland_contract
+import regional_observed_land_omission_correction as omission_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -885,16 +886,20 @@ def refresh_outer_manifest():
         "Natural Earth country locator lines; native boundaries/ownership over the compiled "
         "Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision "
         "validator are recovered at emitted float32 precision; the paired Arunta/Musgrave "
-        "source crossing is repaired by a vertex-preserving 2-opt operation."
+        "source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern "
+        "Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have "
+        "no coast or continent counterpart, where the model leaves observed land bare of "
+        "both the coastline and the continental-outline underlay."
     )
     foundation["scope"] = (
         "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline "
         "shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; "
-        "five observed Panama land charts and complete Natural Earth country locator lines at "
-        "exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; "
-        "the Panama geometry is not backdated and the shelf overlay is not a palaeoshoreline or "
-        "growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown "
-        "surface exposure."
+        "five observed Panama land charts, thirteen observed land-omission charts, and "
+        "complete Natural Earth country locator lines at exactly 0 Ma; native "
+        "boundaries/ownership. Country lines remain modern locators only; the Panama and "
+        "observed-land-omission geometry is not backdated and the shelf overlay is not a "
+        "palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored "
+        "lifecycles and unknown surface exposure."
     )
     foundation["compilerRevision"] = (
         "cao-foundation-v2 emitted-float32 triangulation with stable spherical-area validation"
@@ -910,6 +915,18 @@ def refresh_outer_manifest():
         "geographicBasis": "WGS84 generalized present-day country land polygon; ADM0_A3=PAN",
         "evidenceRole": "generalized observed present-day Panama land boundary at exactly 0 Ma",
     }
+    root_manifest["inputs"]["natural-earth-observed-land-omission-50m"] = {
+        "url": "https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-0-countries-2/",
+        "title": "Natural Earth 1:50m Admin 0 Countries",
+        "publicationOrVersionDate": "5.1.1",
+        "retrievalDate": "2026-09-12",
+        "license": "Public domain",
+        "bytes": 799734,
+        "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
+        "geographicBasis": "WGS84 generalized present-day country land polygons, all ADM0_A3 records",
+        "evidenceRole": ("generalized observed present-day land boundary at exactly 0 Ma, "
+                         "bounded by the thirteen Cao static partitions that own the omissions"),
+    }
     catalog_path = PUBLIC / package["materialCorrections"]["catalog"]["url"]
     catalog = json.loads(catalog_path.read_text())
     correction_paths = [catalog_path, *(PUBLIC / batch["geometryAsset"]["url"]
@@ -918,8 +935,8 @@ def refresh_outer_manifest():
                            "bytes": path.stat().st_size, "sha256": sha256(path)}
                           for path in correction_paths]
     root_manifest["inputs"]["regional-material-corrections-v1"] = {
-        "processing": "Source-qualified regional masks, one exact-modern observed land correction, and guarded native-chart replacements compiled as rigid charts; raw Cao source assets remain unchanged",
-        "scope": "Iceland is observed exposed land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
+        "processing": "Source-qualified regional masks, two exact-modern observed land corrections, and guarded native-chart replacements compiled as rigid charts; raw Cao source assets remain unchanged",
+        "scope": "Iceland and the thirteen land-omission charts are observed modern land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
         "outputs": correction_outputs,
     }
     root_manifest["retrievedAt"] = "2026-09-12"
@@ -956,6 +973,10 @@ def main():
     iceland_contract.validate_document(iceland_manifest)
     rows = [*rows, *((iceland_manifest, iceland_contract.MANIFEST, feature)
                      for feature in iceland_manifest["features"])]
+    omission_manifest = json.loads(omission_contract.MANIFEST.read_text())
+    omission_contract.validate_document(omission_manifest)
+    rows = [*rows, *((omission_manifest, omission_contract.MANIFEST, feature)
+                     for feature in omission_manifest["features"])]
     package, palette, records = palette_data()
     core = json.loads((PUBLIC / package["core"]["url"]).read_text())
     native_overrides, replacement_rows = native_override_rows(core)
@@ -1002,6 +1023,7 @@ def main():
                      "frame": package["frame"]},
         "correctionIds": sorted({*(manifest["correctionId"] for manifest in manifests),
                                  iceland_manifest["correctionId"],
+                                 omission_manifest["correctionId"],
                                  *(override["correctionId"] for override in native_overrides)}),
         "nativeChartOverrides": native_overrides,
         "alignmentWitnesses": alignment_witnesses(additive_rows, palette, records),

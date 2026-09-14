@@ -4,14 +4,22 @@ import type Node from "three/src/nodes/core/Node.js";
 import type UniformNode from "three/src/nodes/core/UniformNode.js";
 import {
   attribute,
+  cameraPosition,
+  cameraProjectionMatrix,
   float,
   int,
   ivec2,
+  materialOpacity,
+  modelViewMatrix,
+  modelWorldMatrix,
+  screenSize,
   step,
   textureLoad,
   transformNormalToView,
   uniform,
+  varying,
   vec3,
+  vec4,
 } from "three/tsl";
 import {
   EARTH_RADIUS_METRES,
@@ -30,6 +38,7 @@ import {
   rendererToGplatesDirection,
   rotateDirection,
   type QuaternionWxyz,
+  type ScalarOps,
   type UnitDirection,
 } from "../../reconstruction/arithmetic";
 import { evaluateForwardPatchVertex } from "./patchKernel";
@@ -43,7 +52,56 @@ import type { Vec3Tuple } from "./bounds";
 export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 400;
 export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 800;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
+/** Underlay halo shell; the lower of the two country-line shells. */
+export const CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES =
+  CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
+
+/**
+ * Widest chord in the shipped country-line geometry, measured over all 12 045
+ * segments of `cao-v2.4/country-reference.ehgl`: 111.178 km, 1.00 degrees.
+ * Chart poses are rigid rotations, so this is age-invariant.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_MAX_CHORD_DEGREES = 1;
+
+/**
+ * How far past the horizon a country-line vertex must be before the vertex
+ * stage collapses it. It must exceed the widest chord so that a segment with
+ * one visible endpoint is never collapsed at its other end.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_CULL_MARGIN_DEGREES = 2;
+
+/**
+ * The relief control's ceiling (`App.tsx` clamps to 30, `patchGeometry`
+ * rejects above it). The publication guard must assume the slider's maximum,
+ * because it can move after a publication without republishing.
+ */
+export const CAO_FOUNDATION_MAX_VERTICAL_EXAGGERATION = 30;
+
+/**
+ * Tallest shell radius, in metres above the reference sphere, that a batch's
+ * display controls can reach at the relief ceiling.
+ */
+export function caoFoundationMaxDisplayedShellMetres(
+  displayHeightStartMetres: number,
+  displayHeightEndMetres: number,
+  shellOffsetMetres: number,
+): number {
+  return shellOffsetMetres + Math.max(0, displayHeightStartMetres, displayHeightEndMetres)
+    * CAO_FOUNDATION_MAX_VERTICAL_EXAGGERATION;
+}
+
+/**
+ * How a batch is drawn, and therefore what a viewer reads it as. Shelf batches
+ * get the shallow-water appearance; native land and every material-correction
+ * batch get the land appearance. Callers that need "is this land" must use this
+ * rather than re-testing the batch id, so the two never drift apart.
+ */
+export type CaoFoundationBatchAppearance = "land" | "shelf";
+
+export function caoFoundationBatchAppearance(batchId: string): CaoFoundationBatchAppearance {
+  return batchId === "batch-shelf" ? "shelf" : "land";
+}
 
 export function caoFoundationShellOffsetMetres(batchId: string): number {
   if (batchId === "batch-shelf") return CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES;
@@ -120,6 +178,34 @@ export interface CaoFoundationMaterialGraph {
 export interface CaoFoundationLineMaterialGraph {
   readonly material: LineBasicNodeMaterial;
   readonly displayFraction: UniformNode<"float", number>;
+  /** Device-pixel screen shift this copy is drawn at; one uniform per copy. */
+  readonly screenOffsetPixels: UniformNode<"vec2", THREE.Vector2>;
+  /** Clip-space delta the vertex node must add; exposed so tests pin the wiring. */
+  readonly clipOffset: readonly [Node<"float">, Node<"float">];
+  /** Vertex-stage far-side collapse factor; exposed so tests pin the wiring. */
+  readonly vertexVisible: Node<"float">;
+  /** Fragment-stage horizon term; the only thing hiding the far hemisphere. */
+  readonly horizonVisibility: Node<"float">;
+  /**
+   * The varying the fragment horizon term reads the world direction through.
+   * Exposed so a test can pin that it is a varying: reading the pose direction
+   * directly in the fragment stage re-emits the whole prepared pose graph —
+   * three palette texture loads plus a quaternion slerp and rotate — into the
+   * fragment shader, because three caches node results per shader stage.
+   */
+  readonly fragmentDirection: Node<"vec3">;
+  /**
+   * The cosine/sine margin constants each horizon term was built with, exposed
+   * so a test can pin which stage carries the cull margin. The vertex stage must
+   * carry it and the fragment stage must not: a vertex stage without the margin
+   * collapses one end of a segment that straddles the terminator and draws a
+   * spoke from the globe centre, and a fragment stage with it pushes the
+   * terminator a whole margin past the true horizon.
+   */
+  readonly horizonMargins: Readonly<{
+    vertexCullCos: Node<"float">; vertexCullSin: Node<"float">;
+    fragmentCos: Node<"float">; fragmentSin: Node<"float">;
+  }>;
 }
 
 export interface CaoFoundationDiagnostics {
@@ -473,33 +559,208 @@ export function createCaoFoundationMaterial(
 
 export type CaoFoundationCountryLineStyle = "stroke" | "underlay";
 
+/**
+ * Device-pixel screen offsets each country-line style is drawn at.
+ *
+ * Both backends rasterize a GPU line primitive exactly one device pixel wide:
+ * `linewidth` is ignored by WebGL2 core profiles and WebGPU has no line width
+ * at all. A lone hairline therefore hands most of its multisample coverage to
+ * one of two neighbouring pixel rows on any diagonal, so its apparent darkness
+ * swings between a fully covered pixel and a barely visible one along a single
+ * segment and the outline reads as beaded rather than solid — worse at device
+ * pixel ratios above one, where that hairline is under half a CSS pixel.
+ *
+ * Drawing the same segments once per offset unions the copies into a stroke
+ * whose core is covered from every direction. The offsets are diagonal so no
+ * line bearing is left unwidened, and the underlay ring sits outside the stroke
+ * core as the contrast halo. A shifted copy is rasterized at a pixel its own
+ * depth was not computed for, which is why these materials do not depth test at
+ * all — see `evaluateCountryLineHorizonVisibility`.
+ */
+const CAO_FOUNDATION_COUNTRY_LINE_OFFSETS_PX: Readonly<Record<
+  CaoFoundationCountryLineStyle, readonly (readonly [number, number])[]>> = Object.freeze({
+    stroke: Object.freeze(([[0, 0], [0.55, 0.55], [-0.55, 0.55], [0.55, -0.55], [-0.55, -0.55]] as
+      [number, number][]).map((offset) => Object.freeze(offset))),
+    underlay: Object.freeze(([[0.95, 0.95], [-0.95, 0.95], [0.95, -0.95], [-0.95, -0.95]] as
+      [number, number][]).map((offset) => Object.freeze(offset))),
+  });
+
+/** Total country-line draws per frame this renderer is allowed to publish. */
+export const CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET = 9;
+
+/** Renderer-unit radius of the opaque globe shell (`GlobeScene` globe mesh). */
+export const CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS = 1;
+
+export function caoFoundationCountryLineOffsetsPx(
+  style: CaoFoundationCountryLineStyle,
+): readonly (readonly [number, number])[] {
+  return CAO_FOUNDATION_COUNTRY_LINE_OFFSETS_PX[style];
+}
+
+/**
+ * One screen-offset formula consumed by the TSL material and its unit test.
+ *
+ * `screenWidthPx`/`screenHeightPx` are the drawing buffer in device pixels, so
+ * the result is a true device-pixel shift at any pixel ratio. Scaling by the
+ * clip w undoes the perspective divide, which keeps the shift constant in
+ * pixels at any depth and interpolates correctly across a near-plane clip.
+ */
+export function evaluateCountryLineClipOffset<T, C>(
+  ops: ScalarOps<T, C>,
+  input: Readonly<{ offsetPixelX: T; offsetPixelY: T; screenWidthPx: T; screenHeightPx: T; clipW: T }>,
+): readonly [T, T] {
+  const two = ops.constant(2);
+  return [
+    ops.mul(ops.div(ops.mul(input.offsetPixelX, two), input.screenWidthPx), input.clipW),
+    ops.mul(ops.div(ops.mul(input.offsetPixelY, two), input.screenHeightPx), input.clipW),
+  ];
+}
+
+/**
+ * Cosine of the angular separation at which the opaque globe starts hiding an
+ * outline shell point, widened by a margin whose cosine and sine are supplied.
+ *
+ * A point at `pointRadius` is visible from `cameraRadius` exactly while their
+ * angular separation stays within `acos(occluder/cameraRadius) +
+ * acos(occluder/pointRadius)`; this returns the cosine of that sum plus the
+ * margin, so no inverse trigonometry runs per vertex or per fragment. Both
+ * half-angles are at most 90 degrees and the margins used here are single
+ * degrees, so the sum stays inside the monotone range of acos and the cosine
+ * comparison never wraps.
+ */
+export function evaluateCountryLineHorizonLimitCos<T, C>(
+  ops: ScalarOps<T, C>,
+  input: Readonly<{ pointRadius: T; cameraRadius: T; occluderRadius: T; marginCos: T; marginSin: T }>,
+): T {
+  const cosCamera = ops.clamp(ops.div(input.occluderRadius, input.cameraRadius), 0, 1);
+  const cosPoint = ops.clamp(ops.div(input.occluderRadius, input.pointRadius), 0, 1);
+  const sine = (cosine: T) => ops.sqrt(
+    ops.clamp(ops.sub(ops.constant(1), ops.mul(cosine, cosine)), 0, 1));
+  const sinCamera = sine(cosCamera);
+  const sinPoint = sine(cosPoint);
+  const cosSum = ops.sub(ops.mul(cosCamera, cosPoint), ops.mul(sinCamera, sinPoint));
+  const sinSum = ops.add(ops.mul(sinCamera, cosPoint), ops.mul(cosCamera, sinPoint));
+  return ops.sub(ops.mul(cosSum, input.marginCos), ops.mul(sinSum, input.marginSin));
+}
+
+/**
+ * One horizon-occlusion formula consumed by the TSL material and its unit test.
+ * Returns 1 where the outline shell point is visible past the opaque globe and
+ * 0 where the globe hides it.
+ *
+ * The offset copies cannot use the depth buffer: a copy carries the depth of
+ * the vertex it was shifted from but is rasterized at a neighbouring pixel, and
+ * at grazing incidence the land shell's depth changes far faster per pixel than
+ * the 1 000 m gap between the line and land shells, so every inward-shifted
+ * copy loses the depth test over almost the whole globe view while every
+ * outward-shifted one wins it past the silhouette and draws over the sky.
+ * Nothing in the scene legitimately occludes these lines except the globe body:
+ * land and shelf sit below the line shell — an invariant the publication guard
+ * enforces, because the display controls could otherwise lift them — and the
+ * cloud shell never writes depth. Occlusion is therefore computed analytically
+ * here instead.
+ *
+ * The fragment stage evaluates this with a zero margin, so the terminator stays
+ * a sharp per-pixel cut. The vertex stage evaluates it again with a margin
+ * wider than the widest segment chord, which collapses far-side vertices so
+ * they rasterize nothing at all instead of being shaded and then zeroed.
+ */
+export function evaluateCountryLineHorizonVisibility<T, C>(
+  ops: ScalarOps<T, C>,
+  input: Readonly<{ cosSeparation: T; pointRadius: T; cameraRadius: T;
+    occluderRadius: T; marginCos: T; marginSin: T }>,
+): T {
+  const limit = evaluateCountryLineHorizonLimitCos(ops, input);
+  return ops.select(ops.lessThan(limit, input.cosSeparation), ops.constant(1), ops.constant(0));
+}
+
 export function createCaoFoundationCountryLineMaterial(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
   displayFractionValue: number,
   style: CaoFoundationCountryLineStyle = "stroke",
+  offsetPixels: readonly [number, number] = [0, 0],
 ): CaoFoundationLineMaterialGraph {
-  // Underlay sits slightly lower; main stroke above. WebGL linewidth is
-  // effectively 1, so the translucent underlay softens the hairline instead of
-  // widening it. The stroke is a dark slate: the earlier mid-tone slate read as
-  // nearly invisible on phones and pale land.
+  if (!Number.isFinite(offsetPixels[0]) || !Number.isFinite(offsetPixels[1])) {
+    throw new Error("invalid Cao country line screen offset");
+  }
+  // Underlay sits slightly lower; main stroke above. The stroke is a dark
+  // slate: the earlier mid-tone slate read as nearly invisible on phones and
+  // pale land. Width comes from the screen offsets, not from the shell gap.
   const shellOffset = style === "underlay"
-    ? CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120
+    ? CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES
     : CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
     displayFractionValue, 1, float(0), float(0), shellOffset);
   const material = new LineBasicNodeMaterial({
     transparent: true,
     opacity: style === "underlay" ? 0.5 : 0.92,
-    depthTest: true,
+    // Occlusion comes from the horizon term below, not from the depth buffer.
+    depthTest: false,
     depthWrite: false,
   });
   // Dark slate stays visible across pale land and dark shelf water alike.
   material.colorNode = style === "underlay"
     ? vec3(0.04, 0.05, 0.07)
     : vec3(0.12, 0.15, 0.18);
-  material.positionNode = pose.position;
-  return Object.freeze({ material, displayFraction: pose.displayFraction });
+  // The offset is a per-copy uniform rather than a baked literal so the test can
+  // read back what each copy was built with. It does not make the copies share a
+  // program: each call rebuilds the pose graph, and three keys pipeline reuse on
+  // node ids, so a publication compiles one program per copy. The 411 Ma
+  // cold-ready median did not regress against the single-hairline control
+  // (817 ms against 826 ms), so those compilations are affordable.
+  const screenOffsetPixels = uniform(new THREE.Vector2(offsetPixels[0], offsetPixels[1]), "vec2");
+  const pointRadius = float(1 + shellOffset / EARTH_RADIUS_METRES);
+  const cameraDirection = cameraPosition.normalize();
+  const cameraRadius = cameraPosition.length();
+  const occluderRadius = float(CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS);
+  // The reconstructed radial direction stays unit length even where activation
+  // collapses the position to the origin, so the horizon term is well defined
+  // for every vertex. The globe centre is the world origin.
+  const worldDirection = modelWorldMatrix.mul(vec4(pose.direction, 0)).xyz.normalize();
+  // Vertex stage: collapse a vertex that is past the terminator by more than the
+  // widest chord in the package. A segment therefore only collapses when both
+  // its endpoints are beyond the terminator, and a half-collapsed segment is
+  // still invisible — every direction interpolated along it stays past the
+  // terminator, so the fragment term zeroes all of it. Far-side segments now
+  // rasterize nothing instead of being shaded and blended away, which the depth
+  // test used to do with early-Z.
+  const margin = CAO_FOUNDATION_COUNTRY_LINE_CULL_MARGIN_DEGREES * Math.PI / 180;
+  const vertexCullCos = float(Math.cos(margin));
+  const vertexCullSin = float(Math.sin(margin));
+  const vertexVisible = evaluateCountryLineHorizonVisibility(tslScalarOps, {
+    cosSeparation: worldDirection.dot(cameraDirection),
+    pointRadius, cameraRadius, occluderRadius,
+    marginCos: vertexCullCos, marginSin: vertexCullSin,
+  });
+  const culledPosition = pose.position.mul(vertexVisible);
+  material.positionNode = culledPosition;
+  const clip = cameraProjectionMatrix.mul(modelViewMatrix.mul(vec4(culledPosition, 1)));
+  const [offsetX, offsetY] = evaluateCountryLineClipOffset(tslScalarOps, {
+    offsetPixelX: screenOffsetPixels.x, offsetPixelY: screenOffsetPixels.y,
+    screenWidthPx: screenSize.x, screenHeightPx: screenSize.y, clipW: clip.w,
+  });
+  material.vertexNode = vec4(clip.x.add(offsetX), clip.y.add(offsetY), clip.z, clip.w);
+  // Fragment stage: the interpolated world direction, renormalised. Passing the
+  // direction through a varying is what keeps the prepared pose graph — three
+  // palette texture loads plus a quaternion slerp and rotate — in the vertex
+  // stage; three caches node results per shader stage and only attributes insert
+  // a varying on their own, so reading `worldDirection` directly here would emit
+  // and run that whole graph again for every outline fragment. Varying the 0/1
+  // visibility instead would interpolate it and blur the terminator.
+  const fragmentCos = float(1);
+  const fragmentSin = float(0);
+  const fragmentDirection = varying(worldDirection);
+  const horizonVisibility = evaluateCountryLineHorizonVisibility(tslScalarOps, {
+    cosSeparation: fragmentDirection.normalize().dot(cameraDirection),
+    pointRadius, cameraRadius, occluderRadius,
+    marginCos: fragmentCos, marginSin: fragmentSin,
+  });
+  material.opacityNode = materialOpacity.mul(horizonVisibility);
+  return Object.freeze({ material, displayFraction: pose.displayFraction, screenOffsetPixels,
+    clipOffset: Object.freeze([offsetX, offsetY] as const), vertexVisible, horizonVisibility,
+    fragmentDirection,
+    horizonMargins: Object.freeze({ vertexCullCos, vertexCullSin, fragmentCos, fragmentSin }) });
 }
 
 export function estimateCaoFoundationGeometryReservation(
@@ -1075,7 +1336,18 @@ function createPublicationResource(
         throw new Error("Cao foundation v1 requires uniform placeholder height/color controls");
       }
       const shellOffset = caoFoundationShellOffsetMetres(batch.batchId);
-      const appearance = batch.batchId === "batch-shelf" ? "shelf" as const : "land" as const;
+      // The country outlines no longer depth test, so nothing stops a lifted
+      // surface shell from drawing over them. This guard is what replaces the
+      // depth buffer: the tallest shell the display controls can reach at the
+      // relief ceiling must stay below the lower of the two outline shells.
+      // The package format admits a nonzero display height, so a package that
+      // starts using one must fail here rather than silently bury the outlines.
+      if (caoFoundationMaxDisplayedShellMetres(display.displayHeightStart.value,
+        display.displayHeightEnd.value, shellOffset)
+          >= CAO_FOUNDATION_COUNTRY_LINE_UNDERLAY_OFFSET_METRES) {
+        throw new Error("Cao display height would lift the surface through the country-line shell");
+      }
+      const appearance = caoFoundationBatchAppearance(batch.batchId);
       const graph = createCaoFoundationMaterial(paletteTexture, packed.width, display,
         revision.display.fraction, verticalExaggeration, shellOffset, appearance);
       materials.push(graph.material);
@@ -1101,17 +1373,20 @@ function createPublicationResource(
         throw new Error("Cao country line batch order/identity changed");
       }
       for (const style of ["underlay", "stroke"] as const) {
-        const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
-          revision.display.fraction, style);
-        materials.push(graph.material);
-        displayFractions.push(graph.displayFraction);
-        const lines = new THREE.LineSegments(batch.geometry, graph.material);
-        lines.frustumCulled = false;
-        lines.renderOrder = style === "underlay" ? 3 : 4;
-        lines.userData.overlayLayer = "borders";
-        lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
-        lines.userData.countryLineStyle = style;
-        group.add(lines);
+        // One draw per screen offset; the union is the widened stroke.
+        for (const offsetPixels of caoFoundationCountryLineOffsetsPx(style)) {
+          const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
+            revision.display.fraction, style, offsetPixels);
+          materials.push(graph.material);
+          displayFractions.push(graph.displayFraction);
+          const lines = new THREE.LineSegments(batch.geometry, graph.material);
+          lines.frustumCulled = false;
+          lines.renderOrder = style === "underlay" ? 3 : 4;
+          lines.userData.overlayLayer = "borders";
+          lines.userData.evidence = "modern-country-reference-reconstructed-with-cao";
+          lines.userData.countryLineStyle = style;
+          group.add(lines);
+        }
       }
     }
     const nativeBoundary = createNativeBoundaryObject(revision);
@@ -1185,6 +1460,112 @@ function firstOpaqueGlobeIntersectionDistance(origin: Vec3Tuple, direction: Vec3
   if (first >= 0) return first;
   const second = -projection + root;
   return second >= 0 ? second : null;
+}
+
+/**
+ * Slack added to a chart's vertex bounding box before the exact test. The box
+ * bounds triangle vertices, but a point on the sphere at shell radius bulges
+ * outside the chord they span, so a surface point just inside a chart can fall
+ * marginally outside its box. 1e-4 of an Earth radius is about 640 m, far below
+ * a chart and safely above that bulge; it only ever adds a triangle test.
+ */
+const CAO_FOUNDATION_COVERAGE_BOUNDS_EPSILON = 1e-4;
+
+export interface CaoFoundationCoverageOptions {
+  /** Count batch-shelf charts as coverage. Default true, matching picking. */
+  readonly includeShelf?: boolean;
+}
+/** Radial start height and accepted hit range for the exact coverage test. */
+const CAO_FOUNDATION_COVERAGE_RAY_MARGIN = 0.05;
+
+function pointInsideBounds(
+  x: number,
+  y: number,
+  z: number,
+  bounds: Float32Array,
+  offset: number,
+  epsilon: number,
+): boolean {
+  return x >= bounds[offset]! - epsilon && x <= bounds[offset + 3]! + epsilon
+    && y >= bounds[offset + 1]! - epsilon && y <= bounds[offset + 4]! + epsilon
+    && z >= bounds[offset + 2]! - epsilon && z <= bounds[offset + 5]! + epsilon;
+}
+
+/**
+ * Whether any active chart covers a direction — the cheap coverage question,
+ * without the nearest-hit bookkeeping a pick needs.
+ *
+ * A pick ray crosses the whole globe, so it must triangle-test every chart
+ * whose box it clips, including the far side. A direction is a point, so the
+ * box test here prunes to the handful of charts that actually contain it and
+ * the exact triangle pass runs only for those: the cost is O(active charts)
+ * plus a few triangle tests. Batch precedence does not apply — any covering
+ * chart answers true — and an inactive chart (a plate not yet born at the
+ * requested age) is skipped exactly as the pick path skips it.
+ *
+ * `includeShelf: false` narrows the question to charts drawn with the land
+ * appearance, which is what a caller keying off "is this land, or water of any
+ * depth" needs. It does not change picking.
+ */
+export function caoFoundationSurfaceCoversDirection(
+  geometry: CaoFoundationGeometryResource,
+  publication: Pick<CaoFoundationPublicationResource, "chartPoses" | "chartActive">,
+  rendererDirection: Vec3Tuple,
+  options: CaoFoundationCoverageOptions = {},
+): boolean {
+  const includeShelf = options.includeShelf ?? true;
+  const length = Math.hypot(...rendererDirection);
+  if (!rendererDirection.every(Number.isFinite) || !(length > 1e-12)) {
+    throw new Error("Cao coverage direction must be finite and non-zero");
+  }
+  const unit = rendererDirection.map((value) => value / length) as unknown as Vec3Tuple;
+  const gplatesDirection = rendererToGplatesDirection(numberScalarOps, unit);
+  const [gx, gy, gz] = gplatesDirection;
+  const poses = publication.chartPoses;
+  for (const batch of geometry.batches) {
+    if (!includeShelf && caoFoundationBatchAppearance(batch.batchId) === "shelf") continue;
+    const shellRadius = 1 + caoFoundationShellOffsetMetres(batch.batchId) / EARTH_RADIUS_METRES;
+    for (let rangeOffset = 0, boundsOffset = 0;
+      rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
+      const chartIndex = batch.chartRanges[rangeOffset]!;
+      if (publication.chartActive[chartIndex] !== 1) continue;
+      const poseOffset = chartIndex * 8;
+      // rotateDirection inlined on scalars: this runs once per active chart per
+      // probe, where the generic ops indirection and its array allocation
+      // dominated the whole classification round.
+      const w = poses[poseOffset + 4]!;
+      const qx = poses[poseOffset + 5]!;
+      const qy = poses[poseOffset + 6]!;
+      const qz = poses[poseOffset + 7]!;
+      const tx = 2 * (qy * gz - qz * gy);
+      const ty = 2 * (qz * gx - qx * gz);
+      const tz = 2 * (qx * gy - qy * gx);
+      const sx = gx + w * tx + (qy * tz - qz * ty);
+      const sy = gy + w * ty + (qz * tx - qx * tz);
+      const sz = gz + w * tz + (qx * ty - qy * tx);
+      if (!pointInsideBounds(sx * shellRadius, sy * shellRadius, sz * shellRadius,
+        batch.chartBounds, boundsOffset, CAO_FOUNDATION_COVERAGE_BOUNDS_EPSILON)) continue;
+      // Boxes overlap between neighbouring charts, so confirm against the
+      // triangles with a radial ray from just above this batch's shell.
+      const margin = CAO_FOUNDATION_COVERAGE_RAY_MARGIN;
+      const start = shellRadius + margin;
+      const origin = [sx * start, sy * start, sz * start] as unknown as Vec3Tuple;
+      const inward = [-sx, -sy, -sz] as unknown as Vec3Tuple;
+      const firstTriangle = batch.chartRanges[rangeOffset + 1]!;
+      const triangleCount = batch.chartRanges[rangeOffset + 2]!;
+      for (let triangle = firstTriangle; triangle < firstTriangle + triangleCount; triangle += 1) {
+        const vertices = [0, 1, 2].map((corner) => {
+          const vertex = batch.source.indices[triangle * 3 + corner]!;
+          const direction = tupleAt(batch.source.referenceDirections, vertex * 3);
+          return direction.map((value) => value * shellRadius) as unknown as Vec3Tuple;
+        }) as unknown as readonly [Vec3Tuple, Vec3Tuple, Vec3Tuple];
+        const hit = intersectRayTriangle(origin, inward, vertices[0], vertices[1], vertices[2]);
+        // Only the near crossing counts; the far side of the shell is 2 R away.
+        if (hit !== null && hit.distance <= margin * 2) return true;
+      }
+    }
+  }
+  return false;
 }
 
 export function intersectCaoFoundationSurface(
@@ -1386,6 +1767,21 @@ export class CaoFoundationSurfaceRenderer {
     if (!this.domainVisible || !this.staticGeometry || !current) return null;
     return intersectCaoFoundationSurface(this.staticGeometry, current.resources,
       rayOrigin, rayDirection, maximumTestedTriangles);
+  }
+
+  /**
+   * Whether the surface currently on screen covers this direction with land,
+   * shelf or correction material. Read-only and allocation-light; returns false
+   * whenever the domain is hidden or nothing is published, matching intersectRay.
+   */
+  coversDirection(
+    rendererDirection: UnitDirection,
+    options: CaoFoundationCoverageOptions = {},
+  ): boolean {
+    const current = this.publisher.current();
+    if (!this.domainVisible || !this.staticGeometry || !current) return false;
+    return caoFoundationSurfaceCoversDirection(this.staticGeometry, current.resources,
+      [...rendererDirection] as unknown as Vec3Tuple, options);
   }
 
   identifyTopology(rendererDirection: UnitDirection): InstantaneousOwnershipResult | null {

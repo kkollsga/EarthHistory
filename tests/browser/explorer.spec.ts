@@ -478,7 +478,8 @@ test("clears correction legend state outside the live Cao package domain", async
 test("labels observed modern land only at the exact present", async ({ page }) => {
   await page.goto("./");
   await waitForCao(page);
-  await expect(globe(page)).toHaveAttribute("data-cao-observed-material-charts", "2");
+  // Iceland's two exact-present charts plus the thirteen land-omission charts.
+  await expect(globe(page)).toHaveAttribute("data-cao-observed-material-charts", "15");
   await expect(globe(page)).toHaveAttribute("data-cao-classified-shallow-marine-charts", "2");
   await openSurfaceInfo(page);
   await expect(page.locator(".surface-evidence-key")).toContainText("Observed modern land");

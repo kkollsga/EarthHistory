@@ -166,7 +166,9 @@ describe("native Cao package v2", () => {
       const iceland = revision.charts.filter((chart) => chart.support.kind === "supported"
         && chart.evidence.correction?.correctionId === "earthhistory-regional-iceland-surface-v1");
       expect(iceland).toHaveLength(expectedActive);
-      expect(revision.materialCorrections.observedActiveCharts).toBe(ageMa === 0 ? 2 : 0);
+      // Package-wide observed count: Iceland's two exact-present charts plus the
+      // thirteen observed-land-omission charts, all inactive above 0 Ma.
+      expect(revision.materialCorrections.observedActiveCharts).toBe(ageMa === 0 ? 15 : 0);
       expect(revision.materialCorrections.classifiedShallowMarineActiveCharts)
         .toBe(ageMa === 0 ? 2 : 0);
       expect(revision.materialCorrections.activeSourceIds
@@ -259,19 +261,21 @@ describe("native Cao package v2", () => {
     ]);
     expect(prepared.batches[0]!.vertexCount).toBe(156_252);
     expect(prepared.batches[1]!.vertexCount).toBe(183_333);
+    // The observed batch carries Iceland plus the thirteen exact-present
+    // observed-land-omission charts that fill the bare Cao static partitions.
     expect(prepared.batches[2]).toMatchObject({
-      batchId: "material-correction-observed", vertexCount: 502, triangleCount: 536,
+      batchId: "material-correction-observed", vertexCount: 1_217, triangleCount: 1_307,
     });
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(395_670);
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(563_986);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(396_385);
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(564_757);
     expect(prepared.lineBatches).toHaveLength(1);
     // Historical reconstructed segments retain their chart ownership; exact 0 Ma
     // adds the pinned modern-reference complement without assigning it into deep time.
     expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 24_090, segmentCount: 12_045 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(419_760);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(420_475);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(576_031);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(576_802);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -293,6 +297,7 @@ describe("native Cao package v2", () => {
     expect(prepared.anchorIds).toContain("chicxulub");
     expect(prepared.materialCorrectionIdentity).toMatch(/^earthhistory-cao-v2\.4-material-corrections-v1@/);
     expect(prepared.materialCorrections.correctionIds).toEqual([
+      "earthhistory-observed-land-omission-v1",
       "earthhistory-regional-barents-material-v1",
       "earthhistory-regional-canada-franklinian-material-v1",
       "earthhistory-regional-iceland-surface-v1",

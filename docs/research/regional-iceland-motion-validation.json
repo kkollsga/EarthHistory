@@ -28,8 +28,8 @@
       "url": "motion-palette.bin"
     },
     "materialCorrectionCatalog": {
-      "bytes": 198006,
-      "sha256": "881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41",
+      "bytes": 216378,
+      "sha256": "5f3775d274d01a27e153360e6769350d9e71d8306a3d93a00a4e5af22a62c7f0",
       "url": "corrections/material-v1/catalog.json"
     }
   },
