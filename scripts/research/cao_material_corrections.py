@@ -542,9 +542,12 @@ def validate_chart_binding_partition(chart: dict) -> None:
 
 def validate_generated_catalog(manifests: list[dict]) -> None:
     import regional_iceland_correction as iceland
+    import regional_observed_land_omission_correction as omission
 
     iceland_manifest = json.loads(iceland.MANIFEST.read_text())
     iceland.validate_document(iceland_manifest)
+    omission_manifest = json.loads(omission.MANIFEST.read_text())
+    omission.validate_document(omission_manifest)
     package_path = ROOT / "public/data/reconstruction/cao-v2.4/manifest.json"
     package = json.loads(package_path.read_text())
     core_path = package_path.parent / require_string(package.get("core", {}).get("url"),
@@ -568,7 +571,8 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
             raw_overrides.append((override_path, row))
     expected_ids = sorted({*(manifest["correctionId"] for manifest in manifests),
                            *(row["correctionId"] for _, row in raw_overrides),
-                           iceland_manifest["correctionId"]})
+                           iceland_manifest["correctionId"],
+                           omission_manifest["correctionId"]})
     if catalog.get("schemaVersion") != 1 or catalog.get("id") != descriptor.get("id") \
             or catalog.get("correctionIds") != expected_ids:
         fail("material correction catalog", "regional correction identity set mismatch")
@@ -626,9 +630,11 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
                                                lon_lat_direction(expected_411["expectedLonLat"])) > 1e-5):
                         fail(witness_id, "generated pose does not match its independent pyGPlates witness")
     iceland.validate_generated_catalog(iceland_manifest, catalog)
+    omission.validate_generated_catalog(omission_manifest, catalog,
+                                                package_path.parent)
     expected_chart_ids.update(chart["chartId"] for chart in catalog.get("charts", [])
                               if chart.get("evidence", {}).get("correction", {}).get("correctionId")
-                              == iceland.CORRECTION_ID)
+                              in (iceland.CORRECTION_ID, omission.CORRECTION_ID))
     emitted_overrides = {row.get("overrideId"): row for row in catalog.get("nativeChartOverrides", [])}
     if len(emitted_overrides) != len(raw_overrides):
         fail("material correction catalog.nativeChartOverrides", "override identity set mismatch")

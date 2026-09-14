@@ -4,6 +4,53 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-09-14
+
+### Fixed
+
+- Draw the modern-country reference outlines as continuous lines. Both
+  backends rasterize a one-device-pixel line, whose multisample coverage split
+  across pixel rows along every diagonal and read as beads. Each outline style
+  is now drawn at several sub-pixel screen offsets that union into a solid
+  stroke in the same colours. Because a shifted copy has no matching depth,
+  the outlines no longer depth test; they are occluded analytically at the
+  globe horizon, exact at every zoom, with far-side vertices collapsed in the
+  vertex stage and the pose graph kept there through a varying. Uncapped
+  measurement puts the median frame interval at 1.7 ms against 2.5 ms at device
+  pixel ratio 2 and 1.1 ms against 1.9 ms on the low-quality profile. A
+  publication guard rejects a package display height that could lift the
+  surface through the outline shell. No reconstruction geometry changed.
+- Place the graticule guide labels on the lines they name with a 1-2 CSS px
+  clear margin, stop mirroring the meridian labels (their tangent frame was
+  left-handed against the outward normal), advance parallel labels by true arc
+  instead of degrees of longitude, and size each label sheet to its own string
+  so long labels are no longer condensed.
+- Ink each guide label from the reconstructed surface under it: dark grey
+  #4a4f54 where a land chart covers the segment, light grey #d0d4d5 over shelf
+  and open ocean. Measured on the rendered surface the light ink reaches
+  5.7-6.1:1 on deep ocean and 2.8-3.0:1 on shelf, and the dark ink 2.9:1 on
+  land. Each label is four segments classified from the live Cao surface with
+  hysteresis, so the choice follows plate motion as the timeline scrubs.
+  Coverage comes from a new read-only `coversDirection` accessor on the Cao
+  foundation renderer.
+- Draw land instead of deep ocean where the Cao v2.4 model leaves observed
+  modern land with no chart at present day. A global audit of the compiled
+  package against Natural Earth 1:50m land found 180,488 km² with neither a
+  land nor a shelf chart, all caused by Cao static partitions that have no
+  counterpart polygon in `shapes_coasts` or `shapes_continents`: the Yemen and
+  south-west Saudi highlands, the Niger delta with the Cameroon and Equatorial
+  Guinea coast, the Senegal and Mauritanian coast, Kerguelen, the Canaries, the
+  Galapagos, Socotra, Corsica and Sardinia, Reunion, the Darien coast,
+  Mauritius, the Louisiade islands and Zanzibar. One tracked exact-present
+  correction fills all thirteen from Natural Earth 1:50m land minus the native
+  Cao coast footprint, with zero overlap against native land, shelf or the
+  Iceland and Panama corrections, no new motion entry, and a lifecycle valid
+  only at 0 Ma. Public data grows by 42,963 bytes. 87 further components
+  (931,079 km²) remain deliberately uncorrected with recorded reasons, mostly
+  on plates without a present-day palette entry. Angola and Niger are not
+  coverage gaps: the visible Angolan offset is the 1:110m country locator up to
+  31.7 km seaward of the 1:50m coast, and Niger's patch is the Lake Chad shore.
+
 ## [0.1.7] - 2026-09-14
 
 ### Fixed

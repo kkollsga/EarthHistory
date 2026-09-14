@@ -12,8 +12,8 @@
       "record": "https://doi.org/10.5281/zenodo.13628813",
       "license": "CC BY 4.0 (Cao v2.4); public domain (Natural Earth)",
       "retrievalDate": "2026-09-10",
-      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
-      "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure.",
+      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
+      "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts, thirteen observed land-omission charts, and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama and observed-land-omission geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure.",
       "outputs": [
         {
           "role": "anchors.json",
@@ -4278,7 +4278,7 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "031878a8d3737fc28b9e8112f6531d7533d7cf195d6e0d684f081332cbf7eeec",
+          "sha256": "5bce596348fc22d1bad8faf1120c95ff2b9ae9a5e756d8af2bf15a086bb19a9f",
           "bytes": 39907
         },
         {
@@ -4296,7 +4296,7 @@
         {
           "role": "index.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/index.json",
-          "sha256": "8eaaab15d8513dd3569e68be34b9794c6c2103a7f146d7eac8bf7ccdc69ac3a3",
+          "sha256": "6cabefcbb92e4ce90fc06e728aa939ba2656cfe70be73dfd974fa393c8011732",
           "bytes": 28068
         },
         {
@@ -7555,32 +7555,32 @@
       "compilerRevision": "cao-foundation-v2 emitted-float32 triangulation with stable spherical-area validation"
     },
     "regional-material-corrections-v1": {
-      "processing": "Source-qualified regional masks, one exact-modern observed land correction, and guarded native-chart replacements compiled as rigid charts; raw Cao source assets remain unchanged",
-      "scope": "Iceland is observed exposed land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
+      "processing": "Source-qualified regional masks, two exact-modern observed land corrections, and guarded native-chart replacements compiled as rigid charts; raw Cao source assets remain unchanged",
+      "scope": "Iceland and the thirteen land-omission charts are observed modern land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
       "outputs": [
         {
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
-          "bytes": 198006,
-          "sha256": "881c97d360100bec7f9f524bcdeb0627546673ce1a52d17d4424ab8acace6f41"
+          "bytes": 216378,
+          "sha256": "5f3775d274d01a27e153360e6769350d9e71d8306a3d93a00a4e5af22a62c7f0"
         },
         {
           "role": "observed.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/observed.ehgb",
-          "bytes": 16504,
-          "sha256": "a7cf34880267a74b1b820f69d455422bbafd7c7ec343b2a9d778cda772d02beb"
+          "bytes": 40056,
+          "sha256": "555f529506181cb56d22ca83822f6d3309d8b5c5a07796796b291d6fdc16fec7"
         },
         {
           "role": "qualified.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
           "bytes": 268524,
-          "sha256": "d5bd6f75ced2bed97a0540eeae82be061687d1610c54b6ab456fc411b6789745"
+          "sha256": "56a306c7281086478c7c31f9e9c6bfb3b2886ffb6d1dd54b8e566d2de3bceeb4"
         },
         {
           "role": "uncertain.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
           "bytes": 1494968,
-          "sha256": "2d99f2f435c1c05eebf4cc43008eaaee3d8414ca71e68678cd011ffa44c1b1a8"
+          "sha256": "61ac6dc667f02e0e8e65408caa7e829dd20bd3ced43e2d62b7aebeb744c05c99"
         }
       ]
     },
@@ -7594,6 +7594,17 @@
       "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
       "geographicBasis": "WGS84 generalized present-day country land polygon; ADM0_A3=PAN",
       "evidenceRole": "generalized observed present-day Panama land boundary at exactly 0 Ma"
+    },
+    "natural-earth-observed-land-omission-50m": {
+      "url": "https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-0-countries-2/",
+      "title": "Natural Earth 1:50m Admin 0 Countries",
+      "publicationOrVersionDate": "5.1.1",
+      "retrievalDate": "2026-09-12",
+      "license": "Public domain",
+      "bytes": 799734,
+      "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
+      "geographicBasis": "WGS84 generalized present-day country land polygons, all ADM0_A3 records",
+      "evidenceRole": "generalized observed present-day land boundary at exactly 0 Ma, bounded by the thirteen Cao static partitions that own the omissions"
     }
   },
   "scratchCacheBytes": 28848507,

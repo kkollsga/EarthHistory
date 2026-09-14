@@ -319,3 +319,54 @@ run measured 396.0 ms versus 416.9 ms median cold-ready time and equal 16.7 ms
 frame-time p50, while a SwiftShader run failed its relative cold-ready stop.
 Those measurements describe the smaller historical package and are not
 performance evidence for this expanded seven-operation candidate.
+
+## 2026-09-14 note: the country-line draw-pass count changed
+
+The recorded v0.1.4 expectations above and in
+`regional-material-corrections-performance.json`
+(`prospectiveIntegratedReleaseLimits.drawWork`) describe the country-line
+overlay as "segments drawn once for the underlay and once for the stroke",
+giving `expectedBaseDrawPasses: 6` and `expectedNonCheckpointPrimitives:
+506361`. On 2026-09-14 the renderer changed: a GPU line primitive is one device
+pixel wide on both backends, so a lone hairline lost most of its multisample
+coverage on diagonals and the outlines read as beaded. Each style is now drawn
+once per small device-pixel screen offset — four underlay copies and five
+stroke copies, nine country-line draws in total, bounded by
+`CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET` — so the base draw passes rise from
+six to thirteen for the same segment geometry. No geometry, vertex, triangle or
+segment count changed with it.
+
+Dated correction, same day: six and thirteen restate this ledger's v0.1.4
+four-batch arithmetic and describe no configuration that was ever measured. The
+shipped renderer was measured at **seven base draw passes before the change and
+fourteen after**, at 411 Ma on today's five-batch package
+(`dev-docs/temp/outline-fix/performance.json`, `drawCount`); the renderer's own
+unit fixture, a smaller scene, asserts eleven. The six-to-thirteen sentence
+above is left as written because it is the correct restatement *relative to the
+v0.1.4 inventory this ledger records*.
+
+Every measured number recorded above and in the JSON stays as measured: they are
+dated evidence for the v0.1.4 candidate, not a current expectation. A future run
+of `dev-docs/bench/scripts/regional-material-release.mjs` needs its own dated
+limits for the package and renderer it measures; that harness already cannot
+preflight today's package for unrelated reasons, since its
+`expectedGeometryPass` requires the v0.1.4 inventory (4 spatial batches,
+322,442 vertices, 486,333 triangles, 20,028 country vertices, 10,014 segments)
+while the committed Cao v2.4 package now carries 12,045 country-line segments
+and 24,090 country-line vertices.
+
+The 2026-09-14 renderer change was measured separately against this ledger's own
+recorded thresholds (cadence 33.33 ms and 0.9 relative, cold ready +250 ms and
++20 %) with a stop rule written before measuring; three alternating headed Apple
+M4 pairs on production builds returned an equal 16.7 ms frame-time p50 and a
+411 Ma cold-ready median of 817 ms against the control's 826 ms. That frame p50
+sat at the display's vsync cap in **both** arms, so it establishes no headroom
+and the cadence half of the stop rule could not have tripped for any candidate
+cheaper than 60 fps; the cold-ready median is the only discriminating half of
+that measurement. An uncapped follow-up run the same day
+(`--disable-frame-rate-limit --disable-gpu-vsync`, rAF interval sampling over
+5 s, three alternating repetitions per arm) did discriminate, and is recorded in
+`dev-docs/temp/outline-fix/performance-efficiency.json`: median frame interval
+2.5 ms to 1.7 ms at device pixel ratio 2 and 1.9 ms to 1.1 ms on the
+low-quality 1.25 profile, after the outline horizon term was moved behind a
+varying and far-side vertices were collapsed in the vertex stage.

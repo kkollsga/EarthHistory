@@ -76,6 +76,8 @@ check-corrections:
 	@python3 scripts/research/regional_iceland_shelf_correction.py --self-test
 	@python3 scripts/research/regional_iceland_shelf_correction.py
 	@python3 scripts/research/regional_panama_correction.py --self-test
+	@python3 scripts/research/regional_observed_land_omission_correction.py --self-test --runtime
+	@python3 scripts/research/regional_observed_land_omission_correction.py --runtime
 	@python3 -m unittest scripts/research/apply_cao_native_triangulation_repair_test.py
 	@python3 scripts/research/apply_cao_native_triangulation_repair.py
 	@python3 -m unittest scripts/research/apply_regional_panama_land_test.py

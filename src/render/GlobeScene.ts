@@ -11,11 +11,18 @@ import {
 import { createPoleSafeShellGeometry } from "./poleSafeGeometry";
 import { lonLatToVector3, vector3ToLonLat, worldToGlobeLocalDirection } from "./math";
 import {
-  createCurvedGuideLabelMesh,
+  advanceGuideLabelToneScan,
+  createGuideLabelGroup,
+  createGuideLabelToneScan,
   createLongitudeCrossingTickLines,
   createPolarSectorTickLines,
   createReferenceGuideLines,
+  GUIDE_LABEL_EDITORIAL_TONE,
+  GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME,
+  GUIDE_LABEL_TONE_SETTLE_MS,
   REFERENCE_GUIDE_LABELS,
+  type GuideLabelGroup,
+  type GuideLabelToneScan,
 } from "./globeGuides";
 import { setInspectionLightPosition } from "./inspectionLight";
 import {
@@ -204,6 +211,15 @@ function disposeMaterial(material: THREE.Material | THREE.Material[]): void {
 function clearGroup(group: THREE.Group): void {
   for (const child of [...group.children]) {
     group.remove(child);
+    // A guide label is a Group of tone segments that share two owned sheets;
+    // its children are disposed first, then the sheets exactly once.
+    if (child instanceof THREE.Group) {
+      clearGroup(child);
+      for (const texture of (child.userData.ownedTextures as THREE.Texture[] | undefined) ?? []) {
+        texture.dispose();
+      }
+      continue;
+    }
     if (child instanceof THREE.Mesh || child instanceof THREE.Line || child instanceof THREE.Sprite) {
       if (!(child instanceof THREE.Sprite)) child.geometry?.dispose();
       const ownedTexture = child.userData.ownedTexture as THREE.Texture | undefined;
@@ -428,6 +444,13 @@ export class GlobeScene {
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private readonly guideCameraDirection = new THREE.Vector3();
   private readonly guideInverseGlobeQuaternion = new THREE.Quaternion();
+  // Set whenever the surface under the labels can have moved. A round only
+  // starts once this has been quiet for GUIDE_LABEL_TONE_SETTLE_MS, so a
+  // continuous scrub keeps deferring instead of probing on every sample.
+  private guideLabelTonesStaleSince: number | null = 0;
+  private guideLabelToneScan: GuideLabelToneScan | null = null;
+  private guideLabelToneRoundProbes = 0;
+  private guideLabelToneRoundMs = 0;
   private readonly markerWorldPosition = new THREE.Vector3();
   private readonly markerWorldScale = new THREE.Vector3();
   private readonly focusMarkerProjectedPosition = new THREE.Vector3();
@@ -608,6 +631,7 @@ export class GlobeScene {
       return withheld ? this.applyCaoFoundationWithheldState() : null;
     }
     this.caoFoundationWithheld = withheld;
+    this.guideLabelTonesStaleSince = performance.now();
     // Recovery makes the group visible only after a current revision or motion
     // frame updates its marker poses; the retained sprites may still be stale.
     return withheld ? this.applyCaoFoundationWithheldState() : null;
@@ -630,6 +654,7 @@ export class GlobeScene {
         materialCorrections);
       this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
       this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.markerGroup.visible = true;
       const diagnostics = this.caoFoundationRenderer.diagnostics();
@@ -685,6 +710,7 @@ export class GlobeScene {
     if (revision === null) {
       this.caoFoundationRenderer.clear();
       this.hasNativePublication = false;
+      this.guideLabelTonesStaleSince = performance.now();
       this.preparedAnchors = [];
       this.rebuildMarkers();
       this.pendingCaoDiagnostics = null;
@@ -714,6 +740,7 @@ export class GlobeScene {
       this.markerGroup.visible = !this.caoFoundationWithheld;
       this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
       this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.pendingCaoDiagnostics = diagnostics;
       const dataset = this.renderer.domElement.dataset;
@@ -1074,13 +1101,55 @@ export class GlobeScene {
       this.overlayGroup.add(line);
     }
     for (const label of REFERENCE_GUIDE_LABELS) {
-      this.overlayGroup.add(createCurvedGuideLabelMesh(label));
+      this.overlayGroup.add(createGuideLabelGroup(label));
     }
+    this.guideLabelTonesStaleSince = performance.now();
     this.overlayGroup.add(createLongitudeCrossingTickLines());
     // Flat polar sector ticks on the sphere — short meridian marks, not upright sprites.
     this.overlayGroup.add(createPolarSectorTickLines(1));
     this.overlayGroup.add(createPolarSectorTickLines(-1));
     this.renderer.domElement.dataset.referenceGuideVisible = "true";
+  }
+
+  /**
+   * Repaints label tones from the surface currently on screen. A probe asks the
+   * Cao foundation whether a land chart covers the sample direction: it does, so
+   * that segment takes the dark ink; it does not — shelf water or open ocean —
+   * so it takes the light ink. Rounds only start once the publication has been
+   * quiet, and spend a bounded probe budget per frame.
+   */
+  private updateGuideLabelTones(now: number): void {
+    if (!this.layers.guides) return;
+    if (this.guideLabelToneScan === null) {
+      if (this.guideLabelTonesStaleSince === null) return;
+      if (now - this.guideLabelTonesStaleSince < GUIDE_LABEL_TONE_SETTLE_MS) return;
+      this.guideLabelTonesStaleSince = null;
+      this.guideLabelToneScan = createGuideLabelToneScan(
+        this.overlayGroup.children.filter((child): child is GuideLabelGroup =>
+          child instanceof THREE.Group && child.userData.guideLabelSegments !== undefined));
+      this.guideLabelToneRoundProbes = 0;
+      this.guideLabelToneRoundMs = 0;
+    }
+    const native = this.hasNativePublication && !this.caoFoundationWithheld;
+    // Outside the Cao domain there is no coverage to read, so every probe takes
+    // the fixed editorial answer.
+    const editorialCovered = GUIDE_LABEL_EDITORIAL_TONE === "dark";
+    const started = performance.now();
+    const step = advanceGuideLabelToneScan(this.guideLabelToneScan,
+      GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME, (direction) => native
+        // Land only: shelf water is a dark background like the open ocean, so
+        // it takes the light ink too.
+        ? this.caoFoundationRenderer.coversDirection(
+          [direction.x, direction.y, direction.z], { includeShelf: false })
+        : editorialCovered);
+    this.guideLabelToneRoundProbes += step.probes;
+    this.guideLabelToneRoundMs += performance.now() - started;
+    if (!step.done) return;
+    this.guideLabelToneScan = null;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.guideLabelToneMs = this.guideLabelToneRoundMs.toFixed(2);
+    dataset.guideLabelToneProbes = String(this.guideLabelToneRoundProbes);
+    dataset.guideLabelToneSource = native ? "cao-surface" : "editorial-fallback";
   }
 
   private updateGuideLabelVisibility(): void {
@@ -1279,6 +1348,7 @@ export class GlobeScene {
     this.updatePoiMarkerScale();
     this.reportFocusMarkerOffset();
     this.updateInspectionLight();
+    this.updateGuideLabelTones(now);
     this.updateGuideLabelVisibility();
     if (this.impactGroup.visible && this.autoRotate && !this.reducedMotion.matches) {
       const elapsed = (now - this.animationStarted) / 1000;
