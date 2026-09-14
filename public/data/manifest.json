@@ -12,8 +12,8 @@
       "record": "https://doi.org/10.5281/zenodo.13628813",
       "license": "CC BY 4.0 (Cao v2.4); public domain (Natural Earth)",
       "retrievalDate": "2026-09-10",
-      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
-      "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts, thirteen observed land-omission charts, and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama and observed-land-omission geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure.",
+      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Forty-eight large modern lakes that Cao leaves as coast voids inside the continental outline are filled with land-appearance infill at ages older than each lake's cited or present-only onset. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
+      "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts, thirteen observed land-omission charts, and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama and observed-land-omission geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure. Lake-void infill is land inference older than each lake's onset; the present-day lake voids keep the model's own shelf class.",
       "outputs": [
         {
           "role": "anchors.json",
@@ -4266,8 +4266,8 @@
         {
           "role": "core.json",
           "path": "public/data/reconstruction/cao-v2.4/core.json",
-          "sha256": "b621f0e5556435b822d3d23f06aa4e5946e75f87cd87172992bba347cfd43011",
-          "bytes": 6308918
+          "sha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
+          "bytes": 6317889
         },
         {
           "role": "country-reference.ehgl",
@@ -4278,25 +4278,25 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "1911265e782fce9dc1cec0c5252abaac8c665f336aa417daeb053667f7a2f1c5",
-          "bytes": 40077
+          "sha256": "10ba35d6b3f9dbaa830f1bd698c5a13e0849711ff4aaa4303c030439ec140be8",
+          "bytes": 40252
         },
         {
           "role": "motion-palette.bin",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.bin",
-          "sha256": "1b54a2b8c08bad838035195deb12a23c488796ea13649344b3c2eb3e24a4d830",
-          "bytes": 5604992
+          "sha256": "77dc433ec67d24609d0f19b6f5c0a2189560b36890879dd2b4c31d0bea852bdb",
+          "bytes": 5621712
         },
         {
           "role": "motion-palette.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
-          "sha256": "88ce5edcd0c224685b14120a1e3d7f436966985d5fb134d6f08cbc59ec985b0a",
-          "bytes": 747420
+          "sha256": "fdeb39add0cf5de91a2b203d302bf49ab8175dd94cd7e5d4a0f2d245b9bbc887",
+          "bytes": 802748
         },
         {
           "role": "index.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/index.json",
-          "sha256": "ea717c7a7c4e41ca222942d511c4efc7e01a91778f49b5040eb6064af8014e5c",
+          "sha256": "76369cb64d4fe5d924f9f28409073dce5653fd25c82a9fa2a44eb10bdf7c3445",
           "bytes": 28068
         },
         {
@@ -4332,122 +4332,122 @@
         {
           "role": "tile-0125-0150ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0125-0150ma.ehmt",
-          "sha256": "f196ea2e181cb42df62b61d704bf554589a507a8d0666a645001d3eefbc6b51a",
-          "bytes": 469104
+          "sha256": "c02d57facd43607ac1f53fd7dc9fd1999afd6d609a4d5c6747dcaf9ccc14f916",
+          "bytes": 470272
         },
         {
           "role": "tile-0150-0175ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0150-0175ma.ehmt",
-          "sha256": "866f9cd711d8fb412b820388537a92ce4332bfdb0d484d3664548cfe5b32268b",
-          "bytes": 251484
+          "sha256": "767ff54db0ab22400b0ad8912a9aa0b0d45df6aabd0a152bff82bddd62f6e16b",
+          "bytes": 252312
         },
         {
           "role": "tile-0175-0200ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0175-0200ma.ehmt",
-          "sha256": "148ce5770fcd111cb97b35d213f6d04cab715dced58b5adbec57d455ebf5420c",
-          "bytes": 131788
+          "sha256": "d31d57d92858970de1945ebf91ebb6909bba44206d1bfcb0f3df72b7811f4b5f",
+          "bytes": 132616
         },
         {
           "role": "tile-0200-0225ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0200-0225ma.ehmt",
-          "sha256": "fd85e5d594ce9b55603af02045c2a0e46a98900f32eb15ee889f59c8b7263bcb",
-          "bytes": 124260
+          "sha256": "3363d79b6aeb56ebbbba03d7c19d41db1fe8dae9506985590466b05e9004c8ce",
+          "bytes": 125208
         },
         {
           "role": "tile-0225-0250ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0225-0250ma.ehmt",
-          "sha256": "e18140fff7cbb1c1001f42aa5f1cc28ecc659fb00311f87252fd8443b5685ebe",
-          "bytes": 142180
+          "sha256": "4d15406e6d08057120d5768fe0e15169f0c398a72075927fe7674ec54d5eda24",
+          "bytes": 142968
         },
         {
           "role": "tile-0250-0275ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0250-0275ma.ehmt",
-          "sha256": "1f11bfa1f1ca885ea02e2d5aced3dd8c839f9ca0bec63228b944aa5364b5e3dd",
-          "bytes": 122556
+          "sha256": "5027af83c159c5a2b1efa913039ca772bcedbd9fa4974942c7a9bf85839b1b8d",
+          "bytes": 123464
         },
         {
           "role": "tile-0275-0300ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0275-0300ma.ehmt",
-          "sha256": "b0766aa8ac40dcce84c138e65f4a82b57e8cef649343b4d1f2abc64527ddaa7d",
-          "bytes": 91424
+          "sha256": "32ae7345bb9ace44a8ae411feea79eb71874a0728717e523a5775ecb4602f6f8",
+          "bytes": 92372
         },
         {
           "role": "tile-0300-0325ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0300-0325ma.ehmt",
-          "sha256": "c4030db176a2c35e2561279ee6468cbac3bdf04c0bd15ddc6fb7eee6eb11e408",
-          "bytes": 106100
+          "sha256": "da0c219ad79997e4bab8f91483d6995406ef1fa9ac67e9d64234bd02525206c6",
+          "bytes": 107008
         },
         {
           "role": "tile-0325-0350ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0325-0350ma.ehmt",
-          "sha256": "fab2cfe0929ff1dc56b91f6dd4578ac9c8cf20bb4732ecec40ab55bebc38e758",
-          "bytes": 154872
+          "sha256": "74aa70a5aa2de0d8710bc7de69a4503948be07b0459ecf25f1c2d4b9270a1a5f",
+          "bytes": 154980
         },
         {
           "role": "tile-0350-0375ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0350-0375ma.ehmt",
-          "sha256": "093cf81bb68c38bf8086bdcb536fb4a9c8fdd24fe2332e6d3bfef0671482eff6",
-          "bytes": 117744
+          "sha256": "b0c58cc060d97d995bffb3ec1164d75941f551e38649d9f0d3109bad8ce74f87",
+          "bytes": 118112
         },
         {
           "role": "tile-0375-0400ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0375-0400ma.ehmt",
-          "sha256": "29114dd6f63822307a32c83e6c9f3955f3e9d04e9184246385584732cd42342b",
-          "bytes": 78844
+          "sha256": "07c72f4bf12b9592e30eab3de2af0767e9b0ba5f24ecee577f1af4b45af793f5",
+          "bytes": 79432
         },
         {
           "role": "tile-0400-0425ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0400-0425ma.ehmt",
-          "sha256": "d179d69b0b3ae8c1633fc073c3acb4c42bbfc113f74c93e9e4aea6d2950e1c65",
-          "bytes": 75724
+          "sha256": "71dd3033b87802c111394cecaf244c4297acc92cafc3b0e027dfae3816da8d9c",
+          "bytes": 76532
         },
         {
           "role": "tile-0425-0450ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0425-0450ma.ehmt",
-          "sha256": "47b0188194fb2e96666aa2097e12d610dd315a1fec11f5f957c3910103d473b5",
-          "bytes": 51812
+          "sha256": "84eb15a5740522be2d8ce596889fea5fa5cf1c46fc2a70f0cf3898a7db36ed1d",
+          "bytes": 52172
         },
         {
           "role": "tile-0450-0475ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0450-0475ma.ehmt",
-          "sha256": "444c59e1b05a864bd67f2c27c0445b55968d679ff80650c7e13803da3a122b7f",
-          "bytes": 56012
+          "sha256": "39e71d45c6e6bb8f6247c2f6020df692cdb0a7bbf757a94545f2f4f0c23a4bf2",
+          "bytes": 56372
         },
         {
           "role": "tile-0475-0500ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0475-0500ma.ehmt",
-          "sha256": "bc75f147237fe610d5af6cb25874ba8c005542695f40cdaa6df56035f26c88c8",
-          "bytes": 47096
+          "sha256": "f3138e50418209be7731e61e0561a51778267e43f8b7870e91c9f8fdab1b17f7",
+          "bytes": 47496
         },
         {
           "role": "tile-0500-0525ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0500-0525ma.ehmt",
-          "sha256": "fb61851991aba694efe0150782b72bf2ff9ee6849ee1cd605e787ea693b144c9",
-          "bytes": 54028
+          "sha256": "f95c6da6b15ff7e3f47b7f062e206b8733425c5491b52a59f0fc14884a576c9d",
+          "bytes": 54420
         },
         {
           "role": "tile-0525-0550ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0525-0550ma.ehmt",
-          "sha256": "cb1242071fc10b53e4cc576c496d8820632e26a35319e6b0c40c70685243d143",
-          "bytes": 52768
+          "sha256": "ddcb89b88b19bf5badfe4af7c47ca5986d920930db74ef88fefbd995d3b26071",
+          "bytes": 53188
         },
         {
           "role": "tile-0550-0575ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0550-0575ma.ehmt",
-          "sha256": "e6b30ce9974c8ae07ad8a71783e78da6bda3f30d251babbe78ae9d3abddb9e3c",
-          "bytes": 50916
+          "sha256": "79da628714ef31aeedea84e6d01ce73649e285e6be5aed55308fa2c3c462e228",
+          "bytes": 51356
         },
         {
           "role": "tile-0575-0600ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0575-0600ma.ehmt",
-          "sha256": "197f38cb3f3db42274754c6c8b3b98b96eb5d1eaa74b2ecd4cf395730922fa74",
-          "bytes": 50632
+          "sha256": "d77f2248dd649cf3a8f5585aec5c4e12caa45e67419f7a1370e0aaaa636004b7",
+          "bytes": 51052
         },
         {
           "role": "tile-0600-0625ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0600-0625ma.ehmt",
-          "sha256": "b77dcd54cd06501cbe8311bbe3a7913f2fb34393ec5b131b4e56779583ff5744",
-          "bytes": 91252
+          "sha256": "d14e971347b517190b747e86e1a87ac69a961d4c36660554e19138a7ac362065",
+          "bytes": 91172
         },
         {
           "role": "tile-0625-0650ma.ehmt",
@@ -7561,8 +7561,8 @@
         {
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
-          "bytes": 216378,
-          "sha256": "672914a69a01c5e6bc2ae9be943357e8ba1e8dc04b89f65a94161b4b228b7be7"
+          "bytes": 397090,
+          "sha256": "acacf3d70741467ac83a9212ef90934e0f921094876dea6ea350967950168981"
         },
         {
           "role": "observed.ehgb",
@@ -7573,14 +7573,14 @@
         {
           "role": "qualified.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
-          "bytes": 268524,
-          "sha256": "56a306c7281086478c7c31f9e9c6bfb3b2886ffb6d1dd54b8e566d2de3bceeb4"
+          "bytes": 490052,
+          "sha256": "eab6a30873159e1c5685b98029caee7a8eaed4d7c023a40f245f560af45d8ee4"
         },
         {
           "role": "uncertain.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
           "bytes": 1494968,
-          "sha256": "61ac6dc667f02e0e8e65408caa7e829dd20bd3ced43e2d62b7aebeb744c05c99"
+          "sha256": "6b57175bad3912c5fea866d694de14b9e972d6b5c717728395ce2d1c1c25e0df"
         }
       ]
     },
@@ -7605,6 +7605,17 @@
       "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
       "geographicBasis": "WGS84 generalized present-day country land polygons, all ADM0_A3 records",
       "evidenceRole": "generalized observed present-day land boundary at exactly 0 Ma, bounded by the thirteen Cao static partitions that own the omissions"
+    },
+    "natural-earth-lakes-10m": {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_lakes.geojson",
+      "title": "Natural Earth 1:10m Lakes",
+      "publicationOrVersionDate": "5.1.2",
+      "retrievalDate": "2026-09-14",
+      "license": "Public domain",
+      "bytes": 5043554,
+      "sha256": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+      "geographicBasis": "WGS84 generalized present-day lake polygons",
+      "evidenceRole": "present-day lake extent used only to identify Cao coast voids; the emitted infill geometry is the Cao void itself"
     }
   },
   "scratchCacheBytes": 28848507,

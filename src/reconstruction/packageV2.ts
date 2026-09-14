@@ -43,8 +43,19 @@ export interface MaterialChartEvidence {
     readonly materialStatus?: "supported" | "native-source-supported-age-unknown" | "formation-uncertain";
     readonly poseStatus?: "source-qualified" | "model-inference" | "native-target-only" | "uncertain-continuation";
     readonly materialOriginRangeMa?: readonly [number, number];
+    /** Lake-void infill only: the cited or present-only onset the chart's lifecycle starts at. */
+    readonly lakeOnsetMa?: number;
+    readonly lake?: string;
   };
 }
+
+/**
+ * Lake-void infill fills a Cao coast void with land inference for the whole
+ * native lifecycle above the lake's onset, so unlike every other correction
+ * family it may run to the package's oldest age rather than 540 Ma.
+ */
+export const LAKE_VOID_INFILL_SOURCE_TYPE = "EarthHistoryLakeVoidInfill";
+export const LAKE_VOID_INFILL_OLDEST_MA = 1800;
 
 export interface RigidMaterialChartV2 {
   readonly kind: "rigid";
@@ -368,10 +379,15 @@ export function validateMaterialCorrectionCatalogV1(
         && correction.materialOriginRangeMa?.length === 2
         && correction.materialOriginRangeMa[0] >= correction.materialOriginRangeMa[1]
       : phase === "source-qualified-material"
-      ? (lifecycle.youngest === 410 && lifecycle.oldest > 410 && lifecycle.oldest <= 540)
-        || (["supported", "native-source-supported-age-unknown"].includes(correction?.materialStatus ?? "")
-          && lifecycle.youngest >= 0
-          && lifecycle.oldest <= 540)
+      ? (chart.sourceFeatureTypes[0] === LAKE_VOID_INFILL_SOURCE_TYPE
+        ? (correction?.materialStatus === "supported" && correction.poseStatus === "model-inference"
+          && correction.lakeOnsetMa === lifecycle.youngest && chart.lifecycle.youngestExclusive === true
+          && lifecycle.youngest >= 0 && lifecycle.oldest > lifecycle.youngest
+          && lifecycle.oldest <= LAKE_VOID_INFILL_OLDEST_MA)
+        : (lifecycle.youngest === 410 && lifecycle.oldest > 410 && lifecycle.oldest <= 540)
+          || (["supported", "native-source-supported-age-unknown"].includes(correction?.materialStatus ?? "")
+            && lifecycle.youngest >= 0
+            && lifecycle.oldest <= 540))
       : phase === "uncertain-continuation"
         ? lifecycle.youngest > 410 && lifecycle.oldest === 540
         : false;
@@ -391,7 +407,8 @@ export function validateMaterialCorrectionCatalogV1(
         || chart.geometryReferenceAgeMa !== 0
         || chart.sourceFeatureTypes.length !== 1
         || !["EarthHistorySourceQualifiedMaterialCorrection", "EarthHistoryDomainFragmentReplacement",
-          "EarthHistoryObservedModernLandCorrection", "EarthHistoryVolcanicIslandMaterialCorrection"]
+          "EarthHistoryObservedModernLandCorrection", "EarthHistoryVolcanicIslandMaterialCorrection",
+          LAKE_VOID_INFILL_SOURCE_TYPE]
           .includes(chart.sourceFeatureTypes[0]!)) {
       throw new Error("invalid derived material correction chart");
     }

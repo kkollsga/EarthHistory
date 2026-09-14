@@ -1,0 +1,441 @@
+{
+ "schemaVersion": 1,
+ "policy": "basin onset: the age when a lake first existed in roughly its present basin; a lake without a row is present-only",
+ "lakes": [
+  {
+   "lake": "Lake Victoria",
+   "onsetMa": 0.4,
+   "uncertaintyMa": 0.1,
+   "currentBodyMa": 0.0145,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "johnson-lake-victoria-1996"
+   ],
+   "basis": "basin onset",
+   "note": "Seismic reflection: basin formed by regional tilting ~400 ka (Johnson et al. 1996). Complete desiccation 15.9-14.2 ka, refilled ~14.5 cal ka (Stager & Johnson 2008, 10.1007/s10750-007-9158-2).",
+   "sourceDois": [
+    "10.1126/science.273.5278.1091"
+   ]
+  },
+  {
+   "lake": "Lake Tanganyika",
+   "onsetMa": 10.5,
+   "uncertaintyMa": 1.5,
+   "currentBodyMa": 10.5,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "cohen-tanganyika-1993"
+   ],
+   "basis": "basin onset",
+   "note": "Central basin 9-12 Ma; northern 7-8 Ma; southern 2-4 Ma (Cohen et al. 1993, seismic-stratigraphic extrapolation). Continuous since; Pleistocene lowstands only.",
+   "sourceDois": [
+    "10.1130/0091-7613(1993)021<0511:ETAOFO>2.3.CO;2"
+   ]
+  },
+  {
+   "lake": "Lake Malawi",
+   "onsetMa": 8.6,
+   "uncertaintyMa": 0.5,
+   "currentBodyMa": 1.0,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "ebinger-malawi-rift-1993"
+   ],
+   "basis": "basin onset",
+   "note": "Rungwe volcanism 8.6 Ma marks rift onset (Ebinger et al. 1993); deep water only by 4.5 Ma; nearly dried 1.6-1.0 Ma (Delvaux 1995, africamuseum.be/publication_docs/1995_Delvaux_Age-Lake-Malawi.pdf). Megadroughts 135-75 ka (Scholz 2007, 10.10",
+   "sourceDois": [
+    "10.1029/93JB01392"
+   ]
+  },
+  {
+   "lake": "Lake Albert",
+   "onsetMa": 8.0,
+   "uncertaintyMa": 4.0,
+   "currentBodyMa": 0.015,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "simon-albert-basin-2017"
+   ],
+   "basis": "basin onset",
+   "note": "Deposition in the Lake Albert basin from 17 Ma (Simon et al. 2017); shallow downwarp 12 Ma, first major rifting 8 Ma (Pickford 1993 via Chorowicz 2005, 10.1016/j.jafrearsci.2005.07.019). Two lowstands 21-15 ka then rise (Beuning et al. 1997",
+   "sourceDois": [
+    "10.1016/j.marpetgeo.2017.05.006"
+   ]
+  },
+  {
+   "lake": "Lake Turkana",
+   "onsetMa": 4.1,
+   "uncertaintyMa": 0.2,
+   "currentBodyMa": 0.2,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "feibel-turkana-2011"
+   ],
+   "basis": "basin onset",
+   "note": "Lonyumun Lake ~4.1 Ma was the first Plio-Pleistocene lake in the basin; earliest transgression of modern Lake Turkana shortly before 200 ka; Nile outlet as recently as the middle Holocene (Feibel 2011; Garcin et al. 2012, 10.1016/j.epsl.201",
+   "sourceDois": [
+    "10.1002/evan.20331"
+   ]
+  },
+  {
+   "lake": "Lake Chad",
+   "onsetMa": 7.0,
+   "uncertaintyMa": 3.0,
+   "currentBodyMa": 0.005,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "schuster-chad-basin-2009"
+   ],
+   "basis": "basin onset",
+   "note": "Basin is an Early Cretaceous rift; >=500 m Neogene lacustrine fill; late Miocene-Pliocene lakes in the Bol core (Moussa et al. 2016, 10.1016/j.jafrearsci.2016.02.023); Miocene megalake ~twice the Holocene one (Schuster et al. 2009). Present",
+   "sourceDois": [
+    "10.1016/j.crte.2009.04.001"
+   ]
+  },
+  {
+   "lake": "Lake Baikal",
+   "onsetMa": 30.0,
+   "uncertaintyMa": 5.0,
+   "currentBodyMa": 3.5,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "mats-baikal-rift-2011"
+   ],
+   "basis": "basin onset",
+   "note": "Mats & Perepelova 2011 stages: Archeo-Baikal 70-30 Ma, Proto-Baikal 30-3.5 Ma, Palaeo-Baikal 3.5 Ma-present (snippet of paper). Conventional 25-30 Ma lake age = Proto-Baikal onset; deep modern lake from ~3.5 Ma. Logatchev 1993: largest and ",
+   "sourceDois": [
+    "10.1016/j.gsf.2011.06.002"
+   ]
+  },
+  {
+   "lake": "Lake Superior",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.002,
+   "currentBodyMa": 0.009,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "basin onset",
+   "note": "Bedrock basin follows the 1.1 Ga Midcontinent Rift (Cannon et al. 1989, 10.1029/TC008i002p00305), glacially scoured >=6 times since 0.78 Ma. Proglacial lakes from the 11.8-10 ka readvances; north rim deglaciated ~9 ka; Nipissing 5.5-5.0 ka.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Lake Michigan",
+   "onsetMa": 0.016,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.004,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "basin onset",
+   "note": "First proglacial lake (glacial Lake Milwaukee) ~16 ka 14C; Nipissing 5.5-5.0 ka; Chicago outlet abandoned ~4 ka and level fell to modern (Larson & Schaetzl 2001).",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Lake Huron",
+   "onsetMa": 0.013,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.004,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "basin onset",
+   "note": "Glacial Lake Saginaw ~13 ka 14C; Algonquin abandoned after ~10.5 ka; modern level after Nipissing (5.5-5.0 ka) and ~4 ka outlet change.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Lake Erie",
+   "onsetMa": 0.0155,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.012,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "basin onset",
+   "note": "Glacial Lake Maumee ~16-15.5 ka 14C; Whittlesey/Warren ~13 ka; Early Lake Erie after ice cleared the Niagara outlet ~12 ka 14C.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Lake Ontario",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.0118,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "basin onset",
+   "note": "Glacial Lake Iroquois drained just after 11.8 ka 14C to Early Lake Ontario, later raised to present Lake Ontario by isostatic uplift of the outlet.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Georgian Bay",
+   "onsetMa": 0.013,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.004,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "part of Huron",
+   "note": "Glacial Lake Saginaw ~13 ka 14C; Algonquin abandoned after ~10.5 ka; modern level after Nipissing (5.5-5.0 ka) and ~4 ka outlet change.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "North Channel",
+   "onsetMa": 0.013,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.004,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "part of Huron",
+   "note": "Glacial Lake Saginaw ~13 ka 14C; Algonquin abandoned after ~10.5 ka; modern level after Nipissing (5.5-5.0 ka) and ~4 ka outlet change.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Saginaw Bay",
+   "onsetMa": 0.013,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.004,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "part of Huron",
+   "note": "Glacial Lake Saginaw ~13 ka 14C; Algonquin abandoned after ~10.5 ka; modern level after Nipissing (5.5-5.0 ka) and ~4 ka outlet change.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Whitefish Bay",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.002,
+   "currentBodyMa": 0.009,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "larson-great-lakes-2001"
+   ],
+   "basis": "part of Superior",
+   "note": "Bedrock basin follows the 1.1 Ga Midcontinent Rift (Cannon et al. 1989, 10.1029/TC008i002p00305), glacially scoured >=6 times since 0.78 Ma. Proglacial lakes from the 11.8-10 ka readvances; north rim deglaciated ~9 ka; Nipissing 5.5-5.0 ka.",
+   "sourceDois": [
+    "10.1016/S0380-1330(01)70665-X"
+   ]
+  },
+  {
+   "lake": "Great Bear Lake",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.0083,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "smith-lake-mcconnell-1994"
+   ],
+   "basis": "basin onset",
+   "note": "Proterozoic (Wopmay) bedrock basin, glacially scoured (bedrock age not a lake-onset age). Glacial Lake McConnell 11.8-8.3 ka BP (14C); daughter lakes after 8.3 ka (Smith 1994).",
+   "sourceDois": [
+    "10.1016/0277-3791(94)90004-3"
+   ]
+  },
+  {
+   "lake": "Great Slave Lake",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.0083,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "smith-lake-mcconnell-1994"
+   ],
+   "basis": "basin onset",
+   "note": "Part of glacial Lake McConnell 11.8-8.3 ka BP (14C); separated by isostatic rebound at 8.3 ka (Smith 1994).",
+   "sourceDois": [
+    "10.1016/0277-3791(94)90004-3"
+   ]
+  },
+  {
+   "lake": "McLeod Bay",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.0083,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "smith-lake-mcconnell-1994"
+   ],
+   "basis": "part of Great Slave",
+   "note": "Part of glacial Lake McConnell 11.8-8.3 ka BP (14C); separated by isostatic rebound at 8.3 ka (Smith 1994).",
+   "sourceDois": [
+    "10.1016/0277-3791(94)90004-3"
+   ]
+  },
+  {
+   "lake": "Lake Athabasca",
+   "onsetMa": 0.0118,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.0083,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "smith-lake-mcconnell-1994"
+   ],
+   "basis": "basin onset",
+   "note": "Part of glacial Lake McConnell; separated at 8.3 ka BP 14C (Smith 1994).",
+   "sourceDois": [
+    "10.1016/0277-3791(94)90004-3"
+   ]
+  },
+  {
+   "lake": "Lake Winnipeg",
+   "onsetMa": 0.0115,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.008,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "todd-lake-winnipeg-1998"
+   ],
+   "basis": "basin onset",
+   "note": "Remnant of glacial Lake Agassiz (from ~11.5 ka 14C; final drainage ~8.2 cal ka, Teller & Leverington 2004, 10.1130/B25316.1). Basal post-Agassiz dates ~7000 14C BP (north) and ~4000 14C BP (south) (Todd et al. 1998).",
+   "sourceDois": [
+    "10.1023/A:1007997024412"
+   ]
+  },
+  {
+   "lake": "Lake Ladoga",
+   "onsetMa": 0.0139,
+   "uncertaintyMa": 0.0002,
+   "currentBodyMa": 0.0083,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "gromig-ladoga-2019"
+   ],
+   "basis": "basin onset",
+   "note": "Varve sedimentation began 13,910 +/- 140 cal BP as part of the Baltic Ice Lake (Gromig et al. 2019). Isolated from the Baltic after the Ancylus regression ~8.3 cal ka; Neva outlet formed ~3.1 14C ka / ~3.3 cal ka (Saarnisto & Gronlund 1996,",
+   "sourceDois": [
+    "10.1111/bor.12379"
+   ]
+  },
+  {
+   "lake": "Lake Onega",
+   "onsetMa": 0.0135,
+   "uncertaintyMa": 0.0008,
+   "currentBodyMa": 0.0095,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "saarnisto-onega-2001"
+   ],
+   "basis": "basin onset",
+   "note": "Basin deglaciated 14,250-12,750 +/- 100 cal BP (Saarnisto & Saarinen 2001). Drained to the White Sea, then via the Svir into Ladoga from ~9.5 14C ka.",
+   "sourceDois": [
+    "10.1016/S0921-8181(01)00131-X"
+   ]
+  },
+  {
+   "lake": "Vänern",
+   "onsetMa": 0.0125,
+   "uncertaintyMa": 0.001,
+   "currentBodyMa": 0.01,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "bjorck-baltic-1995"
+   ],
+   "basis": "part of Vanern",
+   "note": "Glacially eroded Precambrian basement basin. Isolated from the Ancylus Lake at ca. 9.0 ka BP 14C (~10.0 cal ka) when the Dana River eroded to sea level (Bjorck 1995).",
+   "sourceDois": [
+    "10.1016/1040-6182(94)00057-C"
+   ]
+  },
+  {
+   "lake": "Lago Titicaca",
+   "onsetMa": 2.5,
+   "uncertaintyMa": 0.5,
+   "currentBodyMa": 0.37,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "lavenu-titicaca-1992"
+   ],
+   "basis": "basin onset",
+   "note": "Graben in the northern Altiplano; Late Pliocene-Early Pleistocene, 2-3 Ma (Lavenu 1992); paleolakes Mataro, Cabana, Ballivian precede the present lake. Continuous drill-core record >370 ka (Fritz et al. 2007, 10.1016/j.yqres.2007.07.008).",
+   "sourceDois": [
+    "10.1007/978-94-011-2406-5_1"
+   ]
+  },
+  {
+   "lake": "Lake Balkhash",
+   "onsetMa": 0.5,
+   "uncertaintyMa": 0.3,
+   "currentBodyMa": 0.11,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "sala-balkhash-2020"
+   ],
+   "basis": "basin onset",
+   "note": "Large lake formed by the Ili River in the Middle Pleistocene; Ancient Balkhash megalake ~300 ka; split into Balkhash and Alakol ~110 ka (Sala et al. 2020; chapter read via search snippet only).",
+   "sourceDois": [
+    "10.1007/978-3-030-42254-7_5"
+   ]
+  },
+  {
+   "lake": "Issyk-Kul",
+   "onsetMa": 3.0,
+   "uncertaintyMa": 1.0,
+   "currentBodyMa": 3.0,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "roud-issyk-kul-2021"
+   ],
+   "basis": "basin onset",
+   "note": "Lake formation commenced ~5 Ma; lacustrine facies ~3 Ma; closed basin by 5-3 Ma deformation (Roud et al. 2021; Kudriavtseva et al. 2023, 10.1111/bre.12751).",
+   "sourceDois": [
+    "10.1029/2020GC009556"
+   ]
+  },
+  {
+   "lake": "North Aral Sea",
+   "onsetMa": 2.6,
+   "uncertaintyMa": 0.6,
+   "currentBodyMa": 0.0176,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "boomer-aral-2000"
+   ],
+   "basis": "basin onset",
+   "note": "Depression formed at the end of the Neogene; first filled by Late Pliocene Akchagylian/Apsheronian seas; dry in early-middle Pleistocene (Boomer et al. 2000). Modern Aral Sea formed at least 17.6 cal ka (Burr et al. 2019, 10.1016/j.quascire",
+   "sourceDois": [
+    "10.1016/S0277-3791(00)00002-0"
+   ]
+  },
+  {
+   "lake": "South Aral Sea",
+   "onsetMa": 2.6,
+   "uncertaintyMa": 0.6,
+   "currentBodyMa": 0.0176,
+   "evidence": "observed/proxy-constrained",
+   "sourceIds": [
+    "boomer-aral-2000"
+   ],
+   "basis": "basin onset",
+   "note": "Depression formed at the end of the Neogene; first filled by Late Pliocene Akchagylian/Apsheronian seas; dry in early-middle Pleistocene (Boomer et al. 2000). Modern Aral Sea formed at least 17.6 cal ka (Burr et al. 2019, 10.1016/j.quascire",
+   "sourceDois": [
+    "10.1016/S0277-3791(00)00002-0"
+   ]
+  }
+ ]
+}

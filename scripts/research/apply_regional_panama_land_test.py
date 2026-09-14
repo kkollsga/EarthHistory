@@ -78,19 +78,43 @@ class PanamaApplyTest(unittest.TestCase):
         })
 
         binary, records = appender.decode_palette(palette_binary_path, palette)
+        # The public palette also carries the later North Sea restoration entries
+        # (appended after Panama); recover the pre-Panama state by dropping both
+        # families and repacking the surviving records in entry order.
         removed_entries = [row for row in palette["entries"]
                            if row["entryId"].startswith(appender.ENTRY_PREFIX)
-                           or row["entryId"] == "country-present-reference-plate-0-identity"]
-        self.assertEqual(len(removed_entries), 4)
-        record_offset = min(row["sampleOffset"] for row in removed_entries)
-        self.assertEqual(record_offset + 4, len(records))
-        palette["entries"] = palette["entries"][:-4]
+                           or row["entryId"] == "country-present-reference-plate-0-identity"
+                           or row["entryId"].startswith("restoration-north-sea-")]
+        self.assertEqual(len([row for row in removed_entries
+                              if not row["entryId"].startswith("restoration-north-sea-")]), 4)
+        removed_ids = {row["entryId"] for row in removed_entries}
+        kept_records = []
+        kept_entries = []
+        for entry in palette["entries"]:
+            if entry["entryId"] in removed_ids:
+                continue
+            rows = records[entry["sampleOffset"]:entry["sampleOffset"] + entry["sampleCount"]]
+            entry = dict(entry, sampleOffset=len(kept_records))
+            kept_records.extend(rows)
+            kept_entries.append(entry)
+        palette["entries"] = kept_entries
         palette["sourceIntervalSets"] = [row for row in palette["sourceIntervalSets"]
                                           if row["id"] not in (
                                               appender.INTERVAL_ID,
                                               "country-present-reference-clock-0-v1",
-                                          )]
-        palette_binary_path.write_bytes(appender.encode_palette(palette, records[:record_offset]))
+                                          ) and not row["id"].startswith("north-sea-restoration-clock-")]
+        restoration = json.loads((appender.ROOT / "data/corrections/north-sea-restoration/restoration-contract.json").read_text())
+        for row in restoration["charts"]:
+            chart = core["charts"][row["chartIndex"]]
+            self.assertEqual(chart["chartId"], row["chartId"])
+            chart["motionBindings"] = [{"paletteId": palette["id"], "entryId": entry_id,
+                                        "validTimeMa": {"youngest": youngest, "oldest": oldest}}
+                                       for entry_id, youngest, oldest in row["bindings"]]
+            chart["evidence"]["limitations"] = [text for text in chart["evidence"]["limitations"]
+                                                if not text.startswith("North Sea regional restoration")]
+            chart["evidence"]["sourceIds"] = [source for source in chart["evidence"]["sourceIds"]
+                                              if source not in restoration["sourceIds"]]
+        palette_binary_path.write_bytes(appender.encode_palette(palette, kept_records))
         palette["binary"] = appender.asset(palette_binary_path)
         palette_path.write_bytes(appender.canonical(palette))
 

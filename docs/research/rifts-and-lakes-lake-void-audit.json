@@ -1,0 +1,976 @@
+{
+ "source": "Natural Earth 1:10m lakes >= 100 km2 against Cao v2.4 coast and continental-outline layers at 0 Ma, 2026-09-14",
+ "lakesAudited": 988,
+ "voidLakes": [
+  {
+   "name": "Lake Superior",
+   "featurecla": "Lake",
+   "areaKm2": 82079.1,
+   "voidKm2": 80657.8,
+   "voidFraction": 0.983,
+   "voidUnderContinentKm2": 80657.8,
+   "lonLat": [
+    -88.201,
+    47.726
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Victoria",
+   "featurecla": "Lake",
+   "areaKm2": 67332.2,
+   "voidKm2": 65914.8,
+   "voidFraction": 0.979,
+   "voidUnderContinentKm2": 65914.8,
+   "lonLat": [
+    32.866,
+    -1.267
+   ],
+   "staticPlates": [
+    712
+   ],
+   "coastPlatesTouching": [
+    712
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Huron",
+   "featurecla": "Lake",
+   "areaKm2": 59804.1,
+   "voidKm2": 58606.8,
+   "voidFraction": 0.98,
+   "voidUnderContinentKm2": 58606.8,
+   "lonLat": [
+    -82.288,
+    44.686
+   ],
+   "staticPlates": [
+    10104
+   ],
+   "coastPlatesTouching": [
+    101,
+    10104,
+    10105
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Michigan",
+   "featurecla": "Lake",
+   "areaKm2": 57426.3,
+   "voidKm2": 56329.2,
+   "voidFraction": 0.981,
+   "voidUnderContinentKm2": 56329.2,
+   "lonLat": [
+    -87.089,
+    43.878
+   ],
+   "staticPlates": [
+    10104
+   ],
+   "coastPlatesTouching": [
+    101,
+    10104
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Tanganyika",
+   "featurecla": "Lake",
+   "areaKm2": 32896.7,
+   "voidKm2": 31799.3,
+   "voidFraction": 0.967,
+   "voidUnderContinentKm2": 31799.3,
+   "lonLat": [
+    29.462,
+    -6.072
+   ],
+   "staticPlates": [
+    701
+   ],
+   "coastPlatesTouching": [
+    701,
+    712
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Baikal",
+   "featurecla": "Lake",
+   "areaKm2": 31419.1,
+   "voidKm2": 30600.4,
+   "voidFraction": 0.974,
+   "voidUnderContinentKm2": 30600.4,
+   "lonLat": [
+    108.159,
+    53.631
+   ],
+   "staticPlates": [
+    401
+   ],
+   "coastPlatesTouching": [
+    401
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Great Bear Lake",
+   "featurecla": "Lake",
+   "areaKm2": 30655.3,
+   "voidKm2": 29516.1,
+   "voidFraction": 0.963,
+   "voidUnderContinentKm2": 29516.1,
+   "lonLat": [
+    -120.354,
+    65.928
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Malawi",
+   "featurecla": "Lake",
+   "areaKm2": 28951.8,
+   "voidKm2": 28124.9,
+   "voidFraction": 0.971,
+   "voidUnderContinentKm2": 28124.9,
+   "lonLat": [
+    34.515,
+    -11.95
+   ],
+   "staticPlates": [
+    701
+   ],
+   "coastPlatesTouching": [
+    701,
+    713,
+    77011
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Erie",
+   "featurecla": "Lake",
+   "areaKm2": 25695.6,
+   "voidKm2": 24939.2,
+   "voidFraction": 0.971,
+   "voidUnderContinentKm2": 24939.2,
+   "lonLat": [
+    -80.967,
+    42.247
+   ],
+   "staticPlates": [
+    10105
+   ],
+   "coastPlatesTouching": [
+    10105
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Great Slave Lake",
+   "featurecla": "Lake",
+   "areaKm2": 25940.8,
+   "voidKm2": 24713.6,
+   "voidFraction": 0.953,
+   "voidUnderContinentKm2": 24713.6,
+   "lonLat": [
+    -113.928,
+    61.817
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Winnipeg",
+   "featurecla": "Lake",
+   "areaKm2": 24693.5,
+   "voidKm2": 23617.6,
+   "voidFraction": 0.956,
+   "voidUnderContinentKm2": 23617.6,
+   "lonLat": [
+    -97.481,
+    52.401
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Ontario",
+   "featurecla": "Lake",
+   "areaKm2": 19426.5,
+   "voidKm2": 18783.8,
+   "voidFraction": 0.967,
+   "voidUnderContinentKm2": 18783.8,
+   "lonLat": [
+    -77.645,
+    43.849
+   ],
+   "staticPlates": [
+    10105
+   ],
+   "coastPlatesTouching": [
+    10105,
+    10106
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Ladoga",
+   "featurecla": "Lake",
+   "areaKm2": 17564.1,
+   "voidKm2": 17242.7,
+   "voidFraction": 0.982,
+   "voidUnderContinentKm2": 17242.7,
+   "lonLat": [
+    31.661,
+    60.845
+   ],
+   "staticPlates": [
+    30202
+   ],
+   "coastPlatesTouching": [
+    302,
+    30202
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Balkhash",
+   "featurecla": "Lake",
+   "areaKm2": 17550.7,
+   "voidKm2": 16556.7,
+   "voidFraction": 0.943,
+   "voidUnderContinentKm2": 16556.7,
+   "lonLat": [
+    73.954,
+    45.903
+   ],
+   "staticPlates": [
+    461
+   ],
+   "coastPlatesTouching": [
+    460,
+    461,
+    463,
+    464,
+    4601
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Georgian Bay",
+   "featurecla": "Lake",
+   "areaKm2": 13780.4,
+   "voidKm2": 13496.0,
+   "voidFraction": 0.979,
+   "voidUnderContinentKm2": 13496.0,
+   "lonLat": [
+    -80.744,
+    45.247
+   ],
+   "staticPlates": [
+    10105
+   ],
+   "coastPlatesTouching": [
+    101,
+    10104,
+    10105
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Onega",
+   "featurecla": "Lake",
+   "areaKm2": 9889.6,
+   "voidKm2": 9106.0,
+   "voidFraction": 0.921,
+   "voidUnderContinentKm2": 9106.0,
+   "lonLat": [
+    35.558,
+    61.89
+   ],
+   "staticPlates": [
+    30202
+   ],
+   "coastPlatesTouching": [
+    302,
+    30202
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Saimaa",
+   "featurecla": "Lake",
+   "areaKm2": 9309.1,
+   "voidKm2": 8042.9,
+   "voidFraction": 0.864,
+   "voidUnderContinentKm2": 8042.9,
+   "lonLat": [
+    29.535,
+    62.327
+   ],
+   "staticPlates": [
+    30202
+   ],
+   "coastPlatesTouching": [
+    302,
+    30202
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lago Titicaca",
+   "featurecla": "Lake",
+   "areaKm2": 8135.0,
+   "voidKm2": 7617.8,
+   "voidFraction": 0.936,
+   "voidUnderContinentKm2": 7617.8,
+   "lonLat": [
+    -69.354,
+    -15.92
+   ],
+   "staticPlates": [
+    201
+   ],
+   "coastPlatesTouching": [
+    201
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lago de Nicaragua",
+   "featurecla": "Lake",
+   "areaKm2": 7852.4,
+   "voidKm2": 7617.6,
+   "voidFraction": 0.97,
+   "voidUnderContinentKm2": 7617.6,
+   "lonLat": [
+    -85.308,
+    11.572
+   ],
+   "staticPlates": [
+    212
+   ],
+   "coastPlatesTouching": [
+    212
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Athabasca",
+   "featurecla": "Lake",
+   "areaKm2": 8046.7,
+   "voidKm2": 7455.4,
+   "voidFraction": 0.927,
+   "voidUnderContinentKm2": 7455.4,
+   "lonLat": [
+    -110.201,
+    59.035
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Turkana",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 7746.4,
+   "voidKm2": 7386.4,
+   "voidFraction": 0.954,
+   "voidUnderContinentKm2": 7386.4,
+   "lonLat": [
+    36.075,
+    3.531
+   ],
+   "staticPlates": [
+    712
+   ],
+   "coastPlatesTouching": [
+    709,
+    712
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Volta",
+   "featurecla": "Reservoir",
+   "areaKm2": 7993.8,
+   "voidKm2": 6702.9,
+   "voidFraction": 0.839,
+   "voidUnderContinentKm2": 6702.9,
+   "lonLat": [
+    0.065,
+    7.728
+   ],
+   "staticPlates": [
+    714
+   ],
+   "coastPlatesTouching": [
+    714,
+    760
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Reindeer Lake",
+   "featurecla": "Lake",
+   "areaKm2": 6686.0,
+   "voidKm2": 6101.9,
+   "voidFraction": 0.913,
+   "voidUnderContinentKm2": 6101.9,
+   "lonLat": [
+    -102.344,
+    57.22
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Issyk-Kul",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 6252.3,
+   "voidKm2": 5884.5,
+   "voidFraction": 0.941,
+   "voidUnderContinentKm2": 5884.5,
+   "lonLat": [
+    77.036,
+    42.449
+   ],
+   "staticPlates": [
+    459
+   ],
+   "coastPlatesTouching": [
+    459
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "V\u00e4nern",
+   "featurecla": "Lake",
+   "areaKm2": 5721.8,
+   "voidKm2": 5390.0,
+   "voidFraction": 0.942,
+   "voidUnderContinentKm2": 5390.0,
+   "lonLat": [
+    13.594,
+    58.883
+   ],
+   "staticPlates": [
+    30204
+   ],
+   "coastPlatesTouching": [
+    302,
+    30204
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Albert",
+   "featurecla": "Lake",
+   "areaKm2": 5404.6,
+   "voidKm2": 4974.3,
+   "voidFraction": 0.92,
+   "voidUnderContinentKm2": 4974.3,
+   "lonLat": [
+    31.011,
+    1.709
+   ],
+   "staticPlates": [
+    712
+   ],
+   "coastPlatesTouching": [
+    701,
+    712
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Samara Reservoir",
+   "featurecla": "Reservoir",
+   "areaKm2": 5757.5,
+   "voidKm2": 4972.0,
+   "voidFraction": 0.864,
+   "voidUnderContinentKm2": 4972.0,
+   "lonLat": [
+    48.646,
+    54.572
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Winnipegosis",
+   "featurecla": "Lake",
+   "areaKm2": 5340.9,
+   "voidKm2": 4933.3,
+   "voidFraction": 0.924,
+   "voidUnderContinentKm2": 4933.3,
+   "lonLat": [
+    -100.045,
+    52.38
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lac Moeru",
+   "featurecla": "Lake",
+   "areaKm2": 5056.5,
+   "voidKm2": 4926.3,
+   "voidFraction": 0.974,
+   "voidUnderContinentKm2": 4926.3,
+   "lonLat": [
+    28.713,
+    -9.003
+   ],
+   "staticPlates": [
+    701
+   ],
+   "coastPlatesTouching": [
+    701
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Smallwood Reservoir",
+   "featurecla": "Reservoir",
+   "areaKm2": 6993.6,
+   "voidKm2": 4663.6,
+   "voidFraction": 0.667,
+   "voidUnderContinentKm2": 4663.6,
+   "lonLat": [
+    -64.25,
+    54.275
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "North Channel",
+   "featurecla": "Lake",
+   "areaKm2": 3676.8,
+   "voidKm2": 3547.1,
+   "voidFraction": 0.965,
+   "voidUnderContinentKm2": 3547.1,
+   "lonLat": [
+    -82.901,
+    46.043
+   ],
+   "staticPlates": [
+    10104
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "North Aral Sea",
+   "featurecla": "Lake",
+   "areaKm2": 3410.1,
+   "voidKm2": 3408.9,
+   "voidFraction": 1.0,
+   "voidUnderContinentKm2": 3408.9,
+   "lonLat": [
+    60.634,
+    46.434
+   ],
+   "staticPlates": [
+    390
+   ],
+   "coastPlatesTouching": [
+    390
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "South Aral Sea",
+   "featurecla": "Lake",
+   "areaKm2": 3391.8,
+   "voidKm2": 3391.2,
+   "voidFraction": 1.0,
+   "voidUnderContinentKm2": 3391.2,
+   "lonLat": [
+    58.527,
+    45.214
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Saginaw Bay",
+   "featurecla": "Lake",
+   "areaKm2": 2859.6,
+   "voidKm2": 2736.5,
+   "voidFraction": 0.957,
+   "voidUnderContinentKm2": 2736.5,
+   "lonLat": [
+    -83.555,
+    43.988
+   ],
+   "staticPlates": [
+    10104
+   ],
+   "coastPlatesTouching": [
+    10104
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Kakhovka Reservoir",
+   "featurecla": "Reservoir",
+   "areaKm2": 2045.6,
+   "voidKm2": 1860.0,
+   "voidFraction": 0.909,
+   "voidUnderContinentKm2": 1860.0,
+   "lonLat": [
+    34.068,
+    47.343
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Kremenchuk Reservoir",
+   "featurecla": "Reservoir",
+   "areaKm2": 1896.9,
+   "voidKm2": 1801.8,
+   "voidFraction": 0.95,
+   "voidUnderContinentKm2": 1801.8,
+   "lonLat": [
+    32.726,
+    49.288
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Whitefish Bay",
+   "featurecla": "Lake",
+   "areaKm2": 1940.8,
+   "voidKm2": 1755.7,
+   "voidFraction": 0.905,
+   "voidUnderContinentKm2": 1755.7,
+   "lonLat": [
+    -84.787,
+    46.714
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Laguna Madre",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 1750.7,
+   "voidKm2": 1661.9,
+   "voidFraction": 0.949,
+   "voidUnderContinentKm2": 1661.9,
+   "lonLat": [
+    -97.657,
+    24.648
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101,
+    104
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "IJsselmeer",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 1961.6,
+   "voidKm2": 1652.7,
+   "voidFraction": 0.843,
+   "voidUnderContinentKm2": 1652.7,
+   "lonLat": [
+    5.422,
+    52.667
+   ],
+   "staticPlates": [
+    315
+   ],
+   "coastPlatesTouching": [
+    315
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "McLeod Bay",
+   "featurecla": "Lake",
+   "areaKm2": 1934.3,
+   "voidKm2": 1613.6,
+   "voidFraction": 0.834,
+   "voidUnderContinentKm2": 1613.6,
+   "lonLat": [
+    -111.353,
+    62.669
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Chad",
+   "featurecla": "Lake",
+   "areaKm2": 1293.1,
+   "voidKm2": 1264.9,
+   "voidFraction": 0.978,
+   "voidUnderContinentKm2": 1264.9,
+   "lonLat": [
+    14.536,
+    13.063
+   ],
+   "staticPlates": [
+    715
+   ],
+   "coastPlatesTouching": [
+    715
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lake Saint Clair",
+   "featurecla": "Lake",
+   "areaKm2": 1146.0,
+   "voidKm2": 1094.4,
+   "voidFraction": 0.955,
+   "voidUnderContinentKm2": 1094.4,
+   "lonLat": [
+    -82.684,
+    42.504
+   ],
+   "staticPlates": [
+    10105
+   ],
+   "coastPlatesTouching": [
+    10105
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Lago Gatun",
+   "featurecla": "Reservoir",
+   "areaKm2": 435.0,
+   "voidKm2": 435.0,
+   "voidFraction": 1.0,
+   "voidUnderContinentKm2": 0.0,
+   "lonLat": [
+    -79.874,
+    9.166
+   ],
+   "staticPlates": [
+    230
+   ],
+   "coastPlatesTouching": [],
+   "presentPalette": true
+  },
+  {
+   "name": "?",
+   "featurecla": "Reservoir",
+   "areaKm2": 610.8,
+   "voidKm2": 431.0,
+   "voidFraction": 0.706,
+   "voidUnderContinentKm2": 431.0,
+   "lonLat": [
+    34.191,
+    48.763
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Barsakelmes Lake",
+   "featurecla": "Lake",
+   "areaKm2": 375.6,
+   "voidKm2": 365.3,
+   "voidFraction": 0.973,
+   "voidUnderContinentKm2": 365.3,
+   "lonLat": [
+    59.701,
+    46.202
+   ],
+   "staticPlates": [
+    390
+   ],
+   "coastPlatesTouching": [
+    302,
+    390
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Zalew Wislany",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 345.2,
+   "voidKm2": 304.1,
+   "voidFraction": 0.881,
+   "voidUnderContinentKm2": 304.1,
+   "lonLat": [
+    19.589,
+    54.385
+   ],
+   "staticPlates": [
+    30202
+   ],
+   "coastPlatesTouching": [
+    302,
+    30202
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "?",
+   "featurecla": "Lake",
+   "areaKm2": 343.3,
+   "voidKm2": 276.3,
+   "voidFraction": 0.805,
+   "voidUnderContinentKm2": 276.3,
+   "lonLat": [
+    30.33,
+    46.241
+   ],
+   "staticPlates": [
+    302
+   ],
+   "coastPlatesTouching": [
+    302
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "Kaliningradskiy Zaliv",
+   "featurecla": "Alkaline Lake",
+   "areaKm2": 399.5,
+   "voidKm2": 257.1,
+   "voidFraction": 0.643,
+   "voidUnderContinentKm2": 257.1,
+   "lonLat": [
+    20.024,
+    54.6
+   ],
+   "staticPlates": [
+    30202
+   ],
+   "coastPlatesTouching": [
+    302,
+    30202
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "St. Marys River",
+   "featurecla": "Lake",
+   "areaKm2": 201.9,
+   "voidKm2": 175.4,
+   "voidFraction": 0.869,
+   "voidUnderContinentKm2": 175.4,
+   "lonLat": [
+    -84.136,
+    46.448
+   ],
+   "staticPlates": [
+    101
+   ],
+   "coastPlatesTouching": [
+    101
+   ],
+   "presentPalette": true
+  },
+  {
+   "name": "?",
+   "featurecla": "Lake",
+   "areaKm2": 106.0,
+   "voidKm2": 106.0,
+   "voidFraction": 1.0,
+   "voidUnderContinentKm2": 106.0,
+   "lonLat": [
+    59.984,
+    46.004
+   ],
+   "staticPlates": [
+    390
+   ],
+   "coastPlatesTouching": [],
+   "presentPalette": true
+  }
+ ]
+}

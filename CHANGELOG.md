@@ -4,6 +4,45 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-14
+
+### Fixed
+
+- Stop drawing present-day lakes as shallow sea in deep time. The Cao v2.4
+  coast layer leaves 48 large modern lakes (Victoria, Tanganyika, Malawi,
+  Turkana, Albert, the Laurentian Great Lakes, Baikal, Ladoga and others) as
+  voids inside the continental-outline underlay with the owning plate's full
+  lifecycle, so Lake Victoria read as marine shelf at 450 Ma. A new lake-void
+  infill correction (101 charts, 715,323 km², `data/corrections/lake-voids/`)
+  fills each void with the land appearance strictly older than the lake's
+  cited basin onset (29 curated onsets, for example Tanganyika 10.5 Ma,
+  Malawi 8.6 Ma, Victoria 0.4 Ma, Baikal 30 Ma) or, for lakes without a
+  citation, at every age older than exactly 0 Ma. The present-day appearance is
+  unchanged; no native geometry, motion or lake outline is backdated. The
+  correction contract, its seven-mutation self-test and a runtime probe test
+  join `make gate`; the composed package grows to 403,322 vertices, still under
+  the 520,000 renderer reservation, and the requested-age motion tiles were
+  rebound to the new catalog identity.
+- Open the North Sea rift going back in time. Cao v2.4 keeps Britain rigid to
+  Baltica from 0 to 430 Ma, so England and Norway never changed distance. A
+  tracked regional restoration (`data/corrections/north-sea-restoration/`)
+  rotates the UK-side charts (Scotland, Shetland, Ireland, England, Wales and
+  the GBR/IRL outlines; 28 charts on plates 303 and 315) relative to Baltica
+  about a pole fitted to the Müller et al. 2019 North Atlantic deforming
+  network, scaled so the Shetland-Bergen transect closes by the published
+  Mesozoic extension: 0 km below 130 Ma, 27 km by 170 Ma (Late Jurassic
+  phase), 72 km by 270 Ma (Permian-Triassic phase), then constant to each
+  chart's oldest age. Aberdeen-Stavanger closes 47 km; Baltica, Norway,
+  the Netherlands and France do not move. Straddling shelf polygons stay on
+  Baltica. Two palette entries (836 samples) and 28 rebindings are the only
+  package change; a pyGPlates oracle (2.8e-5 rad maximum residual), a
+  pure-Python validator with five contract mutations and a runtime probe test
+  guard it, and the requested-age motion tiles were rebound.
+- Describe the East African Rift honestly: the point of interest now states
+  that the globe carries the Cao v2.4 Somalia-Nubia opening (about 86 km at
+  Nairobi since 20 Ma) on the eastern branch and that the western branch's
+  10-30 km per basin is below regional-zoom resolution and is not modelled.
+
 ## [0.1.9] - 2026-09-14
 
 ### Fixed

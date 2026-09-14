@@ -1,0 +1,993 @@
+{
+ "schemaVersion": 1,
+ "correctionId": "earthhistory-north-sea-restoration-v1",
+ "version": "1",
+ "kind": "rigid-block-regional-restoration",
+ "description": "Rigid restoration of the UK block (Cao plates 303 and 315 west of the Central Graben and Channel cut) relative to Baltica (302) so the North Sea rift closes by the published Permian-Triassic and Late Jurassic extension going back in time. A regional model hypothesis layered on the rigid Cao v2.4 foundation; not a deforming reconstruction.",
+ "model": {
+  "modelId": "cao-et-al-2024",
+  "modelVersion": "2.4",
+  "frame": {
+   "absoluteFrameId": "palaeomagnetic",
+   "anchorPlateId": 0,
+   "axisConvention": "gplates-x0e-y90e-znorth",
+   "modelId": "cao-et-al-2024",
+   "modelVersion": "2.4",
+   "rotationSha256": "80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f",
+   "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
+  }
+ },
+ "sourcePackage": {
+  "packageId": "cao-v2.4-foundation-v1",
+  "revision": "cao-foundation-v1",
+  "coreSha256": "b621f0e5556435b822d3d23f06aa4e5946e75f87cd87172992bba347cfd43011"
+ },
+ "referencePlateId": 302,
+ "blockPlateIds": [
+  303,
+  315
+ ],
+ "windowMa": {
+  "youngest": 130.0,
+  "oldest": 430.0,
+  "reason": "post-rift quiescence below 130 Ma; the closure schedule ends at the Cao 430 Ma Caledonian seam and is held constant to each chart's oldest lifecycle so no chart jumps at a shared knot"
+ },
+ "pole": {
+  "lonLat": [
+   -3.9,
+   44.95
+  ],
+  "fit": {
+   "method": "grid then hill-climb over pole position with a ternary angle search minimising the RMS great-circle misfit to four M\u00fcller 2019 displacement vectors at 200 Ma",
+   "rmsMisfitKm": 15.022,
+   "angleAt200MaForMullerPatternDegrees": -1.792426,
+   "mullerShetlandBergenClosureKm": 53.5,
+   "fittedShetlandBergenClosureKm": 52.254,
+   "mullerDisplacements": {
+    "Shetland": {
+     "lonLat": [
+      -1.2,
+      60.4
+     ],
+     "deltaLonLat": [
+      1.0349,
+      -0.3007
+     ],
+     "km": 66.17
+    },
+    "Aberdeen": {
+     "lonLat": [
+      -2.1,
+      57.1
+     ],
+     "deltaLonLat": [
+      0.6389,
+      0.022
+     ],
+     "km": 38.66
+    },
+    "London": {
+     "lonLat": [
+      -0.1,
+      51.5
+     ],
+     "deltaLonLat": [
+      0.3294,
+      -0.0124
+     ],
+     "km": 22.85
+    },
+    "Dogger Bank": {
+     "lonLat": [
+      2.5,
+      54.7
+     ],
+     "deltaLonLat": [
+      0.4915,
+      -0.0624
+     ],
+     "km": 32.36
+    }
+   }
+  }
+ },
+ "angleSchedule": [
+  {
+   "ageMa": 0.0,
+   "shetlandBergenClosureKm": 0.0,
+   "angleDegrees": 0.0,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 0.0,
+    "Aberdeen-Stavanger": 0.0,
+    "London-Bergen": 0.0,
+    "London-Amsterdam": 0.0
+   }
+  },
+  {
+   "ageMa": 130.0,
+   "shetlandBergenClosureKm": 0.0,
+   "angleDegrees": 0.0,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 0.0,
+    "Aberdeen-Stavanger": 0.0,
+    "London-Bergen": 0.0,
+    "London-Amsterdam": 0.0
+   }
+  },
+  {
+   "ageMa": 140.0,
+   "shetlandBergenClosureKm": 4.0,
+   "angleDegrees": -0.136443307,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 4.0,
+    "Aberdeen-Stavanger": 2.665,
+    "London-Bergen": -0.198,
+    "London-Amsterdam": 1.411
+   }
+  },
+  {
+   "ageMa": 160.0,
+   "shetlandBergenClosureKm": 23.0,
+   "angleDegrees": -0.786090971,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 23.0,
+    "Aberdeen-Stavanger": 15.208,
+    "London-Bergen": -1.246,
+    "London-Amsterdam": 8.032
+   }
+  },
+  {
+   "ageMa": 170.0,
+   "shetlandBergenClosureKm": 27.0,
+   "angleDegrees": -0.923217031,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 27.0,
+    "Aberdeen-Stavanger": 17.824,
+    "London-Bergen": -1.489,
+    "London-Amsterdam": 9.408
+   }
+  },
+  {
+   "ageMa": 200.0,
+   "shetlandBergenClosureKm": 27.0,
+   "angleDegrees": -0.923217031,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 27.0,
+    "Aberdeen-Stavanger": 17.824,
+    "London-Bergen": -1.489,
+    "London-Amsterdam": 9.408
+   }
+  },
+  {
+   "ageMa": 230.0,
+   "shetlandBergenClosureKm": 34.0,
+   "angleDegrees": -1.163522072,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 34.0,
+    "Aberdeen-Stavanger": 22.378,
+    "London-Bergen": -1.933,
+    "London-Amsterdam": 11.802
+   }
+  },
+  {
+   "ageMa": 250.0,
+   "shetlandBergenClosureKm": 60.0,
+   "angleDegrees": -2.060385693,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 60.0,
+    "Aberdeen-Stavanger": 39.038,
+    "London-Bergen": -3.797,
+    "London-Amsterdam": 20.522
+   }
+  },
+  {
+   "ageMa": 270.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  },
+  {
+   "ageMa": 300.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  },
+  {
+   "ageMa": 430.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  }
+ ],
+ "angleInterpolation": "linear in angle between schedule knots; constant outside the window",
+ "closureAuthority": "Shetland-Bergen (61N transect) cumulative Mesozoic extension 72 km central (55-90 km) from Odinsen et al. 2000, Roberts et al. 1993 and 1995, Cowie et al. 2005 and Faerseth 1996, phased as latest Permian-Triassic (about 250-230 Ma) and Late Jurassic (about 170-130 Ma); Devonian post-Caledonian extension is excluded",
+ "sourceIds": [
+  "odinsen-north-sea-2000",
+  "roberts-north-sea-1993",
+  "roberts-north-sea-1995",
+  "cowie-north-sea-2005",
+  "faerseth-north-sea-1996",
+  "muller-deforming-model-2019",
+  "doi:10.5281/zenodo.13628813"
+ ],
+ "witnesses": {
+  "pairs": {
+   "Shetland-Bergen": {
+    "movingLonLat": [
+     -1.2,
+     60.4
+    ],
+    "fixedLonLat": [
+     5.3,
+     60.4
+    ]
+   },
+   "Aberdeen-Stavanger": {
+    "movingLonLat": [
+     -2.1,
+     57.1
+    ],
+    "fixedLonLat": [
+     5.73,
+     58.97
+    ]
+   },
+   "London-Bergen": {
+    "movingLonLat": [
+     -0.1,
+     51.5
+    ],
+    "fixedLonLat": [
+     5.3,
+     60.4
+    ]
+   },
+   "London-Amsterdam": {
+    "movingLonLat": [
+     -0.1,
+     51.5
+    ],
+    "fixedLonLat": [
+     4.9,
+     52.37
+    ]
+   }
+  },
+  "fixed": {
+   "Bergen": [
+    5.3,
+    60.4
+   ],
+   "Stavanger": [
+    5.73,
+    58.97
+   ],
+   "Amsterdam": [
+    4.9,
+    52.37
+   ]
+  },
+  "toleranceKm": 2.0
+ },
+ "chartSelection": {
+  "box": {
+   "minLon": -15.0,
+   "maxLon": 3.0,
+   "minLat": 49.0,
+   "maxLat": 63.0
+  },
+  "cutLongitude": 2.0,
+  "cutLatitude": 50.3,
+  "countryCodes": [
+   "gbr",
+   "irl",
+   "imn"
+  ],
+  "excluded": "the 315 continental-outline chart, which straddles the Central Graben, and the 301/302/330 shelf polygons stay on Baltica"
+ },
+ "charts": [
+  {
+   "chartIndex": 243,
+   "chartId": "cao-continent:GPlates-40a8480f-3fa8-405a-bbb7-20f1f05d4da3:359:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-shelf chart centroid -12.8E 55.5N on plate 303"
+  },
+  {
+   "chartIndex": 595,
+   "chartId": "cao-continent:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:687:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-shelf chart centroid -5.8E 56.3N on plate 303"
+  },
+  {
+   "chartIndex": 2835,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1008:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -6.0E 56.5N on plate 303"
+  },
+  {
+   "chartIndex": 2836,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1085:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -6.3E 55.8N on plate 303"
+  },
+  {
+   "chartIndex": 2837,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1098:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -3.0E 59.0N on plate 303"
+  },
+  {
+   "chartIndex": 2838,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1207:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -5.3E 55.6N on plate 303"
+  },
+  {
+   "chartIndex": 2839,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1270:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -5.9E 56.0N on plate 303"
+  },
+  {
+   "chartIndex": 2840,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1335:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -7.3E 57.2N on plate 303"
+  },
+  {
+   "chartIndex": 2841,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1336:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -7.3E 57.6N on plate 303"
+  },
+  {
+   "chartIndex": 2842,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1501:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -1.1E 60.6N on plate 303"
+  },
+  {
+   "chartIndex": 2843,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1710:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -3.3E 58.8N on plate 303"
+  },
+  {
+   "chartIndex": 2844,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1720:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -10.1E 54.0N on plate 303"
+  },
+  {
+   "chartIndex": 2845,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1766:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -0.9E 60.8N on plate 303"
+  },
+  {
+   "chartIndex": 2846,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:618:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -4.5E 56.7N on plate 303"
+  },
+  {
+   "chartIndex": 2847,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:658:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -8.3E 54.0N on plate 303"
+  },
+  {
+   "chartIndex": 2848,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:658:1",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -9.8E 52.4N on plate 303"
+  },
+  {
+   "chartIndex": 2849,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:871:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -6.7E 58.1N on plate 303"
+  },
+  {
+   "chartIndex": 2850,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:903:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -6.3E 57.3N on plate 303"
+  },
+  {
+   "chartIndex": 2851,
+   "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:979:0",
+   "plateId": 303,
+   "role": "model-geography",
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600
+    ]
+   ],
+   "reason": "batch-land chart centroid -1.4E 60.3N on plate 303"
+  },
+  {
+   "chartIndex": 2977,
+   "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1056:0",
+   "plateId": 315,
+   "role": "model-geography",
+   "lifecycleOldestMa": 420,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420
+    ]
+   ],
+   "reason": "batch-land chart centroid -4.4E 53.3N on plate 315"
+  },
+  {
+   "chartIndex": 2978,
+   "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1107:0",
+   "plateId": 315,
+   "role": "model-geography",
+   "lifecycleOldestMa": 420,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420
+    ]
+   ],
+   "reason": "batch-land chart centroid -4.6E 54.2N on plate 315"
+  },
+  {
+   "chartIndex": 2981,
+   "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1257:0",
+   "plateId": 315,
+   "role": "model-geography",
+   "lifecycleOldestMa": 420,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420
+    ]
+   ],
+   "reason": "batch-land chart centroid -1.4E 50.7N on plate 315"
+  },
+  {
+   "chartIndex": 2993,
+   "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:617:0",
+   "plateId": 315,
+   "role": "model-geography",
+   "lifecycleOldestMa": 420,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420
+    ]
+   ],
+   "reason": "batch-land chart centroid -2.2E 52.1N on plate 315"
+  },
+  {
+   "chartIndex": 2994,
+   "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:657:0",
+   "plateId": 315,
+   "role": "model-geography",
+   "lifecycleOldestMa": 420,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420
+    ]
+   ],
+   "reason": "batch-land chart centroid -8.4E 52.3N on plate 315"
+  },
+  {
+   "chartIndex": 4581,
+   "chartId": "country:irl:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
+   "plateId": 315,
+   "role": "country-reference",
+   "lifecycleOldestMa": 420.0,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420.0
+    ]
+   ],
+   "reason": "modern-country outline IRL on plate 315"
+  },
+  {
+   "chartIndex": 4582,
+   "chartId": "country:irl:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
+   "plateId": 303,
+   "role": "country-reference",
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600.0
+    ]
+   ],
+   "reason": "modern-country outline IRL on plate 303"
+  },
+  {
+   "chartIndex": 4651,
+   "chartId": "country:gbr:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
+   "plateId": 303,
+   "role": "country-reference",
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600.0
+    ]
+   ],
+   "reason": "modern-country outline GBR on plate 303"
+  },
+  {
+   "chartIndex": 4652,
+   "chartId": "country:gbr:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
+   "plateId": 315,
+   "role": "country-reference",
+   "lifecycleOldestMa": 420.0,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420.0
+    ]
+   ],
+   "reason": "modern-country outline GBR on plate 315"
+  }
+ ],
+ "paletteEntries": [
+  {
+   "entryId": "restoration-north-sea-plate-303-130-600",
+   "plateId": 303,
+   "youngestAgeMa": 130.0,
+   "oldestAgeMa": 600,
+   "sourceIntervalSetId": "north-sea-restoration-clock-130-600"
+  },
+  {
+   "entryId": "restoration-north-sea-plate-315-130-420",
+   "plateId": 315,
+   "youngestAgeMa": 130.0,
+   "oldestAgeMa": 420,
+   "sourceIntervalSetId": "north-sea-restoration-clock-130-420"
+  }
+ ],
+ "limitations": [
+  "a rigid block cannot reproduce graben-scale stretching; the closure is a transect total, not a strain field",
+  "the pole geometry follows the M\u00fcller 2019 Jurassic network pattern; the Permian-Triassic phase reuses it",
+  "Devonian post-Caledonian extension (about 30 km) is not restored",
+  "straddling shelf polygons remain on Baltica, so restored land overlaps model shelf rather than closing it",
+  "M\u00fcller et al. 2019 licensing is ambiguous (CC BY 4.0 record, CC BY-SA 4.0 README); no M\u00fcller geometry or rotation is redistributed"
+ ]
+}

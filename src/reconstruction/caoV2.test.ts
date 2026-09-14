@@ -266,16 +266,19 @@ describe("native Cao package v2", () => {
     expect(prepared.batches[2]).toMatchObject({
       batchId: "material-correction-observed", vertexCount: 1_217, triangleCount: 1_307,
     });
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(396_385);
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(564_757);
+    // 396,385 native and regional-correction vertices plus the 6,937 lake-void
+    // infill vertices added on 2026-09-14 (101 charts in the qualified batch).
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(403_322);
+    // 564,757 before the lake-void infill plus its 6,899 triangles.
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(571_656);
     expect(prepared.lineBatches).toHaveLength(1);
     // Historical reconstructed segments retain their chart ownership; exact 0 Ma
     // adds the pinned modern-reference complement without assigning it into deep time.
     expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 24_090, segmentCount: 12_045 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(420_475);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(427_412);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(576_802);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(583_701);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -285,7 +288,9 @@ describe("native Cao package v2", () => {
     const resource = createCaoFoundationGeometryResource(prepared, {
       // Layered shelf/land and bounded correction meshes.
       // Five spatial batches plus the country-reference line batch.
-      maxBatches: 6, maxVertices: 450_000, maxTriangles: 600_000,
+      // Production reservation (GlobeScene): the composed package holds 403,322
+      // vertices and 571,656 triangles after the lake-void infill.
+      maxBatches: 6, maxVertices: 520_000, maxTriangles: 660_000,
       maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
@@ -297,6 +302,7 @@ describe("native Cao package v2", () => {
     expect(prepared.anchorIds).toContain("chicxulub");
     expect(prepared.materialCorrectionIdentity).toMatch(/^earthhistory-cao-v2\.4-material-corrections-v1@/);
     expect(prepared.materialCorrections.correctionIds).toEqual([
+      "earthhistory-lake-void-infill-v1",
       "earthhistory-observed-land-omission-v1",
       "earthhistory-regional-barents-material-v1",
       "earthhistory-regional-canada-franklinian-material-v1",

@@ -17,6 +17,7 @@ from pathlib import Path
 import cao_material_corrections as contract
 import regional_iceland_correction as iceland_contract
 import regional_observed_land_omission_correction as omission_contract
+import regional_lake_void_correction as lake_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -232,8 +233,11 @@ def entries_covering(catalog, plate_id, youngest, oldest):
     """Return an unambiguous, gap-free palette partition for an interval."""
     if oldest < youngest:
         raise contract.CorrectionError(f"plate {plate_id}: reversed motion interval")
+    # Regional restoration entries (North Sea UK block) are opt-in per pinned
+    # native chart; a correction chart on the same plate keeps the native motion.
     candidates = sorted(
-        (entry for entry in catalog["entries"] if entry["plateId"] == plate_id),
+        (entry for entry in catalog["entries"] if entry["plateId"] == plate_id
+         and not entry["entryId"].startswith("restoration-")),
         key=lambda entry: (entry["youngestAgeMa"], entry["oldestAgeMa"], entry["entryId"]),
     )
     if youngest == oldest:
@@ -808,6 +812,13 @@ def chart(manifest, feature, phase, palette):
         })
         if replacement["materialOriginRangeMa"] is not None:
             correction["materialOriginRangeMa"] = replacement["materialOriginRangeMa"]
+    elif feature.get("materialRole") == "lake-void-infill":
+        correction.update({
+            "materialStatus": "supported",
+            "poseStatus": "model-inference",
+            "lakeOnsetMa": youngest,
+            "lake": feature["lake"],
+        })
     elif feature.get("phaseLifecycles") is not None and phase != "observed":
         kind = feature["sourceUnitSelection"]["included"][0]
         origin = {"gold": [16.3, 3.3], "gnew": [3.3, 0.8],
@@ -818,6 +829,7 @@ def chart(manifest, feature, phase, palette):
             "materialOriginRangeMa": origin,
         })
     source_type = ("EarthHistoryObservedModernLandCorrection" if phase == "observed" else
+                   lake_contract.SOURCE_TYPE if feature.get("materialRole") == "lake-void-infill" else
                    "EarthHistoryVolcanicIslandMaterialCorrection"
                    if feature.get("phaseLifecycles") is not None else
                    "EarthHistoryDomainFragmentReplacement" if replacement is not None else
@@ -845,6 +857,8 @@ def chart(manifest, feature, phase, palette):
                             feature["uncertainty"]["exposure"],
                             ("observed land classification is limited to the exact modern reference age"
                              if phase == "observed" else
+                             "land inferred between native coast charts before the cited or default lake onset; not a shoreline, depth, or height claim"
+                             if feature.get("materialRole") == "lake-void-infill" else
                              "material support is not a palaeoshoreline, exposed-land, or height claim"),
                             *([replacement["poseWarning"]] if replacement is not None else [])],
             "correction": correction,
@@ -862,6 +876,11 @@ def update_public_manifest(catalog_path, geometry_paths, *, update_root_manifest
     if not update_root_manifest:
         return
     refresh_outer_manifest()
+
+
+def lake_contract_url():
+    manifest = json.loads(lake_contract.MANIFEST.read_text())
+    return next(row["url"] for row in manifest["sourceAssets"] if row["sourceId"] == "natural-earth-lakes-10m")
 
 
 def refresh_outer_manifest():
@@ -889,7 +908,9 @@ def refresh_outer_manifest():
         "source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern "
         "Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have "
         "no coast or continent counterpart, where the model leaves observed land bare of "
-        "both the coastline and the continental-outline underlay."
+        "both the coastline and the continental-outline underlay. Forty-eight large modern "
+        "lakes that Cao leaves as coast voids inside the continental outline are filled with "
+        "land-appearance infill at ages older than each lake's cited or present-only onset."
     )
     foundation["scope"] = (
         "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline "
@@ -899,7 +920,8 @@ def refresh_outer_manifest():
         "boundaries/ownership. Country lines remain modern locators only; the Panama and "
         "observed-land-omission geometry is not backdated and the shelf overlay is not a "
         "palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored "
-        "lifecycles and unknown surface exposure."
+        "lifecycles and unknown surface exposure. Lake-void infill is land inference older "
+        "than each lake's onset; the present-day lake voids keep the model's own shelf class."
     )
     foundation["compilerRevision"] = (
         "cao-foundation-v2 emitted-float32 triangulation with stable spherical-area validation"
@@ -926,6 +948,18 @@ def refresh_outer_manifest():
         "geographicBasis": "WGS84 generalized present-day country land polygons, all ADM0_A3 records",
         "evidenceRole": ("generalized observed present-day land boundary at exactly 0 Ma, "
                          "bounded by the thirteen Cao static partitions that own the omissions"),
+    }
+    root_manifest["inputs"]["natural-earth-lakes-10m"] = {
+        "url": lake_contract_url(),
+        "title": "Natural Earth 1:10m Lakes",
+        "publicationOrVersionDate": "5.1.2",
+        "retrievalDate": "2026-09-14",
+        "license": "Public domain",
+        "bytes": 5043554,
+        "sha256": lake_contract.NATURAL_EARTH_SHA256,
+        "geographicBasis": "WGS84 generalized present-day lake polygons",
+        "evidenceRole": ("present-day lake extent used only to identify Cao coast voids; "
+                         "the emitted infill geometry is the Cao void itself"),
     }
     catalog_path = PUBLIC / package["materialCorrections"]["catalog"]["url"]
     catalog = json.loads(catalog_path.read_text())
@@ -977,6 +1011,10 @@ def main():
     omission_contract.validate_document(omission_manifest)
     rows = [*rows, *((omission_manifest, omission_contract.MANIFEST, feature)
                      for feature in omission_manifest["features"])]
+    lake_manifest = json.loads(lake_contract.MANIFEST.read_text())
+    lake_contract.validate_document(lake_manifest)
+    rows = [*rows, *((lake_manifest, lake_contract.MANIFEST, feature)
+                     for feature in lake_manifest["features"])]
     package, palette, records = palette_data()
     core = json.loads((PUBLIC / package["core"]["url"]).read_text())
     native_overrides, replacement_rows = native_override_rows(core)
@@ -1024,6 +1062,7 @@ def main():
         "correctionIds": sorted({*(manifest["correctionId"] for manifest in manifests),
                                  iceland_manifest["correctionId"],
                                  omission_manifest["correctionId"],
+                                 lake_manifest["correctionId"],
                                  *(override["correctionId"] for override in native_overrides)}),
         "nativeChartOverrides": native_overrides,
         "alignmentWitnesses": alignment_witnesses(additive_rows, palette, records),

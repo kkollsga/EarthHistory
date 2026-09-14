@@ -1,0 +1,10 @@
+{
+  "charts": 101,
+  "correctionId": "earthhistory-lake-void-infill-v1",
+  "curatedOnsets": 29,
+  "features": 101,
+  "geometryBytes": 523132,
+  "lakes": 48,
+  "runtime": true,
+  "validatedAt": "2026-09-14"
+}
