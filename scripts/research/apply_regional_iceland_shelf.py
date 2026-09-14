@@ -38,7 +38,12 @@ SHELF_SHELL_METRES = 400
 LAND_SHELL_METRES = 800
 EARTH_RADIUS_METRES = 6_371_000
 FLOAT32_ORDER_MARGIN = 1e-7
-MAX_TOTAL_VERTICES = 400_000
+# Composed native + correction geometry. The production renderer reserves
+# 520,000 vertices and 660,000 triangles (GlobeScene); the lake-void infill
+# (2026-09-14, +6,937 vertices / +7,868 triangles) moved the composed total to
+# 403,322 vertices, so the pinned budget keeps about 80,000 vertices of headroom
+# below the renderer limit rather than sitting 3,600 below the old 400,000 pin.
+MAX_TOTAL_VERTICES = 440_000
 MAX_TOTAL_TRIANGLES = 600_000
 EXPECTED_ADDED_VERTICES = 2_348
 EXPECTED_ADDED_TRIANGLES = 2_387

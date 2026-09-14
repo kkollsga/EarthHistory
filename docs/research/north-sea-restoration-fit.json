@@ -1,0 +1,193 @@
+{
+ "generatedOn": "2026-09-14",
+ "correctionId": "earthhistory-north-sea-restoration-v1",
+ "pole": {
+  "lonLat": [
+   -3.9,
+   44.95
+  ],
+  "fit": {
+   "method": "grid then hill-climb over pole position with a ternary angle search minimising the RMS great-circle misfit to four M\u00fcller 2019 displacement vectors at 200 Ma",
+   "rmsMisfitKm": 15.022,
+   "angleAt200MaForMullerPatternDegrees": -1.792426,
+   "mullerShetlandBergenClosureKm": 53.5,
+   "fittedShetlandBergenClosureKm": 52.254,
+   "mullerDisplacements": {
+    "Shetland": {
+     "lonLat": [
+      -1.2,
+      60.4
+     ],
+     "deltaLonLat": [
+      1.0349,
+      -0.3007
+     ],
+     "km": 66.17
+    },
+    "Aberdeen": {
+     "lonLat": [
+      -2.1,
+      57.1
+     ],
+     "deltaLonLat": [
+      0.6389,
+      0.022
+     ],
+     "km": 38.66
+    },
+    "London": {
+     "lonLat": [
+      -0.1,
+      51.5
+     ],
+     "deltaLonLat": [
+      0.3294,
+      -0.0124
+     ],
+     "km": 22.85
+    },
+    "Dogger Bank": {
+     "lonLat": [
+      2.5,
+      54.7
+     ],
+     "deltaLonLat": [
+      0.4915,
+      -0.0624
+     ],
+     "km": 32.36
+    }
+   }
+  }
+ },
+ "angleSchedule": [
+  {
+   "ageMa": 0.0,
+   "shetlandBergenClosureKm": 0.0,
+   "angleDegrees": 0.0,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 0.0,
+    "Aberdeen-Stavanger": 0.0,
+    "London-Bergen": 0.0,
+    "London-Amsterdam": 0.0
+   }
+  },
+  {
+   "ageMa": 130.0,
+   "shetlandBergenClosureKm": 0.0,
+   "angleDegrees": 0.0,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 0.0,
+    "Aberdeen-Stavanger": 0.0,
+    "London-Bergen": 0.0,
+    "London-Amsterdam": 0.0
+   }
+  },
+  {
+   "ageMa": 140.0,
+   "shetlandBergenClosureKm": 4.0,
+   "angleDegrees": -0.136443307,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 4.0,
+    "Aberdeen-Stavanger": 2.665,
+    "London-Bergen": -0.198,
+    "London-Amsterdam": 1.411
+   }
+  },
+  {
+   "ageMa": 160.0,
+   "shetlandBergenClosureKm": 23.0,
+   "angleDegrees": -0.786090971,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 23.0,
+    "Aberdeen-Stavanger": 15.208,
+    "London-Bergen": -1.246,
+    "London-Amsterdam": 8.032
+   }
+  },
+  {
+   "ageMa": 170.0,
+   "shetlandBergenClosureKm": 27.0,
+   "angleDegrees": -0.923217031,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 27.0,
+    "Aberdeen-Stavanger": 17.824,
+    "London-Bergen": -1.489,
+    "London-Amsterdam": 9.408
+   }
+  },
+  {
+   "ageMa": 200.0,
+   "shetlandBergenClosureKm": 27.0,
+   "angleDegrees": -0.923217031,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 27.0,
+    "Aberdeen-Stavanger": 17.824,
+    "London-Bergen": -1.489,
+    "London-Amsterdam": 9.408
+   }
+  },
+  {
+   "ageMa": 230.0,
+   "shetlandBergenClosureKm": 34.0,
+   "angleDegrees": -1.163522072,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 34.0,
+    "Aberdeen-Stavanger": 22.378,
+    "London-Bergen": -1.933,
+    "London-Amsterdam": 11.802
+   }
+  },
+  {
+   "ageMa": 250.0,
+   "shetlandBergenClosureKm": 60.0,
+   "angleDegrees": -2.060385693,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 60.0,
+    "Aberdeen-Stavanger": 39.038,
+    "London-Bergen": -3.797,
+    "London-Amsterdam": 20.522
+   }
+  },
+  {
+   "ageMa": 270.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  },
+  {
+   "ageMa": 300.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  },
+  {
+   "ageMa": 430.0,
+   "shetlandBergenClosureKm": 72.0,
+   "angleDegrees": -2.477052457,
+   "witnessClosureKm": {
+    "Shetland-Bergen": 72.0,
+    "Aberdeen-Stavanger": 46.585,
+    "London-Bergen": -4.773,
+    "London-Amsterdam": 24.452
+   }
+  }
+ ],
+ "selectedCharts": 28,
+ "selectedByPlateAndRole": {
+  "303:model-geography": 19,
+  "315:model-geography": 5,
+  "315:country-reference": 2,
+  "303:country-reference": 2
+ }
+}

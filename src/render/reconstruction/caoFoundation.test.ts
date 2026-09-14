@@ -163,8 +163,11 @@ describe("Cao foundation renderer boundary", () => {
     const revision = await runtime.request(0).prepared;
     const packageLimits = {
       ...limits,
-      maxVertices: 450_000,
-      maxTriangles: 600_000,
+      // The production reservation in GlobeScene: 520,000 vertices and 660,000
+      // triangles. The composed public package holds 403,322 vertices and
+      // 571,656 triangles before country-line quads after the lake-void infill.
+      maxVertices: 520_000,
+      maxTriangles: 660_000,
       maxRetainedSourceBytes: 48 * 1024 * 1024,
       maxPublicationBytes: 2 * 1024 * 1024,
     };

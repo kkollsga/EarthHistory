@@ -16,6 +16,7 @@ Latest scope clarification: aerial basin views are sufficient; detailed subsurfa
 
 | Memo | What it resolves |
 | --- | --- |
+| [Rifts and lakes through time](rifts-and-lakes-through-time.md) | Lake-void infill (48 lakes, cited onsets), the North Sea rigid UK-block restoration (72 km Shetland-Bergen by 270 Ma, Müller 2019 pattern check) and the East African Rift decision; acquisition, literature and validation records |
 | [Cao requested-age motion tiles](cao-requested-age-motion-tiles.md) | Transport-only 25 Ma windows that preserve exact palette records and requested-age support while the full palette loads in the background |
 | [Requested-age progressive loading validation](requested-age-progressive-loading-validation.md) | Publication, cancellation, Retry, memory, visual, gate and production loading evidence for showing the URL-requested age first |
 | [Requested-age motion-tile performance](cao-requested-age-motion-tiles-performance.json) | Three-run cold/warm measurements at 0, 74, 411 and 1800 Ma, background handoff timing, cadence, picks, raw failed premises and corrected scoped witnesses |

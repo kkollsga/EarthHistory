@@ -1,0 +1,250 @@
+{
+  "appliedCoreSha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
+  "correctionId": "earthhistory-north-sea-restoration-v1",
+  "maximumMotionResidualRad": 2.8186868879892362e-05,
+  "maximumResidualAgeMa": 341.5,
+  "maximumResidualPlateId": 303,
+  "validatedAt": "2026-09-14",
+  "witnesses": [
+    {
+      "ageMa": 130.0,
+      "closureKm": -0.0,
+      "expectedKm": 0.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 130.0,
+      "closureKm": 0.0,
+      "expectedKm": 0.0,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 130.0,
+      "closureKm": 0.0,
+      "expectedKm": 0.0,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 130.0,
+      "closureKm": 0.0,
+      "expectedKm": 0.0,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 140.0,
+      "closureKm": 4.0,
+      "expectedKm": 4.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 140.0,
+      "closureKm": 2.666,
+      "expectedKm": 2.665,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 140.0,
+      "closureKm": -0.198,
+      "expectedKm": -0.198,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 140.0,
+      "closureKm": 1.411,
+      "expectedKm": 1.411,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 160.0,
+      "closureKm": 23.0,
+      "expectedKm": 23.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 160.0,
+      "closureKm": 15.208,
+      "expectedKm": 15.208,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 160.0,
+      "closureKm": -1.246,
+      "expectedKm": -1.246,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 160.0,
+      "closureKm": 8.032,
+      "expectedKm": 8.032,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 170.0,
+      "closureKm": 27.0,
+      "expectedKm": 27.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 170.0,
+      "closureKm": 17.824,
+      "expectedKm": 17.824,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 170.0,
+      "closureKm": -1.489,
+      "expectedKm": -1.489,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 170.0,
+      "closureKm": 9.408,
+      "expectedKm": 9.408,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 200.0,
+      "closureKm": 27.0,
+      "expectedKm": 27.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 200.0,
+      "closureKm": 17.823,
+      "expectedKm": 17.824,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 200.0,
+      "closureKm": -1.489,
+      "expectedKm": -1.489,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 200.0,
+      "closureKm": 9.408,
+      "expectedKm": 9.408,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 230.0,
+      "closureKm": 34.0,
+      "expectedKm": 34.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 230.0,
+      "closureKm": 22.378,
+      "expectedKm": 22.378,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 230.0,
+      "closureKm": -1.933,
+      "expectedKm": -1.933,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 230.0,
+      "closureKm": 11.802,
+      "expectedKm": 11.802,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 250.0,
+      "closureKm": 60.0,
+      "expectedKm": 60.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 250.0,
+      "closureKm": 39.038,
+      "expectedKm": 39.038,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 250.0,
+      "closureKm": -3.797,
+      "expectedKm": -3.797,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 250.0,
+      "closureKm": 20.522,
+      "expectedKm": 20.522,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 270.0,
+      "closureKm": 72.0,
+      "expectedKm": 72.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 270.0,
+      "closureKm": 46.585,
+      "expectedKm": 46.585,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 270.0,
+      "closureKm": -4.773,
+      "expectedKm": -4.773,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 270.0,
+      "closureKm": 24.452,
+      "expectedKm": 24.452,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 300.0,
+      "closureKm": 72.0,
+      "expectedKm": 72.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 300.0,
+      "closureKm": 46.585,
+      "expectedKm": 46.585,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 300.0,
+      "closureKm": -4.773,
+      "expectedKm": -4.773,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 300.0,
+      "closureKm": 24.452,
+      "expectedKm": 24.452,
+      "pair": "London-Amsterdam"
+    },
+    {
+      "ageMa": 430.0,
+      "closureKm": 72.004,
+      "expectedKm": 72.0,
+      "pair": "Shetland-Bergen"
+    },
+    {
+      "ageMa": 430.0,
+      "closureKm": 46.588,
+      "expectedKm": 46.585,
+      "pair": "Aberdeen-Stavanger"
+    },
+    {
+      "ageMa": 430.0,
+      "closureKm": -4.773,
+      "expectedKm": -4.773,
+      "pair": "London-Bergen"
+    },
+    {
+      "ageMa": 430.0,
+      "closureKm": 24.456,
+      "expectedKm": 24.452,
+      "pair": "London-Amsterdam"
+    }
+  ]
+}

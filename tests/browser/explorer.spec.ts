@@ -324,7 +324,9 @@ test("distinguishes exact native checkpoints from continuous motion", async ({ p
   await page.goto("./#age=450");
   await waitForCao(page);
   await expect(page.locator(".geography-age").first()).toContainText("450 Ma native Cao checkpoint");
-  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  // Counts include the lake-void infill charts (source-qualified material with
+  // model-inferred pose) active above their lake onsets: 91 at 410 Ma, 90 at 430 Ma.
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "94");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
   await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "1");
   await expect(page.locator("#source-age-jump")).toHaveValue("450");
@@ -342,15 +344,17 @@ test("activates cited material corrections across exact evidence boundaries", as
   await page.goto("./#age=410");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
-  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "10");
+  // Counts include the lake-void infill charts (source-qualified material with
+  // model-inferred pose) active above their lake onsets: 91 at 410 Ma, 90 at 430 Ma.
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "101");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
-  await expect(globe(page)).toHaveAttribute("data-cao-model-inferred-pose-charts", "10");
+  await expect(globe(page)).toHaveAttribute("data-cao-model-inferred-pose-charts", "101");
 
   await setContinuousAge(page, 410.0000001);
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
-  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "15");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "106");
   await expect(globe(page)).toHaveAttribute("data-cao-formation-uncertain-material-charts", "2");
   await openSurfaceInfo(page);
   await expect(page.locator(".surface-evidence-key")).toContainText("Source-qualified material");
@@ -358,13 +362,13 @@ test("activates cited material corrections across exact evidence boundaries", as
   await page.locator("#source-age-jump").selectOption("430");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "430");
-  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "14");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "104");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "1");
 
   await setContinuousAge(page, 430.0000001);
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geography-support", "cao-plus-formation-range-material");
-  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "4");
+  await expect(globe(page)).toHaveAttribute("data-cao-qualified-material-charts", "94");
   await expect(globe(page)).toHaveAttribute("data-cao-uncertain-material-charts", "11");
   await openSurfaceInfo(page);
   await expect(page.locator(".surface-evidence-key")).toContainText("Model-inferred or uncertain material");

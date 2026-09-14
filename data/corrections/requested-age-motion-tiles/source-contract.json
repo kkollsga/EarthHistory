@@ -22,30 +22,30 @@
       "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
     },
     "core": {
-      "url": "core.json",
-      "bytes": 6308918,
-      "sha256": "b621f0e5556435b822d3d23f06aa4e5946e75f87cd87172992bba347cfd43011"
+      "bytes": 6317889,
+      "sha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
+      "url": "core.json"
     },
     "motionPalette": {
       "id": "cao-v2.4-shared-motion-v1",
       "catalog": {
-        "url": "motion-palette.json",
-        "bytes": 747420,
-        "sha256": "88ce5edcd0c224685b14120a1e3d7f436966985d5fb134d6f08cbc59ec985b0a"
+        "bytes": 802748,
+        "sha256": "fdeb39add0cf5de91a2b203d302bf49ab8175dd94cd7e5d4a0f2d245b9bbc887",
+        "url": "motion-palette.json"
       },
       "binary": {
-        "url": "motion-palette.bin",
-        "bytes": 5604992,
-        "sha256": "1b54a2b8c08bad838035195deb12a23c488796ea13649344b3c2eb3e24a4d830"
+        "bytes": 5621712,
+        "sha256": "77dc433ec67d24609d0f19b6f5c0a2189560b36890879dd2b4c31d0bea852bdb",
+        "url": "motion-palette.bin"
       }
     },
     "materialCorrections": {
-      "id": "earthhistory-cao-v2.4-material-corrections-v1",
       "catalog": {
-        "url": "corrections/material-v1/catalog.json",
-        "bytes": 216378,
-        "sha256": "672914a69a01c5e6bc2ae9be943357e8ba1e8dc04b89f65a94161b4b228b7be7"
-      }
+        "bytes": 397090,
+        "sha256": "acacf3d70741467ac83a9212ef90934e0f921094876dea6ea350967950168981",
+        "url": "corrections/material-v1/catalog.json"
+      },
+      "id": "earthhistory-cao-v2.4-material-corrections-v1"
     }
   },
   "derivation": {
@@ -53,11 +53,11 @@
     "recordSemantics": "Every EHMT record is an exact byte slice of motion-palette.bin. Tiles add no rotation, interpolation, reconstruction, palaeogeographic, or surface evidence.",
     "sourceRecordIndices": "Each tile descriptor hashes the ordered little-endian uint32 indices of its records in the full palette binary.",
     "expectedTileCount": 72,
-    "expectedTilePayloadBytes": 5710232,
-    "expectedRecordCount": 280974,
-    "expectedEntryDescriptorCount": 11056,
+    "expectedTilePayloadBytes": 5722140,
+    "expectedRecordCount": 281565,
+    "expectedEntryDescriptorCount": 11067,
     "expectedIndexBytes": 28068,
-    "expectedIndexSha256": "ea717c7a7c4e41ca222942d511c4efc7e01a91778f49b5040eb6064af8014e5c",
+    "expectedIndexSha256": "76369cb64d4fe5d924f9f28409073dce5653fd25c82a9fa2a44eb10bdf7c3445",
     "outputLimitBytes": 6610000,
     "cleanupOwner": "root",
     "scratchRoot": "/tmp/earthhistory-requested-age/data"

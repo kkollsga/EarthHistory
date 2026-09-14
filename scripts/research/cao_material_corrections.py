@@ -572,7 +572,8 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     expected_ids = sorted({*(manifest["correctionId"] for manifest in manifests),
                            *(row["correctionId"] for _, row in raw_overrides),
                            iceland_manifest["correctionId"],
-                           omission_manifest["correctionId"]})
+                           omission_manifest["correctionId"],
+                           "earthhistory-lake-void-infill-v1"})
     if catalog.get("schemaVersion") != 1 or catalog.get("id") != descriptor.get("id") \
             or catalog.get("correctionIds") != expected_ids:
         fail("material correction catalog", "regional correction identity set mismatch")
@@ -632,9 +633,13 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     iceland.validate_generated_catalog(iceland_manifest, catalog)
     omission.validate_generated_catalog(omission_manifest, catalog,
                                                 package_path.parent)
+    import regional_lake_void_correction as lake
+    lake_manifest = json.loads(lake.MANIFEST.read_text())
+    lake.validate_document(lake_manifest)
+    lake.validate_generated_catalog(lake_manifest, catalog, package_path.parent)
     expected_chart_ids.update(chart["chartId"] for chart in catalog.get("charts", [])
                               if chart.get("evidence", {}).get("correction", {}).get("correctionId")
-                              in (iceland.CORRECTION_ID, omission.CORRECTION_ID))
+                              in (iceland.CORRECTION_ID, omission.CORRECTION_ID, lake.CORRECTION_ID))
     emitted_overrides = {row.get("overrideId"): row for row in catalog.get("nativeChartOverrides", [])}
     if len(emitted_overrides) != len(raw_overrides):
         fail("material correction catalog.nativeChartOverrides", "override identity set mismatch")
