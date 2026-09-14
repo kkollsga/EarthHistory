@@ -1,6 +1,22 @@
 import type { PackageAsset } from "./identity";
 
-export type StaticAssetFetcher = (url: string, signal?: AbortSignal) => Promise<ArrayBuffer>;
+/**
+ * Background timeline work passes priority "low" plus a wait the fetcher calls
+ * between body reads. Holding reads while a foreground tile is pending applies
+ * transport backpressure so the foreground request keeps most of the link.
+ */
+export interface StaticAssetFetchOptions {
+  readonly priority?: "low" | "high" | "auto";
+  readonly yieldToForeground?: () => Promise<void>;
+  /** Awaited after verified bytes arrive and before main-thread decoding starts. */
+  readonly beforeDecode?: () => Promise<void>;
+}
+
+export type StaticAssetFetcher = (
+  url: string,
+  signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
+) => Promise<ArrayBuffer>;
 
 const SHA256 = /^[a-f0-9]{64}$/;
 
@@ -45,9 +61,10 @@ export async function loadVerifiedBytes(
   asset: PackageAsset,
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
 ): Promise<ArrayBuffer> {
   if (signal?.aborted) throw new DOMException("reconstruction request aborted", "AbortError");
-  const bytes = await fetcher(contentAddressedAssetUrl(asset), signal);
+  const bytes = await fetcher(contentAddressedAssetUrl(asset), signal, options);
   if (signal?.aborted) throw new DOMException("reconstruction request aborted", "AbortError");
   const digest = await sha256(bytes);
   if (signal?.aborted) throw new DOMException("reconstruction request aborted", "AbortError");

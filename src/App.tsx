@@ -131,6 +131,11 @@ function editorialSnapshotForAge(ageMa: number): WorldSnapshot {
   };
 }
 
+/** Checkpoint warming waits for the scrub to rest this long. */
+const SCRUB_SETTLE_MS = 300;
+/** A pending foreground age changes the presented map-key status only after this long. */
+const PENDING_STATUS_DELAY_MS = 180;
+
 export default function App() {
   const initial = useRef(parseInitialState()).current;
   const initialPoi = pointsOfInterest.find((poi) => poi.id === initial.focus);
@@ -227,15 +232,38 @@ export default function App() {
     void fetch(manifestUrl, { signal: controller.signal, cache: "no-store" }).then(async (response) => {
       if (!response.ok) throw new Error(`Could not load Cao reconstruction manifest (${response.status})`);
       const manifest = await response.json() as ReconstructionPackageManifestV2;
-      const fetcher: StaticAssetFetcher = async (path, signal) => {
+      const fetcher: StaticAssetFetcher = async (path, signal, options) => {
         // The manifest stays no-store. Hash-qualified payload URLs are immutable,
         // so refreshes may reuse them without mixing bytes across promotions.
+        // Background timeline work passes a low priority hint so foreground
+        // tiles win the connection where the browser honours it.
         const assetResponse = await fetch(new URL(path, manifestUrl), {
           signal,
           cache: contentAddressedAssetCacheMode(path),
+          ...(options?.priority ? { priority: options.priority } as RequestInit : {}),
         });
         if (!assetResponse.ok) throw new Error(`Could not load Cao reconstruction asset (${assetResponse.status})`);
-        return assetResponse.arrayBuffer();
+        if (!options?.yieldToForeground || !assetResponse.body) return assetResponse.arrayBuffer();
+        // Read background bodies chunk by chunk and hold reads while the
+        // runtime has a foreground tile in flight, so the foreground fetch is
+        // not sharing the link with a multi-megabyte download.
+        const reader = assetResponse.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let total = 0;
+        for (;;) {
+          await options.yieldToForeground();
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          total += value.byteLength;
+        }
+        const joined = new Uint8Array(total);
+        let offset = 0;
+        for (const chunk of chunks) {
+          joined.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        return joined.buffer;
       };
       if (!active) return;
       const runtime = new CaoReconstructionRuntime(manifest, fetcher);
@@ -317,6 +345,7 @@ export default function App() {
       inFlight: false,
       serial: 0,
       pump: () => {},
+      prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
     };
 
     const pump = () => {
@@ -342,12 +371,19 @@ export default function App() {
         applyMotionFrame(frame);
         scrub.inFlight = false;
         if (requestedAgeRef.current !== targetAge) pump();
-        // Prefetch adjacent display knots along play/scrub direction (bounded).
-        const ages = runtime.manifest.checkpoints.map((checkpoint) => checkpoint.ageMa);
-        const upper = ages.findIndex((age) => age >= targetAge);
-        const lookahead = [ages[Math.max(0, upper - 1)], ages[upper], ages[Math.min(ages.length - 1, upper + 1)]]
-          .filter((age): age is number => age !== undefined);
-        void runtime.prefetchCheckpoints(lookahead);
+        // Warm the bracketing display knots only once the scrub settles. Doing
+        // it per sample streamed checkpoint fetches that competed with the
+        // motion tiles the gesture actually needed.
+        if (scrub.prefetchTimer) clearTimeout(scrub.prefetchTimer);
+        scrub.prefetchTimer = setTimeout(() => {
+          scrub.prefetchTimer = 0;
+          if (scrub.disposed || requestedAgeRef.current !== targetAge) return;
+          const ages = runtime.manifest.checkpoints.map((checkpoint) => checkpoint.ageMa);
+          const upper = ages.findIndex((age) => age >= targetAge);
+          const lookahead = [ages[Math.max(0, upper - 1)], ages[upper], ages[Math.min(ages.length - 1, upper + 1)]]
+            .filter((age): age is number => age !== undefined);
+          void runtime.prefetchCheckpoints(lookahead);
+        }, SCRUB_SETTLE_MS);
       }).catch((error: unknown) => {
         if (serial !== scrub.serial || scrub.disposed) return;
         scrub.inFlight = false;
@@ -364,6 +400,7 @@ export default function App() {
     pump();
     return () => {
       scrub.disposed = true;
+      if (scrub.prefetchTimer) clearTimeout(scrub.prefetchTimer);
       if (caoScrubPumpRef.current === scrub) caoScrubPumpRef.current = null;
     };
   }, [caoRuntimeReady]);
@@ -530,8 +567,15 @@ export default function App() {
     () => [...orderedSlices].reverse().findIndex((slice) => slice.id === chapter.id) + 1,
     [chapter.id, orderedSlices],
   );
+  const inCaoDomain = caoAgeDomainMa !== null
+    && ageMa >= caoAgeDomainMa[0] && ageMa <= caoAgeDomainMa[1];
   const retimedSnapshot = snapshot;
-  const displayedSnapshot = retimedSnapshot;
+  const displayedSurfaceAgeMa = periodCoordinateState.displayedAgeMa;
+  const displayedSnapshot = useMemo(() =>
+    inCaoDomain && displayedSurfaceAgeMa !== undefined && displayedSurfaceAgeMa !== ageMa
+      ? editorialSnapshotForAge(displayedSurfaceAgeMa)
+      : retimedSnapshot,
+  [ageMa, displayedSurfaceAgeMa, inCaoDomain, retimedSnapshot]);
   const temporalPoiCoordinates = useMemo<Readonly<Record<string, LonLat>> | undefined>(() => {
     if (caoAgeDomainMa && (ageMa < caoAgeDomainMa[0] || ageMa > caoAgeDomainMa[1])) {
       // Keep last Cao anchors while showing editorial deep-time chapters.
@@ -540,23 +584,37 @@ export default function App() {
     return caoRevision === null ? undefined : caoAnchorCoordinates;
   }, [ageMa, caoAgeDomainMa, caoAnchorCoordinates, caoRevision]);
   const contextSnapshot = displayedSnapshot;
-  const inCaoDomain = caoAgeDomainMa !== null
-    && ageMa >= caoAgeDomainMa[0] && ageMa <= caoAgeDomainMa[1];
   const currentCaoMotionFrame = caoMotionFrame?.requestedAgeMa === ageMa ? caoMotionFrame : null;
+  const effectiveDisplayedCaoAgeMa = displayedSurfaceAgeMa ?? ageMa;
   const displayedCao = !inCaoDomain ? null
-    : currentCaoMotionFrame ?? (caoRevision?.requestedAgeMa === ageMa ? caoRevision : null);
+    : caoMotionFrame?.requestedAgeMa === effectiveDisplayedCaoAgeMa ? caoMotionFrame
+      : caoRevision?.requestedAgeMa === effectiveDisplayedCaoAgeMa ? caoRevision : null;
   const exactCaoCheckpoint = caoSourceAges.includes(ageMa);
   const requestedMotionAvailable = exactCaoCheckpoint
     ? caoRevision?.requestedAgeMa === ageMa
     : caoMotionFrame?.requestedAgeMa === ageMa || caoRevision?.requestedAgeMa === ageMa;
-  const foregroundMotionWithheld = inCaoDomain && caoRevision !== null
+  const foregroundMotionPending = inCaoDomain && caoRevision !== null
     && (caoTimelineLoading.foregroundStatus === "loading" || !requestedMotionAvailable);
+  const foundationPendingNow = caoRevision !== null && (foregroundMotionPending
+    || (caoMotionFrame?.requestedAgeMa ?? caoRevision.requestedAgeMa) !== ageMa
+    || periodCoordinateState.status === "updating");
+  // Each scrub sample is pending for a frame or two even with resident motion.
+  // Only a sustained wait changes the presented status, so the map key does
+  // not flicker on every sample while the globe keeps showing the last frame.
+  const [foundationPendingShown, setFoundationPendingShown] = useState(false);
+  useEffect(() => {
+    if (!foundationPendingNow) {
+      setFoundationPendingShown(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setFoundationPendingShown(true), PENDING_STATUS_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [foundationPendingNow]);
   const foundationStatus = caoAgeDomainMa && ageMa > caoAgeDomainMa[1] ? "outside compiled domain"
     : periodCoordinateState.status === "error" ? "render unavailable"
       : caoRevision === null ? "preparing"
-        : (caoMotionFrame?.requestedAgeMa ?? caoRevision.requestedAgeMa) !== ageMa
-          || periodCoordinateState.status === "updating"
-          ? "updating"
+        : foundationPendingNow
+          ? (foundationPendingShown || periodCoordinateState.displayedAgeMa === undefined ? "updating" : "rendered")
           : periodCoordinateState.status === "ready" ? "rendered" : "updating";
   const surfaceInfoState = caoLoadError !== null || periodCoordinateState.status === "error" ? "error"
     : foundationStatus === "rendered" ? "ready" : foundationStatus === "outside compiled domain" ? "editorial" : "loading";
@@ -566,7 +624,10 @@ export default function App() {
       : surfaceInfoState === "ready" && caoTimelineLoading.status === "paused"
         ? `${formatAge(ageMa)} ready · Timeline loading paused`
         : surfaceInfoState === "ready" ? "Cao surface"
-          : surfaceInfoState === "editorial" ? "Editorial surface" : `Loading ${formatAge(ageMa)}…`;
+          : surfaceInfoState === "editorial" ? "Editorial surface"
+            : displayedSurfaceAgeMa !== undefined && displayedSurfaceAgeMa !== ageMa
+              ? `Loading ${formatAge(ageMa)} · Showing ${formatAge(displayedSurfaceAgeMa)}`
+              : `Loading ${formatAge(ageMa)}…`;
   const observedMaterialVisible = (displayedCao?.materialCorrections.observedActiveCharts ?? 0) > 0;
   const classifiedShallowMarineVisible =
     (displayedCao?.materialCorrections.classifiedShallowMarineActiveCharts ?? 0) > 0;
@@ -599,6 +660,15 @@ export default function App() {
     if (now - lastStatsUpdate.current < 900) return;
     lastStatsUpdate.current = now;
     setStats(next);
+  }, []);
+
+  const handlePeriodCoordinateState = useCallback((next: PeriodCoordinateRenderState) => {
+    // Updating/loading callbacks describe the pending target and may omit the
+    // last rendered age. Retain that age until a new frame explicitly replaces it.
+    setPeriodCoordinateState((current) => next.displayedAgeMa === undefined
+        && current.displayedAgeMa !== undefined
+      ? { ...next, displayedAgeMa: current.displayedAgeMa }
+      : next);
   }, []);
 
   // Continuous scrub/play updates ageMa every animation frame. Writing
@@ -999,14 +1069,14 @@ export default function App() {
         <GlobeView
           caoRevision={caoRevision}
           caoMotionFrame={currentCaoMotionFrame}
-          caoWithheld={caoLoadError !== null || foregroundMotionWithheld}
+          caoWithheld={caoLoadError !== null}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
           onSelectPoi={(id: string) => openPoi(id)}
           onSelectSurface={selectSurface}
           onStats={handleStats}
-          onPeriodCoordinateState={setPeriodCoordinateState}
+          onPeriodCoordinateState={handlePeriodCoordinateState}
           focusTarget={spatialFocus}
           resetNonce={resetNonce}
           autoRotate={!reducedMotion && autoRotateEnabled}

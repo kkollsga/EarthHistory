@@ -479,8 +479,10 @@ export function createCaoFoundationCountryLineMaterial(
   displayFractionValue: number,
   style: CaoFoundationCountryLineStyle = "stroke",
 ): CaoFoundationLineMaterialGraph {
-  // Underlay sits slightly lower; main stroke above. Soft slate beats near-black
-  // 1px hairlines, which alias hard on the globe (WebGL linewidth is effectively 1).
+  // Underlay sits slightly lower; main stroke above. WebGL linewidth is
+  // effectively 1, so the translucent underlay softens the hairline instead of
+  // widening it. The stroke is a dark slate: the earlier mid-tone slate read as
+  // nearly invisible on phones and pale land.
   const shellOffset = style === "underlay"
     ? CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES - 120
     : CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES;
@@ -488,14 +490,14 @@ export function createCaoFoundationCountryLineMaterial(
     displayFractionValue, 1, float(0), float(0), shellOffset);
   const material = new LineBasicNodeMaterial({
     transparent: true,
-    opacity: style === "underlay" ? 0.34 : 0.72,
+    opacity: style === "underlay" ? 0.5 : 0.92,
     depthTest: true,
     depthWrite: false,
   });
-  // Mid-tone slate stays visible across both pale land and dark shelf water.
+  // Dark slate stays visible across pale land and dark shelf water alike.
   material.colorNode = style === "underlay"
-    ? vec3(0.1, 0.12, 0.15)
-    : vec3(0.44, 0.54, 0.56);
+    ? vec3(0.04, 0.05, 0.07)
+    : vec3(0.12, 0.15, 0.18);
   material.positionNode = pose.position;
   return Object.freeze({ material, displayFraction: pose.displayFraction });
 }
