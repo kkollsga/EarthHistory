@@ -27,6 +27,7 @@
   303,
   315
  ],
+ "tornquistPlateId": 330,
  "windowMa": {
   "youngest": 130.0,
   "oldest": 430.0,
@@ -232,6 +233,7 @@
      -1.2,
      60.4
     ],
+    "movingPlateId": 303,
     "fixedLonLat": [
      5.3,
      60.4
@@ -242,6 +244,7 @@
      -2.1,
      57.1
     ],
+    "movingPlateId": 303,
     "fixedLonLat": [
      5.73,
      58.97
@@ -252,6 +255,7 @@
      -0.1,
      51.5
     ],
+    "movingPlateId": 315,
     "fixedLonLat": [
      5.3,
      60.4
@@ -262,6 +266,7 @@
      -0.1,
      51.5
     ],
+    "movingPlateId": 315,
     "fixedLonLat": [
      4.9,
      52.37
@@ -280,6 +285,14 @@
    "Amsterdam": [
     4.9,
     52.37
+   ],
+   "Aarhus": [
+    10.2,
+    56.16
+   ],
+   "Gothenburg": [
+    11.97,
+    57.71
    ]
   },
   "toleranceKm": 2.0
@@ -298,6 +311,7 @@
    "irl",
    "imn"
   ],
+  "boundary": "Viking Graben and Central Graben: Britain and Ireland move; Norway, Denmark, the Netherlands and France stay. Denmark lies on the Norwegian side of the Central Graben and a single rigid rotation cannot close both the Viking Graben and the Skagerrak",
   "excluded": "the 315 continental-outline chart, which straddles the Central Graben, and the 301/302/330 shelf polygons stay on Baltica"
  },
  "charts": [
@@ -306,6 +320,8 @@
    "chartId": "cao-continent:GPlates-40a8480f-3fa8-405a-bbb7-20f1f05d4da3:359:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -327,10 +343,49 @@
    "reason": "batch-shelf chart centroid -12.8E 55.5N on plate 303"
   },
   {
+   "chartIndex": 488,
+   "chartId": "cao-continent:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:36:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
    "chartIndex": 595,
    "chartId": "cao-continent:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:687:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -352,10 +407,937 @@
    "reason": "batch-shelf chart centroid -5.8E 56.3N on plate 303"
   },
   {
+   "chartIndex": 2370,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1218:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2371,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1218:1",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2372,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1218:2",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2373,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1330:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2374,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1373:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2375,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1414:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2376,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1904:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2377,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1904:1",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2378,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1906:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2379,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1906:1",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2380,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1990:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2381,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1996:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2382,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:2006:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2383,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:2010:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2384,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:2014:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2385,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:2020:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2386,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:2028:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2387,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:772:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2388,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:7:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2389,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:7:1",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2390,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:7:2",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2391,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:7:3",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2392,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:7:4",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2393,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:944:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 2394,
+   "chartId": "cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:982:0",
+   "plateId": 330,
+   "role": "model-geography",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600
+    ]
+   ],
+   "reason": "Tornquist Block chart (model-geography) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
    "chartIndex": 2835,
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1008:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -381,6 +1363,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1085:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -406,6 +1390,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1098:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -431,6 +1417,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1207:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -456,6 +1444,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1270:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -481,6 +1471,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1335:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -506,6 +1498,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1336:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -531,6 +1525,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1501:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -556,6 +1552,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1710:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -581,6 +1579,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1720:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -606,6 +1606,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:1766:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -631,6 +1633,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:618:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -656,6 +1660,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:658:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -681,6 +1687,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:658:1",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -706,6 +1714,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:871:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -731,6 +1741,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:903:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -756,6 +1768,8 @@
    "chartId": "cao-coast:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:979:0",
    "plateId": 303,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600,
    "bindings": [
     [
@@ -781,6 +1795,8 @@
    "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1056:0",
    "plateId": 315,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420,
    "bindings": [
     [
@@ -801,6 +1817,8 @@
    "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1107:0",
    "plateId": 315,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420,
    "bindings": [
     [
@@ -821,6 +1839,8 @@
    "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:1257:0",
    "plateId": 315,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420,
    "bindings": [
     [
@@ -841,6 +1861,8 @@
    "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:617:0",
    "plateId": 315,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420,
    "bindings": [
     [
@@ -861,6 +1883,8 @@
    "chartId": "cao-coast:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:657:0",
    "plateId": 315,
    "role": "model-geography",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420,
    "bindings": [
     [
@@ -877,10 +1901,86 @@
    "reason": "batch-land chart centroid -8.4E 52.3N on plate 315"
   },
   {
+   "chartIndex": 4500,
+   "chartId": "country:swe:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
+   "plateId": 330,
+   "role": "country-reference",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600.0
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600.0
+    ]
+   ],
+   "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 4516,
+   "chartId": "country:pol:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
+   "plateId": 330,
+   "role": "country-reference",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600.0
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600.0
+    ]
+   ],
+   "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
    "chartIndex": 4581,
    "chartId": "country:irl:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
    "plateId": 315,
    "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420.0,
    "bindings": [
     [
@@ -901,6 +2001,8 @@
    "chartId": "country:irl:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
    "plateId": 303,
    "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600.0,
    "bindings": [
     [
@@ -922,10 +2024,49 @@
    "reason": "modern-country outline IRL on plate 303"
   },
   {
+   "chartIndex": 4649,
+   "chartId": "country:dnk:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
+   "plateId": 330,
+   "role": "country-reference",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600.0
+    ],
+    [
+     "plate-330-600-610",
+     600.0,
+     600.0
+    ]
+   ],
+   "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
    "chartIndex": 4651,
    "chartId": "country:gbr:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
    "plateId": 303,
    "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 303,
    "lifecycleOldestMa": 600.0,
    "bindings": [
     [
@@ -951,6 +2092,8 @@
    "chartId": "country:gbr:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
    "plateId": 315,
    "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 302,
    "lifecycleOldestMa": 420.0,
    "bindings": [
     [
@@ -971,21 +2114,28 @@
   {
    "entryId": "restoration-north-sea-plate-303-130-600",
    "plateId": 303,
+   "motionPlateId": 303,
    "youngestAgeMa": 130.0,
    "oldestAgeMa": 600,
-   "sourceIntervalSetId": "north-sea-restoration-clock-130-600"
+   "sourceIntervalSetId": "north-sea-restoration-clock-303-130-600"
   },
   {
    "entryId": "restoration-north-sea-plate-315-130-420",
    "plateId": 315,
+   "motionPlateId": 302,
    "youngestAgeMa": 130.0,
    "oldestAgeMa": 420,
-   "sourceIntervalSetId": "north-sea-restoration-clock-130-420"
+   "sourceIntervalSetId": "north-sea-restoration-clock-315-130-420"
   }
  ],
+ "fixedBinding": {
+  "plateId": 302,
+  "reason": "every Tornquist Block (330) chart follows Baltica's native motion from the window start, dropping the 0.59 degree Tornquist stage that drifted one copy of Denmark 40 km south-west from 170 Ma back while its duplicates on 315, 302 and 30204 stayed"
+ },
  "limitations": [
   "a rigid block cannot reproduce graben-scale stretching; the closure is a transect total, not a strain field",
   "the pole geometry follows the M\u00fcller 2019 Jurassic network pattern; the Permian-Triassic phase reuses it",
+  "Denmark does not move: no sourced closure exists for the Skagerrak and the Norwegian-Danish Basin, and the Tornquist stage of Cao v2.4 is dropped rather than replaced",
   "Devonian post-Caledonian extension (about 30 km) is not restored",
   "straddling shelf polygons remain on Baltica, so restored land overlaps model shelf rather than closing it",
   "M\u00fcller et al. 2019 licensing is ambiguous (CC BY 4.0 record, CC BY-SA 4.0 README); no M\u00fcller geometry or rotation is redistributed"

@@ -166,6 +166,29 @@ package mutation; `src/reconstruction/northSeaRestoration.test.ts` reproduces
 the schedule closures through the runtime and holds Bergen-Amsterdam and
 Bergen-Stavanger fixed.
 
+### Duplicate Denmark and the block boundary (v0.1.11)
+
+After the v0.1.10 review the user saw two Denmarks at Mesozoic ages. Measured on
+the palette: the Tornquist Block (330) differs from Baltica (302) by 0.118
+degrees at 150 Ma, 0.354 at 160 and 0.590 from 170 Ma back (Müller 2008 stage
+TOB-UKB), which moves Aarhus, Copenhagen, Esbjerg and Skagen about 40 km
+south-west (-29 km east, -26 km north) relative to Baltica, while Cao draws
+the same Danish rings again on plates 315, 302 and 30204, which do not rotate.
+Eleven 30204 rings are exact vertex-set duplicates of 330 or 315 rings. The
+duplicate therefore predates the restoration (it is in v0.1.9) and the drift
+opens the Kattegat going back in time, the opposite of closure.
+
+A block that includes Denmark was tried and rejected: with the Biscay pole
+Denmark moves east-south-east, overshooting Malmö by 22 km and opening
+Aarhus-Gothenburg by 27 km at 270 Ma. A single rigid rotation cannot move
+Shetland east and Denmark north at the same time (opposite rotation senses),
+and the record holds no sourced closure for the Skagerrak or the
+Norwegian-Danish Basin. The contract now classifies every Tornquist Block
+chart as `fixed`: bound to Baltica's native palette entries from 130 Ma to its
+oldest lifecycle, dropping the stage. Denmark, the Netherlands, Norway and
+Sweden then share one motion and every Danish copy stays within 0.5 km of the
+others (runtime test). The moving UK block and its pole are unchanged.
+
 ## East African Rift decision
 
 The eastern branch already widens Africa in Cao v2.4 by the Iaffaldano

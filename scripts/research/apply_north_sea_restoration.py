@@ -40,6 +40,9 @@ RECORD_BYTES = 20
 SAMPLE_STEP_MA = 1.0
 ORACLE_STEP_MA = 0.25
 ORACLE_LIMIT_RAD = 2e-4
+FIXED_LIMITATION = ("North Sea regional restoration (earthhistory-north-sea-restoration-v1): this Tornquist "
+                    "Block chart follows Baltica's native motion from 130 Ma back; the model's 0.59 degree "
+                    "Tornquist stage, which drifted one copy of Denmark 40 km south-west from 170 Ma, is dropped")
 LIMITATION = ("North Sea regional restoration (earthhistory-north-sea-restoration-v1): between 130 and "
               "430 Ma this chart follows a rigid UK-block rotation relative to Baltica that closes the "
               "Shetland-Bergen transect by the published Mesozoic extension; a regional model hypothesis, "
@@ -95,6 +98,7 @@ def restoration_quaternion(contract: dict, age: float):
 
 
 def exact_composed(contract: dict, rotation, plate: int, age: float):
+    """Native Cao rotation of `plate` (the entry's motion plate) composed with the restoration."""
     native = CP.exact_quaternion(rotation, age, plate)
     if native is None:
         raise BuildError(f"plate {plate}: no strict Cao rotation at {age} Ma")
@@ -204,8 +208,8 @@ def build_entries(contract: dict, rotation, palette: dict, records: list):
     for spec in contract["paletteEntries"]:
         plate = spec["plateId"]
         ages = entry_ages(contract, spec)
-        rows = [(round(age * 1_000_000), *CP.float32_quaternion(exact_composed(contract, rotation, plate, age)))
-                for age in ages]
+        rows = [(round(age * 1_000_000), *CP.float32_quaternion(
+                    exact_composed(contract, rotation, spec["motionPlateId"], age))) for age in ages]
         offset = len(records)
         records.extend(rows)
         entry = {
@@ -226,24 +230,45 @@ def build_entries(contract: dict, rotation, palette: dict, records: list):
     return appended
 
 
-def rebind(contract: dict, chart: dict, palette_id: str) -> None:
+def native_partition(palette: dict, plate: int, youngest: float, oldest: float):
+    """Gap-free native (plate-*) entries of `plate` covering [youngest, oldest]."""
+    entries = sorted((e for e in palette["entries"] if e["plateId"] == plate and e["entryId"].startswith("plate-")),
+                     key=lambda e: (e["youngestAgeMa"], e["oldestAgeMa"]))
+    rows = []
+    cursor = youngest
+    while cursor < oldest:
+        match = [e for e in entries if e["youngestAgeMa"] <= cursor < e["oldestAgeMa"]]
+        if len(match) != 1:
+            raise BuildError(f"plate {plate}: expected one native entry at {cursor} Ma, found {len(match)}")
+        nxt = min(match[0]["oldestAgeMa"], oldest)
+        rows.append((match[0]["entryId"], cursor, nxt))
+        cursor = nxt
+    return rows
+
+
+def expected_bindings(contract: dict, palette: dict, row: dict, oldest: float):
     window = contract["windowMa"]
-    plate = next(entry["plateId"] for entry in contract["paletteEntries"]
-                 if entry["plateId"] in {b for b in contract["blockPlateIds"]}
-                 and any(b["entryId"] == f"plate-{entry['plateId']}-0-130" for b in chart["motionBindings"]))
-    entry_id = next(entry["entryId"] for entry in contract["paletteEntries"] if entry["plateId"] == plate)
+    kept = [[e, lo, hi] for e, lo, hi in row["bindings"] if hi <= window["youngest"]]
+    kept += [[e, lo, window["youngest"]] for e, lo, hi in row["bindings"] if lo < window["youngest"] < hi]
+    if row["kind"] == "moving":
+        entry_id = next(e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"])
+        kept.append([entry_id, window["youngest"], oldest])
+    else:
+        kept += [[e, lo, hi] for e, lo, hi in native_partition(palette, contract["fixedBinding"]["plateId"],
+                                                              window["youngest"], oldest)]
+    kept.sort(key=lambda b: b[1])
+    return kept
+
+
+def rebind(contract: dict, palette: dict, row: dict, chart: dict) -> None:
     oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
-    new_bindings = []
-    for binding in chart["motionBindings"]:
-        lo, hi = binding["validTimeMa"]["youngest"], binding["validTimeMa"]["oldest"]
-        if hi <= window["youngest"]:
-            new_bindings.append(binding)
-        elif lo < window["youngest"]:
-            new_bindings.append({**binding, "validTimeMa": {"youngest": lo, "oldest": window["youngest"]}})
-    new_bindings.append({"paletteId": palette_id, "entryId": entry_id,
-                         "validTimeMa": {"youngest": window["youngest"], "oldest": oldest}})
-    new_bindings.sort(key=lambda b: b["validTimeMa"]["youngest"])
-    chart["motionBindings"] = new_bindings
+    chart["motionBindings"] = [{"paletteId": palette["id"], "entryId": e,
+                                "validTimeMa": {"youngest": lo, "oldest": hi}}
+                               for e, lo, hi in expected_bindings(contract, palette, row, oldest)]
+    if row["kind"] == "fixed":
+        if chart["role"] != "country-reference" and FIXED_LIMITATION not in chart["evidence"]["limitations"]:
+            chart["evidence"]["limitations"].append(FIXED_LIMITATION)
+        return
     # Country locator charts keep the evidence text the segment-bridge contract
     # pins; the restoration provenance lives on the land charts and the contract.
     if chart["role"] == "country-reference":
@@ -268,10 +293,11 @@ def apply(package: Path) -> dict:
                                        default_anchor_plate_id=0)
     base_count = len(records)
     appended = build_entries(contract, rotation, palette, records)
-    targets = {row["chartId"] for row in contract["charts"]}
+    rows_by_id = {row["chartId"]: row for row in contract["charts"]}
     for chart in core["charts"]:
-        if chart["chartId"] in targets:
-            rebind(contract, chart, palette["id"])
+        row = rows_by_id.get(chart["chartId"])
+        if row is not None:
+            rebind(contract, palette, row, chart)
     changed = [index for index, (before, after) in enumerate(zip(before_core["charts"], core["charts"])) if before != after]
     if changed != sorted(row["chartIndex"] for row in contract["charts"]) or core["spatialBatches"] != before_core["spatialBatches"]:
         raise BuildError("restoration changed charts or geometry outside the pinned list")
@@ -314,17 +340,13 @@ def validate_applied(package: Path) -> dict:
         chart = chart_by_id.get(row["chartId"])
         if chart is None:
             raise BuildError(f"{row['chartId']}: chart missing")
-        entry_id = next(e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"])
         oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
-        expected = [[entry, lo, hi] for entry, lo, hi in row["bindings"] if hi <= window["youngest"]]
-        expected += [[entry, lo, window["youngest"]] for entry, lo, hi in row["bindings"]
-                     if lo < window["youngest"] < hi]
-        expected.append([entry_id, window["youngest"], oldest])
-        expected.sort(key=lambda b: b[1])
+        expected = expected_bindings(contract, palette, row, oldest)
         actual = [[b["entryId"], b["validTimeMa"]["youngest"], b["validTimeMa"]["oldest"]] for b in chart["motionBindings"]]
         if actual != expected:
             raise BuildError(f"{row['chartId']}: restored bindings {actual} != {expected}")
-        if chart["role"] != "country-reference" and LIMITATION not in chart["evidence"]["limitations"]:
+        wanted = LIMITATION if row["kind"] == "moving" else FIXED_LIMITATION
+        if chart["role"] != "country-reference" and wanted not in chart["evidence"]["limitations"]:
             raise BuildError(f"{row['chartId']}: restoration limitation missing")
     # Oracle: every quarter-Myr and every knot neighbour reproduces the composed rotation.
     oracle_max = (0.0, None, None)
@@ -338,7 +360,7 @@ def validate_applied(package: Path) -> dict:
             knot = sample[0] / 1_000_000
             ages.update(a for a in (knot - 0.000001, knot, knot + 0.000001) if lo <= a <= hi)
         for age in sorted(ages):
-            error = shelf422.angular(exact_composed(contract, rotation, spec["plateId"], age),
+            error = shelf422.angular(exact_composed(contract, rotation, spec["motionPlateId"], age),
                                      shelf422.quaternion_at(entry, records, age))
             if error > oracle_max[0]:
                 oracle_max = (error, age, spec["plateId"])
@@ -347,15 +369,18 @@ def validate_applied(package: Path) -> dict:
     # Closure witnesses against the reference plate's native entry.
     reference = next(e for e in palette["entries"] if e["plateId"] == contract["referencePlateId"]
                      and e["entryId"].startswith("plate-") and e["youngestAgeMa"] <= 0 and e["oldestAgeMa"] >= window["oldest"])
-    block_entry = entry_by_id[next(e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == 303)]
     witness_rows = []
     for row in contract["angleSchedule"]:
         age = row["ageMa"]
         if not window["youngest"] <= age <= window["oldest"]:
             continue
-        q_block = shelf422.quaternion_at(block_entry, records, age)
         q_ref = shelf422.quaternion_at(reference, records, age)
         for name, pair in contract["witnesses"]["pairs"].items():
+            block_entry = entry_by_id[next(e["entryId"] for e in contract["paletteEntries"]
+                                           if e["plateId"] == pair["movingPlateId"])]
+            if not block_entry["youngestAgeMa"] <= age <= block_entry["oldestAgeMa"]:
+                continue
+            q_block = shelf422.quaternion_at(block_entry, records, age)
             moving = lon_lat_direction(*pair["movingLonLat"])
             fixed = lon_lat_direction(*pair["fixedLonLat"])
             closure = angular_km(moving, fixed) - angular_km(rotate(q_block, moving), rotate(q_ref, fixed))

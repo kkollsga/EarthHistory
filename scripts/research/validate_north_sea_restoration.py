@@ -147,16 +147,19 @@ def validate_contract(contract: dict) -> None:
     final = rows[-1]["shetlandBergenClosureKm"]
     if not 55 <= final <= 90:
         fail("angleSchedule", f"total Shetland-Bergen closure {final} km left the published 55-90 km range")
-    if not contract["charts"] or {row["plateId"] for row in contract["charts"]} - set(contract["blockPlateIds"]):
-        fail("charts", "empty or outside the block plates")
+    allowed = set(contract["blockPlateIds"]) | {contract["tornquistPlateId"]}
+    if not contract["charts"] or {row["plateId"] for row in contract["charts"]} - allowed:
+        fail("charts", "empty or outside the block and Tornquist plates")
+    if any(row["kind"] not in ("moving", "fixed") for row in contract["charts"]):
+        fail("charts", "unknown chart kind")
     if ({entry["plateId"] for entry in contract["paletteEntries"]} != set(contract["blockPlateIds"])
             or any(entry["youngestAgeMa"] != window["youngest"] or entry["oldestAgeMa"] <= window["youngest"]
                    for entry in contract["paletteEntries"])):
         fail("paletteEntries", "one entry per block plate starting at the window is required")
     for entry in contract["paletteEntries"]:
-        charts = [row for row in contract["charts"] if row["plateId"] == entry["plateId"]]
+        charts = [row for row in contract["charts"] if row["plateId"] == entry["plateId"] and row["kind"] == "moving"]
         if not charts or max(row["lifecycleOldestMa"] for row in charts) != entry["oldestAgeMa"]:
-            fail(entry["entryId"], "entry must end at the oldest pinned chart lifecycle on its plate")
+            fail(entry["entryId"], "entry must end at the oldest pinned moving chart lifecycle on its plate")
 
 
 def validate_package(contract: dict, package: Path) -> dict:
@@ -176,20 +179,39 @@ def validate_package(contract: dict, package: Path) -> dict:
             fail(spec["entryId"], "restoration palette entry missing or changed")
         if not any(s["id"] == spec["sourceIntervalSetId"] for s in palette["sourceIntervalSets"]):
             fail(spec["entryId"], "restoration clock missing")
+    native_302 = sorted((e for e in palette["entries"] if e["plateId"] == contract["fixedBinding"]["plateId"]
+                         and e["entryId"].startswith("plate-")), key=lambda e: (e["youngestAgeMa"], e["oldestAgeMa"]))
+
+    def native_partition(youngest, oldest):
+        rows, cursor = [], youngest
+        while cursor < oldest:
+            match = [e for e in native_302 if e["youngestAgeMa"] <= cursor < e["oldestAgeMa"]]
+            if len(match) != 1:
+                fail("fixedBinding", f"expected one native Baltica entry at {cursor} Ma")
+            nxt = min(match[0]["oldestAgeMa"], oldest)
+            rows.append([match[0]["entryId"], cursor, nxt])
+            cursor = nxt
+        return rows
+
     chart_by_id = {chart["chartId"]: (index, chart) for index, chart in enumerate(core["charts"])}
     for row in contract["charts"]:
         match = chart_by_id.get(row["chartId"])
         if match is None or match[0] != row["chartIndex"]:
             fail(row["chartId"], "pinned chart identity changed")
         chart = match[1]
-        entry_id = next(e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"])
         oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
         if oldest != row["lifecycleOldestMa"]:
             fail(row["chartId"], "lifecycle changed")
         expected = [[entry, lo, hi] for entry, lo, hi in row["bindings"] if hi <= window["youngest"]]
         expected += [[entry, lo, window["youngest"]] for entry, lo, hi in row["bindings"]
                      if lo < window["youngest"] < hi]
-        expected.append([entry_id, window["youngest"], oldest])
+        if row["kind"] == "moving":
+            entry_id = next((e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"]), None)
+            if entry_id is None:
+                fail(row["chartId"], f"no restoration entry for plate {row['plateId']}")
+            expected.append([entry_id, window["youngest"], oldest])
+        else:
+            expected += native_partition(window["youngest"], oldest)
         expected.sort(key=lambda b: b[1])
         actual = [[b["entryId"], b["validTimeMa"]["youngest"], b["validTimeMa"]["oldest"]] for b in chart["motionBindings"]]
         if actual != expected:
@@ -197,6 +219,8 @@ def validate_package(contract: dict, package: Path) -> dict:
         if chart["role"] != "country-reference" and not any(
                 text.startswith(LIMITATION_PREFIX) for text in chart["evidence"]["limitations"]):
             fail(row["chartId"], "restoration limitation missing from evidence")
+        if row["kind"] == "fixed" and any(b["entryId"].startswith("restoration-north-sea-") for b in chart["motionBindings"]):
+            fail(row["chartId"], "a Baltica-fixed chart binds a restoration entry")
     # No other chart may bind a restoration entry.
     pinned = {row["chartId"] for row in contract["charts"]}
     for chart in core["charts"]:
@@ -209,15 +233,18 @@ def validate_package(contract: dict, package: Path) -> dict:
                      and e["entryId"].startswith("plate-") and e["youngestAgeMa"] <= 0 and e["oldestAgeMa"] >= window["oldest"])
     if not reference["entryId"].startswith("plate-"):
         fail("reference plate", "Baltica must keep its native palette entry")
-    block = entry_by_id[next(e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == 303)]
     witnesses = []
     for row in contract["angleSchedule"]:
         age = row["ageMa"]
         if not window["youngest"] <= age <= window["oldest"]:
             continue
-        q_block = quaternion_at(block, records, age)
         q_ref = quaternion_at(reference, records, age)
         for name, pair in contract["witnesses"]["pairs"].items():
+            block = entry_by_id[next(e["entryId"] for e in contract["paletteEntries"]
+                                     if e["plateId"] == pair["movingPlateId"])]
+            if not block["youngestAgeMa"] <= age <= block["oldestAgeMa"]:
+                continue
+            q_block = quaternion_at(block, records, age)
             moving = lon_lat_direction(*pair["movingLonLat"])
             fixed = lon_lat_direction(*pair["fixedLonLat"])
             closure = angular_km(moving, fixed) - angular_km(rotate(q_block, moving), rotate(q_ref, fixed))
@@ -257,6 +284,13 @@ def self_test(package: Path) -> dict:
         validate_package(contract, package)
         document = copy.deepcopy(contract)
         document["charts"][0]["bindings"][0][2] = 129.0
+        try:
+            validate_package(document, package)
+        except ValidationError:
+            pass
+        document = copy.deepcopy(contract)
+        fixed = next(row for row in document["charts"] if row["kind"] == "fixed")
+        fixed["kind"] = "moving"
         try:
             validate_package(document, package)
         except ValidationError:

@@ -4266,8 +4266,8 @@
         {
           "role": "core.json",
           "path": "public/data/reconstruction/cao-v2.4/core.json",
-          "sha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
-          "bytes": 6317889
+          "sha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
+          "bytes": 6314414
         },
         {
           "role": "country-reference.ehgl",
@@ -4278,7 +4278,7 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "10ba35d6b3f9dbaa830f1bd698c5a13e0849711ff4aaa4303c030439ec140be8",
+          "sha256": "b893f07d72c49db723fd9e47e55b47daba54718117fd8ebfbb94201aea56ea43",
           "bytes": 40252
         },
         {
@@ -4290,13 +4290,13 @@
         {
           "role": "motion-palette.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
-          "sha256": "fdeb39add0cf5de91a2b203d302bf49ab8175dd94cd7e5d4a0f2d245b9bbc887",
-          "bytes": 802748
+          "sha256": "70cf3f2c72912de66453c84616a2a75372e9af1084fff594967587e5d9d27cdd",
+          "bytes": 802764
         },
         {
           "role": "index.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/index.json",
-          "sha256": "76369cb64d4fe5d924f9f28409073dce5653fd25c82a9fa2a44eb10bdf7c3445",
+          "sha256": "6949c599e83fde61def7eb5e83069cc200e940454f1707958d51787256c64e09",
           "bytes": 28068
         },
         {
@@ -4332,122 +4332,122 @@
         {
           "role": "tile-0125-0150ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0125-0150ma.ehmt",
-          "sha256": "c02d57facd43607ac1f53fd7dc9fd1999afd6d609a4d5c6747dcaf9ccc14f916",
-          "bytes": 470272
+          "sha256": "71e92e40e33bc85945fc3bd90f2dabad10bf8d0db76d4ded83e5323749f28a37",
+          "bytes": 469424
         },
         {
           "role": "tile-0150-0175ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0150-0175ma.ehmt",
-          "sha256": "767ff54db0ab22400b0ad8912a9aa0b0d45df6aabd0a152bff82bddd62f6e16b",
-          "bytes": 252312
+          "sha256": "67c05d7bb3bfbed88511dca2b9cb703f034c0b00cc5c624e6f07c1f0c8356633",
+          "bytes": 251624
         },
         {
           "role": "tile-0175-0200ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0175-0200ma.ehmt",
-          "sha256": "d31d57d92858970de1945ebf91ebb6909bba44206d1bfcb0f3df72b7811f4b5f",
-          "bytes": 132616
+          "sha256": "53186dcecd38fab4400df2dc0695e2221f4c6379203eec97aa57fa39c4cac664",
+          "bytes": 132308
         },
         {
           "role": "tile-0200-0225ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0200-0225ma.ehmt",
-          "sha256": "3363d79b6aeb56ebbbba03d7c19d41db1fe8dae9506985590466b05e9004c8ce",
-          "bytes": 125208
+          "sha256": "d523c36cde9a83fb6d914adeb381abc64f9d4194e582aac35eca131f66a2c073",
+          "bytes": 125020
         },
         {
           "role": "tile-0225-0250ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0225-0250ma.ehmt",
-          "sha256": "4d15406e6d08057120d5768fe0e15169f0c398a72075927fe7674ec54d5eda24",
-          "bytes": 142968
+          "sha256": "00c887527e457868b68f9a7a69c6de925007e110a17d5958983b96358149fc98",
+          "bytes": 142620
         },
         {
           "role": "tile-0250-0275ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0250-0275ma.ehmt",
-          "sha256": "5027af83c159c5a2b1efa913039ca772bcedbd9fa4974942c7a9bf85839b1b8d",
-          "bytes": 123464
+          "sha256": "0871fae843d8dad40ff044a37bca55f6fe8975593f3a0b6424dc2b6deaaf8522",
+          "bytes": 123236
         },
         {
           "role": "tile-0275-0300ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0275-0300ma.ehmt",
-          "sha256": "32ae7345bb9ace44a8ae411feea79eb71874a0728717e523a5775ecb4602f6f8",
-          "bytes": 92372
+          "sha256": "6c55f4c5ee5021cd5541fd756f28b1463d19674f487c4b82be5689af0aa67ec7",
+          "bytes": 92184
         },
         {
           "role": "tile-0300-0325ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0300-0325ma.ehmt",
-          "sha256": "da0c219ad79997e4bab8f91483d6995406ef1fa9ac67e9d64234bd02525206c6",
-          "bytes": 107008
+          "sha256": "70b85a58b4a7e0a043a844a52ab9d10adfa333081e94abcb801319926199d089",
+          "bytes": 106780
         },
         {
           "role": "tile-0325-0350ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0325-0350ma.ehmt",
-          "sha256": "74aa70a5aa2de0d8710bc7de69a4503948be07b0459ecf25f1c2d4b9270a1a5f",
-          "bytes": 154980
+          "sha256": "55ba5226a4925857a9b2f8ec2a57c7c01eae946c47602d90d6d388d4f90aec3a",
+          "bytes": 153952
         },
         {
           "role": "tile-0350-0375ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0350-0375ma.ehmt",
-          "sha256": "b0c58cc060d97d995bffb3ec1164d75941f551e38649d9f0d3109bad8ce74f87",
-          "bytes": 118112
+          "sha256": "71a4d586ca40de90b718f9f8a980c7eb064df440b69fc93c6d9686639ff716b3",
+          "bytes": 117344
         },
         {
           "role": "tile-0375-0400ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0375-0400ma.ehmt",
-          "sha256": "07c72f4bf12b9592e30eab3de2af0767e9b0ba5f24ecee577f1af4b45af793f5",
-          "bytes": 79432
+          "sha256": "61eeda245c0d26c75dd040d490996e795855910f30f71d8aa83a35c883b7dc71",
+          "bytes": 78884
         },
         {
           "role": "tile-0400-0425ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0400-0425ma.ehmt",
-          "sha256": "71dd3033b87802c111394cecaf244c4297acc92cafc3b0e027dfae3816da8d9c",
-          "bytes": 76532
+          "sha256": "b17e438990a594b2109488cca27f61270c804a0dd4868c06b467446230cb53b0",
+          "bytes": 76324
         },
         {
           "role": "tile-0425-0450ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0425-0450ma.ehmt",
-          "sha256": "84eb15a5740522be2d8ce596889fea5fa5cf1c46fc2a70f0cf3898a7db36ed1d",
-          "bytes": 52172
+          "sha256": "0a3b6c51a2a9316bcf7a07fbe12aefb9e401d23e2c3bea6ef73ec61968a47ad6",
+          "bytes": 51964
         },
         {
           "role": "tile-0450-0475ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0450-0475ma.ehmt",
-          "sha256": "39e71d45c6e6bb8f6247c2f6020df692cdb0a7bbf757a94545f2f4f0c23a4bf2",
-          "bytes": 56372
+          "sha256": "8d4b7fb1a8fc13877af0224bb3e331e9ec1e9f7ffd6275aa98b6b1bca481a98c",
+          "bytes": 56164
         },
         {
           "role": "tile-0475-0500ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0475-0500ma.ehmt",
-          "sha256": "f3138e50418209be7731e61e0561a51778267e43f8b7870e91c9f8fdab1b17f7",
-          "bytes": 47496
+          "sha256": "a2322ed8347be7f0d740f4cbfec714dec6f31feb9ed7c573bdd5ccb7aff5a226",
+          "bytes": 47328
         },
         {
           "role": "tile-0500-0525ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0500-0525ma.ehmt",
-          "sha256": "f95c6da6b15ff7e3f47b7f062e206b8733425c5491b52a59f0fc14884a576c9d",
-          "bytes": 54420
+          "sha256": "5ba029d8e0517925c8a0f20333ae941540a8b66b8154e16e7751fc8111b2df5e",
+          "bytes": 54244
         },
         {
           "role": "tile-0525-0550ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0525-0550ma.ehmt",
-          "sha256": "ddcb89b88b19bf5badfe4af7c47ca5986d920930db74ef88fefbd995d3b26071",
-          "bytes": 53188
+          "sha256": "22ef4e78fee167f4525d69b424b66f1f8388b5913b23a1fca1eab161ad69778f",
+          "bytes": 53040
         },
         {
           "role": "tile-0550-0575ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0550-0575ma.ehmt",
-          "sha256": "79da628714ef31aeedea84e6d01ce73649e285e6be5aed55308fa2c3c462e228",
-          "bytes": 51356
+          "sha256": "0151010e2ae6f4007c6799ddf332636ab3f56e2789611c7d7f5cd1b58d5fa0d0",
+          "bytes": 51200
         },
         {
           "role": "tile-0575-0600ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0575-0600ma.ehmt",
-          "sha256": "d77f2248dd649cf3a8f5585aec5c4e12caa45e67419f7a1370e0aaaa636004b7",
-          "bytes": 51052
+          "sha256": "8a03fce696e14b6193c43048fd157292476aededc87a98c11518c351be552f70",
+          "bytes": 50896
         },
         {
           "role": "tile-0600-0625ma.ehmt",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/tile-0600-0625ma.ehmt",
-          "sha256": "d14e971347b517190b747e86e1a87ac69a961d4c36660554e19138a7ac362065",
-          "bytes": 91172
+          "sha256": "21392d3cde2b70a7de7bcbbaf85515d761318cfdfc0361a182086c2c29c072a7",
+          "bytes": 90856
         },
         {
           "role": "tile-0625-0650ma.ehmt",
@@ -7562,7 +7562,7 @@
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
           "bytes": 397090,
-          "sha256": "acacf3d70741467ac83a9212ef90934e0f921094876dea6ea350967950168981"
+          "sha256": "ab48dcd5311f5276219530ef1153a60dde34878aa5c391ee2e4c584a6a70f6c1"
         },
         {
           "role": "observed.ehgb",
