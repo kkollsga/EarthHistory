@@ -1,4 +1,4 @@
-import { loadVerifiedBytes, type StaticAssetFetcher } from "./assetLoader";
+import { loadVerifiedBytes, type StaticAssetFetchOptions, type StaticAssetFetcher } from "./assetLoader";
 import { decodeMotionPalette, selectPaletteMotionSubsegment, type MotionPaletteCatalog,
   type PreparedPaletteEntry } from "./palette";
 import { evaluateLifecycleSupport } from "./motion";
@@ -33,8 +33,9 @@ async function verifiedJson<T>(
   asset: { readonly url: string; readonly bytes: number; readonly sha256: string },
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
 ): Promise<T> {
-  const bytes = await loadVerifiedBytes(asset, fetcher, signal);
+  const bytes = await loadVerifiedBytes(asset, fetcher, signal, options);
   return JSON.parse(new TextDecoder().decode(bytes)) as T;
 }
 
@@ -294,8 +295,11 @@ export async function loadVerifiedCaoFullMotionPalette(
   foundation: Pick<LoadedCaoFoundationMetadata, "core" | "paletteCatalog">,
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
 ): Promise<ReadonlyMap<string, PreparedPaletteEntry>> {
-  const buffer = await loadVerifiedBytes(manifest.motionPalette.binary, fetcher, signal);
+  const buffer = await loadVerifiedBytes(manifest.motionPalette.binary, fetcher, signal, options);
+  await options?.beforeDecode?.();
+  if (signal?.aborted) throw new DOMException("reconstruction request aborted", "AbortError");
   const entries = decodeMotionPalette(foundation.paletteCatalog, buffer);
   validateTouchingBindingPoses(foundation.core, entries);
   return entries;
@@ -333,10 +337,13 @@ export async function loadVerifiedCaoCheckpoint(
   ageMa: number,
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
 ): Promise<ReconstructionCheckpointV2> {
   const asset = manifest.checkpoints.find((candidate) => candidate.ageMa === ageMa);
   if (!asset) throw new Error("Cao checkpoint absent from package manifest");
-  const checkpoint = await verifiedJson<ReconstructionCheckpointV2>(asset, fetcher, signal);
+  const checkpoint = await verifiedJson<ReconstructionCheckpointV2>(asset, fetcher, signal, options);
+  await options?.beforeDecode?.();
+  if (signal?.aborted) throw new DOMException("reconstruction request aborted", "AbortError");
   validateReconstructionCheckpointV2(checkpoint, manifest, core);
   if (checkpoint.ageMa !== ageMa) throw new Error("Cao checkpoint age mismatch");
   const actualTransitiveBytes = asset.bytes + [checkpoint.nativeBoundaryLayer, checkpoint.topologyOwnershipLayer]
@@ -352,11 +359,12 @@ export async function warmVerifiedCaoCheckpointAssets(
   ageMa: number,
   fetcher: StaticAssetFetcher,
   signal?: AbortSignal,
+  options?: StaticAssetFetchOptions,
 ): Promise<void> {
-  const checkpoint = await loadVerifiedCaoCheckpoint(manifest, core, ageMa, fetcher, signal);
+  const checkpoint = await loadVerifiedCaoCheckpoint(manifest, core, ageMa, fetcher, signal, options);
   const assets = [checkpoint.nativeBoundaryLayer, checkpoint.topologyOwnershipLayer]
     .flatMap((layer) => layer ? [layer.catalog, layer.binary] : []);
-  await Promise.all(assets.map((asset) => loadVerifiedBytes(asset, fetcher, signal)));
+  await Promise.all(assets.map((asset) => loadVerifiedBytes(asset, fetcher, signal, options)));
   if (signal?.aborted) throw new DOMException("Cao checkpoint warming aborted", "AbortError");
 }
 

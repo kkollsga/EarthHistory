@@ -4,6 +4,29 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-14
+
+### Fixed
+
+- Keep the last rendered Cao surface on the globe while a scrubbed age is still
+  loading, with the map key reporting the loading and shown ages. The released
+  build hid the whole land group on every age sample until its motion frame
+  arrived, which flashed landmasses on and off on phones.
+- Darken the modern-country reference outlines so they read on pale land and
+  shelf water at phone sizes.
+
+### Changed
+
+- Continuous scrubbing keeps a motion tile download that already covers the
+  new age, retains a tile that lands after its requesting age moved on, and
+  no longer cancels the background all-age palette or checkpoint warming on
+  each age change. Background requests carry a low priority hint, hold body
+  reads while a foreground tile is in flight, and decode only after the
+  foreground age has rested for 250 ms; checkpoint prefetch waits for the
+  scrub to settle. On the measured mobile-throttled 0-70 Ma burst this cut
+  motion requests from 38 starts with 35 aborts to 4 with none and settle
+  after the last input from 242 ms to 24 ms, with no blank frames.
+
 ## [0.1.6] - 2026-09-13
 
 ### Added

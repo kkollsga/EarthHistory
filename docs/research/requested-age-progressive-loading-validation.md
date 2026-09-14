@@ -35,13 +35,19 @@ the two-checkpoint runtime cache. The compact status distinguishes a ready
 current age from remaining timeline loading, a completed timeline, and a
 paused background failure with explicit Retry.
 
-A newer foreground age aborts stale tile or background work immediately. If a
-new age needs another tile, the old Cao surface and its native overlays are
-withheld until the requested frame is ready; the material address remains
-tagged for reacquisition. Stale responses cannot publish, change status, or
-reserve memory. A background failure leaves the correct current surface usable
-and does not retry until requested. Out-of-domain editorial ages request no
-motion tile and never flash the 0 Ma reconstruction.
+Revised 2026-09-14 (see `scrub-scheduling-performance-2026-09-14.json`): a
+newer foreground age aborts a pending tile only when that tile does not cover
+the new age, and never cancels background timeline loading, which is
+age-independent. If a new age needs another tile, the previously rendered Cao
+surface stays visible and the map key reports both the loading and the shown
+age; native exact-age overlays still follow the displayed frame, and the
+material address remains tagged for reacquisition. Stale responses cannot
+publish, change status, or reserve memory. A background failure leaves the
+correct current surface usable and does not retry until requested.
+Out-of-domain editorial ages request no motion tile and never flash the 0 Ma
+reconstruction. The original 2026-09-13 contract withheld the old surface
+during the wait; on phones that produced visible land flashing on every scrub
+sample and was withdrawn.
 
 ## Artifact identity and bounds
 

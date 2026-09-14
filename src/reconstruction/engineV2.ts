@@ -19,6 +19,9 @@ import { selectRequestedAgeMotionTile, verifyRequestedAgeMotionTileSourceIdentit
   type RequestedAgeMotionTileIndex } from "./motionTiles";
 import type { PreparedPaletteEntry } from "./palette";
 
+/** Background decoding and warming wait until the foreground age has rested this long. */
+export const CAO_FOREGROUND_SETTLE_MS = 250;
+
 export interface CaoTimelineLoadingState {
   readonly status: "idle" | "loading" | "ready" | "paused";
   readonly foregroundStatus: "idle" | "loading" | "ready";
@@ -56,8 +59,12 @@ export class CaoReconstructionRuntime {
   private readonly metadata;
   private readonly staticFoundation;
   private readonly tileIndex: Promise<RequestedAgeMotionTileIndex> | null;
+  private resolvedTileIndex: RequestedAgeMotionTileIndex | null = null;
+  /** Newest tile that produced a foreground frame; the all-age palette is verified against it. */
+  private lastLoadedTile: { readonly loaded: LoadedRequestedAgeMotionPalette; readonly requestedAgeMa: number } | null = null;
   private foundationStaticSourceBytes = 0;
   private foregroundAgeMa: number | null = null;
+  private foregroundChangedAt = 0;
   private tileSerial = 0;
   private tilePending: { readonly tileId: string; readonly assetBytes: number; readonly controller: AbortController;
     readonly promise: Promise<LoadedRequestedAgeMotionPalette> } | null = null;
@@ -93,7 +100,7 @@ export class CaoReconstructionRuntime {
         + (this.manifest.materialCorrections?.catalog.bytes ?? 0);
     }).catch(() => {});
     void this.staticFoundation.catch(() => {});
-    void this.tileIndex?.catch(() => {});
+    void this.tileIndex?.then((index) => { this.resolvedTileIndex = index; }).catch(() => {});
   }
 
   request(requestedAgeMa: number): { readonly signal: AbortSignal; readonly prepared: Promise<PreparedCaoRevision> } {
@@ -191,45 +198,70 @@ export class CaoReconstructionRuntime {
     return () => this.timelineListeners.delete(listener);
   }
 
-  /** Starts the all-age palette only after the latest requested age reached the canvas. */
+  /**
+   * Starts background timeline loading only after the latest requested age
+   * reached the canvas. The work is age-independent: later foreground age
+   * changes neither cancel nor restart it, and foreground tile fetches take
+   * network priority over it.
+   */
   markRendered(requestedAgeMa: number): void {
     if (!this.tileIndex || this.timelineComplete || requestedAgeMa !== this.foregroundAgeMa
         || this.background || this.lifetime.signal.aborted || this.timelineState.status === "paused") return;
     const controller = new AbortController();
     this.background = controller;
     this.backgroundReservedSourceBytes = this.fullPaletteEntries ? 0 : this.manifest.motionPalette.binary.bytes;
-    this.setTimelineState({ status: "loading", requestedAgeMa,
+    this.setTimelineState({ ...this.timelineState, status: "loading", requestedAgeMa,
       foregroundStatus: "ready", motionTier: this.fullPaletteEntries ? "full" : "requested-age", error: null });
+    const ownsBackground = () => this.background === controller && !controller.signal.aborted
+      && !this.lifetime.signal.aborted;
+    // A pending foreground tile owns the network until it lands.
+    const foregroundIdle = async () => {
+      while (this.tilePending && ownsBackground()) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 25));
+      }
+    };
+    // Main-thread decoding waits until scrubbing has rested, so it cannot
+    // stall the frames a live gesture is producing.
+    const foregroundSettled = async () => {
+      await foregroundIdle();
+      while (ownsBackground() && Date.now() - this.foregroundChangedAt < CAO_FOREGROUND_SETTLE_MS) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 25));
+        await foregroundIdle();
+      }
+    };
+    const yieldToForeground = async () => {
+      await foregroundSettled();
+      if (!ownsBackground()) throw new DOMException("stale Cao timeline loading", "AbortError");
+    };
+    const backgroundFetch = Object.freeze({ priority: "low" as const,
+      yieldToForeground: foregroundIdle, beforeDecode: foregroundSettled });
     void Promise.all([this.metadata, this.staticFoundation]).then(async ([metadata, foundation]) => {
-      const ownsBackground = () => this.background === controller && !controller.signal.aborted
-        && !this.lifetime.signal.aborted && this.foregroundAgeMa === requestedAgeMa;
       if (!ownsBackground()) throw new DOMException("stale Cao timeline loading", "AbortError");
       if (!this.fullPaletteEntries) {
         const fullEntries = await loadVerifiedCaoFullMotionPalette(
-          this.manifest, metadata, this.fetcher, controller.signal,
+          this.manifest, metadata, this.fetcher, controller.signal, backgroundFetch,
         );
-        if (!ownsBackground()) {
-          throw new DOMException("stale Cao all-age palette", "AbortError");
-        }
-        const tile = await this.motionForAge(requestedAgeMa);
         if (!ownsBackground()) throw new DOMException("stale Cao all-age palette", "AbortError");
-        const tileDescriptor = selectRequestedAgeMotionTile(await this.tileIndex!, requestedAgeMa);
-        await verifyRequestedAgeMotionTileSourceIdentity(tileDescriptor, tile.entries, fullEntries);
+        const witness = this.lastLoadedTile;
+        if (!witness) throw new Error("no resident motion tile can verify the all-age Cao palette");
+        await verifyRequestedAgeMotionTileSourceIdentity(witness.loaded.descriptor, witness.loaded.entries, fullEntries);
         if (!ownsBackground()) throw new DOMException("stale Cao all-age palette", "AbortError");
         const tileFrame = evaluateCaoMotionFrame(this.manifest,
-          Object.freeze({ ...foundation, paletteEntries: tile.entries }), requestedAgeMa);
+          Object.freeze({ ...foundation, paletteEntries: witness.loaded.entries }), witness.requestedAgeMa);
         const fullFrame = evaluateCaoMotionFrame(this.manifest,
-          Object.freeze({ ...foundation, paletteEntries: fullEntries }), requestedAgeMa);
+          Object.freeze({ ...foundation, paletteEntries: fullEntries }), witness.requestedAgeMa);
         if (!sameMotionFrame(tileFrame, fullFrame)) {
           throw new Error("requested-age motion tile disagrees with the all-age Cao palette");
         }
         this.fullPaletteEntries = fullEntries;
         this.backgroundReservedSourceBytes = 0;
         this.tileCache.clear();
-        this.setTimelineState({ status: "loading", requestedAgeMa,
-          foregroundStatus: "ready", motionTier: "full", error: null });
+        this.lastLoadedTile = null;
+        this.setTimelineState({ ...this.timelineState, status: "loading",
+          requestedAgeMa: this.foregroundAgeMa, motionTier: "full", error: null });
       }
       while (this.warmedCheckpointAges.size < this.manifest.checkpoints.length) {
+        await yieldToForeground();
         const checkpoint = this.manifest.checkpoints.find((candidate) =>
           !this.warmedCheckpointAges.has(candidate.ageMa) && !this.checkpointDemandAges.has(candidate.ageMa));
         if (!checkpoint) {
@@ -239,31 +271,26 @@ export class CaoReconstructionRuntime {
         }
         this.backgroundReservedSourceBytes = checkpoint.transitiveBytes;
         await warmVerifiedCaoCheckpointAssets(
-          this.manifest, foundation.core, checkpoint.ageMa, this.fetcher, controller.signal,
+          this.manifest, foundation.core, checkpoint.ageMa, this.fetcher, controller.signal, backgroundFetch,
         );
         if (!ownsBackground()) throw new DOMException("stale Cao timeline warming", "AbortError");
         this.warmedCheckpointAges.add(checkpoint.ageMa);
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        if (!ownsBackground()) {
-          throw new DOMException("stale Cao timeline warming", "AbortError");
-        }
       }
       if (!ownsBackground()) throw new DOMException("stale Cao timeline warming", "AbortError");
       this.backgroundReservedSourceBytes = 0;
       this.timelineComplete = true;
-      this.setTimelineState({ status: "ready", requestedAgeMa,
-        foregroundStatus: "ready", motionTier: "full", error: null });
+      this.setTimelineState({ ...this.timelineState, status: "ready",
+        requestedAgeMa: this.foregroundAgeMa, motionTier: "full", error: null });
     }).catch((error: unknown) => {
-      if (this.background !== controller || this.foregroundAgeMa !== requestedAgeMa
-          || this.lifetime.signal.aborted) return;
+      if (this.background !== controller || this.lifetime.signal.aborted) return;
       if (error instanceof DOMException && error.name === "AbortError") {
-        this.setTimelineState({ status: "idle", requestedAgeMa: this.foregroundAgeMa,
-          foregroundStatus: this.fullPaletteEntries ? "ready" : "loading",
-          motionTier: this.fullPaletteEntries ? "full" : "requested-age", error: null });
+        this.setTimelineState({ ...this.timelineState, status: "idle",
+          requestedAgeMa: this.foregroundAgeMa, error: null });
         return;
       }
-      this.setTimelineState({ status: "paused", requestedAgeMa,
-        foregroundStatus: "ready", motionTier: this.fullPaletteEntries ? "full" : "requested-age",
+      this.setTimelineState({ ...this.timelineState, status: "paused",
+        requestedAgeMa: this.foregroundAgeMa,
         error: error instanceof Error ? error.message : "Timeline loading paused" });
     }).finally(() => {
       if (this.background === controller) {
@@ -280,25 +307,48 @@ export class CaoReconstructionRuntime {
   }
 
   private setTimelineState(state: CaoTimelineLoadingState): void {
+    const current = this.timelineState;
+    if (current.status === state.status && current.foregroundStatus === state.foregroundStatus
+        && current.requestedAgeMa === state.requestedAgeMa && current.motionTier === state.motionTier
+        && current.error === state.error) return;
     this.timelineState = Object.freeze(state);
     for (const listener of this.timelineListeners) listener(this.timelineState);
+  }
+
+  private tileCovering(requestedAgeMa: number): string | null {
+    if (!this.resolvedTileIndex) return null;
+    try {
+      return selectRequestedAgeMotionTile(this.resolvedTileIndex, requestedAgeMa).tileId;
+    } catch {
+      return null;
+    }
+  }
+
+  /** True when the age can be evaluated without any further fetch. */
+  private motionResident(requestedAgeMa: number): boolean {
+    if (this.fullPaletteEntries) return true;
+    const tileId = this.tileCovering(requestedAgeMa);
+    return tileId !== null && this.tileCache.has(tileId);
   }
 
   private prioritizeAge(requestedAgeMa: number): void {
     if (requestedAgeMa === this.foregroundAgeMa) return;
     this.foregroundAgeMa = requestedAgeMa;
+    this.foregroundChangedAt = Date.now();
     this.active?.abort();
     this.active = null;
-    this.tileSerial += 1;
-    this.tilePending?.controller.abort();
-    this.tilePending = null;
-    if (this.background) {
-      this.background.abort();
-      this.background = null;
-      this.backgroundReservedSourceBytes = 0;
+    // A pending tile that also covers the new age keeps downloading. Restarting
+    // it on every scrub sample meant the tile only landed once the gesture
+    // stopped. Only a tile for a different window is stale.
+    if (this.tilePending && this.tilePending.tileId !== this.tileCovering(requestedAgeMa)) {
+      this.tileSerial += 1;
+      this.tilePending.controller.abort();
+      this.tilePending = null;
     }
-    this.setTimelineState({ status: "idle", requestedAgeMa,
-      foregroundStatus: "loading", motionTier: this.fullPaletteEntries ? "full" : "requested-age", error: null });
+    // Background timeline loading is age-independent and continues untouched.
+    this.setTimelineState({ ...this.timelineState, requestedAgeMa,
+      foregroundStatus: this.motionResident(requestedAgeMa) ? "ready" : "loading",
+      motionTier: this.fullPaletteEntries ? "full" : "requested-age" });
   }
 
   private foregroundReady(requestedAgeMa: number, serial: number, tier: "requested-age" | "full"): void {
@@ -341,6 +391,7 @@ export class CaoReconstructionRuntime {
     const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
     const cached = this.tileCache.get(descriptor.tileId);
     if (cached) {
+      this.lastLoadedTile = { loaded: cached, requestedAgeMa };
       this.foregroundReady(requestedAgeMa, serial, "requested-age");
       return { entries: cached.entries,
         sourceBytes: (this.manifest.motionPalette.requestedAgeTiles?.bytes ?? 0) + descriptor.asset.bytes,
@@ -357,11 +408,25 @@ export class CaoReconstructionRuntime {
       this.tilePending = pending;
     }
     const loaded = await this.tilePending.promise;
-    if (this.lifetime.signal.aborted || serial !== this.tileSerial || this.foregroundAgeMa !== requestedAgeMa) {
-      throw new DOMException("stale requested-age motion tile", "AbortError");
+    if (this.lifetime.signal.aborted) throw new DOMException("stale requested-age motion tile", "AbortError");
+    if (this.fullPaletteEntries) {
+      // The all-age palette landed while this tile was in flight; it was
+      // verified against a resident tile, so the tile is now redundant.
+      if (serial !== this.tileSerial || this.foregroundAgeMa !== requestedAgeMa) {
+        throw new DOMException("stale requested-age motion tile", "AbortError");
+      }
+      this.foregroundReady(requestedAgeMa, serial, "full");
+      return { entries: this.fullPaletteEntries,
+        sourceBytes: this.manifest.motionPalette.binary.bytes, tier: "full" };
     }
+    // A verified tile stays resident even when the age that asked for it has
+    // moved on; the next evaluation in this window must not refetch it.
     this.tileCache.set(loaded.descriptor.tileId, loaded);
     while (this.tileCache.size > 2) this.tileCache.delete(this.tileCache.keys().next().value!);
+    if (serial !== this.tileSerial || this.foregroundAgeMa !== requestedAgeMa) {
+      throw new DOMException("stale requested-age motion tile", "AbortError");
+    }
+    this.lastLoadedTile = { loaded, requestedAgeMa };
     this.foregroundReady(requestedAgeMa, serial, "requested-age");
     return { entries: loaded.entries,
       sourceBytes: (this.manifest.motionPalette.requestedAgeTiles?.bytes ?? 0) + loaded.descriptor.asset.bytes,

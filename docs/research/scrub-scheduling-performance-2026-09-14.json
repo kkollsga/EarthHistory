@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-14",
+  "purpose": "Continuous timeline scrub scheduling: released v0.1.6 baseline versus the uncommitted candidate on branch codex/loading-borders-scrub-regressions",
+  "stopRule": "Accept only if median settle after the last input improves >= 20% or 250 ms, motion request starts do not increase, the all-age palette completes without restarts, no blank frames, rAF p50 <= 33.33 ms and >= 90% of baseline cadence.",
+  "environment": {
+    "browser": "Google Chrome stable via Playwright channel chrome, headed, mobile emulation 390x844 @2x touch",
+    "network": "CDP emulation: 60 ms latency, 1.5 MB/s down, 0.75 MB/s up",
+    "servers": "gzip static servers for the frozen v0.1.6 dist (/tmp/earthhistory-v016-regressions/baseline) and the candidate dist",
+    "machine": "macOS 25.6.0 developer workstation; runs sequential, one context per run",
+    "runsPerArtifact": 3,
+    "gesture": "load #age=0 with borders, wait for ready and background loading, then input ages 2..70 Ma in 2 Ma steps every 40 ms (crosses motion tiles 0-25, 25-50, 50-75)"
+  },
+  "medians": {
+    "baseline_v0.1.6": {
+      "settleAfterLastInputMs": 242.2,
+      "firstReadyMs": 7193,
+      "fullPaletteMsFromNavigation": 11274,
+      "tileRequestStarts": 24,
+      "tileRequestAborts": 22,
+      "fullPaletteStarts": 14,
+      "fullPaletteAborts": 13,
+      "checkpointStartsDuringBurst": 22,
+      "blankTraceRowsDuringBurst": 345,
+      "longTasksDuringBurst": 0,
+      "rafP50Ms": 16.7
+    },
+    "candidate_flash_fix_only": {
+      "settleAfterLastInputMs": null,
+      "note": "earlier metric version; blank rows 0, request counts identical to baseline",
+      "tileRequestStarts": 24,
+      "tileRequestAborts": 22,
+      "fullPaletteStarts": 14,
+      "fullPaletteAborts": 13,
+      "blankTraceRowsDuringBurst": 0
+    },
+    "candidate_final": {
+      "settleAfterLastInputMs": 23.6,
+      "firstReadyMs": 7155,
+      "fullPaletteMsFromNavigation": 9691,
+      "tileRequestStarts": 3,
+      "tileRequestAborts": 0,
+      "fullPaletteStarts": 1,
+      "fullPaletteAborts": 0,
+      "checkpointStartsDuringBurst": 4,
+      "blankTraceRowsDuringBurst": 0,
+      "longTasksDuringBurst": 0,
+      "rafP50Ms": 16.7
+    }
+  },
+  "witnesses": {
+    "unit": [
+      "keeps a pending motion tile when a newer age lies in the same window",
+      "keeps a tile resident when its requesting age moved on before it landed",
+      "continues background timeline loading across foreground age changes",
+      "holds background body reads while a foreground tile is pending",
+      "defers all-age palette decoding until the foreground age has settled",
+      "finishes the all-age palette under the current age after a foreground change"
+    ],
+    "browser": [
+      "keeps the last rendered surface visible while a newer motion window is pending"
+    ],
+    "mutations": "each unit witness and the browser witness failed under a deliberate reversal of its guarded line and passed after restoration"
+  },
+  "harness": "dev-docs/bench/scripts/scrub-scheduling-benchmark.mjs (local); raw traces under /tmp/earthhistory-v016-regressions/reports/v016-scrub",
+  "notes": "Settle metric v1 searched from the end of the burst loop and misreported both artifacts; v2 measures from the last dispatched input. Chrome reports a single 100 ms long task when the all-age palette decodes; decoding is now deferred until the foreground has rested."
+}

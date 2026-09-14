@@ -180,7 +180,7 @@ test("publishes the requested URL age before background timeline loading and kee
   await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", currentIdentity!);
 });
 
-test("withholds an old surface while a newer motion window is pending", async ({ page }) => {
+test("keeps the last rendered surface visible while a newer motion window is pending", async ({ page }) => {
   let releaseTile: (() => void) | undefined;
   let tileStarted = false;
   await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-palette\.bin\?h=/,
@@ -205,8 +205,15 @@ test("withholds an old surface while a newer motion window is pending", async ({
     .toBeCloseTo(411, 8);
   await expect.poll(() => tileStarted).toBe(true);
   await expect(stage).toHaveAttribute("data-cao-motion-foreground-status", "loading");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "waiting");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-draw-count", "0");
+  // The previously rendered surface stays on the globe with truthful
+  // requested/displayed ages. Blanking it here flashed land on slow devices.
+  await expect(stage).toHaveAttribute("data-cao-displayed-age-ma", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
+  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "0");
+  await expect(globe(page)).not.toHaveAttribute("data-cao-foundation-draw-count", "0");
+  await expect(page.locator(".surface-info summary strong[role='status']"))
+    .toHaveText("Loading 411 Ma · Showing Today");
+  await expect(page.locator(".surface-info")).toHaveAttribute("data-status", "loading");
   releaseTile!();
   await waitForCao(page);
   await expect.poll(async () => Number(await globe(page)
