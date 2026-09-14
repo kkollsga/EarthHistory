@@ -1,5 +1,5 @@
 {
-  "appliedCoreSha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
+  "appliedCoreSha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
   "correctionId": "earthhistory-north-sea-restoration-v1",
   "maximumMotionResidualRad": 2.8186868879892362e-05,
   "maximumResidualAgeMa": 341.5,
@@ -233,18 +233,6 @@
       "closureKm": 46.588,
       "expectedKm": 46.585,
       "pair": "Aberdeen-Stavanger"
-    },
-    {
-      "ageMa": 430.0,
-      "closureKm": -4.773,
-      "expectedKm": -4.773,
-      "pair": "London-Bergen"
-    },
-    {
-      "ageMa": 430.0,
-      "closureKm": 24.456,
-      "expectedKm": 24.452,
-      "pair": "London-Amsterdam"
     }
   ]
 }

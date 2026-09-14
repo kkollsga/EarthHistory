@@ -35,7 +35,11 @@ const limits = { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
 const SITES: Record<string, [number, number]> = {
   Shetland: [-1.2, 60.4], Aberdeen: [-2.1, 57.1], London: [-0.1, 51.5],
   Bergen: [5.3, 60.4], Stavanger: [5.73, 58.97], Amsterdam: [4.9, 52.37], Paris: [2.35, 48.86],
+  Aarhus: [10.2, 56.16], Gothenburg: [11.97, 57.71],
 };
+/** Cao draws the same Danish coastline on four plates; every copy must stay coincident. */
+const DANISH_COPIES = ["cao-coast:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:1904:0",
+  "cao-coast:GPlates-7289b0eb-4e3e-40ba-ae50-daa7a447125b:1905:0"];
 
 interface Contract {
   windowMa: { youngest: number; oldest: number };
@@ -90,9 +94,21 @@ describe("North Sea restoration", () => {
         const [a, b] = pair.split("-") as [string, string];
         expect(closureAt(p, a, b), `${pair} at ${row.ageMa} Ma`).toBeCloseTo(expected, -Math.log10(contract.witnesses.toleranceKm));
       }
-      // Baltica-side witnesses share one rigid motion with each other and with Paris (Armorica-Baltica).
-      expect(Math.abs(closureAt(p, "Bergen", "Amsterdam"))).toBeLessThan(0.5);
-      expect(Math.abs(closureAt(p, "Bergen", "Stavanger"))).toBeLessThan(0.5);
+      // Baltica-side witnesses share one rigid motion with each other, with Paris
+      // (Armorica-Baltica) and with Denmark, whose Tornquist stage is dropped.
+      for (const fixed of ["Amsterdam", "Stavanger", "Paris", "Aarhus", "Gothenburg"]) {
+        expect(Math.abs(closureAt(p, "Bergen", fixed)), `Bergen-${fixed} at ${row.ageMa} Ma`).toBeLessThan(0.5);
+      }
+    }
+    // Every Cao copy of the Danish coastline sits on the same pose: no duplicate Denmark.
+    const copies = DANISH_COPIES.map((id) => present.charts.findIndex((chart) => chart.chartId === id));
+    expect(copies.every((index) => index >= 0)).toBe(true);
+    for (const ageMa of [150, 170, 200, 300]) {
+      const revision = await runtime.request(ageMa).prepared;
+      const poses = [carriers.Aarhus!, ...copies].map((index) =>
+        revision.resolveAddress(revision.addressForChartDirection(index, direction(10.2, 56.16))).direction!);
+      for (const pose of poses.slice(1)) expect(km(poses[0]!, pose), `Danish copy at ${ageMa} Ma`).toBeLessThan(0.5);
+      revision.release();
     }
     // Full closure holds through the Carboniferous up to the Caledonian seam.
     const p300 = await positions(300);

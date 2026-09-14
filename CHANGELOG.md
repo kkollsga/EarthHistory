@@ -4,6 +4,26 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-09-14
+
+### Fixed
+
+- Remove the duplicate Denmark and keep it on the Norwegian side of the North
+  Sea rift. Cao v2.4 draws the Danish coastline on four plates (330, 315, 302
+  and 30204) and gives the Tornquist Block (330) a 0.59 degree stage that
+  drifted one copy about 40 km south-west from 170 Ma back, so two Denmarks
+  appeared and the Kattegat opened going back in time; this was already the
+  case in v0.1.9. The North Sea restoration contract now binds every Tornquist
+  Block chart (26 coast and shelf charts, the DNK, POL and SWE outline
+  fragments) to Baltica's native motion from 130 Ma back, so all copies stay
+  coincident and Denmark, the Netherlands, Norway and Sweden share one
+  motion. The moving block is unchanged: Britain and Ireland close the Viking
+  and Central Graben toward Norway and Denmark (Shetland-Bergen 72 km by
+  270 Ma). A single rigid rotation cannot also close the Skagerrak, and no
+  sourced closure exists for it, so Denmark does not move; the runtime probe
+  test now checks that every Danish copy stays within 0.5 km of the others and
+  that Aarhus and Gothenburg keep their distance to Bergen at every age.
+
 ## [0.1.10] - 2026-09-14
 
 ### Fixed

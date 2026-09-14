@@ -183,11 +183,13 @@
    }
   }
  ],
- "selectedCharts": 28,
- "selectedByPlateAndRole": {
-  "303:model-geography": 19,
-  "315:model-geography": 5,
-  "315:country-reference": 2,
-  "303:country-reference": 2
+ "selectedCharts": 57,
+ "selectedByPlateRoleKind": {
+  "303:model-geography:moving": 19,
+  "330:model-geography:fixed": 26,
+  "315:model-geography:moving": 5,
+  "330:country-reference:fixed": 3,
+  "315:country-reference:moving": 2,
+  "303:country-reference:moving": 2
  }
 }

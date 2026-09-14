@@ -36,7 +36,6 @@ EARTH_RADIUS_KM = 6371.0088
 
 CORRECTION_ID = "earthhistory-north-sea-restoration-v1"
 WINDOW = (130.0, 430.0)
-BLOCK_PLATES = (303, 315)
 REFERENCE_PLATE = 302
 
 # Müller et al. 2019 v3.0 North Atlantic Phase 1 mesh (200.0-120.1 Ma, plate
@@ -60,16 +59,27 @@ CLOSURE_SCHEDULE_KM = [
     (230.0, 34.0), (250.0, 60.0), (270.0, 72.0), (300.0, 72.0), (430.0, 72.0),
 ]
 WITNESS_PAIRS = {
-    "Shetland-Bergen": ([-1.2, 60.4], [5.3, 60.4]),
-    "Aberdeen-Stavanger": ([-2.1, 57.1], [5.73, 58.97]),
-    "London-Bergen": ([-0.1, 51.5], [5.3, 60.4]),
-    "London-Amsterdam": ([-0.1, 51.5], [4.9, 52.37]),
+    # name: (moving lon/lat, moving chart plate, fixed lon/lat on Baltica or Armorica)
+    "Shetland-Bergen": ([-1.2, 60.4], 303, [5.3, 60.4]),
+    "Aberdeen-Stavanger": ([-2.1, 57.1], 303, [5.73, 58.97]),
+    "London-Bergen": ([-0.1, 51.5], 315, [5.3, 60.4]),
+    "London-Amsterdam": ([-0.1, 51.5], 315, [4.9, 52.37]),
 }
-# Only the UK side moves; Norwegian, Dutch and French witnesses stay on Baltica.
-FIXED_WITNESSES = {"Bergen": [5.3, 60.4], "Stavanger": [5.73, 58.97], "Amsterdam": [4.9, 52.37]}
+# Only the UK block moves; Norway, Denmark, the Netherlands and France stay fixed.
+FIXED_WITNESSES = {"Bergen": [5.3, 60.4], "Stavanger": [5.73, 58.97], "Amsterdam": [4.9, 52.37],
+                   "Aarhus": [10.2, 56.16], "Gothenburg": [11.97, 57.71]}
 
-# Chart selection: every 303 chart in the British Isles box, the 315 charts west
-# of the Dogger/Channel cut, and the modern-country outlines of GBR, IRL, IMN.
+# The moving block is everything south-west of the Viking Graben and Central
+# Graben: every Northern Scotland (303) chart in the British Isles box and the
+# England-Brabant (315) charts west of the Dogger/Channel cut, plus the GBR,
+# IRL and IMN outlines. Denmark lies on the Norwegian side of the Central
+# Graben; Cao draws its rings on plates 330, 315, 302 and 30204 and gives the
+# Tornquist Block (330) a 0.59 degree stage that drifts one copy 40 km
+# south-west from 170 Ma back. Every Tornquist chart is therefore bound to
+# Baltica's native motion instead ("fixed"), which keeps all Danish copies
+# coincident and the Kattegat closed.
+BLOCK_PLATES = (303, 315)
+TORNQUIST_PLATE = 330
 BOX = {"minLon": -15.0, "maxLon": 3.0, "minLat": 49.0, "maxLat": 63.0}
 CUT_LON = 2.0
 CUT_LAT = 50.3
@@ -109,7 +119,7 @@ def angular_km(a, b):
 
 
 def pair_closure_km(q, pair):
-    moving, fixed = pair
+    moving, _plate, fixed = pair
     present = angular_km(lon_lat_direction(*moving), lon_lat_direction(*fixed))
     restored = angular_km(rotate(q, lon_lat_direction(*moving)), lon_lat_direction(*fixed))
     return present - restored
@@ -180,7 +190,7 @@ def angle_for_closure(pole, closure_km, pair=WITNESS_PAIRS["Shetland-Bergen"]):
     return angle
 
 
-def chart_centroids(core, palette_plates):
+def chart_centroids(core):
     charts = core["charts"]
     centroids = {}
     for batch in core["spatialBatches"]:
@@ -207,33 +217,42 @@ def select_charts():
     core = json.loads((PUBLIC / "core.json").read_text())
     palette = json.loads((PUBLIC / "motion-palette.json").read_text())
     entry_plate = {entry["entryId"]: entry["plateId"] for entry in palette["entries"]}
-    centroids = chart_centroids(core, entry_plate)
+    centroids = chart_centroids(core)
     selected = []
     for index, chart in enumerate(core["charts"]):
-        plates = sorted({entry_plate[b["entryId"]] for b in chart["motionBindings"]})
-        if len(plates) != 1 or plates[0] not in BLOCK_PLATES:
+        plates = sorted({entry_plate[b["entryId"]] for b in chart["motionBindings"]
+                         if not b["entryId"].startswith("restoration-north-sea-")})
+        if len(plates) != 1:
             continue
         plate = plates[0]
         chart_id = chart["chartId"]
-        if chart["role"] == "country-reference":
-            code = chart_id.split(":")[1]
-            if code not in COUNTRY_CODES:
-                continue
-            reason = f"modern-country outline {code.upper()} on plate {plate}"
-        else:
-            if index not in centroids:
-                continue
-            batch_id, lon, lat, n = centroids[index]
-            if not (BOX["minLon"] <= lon <= BOX["maxLon"] and BOX["minLat"] <= lat <= BOX["maxLat"]):
-                continue
-            if plate == 315 and not (lon < CUT_LON and lat > CUT_LAT):
-                continue
-            if batch_id == "batch-shelf" and plate == 315:
-                continue  # the 315 continental outline straddles the Central Graben; it stays on Baltica
-            reason = f"{batch_id} chart centroid {lon:.1f}E {lat:.1f}N on plate {plate}"
+        kind = reason = None
+        if plate == TORNQUIST_PLATE:
+            kind = "fixed"
+            reason = f"Tornquist Block chart ({chart['role']}) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+        elif plate in BLOCK_PLATES:
+            if chart["role"] == "country-reference":
+                code = chart_id.split(":")[1]
+                if code not in COUNTRY_CODES:
+                    continue
+                kind, reason = "moving", f"modern-country outline {code.upper()} on plate {plate}"
+            else:
+                if index not in centroids:
+                    continue
+                batch_id, lon, lat, n = centroids[index]
+                if not (BOX["minLon"] <= lon <= BOX["maxLon"] and BOX["minLat"] <= lat <= BOX["maxLat"]):
+                    continue
+                if plate == 315 and not (lon < CUT_LON and lat > CUT_LAT):
+                    continue
+                if batch_id == "batch-shelf" and plate == 315:
+                    continue  # the 315 continental outline straddles the Central Graben; it stays on Baltica
+                kind, reason = "moving", f"{batch_id} chart centroid {lon:.1f}E {lat:.1f}N on plate {plate}"
+        if kind is None:
+            continue
         lifecycle = chart["lifecycle"]["validTimeMa"]
         selected.append({
-            "chartIndex": index, "chartId": chart_id, "plateId": plate, "role": chart["role"],
+            "chartIndex": index, "chartId": chart_id, "plateId": plate, "role": chart["role"], "kind": kind,
+            "motionPlateId": (303 if plate == 303 else REFERENCE_PLATE) if kind == "moving" else REFERENCE_PLATE,
             "lifecycleOldestMa": lifecycle["oldest"],
             "bindings": [(b["entryId"], b["validTimeMa"]["youngest"], b["validTimeMa"]["oldest"])
                          for b in chart["motionBindings"]],
@@ -271,6 +290,7 @@ def main() -> None:
                           "coreSha256": manifest["core"]["sha256"]},
         "referencePlateId": REFERENCE_PLATE,
         "blockPlateIds": list(BLOCK_PLATES),
+        "tornquistPlateId": TORNQUIST_PLATE,
         "windowMa": {"youngest": WINDOW[0], "oldest": WINDOW[1],
                      "reason": "post-rift quiescence below 130 Ma; the closure schedule ends at the Cao 430 Ma Caledonian seam and is held constant to each chart's oldest lifecycle so no chart jumps at a shared knot"},
         "pole": {"lonLat": [round(pole_lon, 4), round(pole_lat, 4)],
@@ -289,24 +309,35 @@ def main() -> None:
         "sourceIds": ["odinsen-north-sea-2000", "roberts-north-sea-1993", "roberts-north-sea-1995",
                       "cowie-north-sea-2005", "faerseth-north-sea-1996", "muller-deforming-model-2019",
                       "doi:10.5281/zenodo.13628813"],
-        "witnesses": {"pairs": {name: {"movingLonLat": pair[0], "fixedLonLat": pair[1]} for name, pair in WITNESS_PAIRS.items()},
+        "witnesses": {"pairs": {name: {"movingLonLat": pair[0], "movingPlateId": pair[1], "fixedLonLat": pair[2]}
+                                for name, pair in WITNESS_PAIRS.items()},
                       "fixed": FIXED_WITNESSES, "toleranceKm": 2.0},
         "chartSelection": {"box": BOX, "cutLongitude": CUT_LON, "cutLatitude": CUT_LAT, "countryCodes": list(COUNTRY_CODES),
+                           "boundary": "Viking Graben and Central Graben: Britain and Ireland move; Norway, Denmark, the Netherlands and France stay. Denmark lies on the Norwegian side of the Central Graben and a single rigid rotation cannot close both the Viking Graben and the Skagerrak",
                            "excluded": "the 315 continental-outline chart, which straddles the Central Graben, and the 301/302/330 shelf polygons stay on Baltica"},
         "charts": selected,
-        # One entry per block plate from the window start to the oldest pinned
-        # chart lifecycle on that plate: the closure is held constant beyond the
-        # 430 Ma seam so the block never jumps at a shared knot.
-        "paletteEntries": [{"entryId": f"restoration-north-sea-plate-{plate}-{WINDOW[0]:g}-"
-                                       f"{max(row['lifecycleOldestMa'] for row in selected if row['plateId'] == plate):g}",
-                            "plateId": plate, "youngestAgeMa": WINDOW[0],
-                            "oldestAgeMa": max(row["lifecycleOldestMa"] for row in selected if row["plateId"] == plate),
-                            "sourceIntervalSetId": f"north-sea-restoration-clock-{WINDOW[0]:g}-"
-                                                   f"{max(row['lifecycleOldestMa'] for row in selected if row['plateId'] == plate):g}"}
-                           for plate in BLOCK_PLATES],
+        # One entry per chart plate among the moving charts, from the window start
+        # to the oldest pinned chart lifecycle on that plate: the closure is held
+        # constant beyond the 430 Ma seam so the block never jumps at a shared
+        # knot. Block plates 315 and 330 (and the Baltica duplicates) take
+        # Baltica's own native motion composed with the restoration, so the
+        # Tornquist stage rotation that split Denmark is replaced by the block.
+        "paletteEntries": [
+            {"entryId": ("restoration-north-sea-plate-" if plate in BLOCK_PLATES else "restoration-north-sea-duplicate-")
+                        + f"{plate}-{WINDOW[0]:g}-{oldest:g}",
+             "plateId": plate, "motionPlateId": 303 if plate == 303 else REFERENCE_PLATE,
+             "youngestAgeMa": WINDOW[0], "oldestAgeMa": oldest,
+             "sourceIntervalSetId": f"north-sea-restoration-clock-{plate}-{WINDOW[0]:g}-{oldest:g}"}
+            for plate, oldest in sorted({(row["plateId"], max(r["lifecycleOldestMa"] for r in selected
+                                                              if r["plateId"] == row["plateId"] and r["kind"] == "moving"))
+                                         for row in selected if row["kind"] == "moving"})
+        ],
+        "fixedBinding": {"plateId": REFERENCE_PLATE,
+                         "reason": "every Tornquist Block (330) chart follows Baltica's native motion from the window start, dropping the 0.59 degree Tornquist stage that drifted one copy of Denmark 40 km south-west from 170 Ma back while its duplicates on 315, 302 and 30204 stayed"},
         "limitations": [
             "a rigid block cannot reproduce graben-scale stretching; the closure is a transect total, not a strain field",
             "the pole geometry follows the Müller 2019 Jurassic network pattern; the Permian-Triassic phase reuses it",
+            "Denmark does not move: no sourced closure exists for the Skagerrak and the Norwegian-Danish Basin, and the Tornquist stage of Cao v2.4 is dropped rather than replaced",
             "Devonian post-Caledonian extension (about 30 km) is not restored",
             "straddling shelf polygons remain on Baltica, so restored land overlaps model shelf rather than closing it",
             "Müller et al. 2019 licensing is ambiguous (CC BY 4.0 record, CC BY-SA 4.0 README); no Müller geometry or rotation is redistributed",
@@ -318,12 +349,12 @@ def main() -> None:
         "generatedOn": "2026-09-14", "correctionId": CORRECTION_ID,
         "pole": contract["pole"], "angleSchedule": schedule,
         "selectedCharts": len(selected),
-        "selectedByPlateAndRole": {f"{row['plateId']}:{row['role']}": sum(1 for r in selected if r["plateId"] == row["plateId"] and r["role"] == row["role"]) for row in selected},
+        "selectedByPlateRoleKind": {f"{row['plateId']}:{row['role']}:{row['kind']}": sum(1 for r in selected if (r["plateId"], r["role"], r["kind"]) == (row["plateId"], row["role"], row["kind"])) for row in selected},
     }
     REPORT.write_text(json.dumps(report, indent=1) + "\n")
     print(json.dumps({"pole": contract["pole"]["lonLat"], "rmsMisfitKm": round(residual_km, 2),
                       "angleAt200MaMuller": round(angle_200, 4), "charts": len(selected),
-                      "byPlateRole": report["selectedByPlateAndRole"],
+                      "byPlateRoleKind": report["selectedByPlateRoleKind"],
                       "schedule": [(row["ageMa"], row["angleDegrees"], row["witnessClosureKm"]) for row in schedule]}, indent=1))
 
 

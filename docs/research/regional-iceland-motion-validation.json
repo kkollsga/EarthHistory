@@ -13,13 +13,13 @@
   },
   "packageAssets": {
     "core": {
-      "bytes": 6317889,
-      "sha256": "fbc25c0a689d78dee5ba1063919bf3f0bb036e46e40a72dc9ff53f916f1fa255",
+      "bytes": 6314414,
+      "sha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
       "url": "core.json"
     },
     "motionPaletteCatalog": {
-      "bytes": 802748,
-      "sha256": "fdeb39add0cf5de91a2b203d302bf49ab8175dd94cd7e5d4a0f2d245b9bbc887",
+      "bytes": 802764,
+      "sha256": "70cf3f2c72912de66453c84616a2a75372e9af1084fff594967587e5d9d27cdd",
       "url": "motion-palette.json"
     },
     "motionPaletteBinary": {
@@ -29,7 +29,7 @@
     },
     "materialCorrectionCatalog": {
       "bytes": 397090,
-      "sha256": "acacf3d70741467ac83a9212ef90934e0f921094876dea6ea350967950168981",
+      "sha256": "ab48dcd5311f5276219530ef1153a60dde34878aa5c391ee2e4c584a6a70f6c1",
       "url": "corrections/material-v1/catalog.json"
     }
   },
