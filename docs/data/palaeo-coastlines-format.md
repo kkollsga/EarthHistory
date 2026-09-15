@@ -16,15 +16,23 @@ and its audit JSON.
 
 ## Files
 
-| File | Holds |
-|---|---|
-| `<class>/palaeo-<class>-<intervalId>.ehpr` | one class, one interval: pieces, rings, vertices |
-| `<class>/palaeo-<class>-catalog.json` | the class catalog: charts, bindings, evidence, per-interval file list and reservations |
-| `outline-tones.ehpt` | 24 country-outline tone tables, two bits per segment |
-| `outline-tones.json` | tone-table catalog and the per-interval file index across classes |
+| File | Ships | Holds |
+|---|---|---|
+| `<class>/palaeo-<class>-<intervalId>.ehpr` | yes | one class, one interval: pieces, rings, vertices |
+| `<class>/palaeo-<class>-catalog.json` | yes | the class catalog: the tables a piece's indices resolve into |
+| `outline-tones.ehpt` | yes | 24 country-outline tone tables, two bits per segment |
+| `outline-tones.json` | yes | tone-table catalog and the per-interval file index across classes |
+| `provenance/palaeo-<class>-provenance.json` | **no** | source-record provenance and every compile measurement |
 
 `<class>` is `lm` (landmass), `sm` (shallow marine) or `m` (mountain).
 `<intervalId>` is the published map interval, `402-380` … `11-2`.
+
+The provenance sidecar stays in the owned offline store
+(`EarthHistory-data/palaeomap-study/palaeo-coastlines/`) and never enters a
+build. The catalog names it by path, byte count and sha256, so the chain from a
+shipped piece back to its Cao 2017 DBF row is pinned even though the browser
+never downloads it. `palaeo_coastlines_correction.py` re-verifies that digest;
+a sidecar edited without a catalog update is a rejected build, not a drift.
 
 ## EHPR v1 layout
 
@@ -55,20 +63,28 @@ field are unchanged.
 
 | Offset | Type | Field |
 |---|---|---|
-| 0 | u16 | chart index into `catalog.charts` (the Cao 2017 source record) |
-| 2 | u16 | binding index into `catalog.bindings` (plate and palette entries) |
+| 0 | u16 | chart index: the ordinal of the Cao 2017 source record this piece was cut from |
+| 2 | u16 | binding index into `catalog.bindings` (binding plate, owner partition, kind) |
 | 4 | u16 | evidence index into `catalog.evidence` |
 | 6 | u16 | lifecycle index into `catalog.lifecycles` |
 | 8 | u16 | flags (below) |
 | 10 | u16 | ring count |
 
-Every field is a u16 index into a per-class catalog array, and the compiler
-refuses to write a class whose `charts`, `bindings`, `evidence` or `lifecycles`
-array has reached 65,536 entries. The validator re-asserts both halves: the
-array lengths fit the field, and no emitted index points past its array.
+Every field is a u16 index, and the compiler refuses to write a class whose
+`chartCount`, `bindings`, `evidence` or `lifecycles` table has reached 65,536
+entries. The validator re-asserts both halves: the table lengths fit the field,
+and no emitted index points past its table.
+
+The chart index is the one field the shipped catalog does not carry a table for.
+It is the source-record ordinal: `chartIndex` *n* is row *n* of the provenance
+sidecar's `charts` table, and `catalog.chartCount` is the only thing that bounds
+it. Every piece cut from one Cao 2017 record carries the same value, so the
+runtime groups pieces by source record with it (`materialId` is
+`palaeo:<class>:<chartIndex>`) without ever reading a feature id, a `PLATEID1`
+or a publication date. Those live in the sidecar.
 
 The lifecycle is the source record's own `(TOAGE, FROMAGE]`, not the interval's;
-`catalog.lifecycles[]` holds the distinct `{youngestExclusiveMa, oldestMa}` pairs
+`catalog.lifecycles` holds the distinct `{youngestExclusiveMa, oldestMa}` pairs
 (64 for `lm`, 25 for `sm`, 38 for `m`), because the 24 published intervals and the
 44 off-schedule pairs are shared by tens of thousands of pieces. An off-schedule
 record appears in every canonical interval it overlaps and keeps its own
@@ -149,33 +165,148 @@ see it; one that blends them may show a seam of that width.
 
 ## Class catalog
 
-`palaeo-<class>-catalog.json` is columnar: the payloads carry indices, the
-catalog carries the data they point at.
+`palaeo-<class>-catalog.json` is the document the browser downloads. It carries
+exactly what a piece's u16 indices resolve into and nothing else: measured,
+**lm 26,796 B, sm 42,849 B, m 24,309 B** (2026-09-15), against 3.72, 6.07 and
+2.22 MiB for the first shape of it. Two things did that. Source-record
+provenance moved to the offline sidecar, and the motion binding stopped being a
+per-piece-window palette chain and became a plate-level row the runtime resolves
+at the requested age.
 
-- `charts[]` — one entry per compiled Cao 2017 record: source record index,
-  `PLATEID1`, `FROMAGE`/`TOAGE`, feature id, whether the record is off the
-  published schedule, and the basin operation that created it if it is an edit.
-- `bindings[]` — one entry per distinct motion binding: the binding plate, the
-  owner partition plate, whether the binding came from the partition or from the
-  `PLATEID1` override, and the list of palette entries with their validity
-  windows. The list is gap-free except across a `motionSupportGaps` entry: on the
-  eight plates whose native motion was replaced by `native-recovery-plate-`
-  palette entries, those entries are the only motion a piece may take, and the
-  source rotation's own discontinuities between them (plate 626 at
-  119.999999–120 Ma and 79.1–79.100001 Ma) are stepped over and recorded rather
-  than filled with the `plate-` motion that `apply_cao_native_triangulation_repair`
-  rejects.
-- `evidence[]` — interned evidence records: status, surface class, appearance,
-  method, `sourceIds`, `limitations`, and the `editorial` line when a basin edit
-  contributed.
-- `lifecycles[]` — the distinct `{youngestExclusiveMa, oldestMa}` pairs the piece
-  table indexes, in first-use order.
-- `intervals[]` — per interval: source record count, areas, the simplification
-  area error, lost pieces, and for both payload sets the file name, byte count,
-  sha256, piece/ring/vertex counts. `reservation` carries the renderer's numbers:
-  vertices, base triangles and the estimated triangle count after 1° refinement.
-- `areaAudit`, `poseAudit`, `simplification`, `basinEdits`, `inputs`,
-  `partitions`, `rotationCheck` — the measurements the validator re-derives.
+Every table is **columnar**: an object of parallel arrays plus a `count`, not an
+array of objects. Repeating a key name once per row, not the values, was what
+the first shape spent its megabytes on (7,079 `lm` binding rows of the same six
+keys came to 1.7 MiB). A decoder reads row *i* of a table by taking element *i*
+of each of its arrays, and must reject a table whose columns disagree with
+`count`. The marker is `"encoding": "palaeo-class-catalog-columnar-v1"`; the
+document carries none of `packageIntern.ts`'s own markers, so
+`expandInternedPackageDocument` passes it through untouched and the columnar
+tables are expanded by the palaeo decoder.
+
+### Top level
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | `2` |
+| `encoding` | `palaeo-class-catalog-columnar-v1` |
+| `catalogId`, `class`, `className`, `appearance` | class identity |
+| `format` | `{magic: "EHPR", version: 1, specification}` |
+| `paletteId` | the motion palette the binding rows resolve against |
+| `lifecycleRule` | `(TOAGE, FROMAGE]`, stated in the document |
+| `payloadNameTemplate` | `palaeo-<class>-<intervalId>.ehpr`; a payload url is derived, not listed |
+| `maximumEdgeDegrees` | the refinement bound the reservations were sized at, `1` |
+| `chartCount` | rows in the sidecar's `charts` table; the bound on a piece's `chartIndex` |
+| `provenance` | `{path, bytes, sha256, records, store}` — the offline sidecar |
+| `flagLimitations` | verbatim limitation line for flag bits 1, 2, 4 and 8 |
+| `entrySelection` | the constants of the binding rule below |
+| `bindingKinds` | `["partition", "override", "restoration", "recovery"]` |
+| `bindings` | columnar, one row per distinct motion binding |
+| `gapSets` | the distinct declared source-seam sets a binding row points at |
+| `evidence` | an object array (one row per class today, more once a basin edit lands) |
+| `lifecycles` | columnar `{youngestExclusiveMa, oldestMa}` |
+| `intervals` | columnar, one row per shipped interval |
+
+`intervals` columns: `intervalId`, `intervalIndex`, `fromAgeMa`, `toAgeMa`,
+`midAgeMa`, `bytes`, `sha256`, `pieces`, `rings`, `vertices`, `collapsedRings`,
+`baseTriangles`, `estimatedTrianglesAtOneDegree`. The rows run oldest to
+youngest and abut. The payload file name is `payloadNameTemplate` with
+`<intervalId>` substituted; `bytes` and `sha256` are the digest the loader
+verifies. `vertices`, `baseTriangles` and `estimatedTrianglesAtOneDegree` are
+the renderer's reservation, `maximumEdgeDegrees` its edge bound. The
+unsimplified `original` payload's own record stays in the sidecar: it never
+ships.
+
+`evidence[]` rows are unchanged: `status`, `surfaceClass`, `appearance`,
+`method`, `sourceIds`, `limitations`, and `editorial` exactly when a cited basin
+edit contributed.
+
+### Binding rows
+
+`bindings` columns: `bindingPlateId`, `partitionPlateId`, `kind` (an index into
+`bindingKinds`), `gapSet` (an index into `gapSets`). Measured row counts:
+**lm 589, sm 1,170, m 521** — against 7,079, 10,448 and 3,817 when the row also
+carried the palette chain.
+
+- `bindingPlateId` is the plate the piece rides. It is the owner partition's
+  plate, except for the tracked `PLATEID1` overrides.
+- `partitionPlateId` is the Cao 2024 static partition that owns the ground. The
+  runtime uses it for the piece's fragment identity; it is not the motion plate
+  when an override applies.
+- `kind` names which branch of the selection rule the binding plate falls in.
+  `restoration` and `recovery` are properties of the *plate*: they say the
+  palette carries entries that displace this plate's native motion. `override`
+  and `partition` say where the binding plate came from. The four are exclusive
+  in the shipped palette and the compiler refuses to ship a plate that is both,
+  because one enum could not then say which branch to take. `kind` is a
+  declaration the runtime may cross-check, not an input to the selection: the
+  selection is a function of the palette alone.
+- `gapSet` points at the declared source seams of the binding plate — the
+  discontinuities in the source rotation between its recovery entries. Both ends
+  of a seam are exclusive. `gapSets[0]` is always empty.
+
+Note what `kind` is **not**: piece flag bit 4 records that a piece's own window
+actually resolved to a restoration entry. A piece on plate 315 whose lifecycle
+lies entirely below 130 Ma has `kind` `restoration` and no bit 4, because the
+restoration entries do not cover its ages.
+
+### Entry selection — `palaeo-binding-entry-v1`
+
+This is the contract the runtime implements. Given a binding row and a requested
+age `t`, the palette entry the piece is posed with is:
+
+1. Let `E` be the motion-palette catalog entries whose `plateId` equals
+   `bindingPlateId`. If `E` is empty the piece is **unposable**.
+2. An entry *covers* `t` when `youngestAgeMa <= t <= oldestAgeMa`. Coverage is
+   closed at both ends. Where two entries of the same preference class meet,
+   the one with the larger `youngestAgeMa` wins — that is the entry the chain
+   walks into going older, and it is what keeps the oldest age of a lifecycle,
+   which is inclusive, posed when nothing starts above it. Ties on that value
+   break on `entryId`.
+3. **Restoration first.** If any covering entry's id starts with
+   `restoration-`, take the winner among those. The two such entries are
+   `restoration-north-sea-plate-303-130-600` and
+   `restoration-north-sea-plate-315-130-420`, so on partitions 303 and 315 the
+   restored UK-block motion carries the piece from 130 Ma to 600 and 420 Ma
+   respectively and the native entries carry it below 130 Ma. The palaeo
+   schedule stops at 402 Ma, so both windows cover the whole of it above 130 Ma.
+   This is explicit because `entries_covering()` in the material-correction
+   emitter skips `restoration-` entries: without it a palaeo chart on 315 would
+   take native motion and detach ~72 km from its restored shelf at 270 Ma.
+4. **Recovery plates never fall back.** If *any* entry of `E` — covering or not —
+   has an id starting with `native-recovery-plate-`, then only those entries may
+   pose the piece. Take the winner among the covering ones; if none covers `t`,
+   the piece is **unposable at `t`**. The eight such plates are 626, 801, 8011,
+   8023, 80101, 80102, 80103 and 80104. `apply_cao_native_triangulation_repair`
+   rejects any chart on them that keeps a `plate-` binding, so a palaeo piece
+   must not keep one either.
+5. **Otherwise the native chain.** Among the covering entries, prefer
+   `correction-plate-` entries at `t >= 410` Ma and non-correction entries below
+   it; take the winner of whichever set is non-empty.
+
+A piece that is unposable at the requested age is not drawn: its support state
+is `unsupported`/`missing-motion` and its activation is 0, the same as a chart
+whose palette entry is not resident. The distinction matters for the map key —
+unposable is a statement about the model, not about what has finished
+downloading — but not for the frame.
+
+**Seams.** The only ages inside a lifecycle at which a shipped binding may
+resolve to nothing are the open windows its `gapSet` declares: plate 626 at
+119.999999–120 Ma and 79.1–79.100001 Ma. Those are the source rotation's own
+discontinuities, stepped over and recorded rather than filled with the native
+motion the repair emitter rejected. One `lm` and one `sm` piece window crosses a
+seam; two do in `m`.
+
+**Gap-free is a validated property, not a shipped one.** Because the chain is
+derived, `palaeo_coastlines_correction.py` re-derives it: for every
+`(bindingIndex, lifecycleIndex)` pair a shipped piece actually carries — 6,986
+for `lm`, 10,456 for `sm`, 3,817 for `m` — it walks the rule across the
+intersection of that lifecycle with the interval the piece ships in, and rejects
+the build if any age in that window resolves to nothing outside a declared seam,
+or if the pointwise rule and the compiler's chain builder disagree entry for
+entry. The self-test proves that gate red by rebinding a row to a plate the
+palette does not cover.
+
+### Reservations
 
 The triangle estimate reproduces the emitter's own longest-edge bisection
 (`scripts/research/project_cao_triangle_refinement.py`) from the three edge
@@ -185,6 +316,32 @@ triangulation is a Delaunay triangulation of the ring vertices with the
 triangles outside the piece removed: it is an estimate of the runtime's
 ear-clipping output, not a reproduction of it, and it is used only to size a
 reservation.
+
+## Provenance sidecar
+
+`provenance/palaeo-<class>-provenance.json` is the offline half of the split. It
+is not a build input and not a download; it is the record that lets any claim on
+screen be traced back to a Cao 2017 row, and the validator's own source of every
+measurement it re-derives.
+
+- `charts` — columnar, one row per compiled source record, in `chartIndex`
+  order: `sourceRecordIndex` (the DBF row), `plateId1`, `fromAgeMa`, `toAgeMa`,
+  `featureIdRef`, `offSchedule`, `basinOpId`. `featureIdRef` indexes the
+  `featureIds` string table, because thousands of cut pieces share one GPlates
+  feature id; this is the `<field>Ref` convention of
+  `scripts/research/cao_package_intern.py`.
+- `intervals[]` — the full per-interval measurement: source/cut/emitted/
+  unposable/below-floor areas, the area ratio, the simplification error, lost
+  and retained pieces and their reasons, and the `original` payload record
+  (url, bytes, sha256, pieces, rings, vertices).
+- `bindings`, `gapSets`, `evidence`, `lifecycles` — the same tables the catalog
+  ships, so the sidecar stands alone.
+- `areaAudit`, `poseAudit`, `simplification`, `sourceRecords`, `method`,
+  `flags`, `basinEdits`, `basinContracts`, `inputs`, `partitions`,
+  `rotationCheck`, `totals`, `generatedBy`, `generatedAt`, `runtime` — the
+  compile record.
+
+Measured 2026-09-15: lm 548,246 B, sm 966,168 B, m 386,943 B.
 
 ## Outline tone tables — `outline-tones.ehpt`
 

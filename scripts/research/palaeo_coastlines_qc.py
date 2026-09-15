@@ -387,7 +387,7 @@ def run(store: Path, classes: list[str], overlays: bool) -> dict:
                               / f"palaeo-{class_name}-catalog.json").read_text())
         rows = []
         summaries = []
-        for interval in catalog["intervals"]:
+        for interval in compile_module.catalog_intervals(catalog):
             summary, piece_rows = measure_interval(store, class_name, interval, transects)
             summaries.append(summary)
             rows.extend(piece_rows)
@@ -433,15 +433,17 @@ def run(store: Path, classes: list[str], overlays: bool) -> dict:
             witness_worst[row["witnessId"]] = row
     catalog_lost = {}
     for class_name in classes:
-        catalog = json.loads((store / "staging" / class_name
-                              / f"palaeo-{class_name}-catalog.json").read_text())
+        # The lost-piece and retention counts are compile measurements, so they live
+        # in the offline provenance sidecar, not in the catalog the browser fetches.
+        provenance = json.loads((store / "provenance"
+                                 / f"palaeo-{class_name}-provenance.json").read_text())
         catalog_lost[class_name] = {
-            "maximumLostPiecesInOneInterval": max(row["lostPieces"] for row in catalog["intervals"]),
+            "maximumLostPiecesInOneInterval": max(row["lostPieces"] for row in provenance["intervals"]),
             "largestLostPieceSquareKilometres": round(
-                max(row["largestLostPieceSquareKilometres"] for row in catalog["intervals"]), 3),
-            "totalLostPieces": sum(row["lostPieces"] for row in catalog["intervals"]),
-            "retainedUnsimplifiedPieces": catalog["simplification"]["retainedUnsimplifiedPieces"],
-            "protectedPieces": catalog["simplification"]["protectedPieces"],
+                max(row["largestLostPieceSquareKilometres"] for row in provenance["intervals"]), 3),
+            "totalLostPieces": sum(row["lostPieces"] for row in provenance["intervals"]),
+            "retainedUnsimplifiedPieces": provenance["simplification"]["retainedUnsimplifiedPieces"],
+            "protectedPieces": provenance["simplification"]["protectedPieces"],
         }
     control_rows = []
     for class_name in classes:

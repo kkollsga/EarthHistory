@@ -32,8 +32,11 @@ Pipeline, per class and per canonical map interval:
    quarantined;
 7. emit the unsimplified ``original`` payload to the offline store and the
    node-reduced ``simplified`` payload to the staging directory, both as
-   **EHPR v1** binaries (``docs/data/palaeo-coastlines-format.md``), with one
-   columnar catalog per class and the country-outline tone tables.
+   **EHPR v1** binaries (``docs/data/palaeo-coastlines-format.md``), with the
+   country-outline tone tables and, per class, two documents: the columnar
+   runtime catalog the browser downloads, and the offline provenance sidecar it
+   pins by sha256, which holds the source-record provenance and every compile
+   measurement the runtime does not read.
 
 Nothing here writes into ``public/`` or ``src/``. Run with the pinned pyGPlates
 environment (see ``docs/research/palaeo-coastlines-cao2017.md``).
@@ -77,6 +80,22 @@ CATALOG_INDEX_CEILING = 0x10000
 # A ring record is one u16: bit 15 marks a hole, bits 0-14 carry the vertex count.
 RING_HOLE_BIT = 0x8000
 RING_VERTEX_CEILING = 0x8000
+# The runtime catalog is columnar (`pack_columns`) and carries no source-record
+# provenance; the sidecar it names by digest carries that and every offline
+# measurement the validator re-derives.
+CATALOG_SCHEMA_VERSION = 2
+CATALOG_ENCODING = "palaeo-class-catalog-columnar-v1"
+PROVENANCE_SCHEMA_VERSION = 1
+PROVENANCE_ENCODING = "palaeo-class-provenance-columnar-v1"
+BINDING_ENTRY_RULE = "palaeo-binding-entry-v1"
+BINDING_KINDS = ("partition", "override", "restoration", "recovery")
+BINDING_FIELDS = ("bindingPlateId", "partitionPlateId", "kind", "gapSet")
+INTERVAL_FIELDS = ("intervalId", "intervalIndex", "fromAgeMa", "toAgeMa", "midAgeMa",
+                   "bytes", "sha256", "pieces", "rings", "vertices", "collapsedRings",
+                   "baseTriangles", "estimatedTrianglesAtOneDegree")
+CHART_PROVENANCE_FIELDS = ("sourceRecordIndex", "plateId1", "fromAgeMa", "toAgeMa",
+                           "featureIdRef", "offSchedule", "basinOpId")
+
 CLASS_CODES = {"lm": 1, "sm": 2, "m": 3}
 CLASS_NAMES = {"lm": "landmass", "sm": "shallow-marine", "m": "mountain"}
 SURFACE_APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
@@ -155,6 +174,77 @@ def polygonal(geometry):
 
 def area_km2(geometry) -> float:
     return audit.area_km2(geometry)
+
+
+# --------------------------------------------------------------------------
+# columnar tables
+# --------------------------------------------------------------------------
+
+def pack_columns(rows: list[dict], fields: tuple[str, ...]) -> dict:
+    """One table as parallel arrays plus its row count.
+
+    The runtime catalog ships every table this way: repeating a key name once per
+    row cost more than the values did (the v1 ``bindings`` table spent 1.7 MiB of
+    ``lm`` on 7,079 rows of the same six keys). ``count`` is carried explicitly so
+    a decoder can reject a table whose columns disagree instead of silently
+    truncating to the shortest one.
+    """
+    for row in rows:
+        missing = [field for field in fields if field not in row]
+        if missing:
+            raise CompileError(f"columnar table row is missing {missing}")
+    return {"count": len(rows), **{field: [row[field] for row in rows] for field in fields}}
+
+
+def intern_chart_provenance(rows: list[dict]) -> dict:
+    """Source-record provenance as a columnar table with the feature ids interned.
+
+    Thousands of cut pieces share one GPlates feature id, so the id is a
+    dictionary reference (the ``<field>Ref`` convention of
+    ``scripts/research/cao_package_intern.py``) rather than a repeated 45-byte
+    string. This table never ships: it is the offline sidecar.
+    """
+    strings: list[str] = []
+    index: dict[str, int] = {}
+    prepared: list[dict] = []
+    for row in rows:
+        feature_id = row.get("featureId")
+        if feature_id is None:
+            reference = None
+        else:
+            if feature_id not in index:
+                index[feature_id] = len(strings)
+                strings.append(feature_id)
+            reference = index[feature_id]
+        prepared.append({**{field: row.get(field) for field in CHART_PROVENANCE_FIELDS},
+                         "featureIdRef": reference})
+    return {"encoding": PROVENANCE_ENCODING, "featureIds": strings,
+            **pack_columns(prepared, CHART_PROVENANCE_FIELDS)}
+
+
+def expand_chart_provenance(block: dict) -> list[dict]:
+    """Chart provenance rows with the feature id resolved, the inverse of the above."""
+    if block.get("encoding") != PROVENANCE_ENCODING:
+        raise CompileError("unknown palaeo chart provenance encoding")
+    strings = block["featureIds"]
+    rows = unpack_columns({key: value for key, value in block.items()
+                           if key not in ("encoding", "featureIds")})
+    for row in rows:
+        reference = row.pop("featureIdRef")
+        if reference is not None and not 0 <= reference < len(strings):
+            raise CompileError(f"palaeo chart provenance feature id reference {reference} is out of range")
+        row["featureId"] = None if reference is None else strings[reference]
+    return rows
+
+
+def unpack_columns(block: dict) -> list[dict]:
+    """Rows of a columnar table, the inverse of :func:`pack_columns`."""
+    count = block["count"]
+    fields = [name for name in block if name != "count"]
+    for field in fields:
+        if len(block[field]) != count:
+            raise CompileError(f"columnar table column {field} has {len(block[field])} of {count} rows")
+    return [{field: block[field][index] for field in fields} for index in range(count)]
 
 
 # --------------------------------------------------------------------------
@@ -455,6 +545,123 @@ def load_palette() -> tuple[dict, dict[int, list[dict]]]:
     for entries in by_plate.values():
         entries.sort(key=lambda entry: (entry["youngestAgeMa"], entry["oldestAgeMa"], entry["entryId"]))
     return catalog, by_plate
+
+
+def plate_source_seams(by_plate: dict[int, list[dict]], plate: int) -> list[dict]:
+    """The declared source-rotation discontinuities between a plate's recovery entries.
+
+    A seam is a property of the plate, not of any one piece's window, so the
+    collapsed binding row ships the plate's whole set and the validator intersects
+    it with each lifecycle. Both ends are exclusive: the entries on either side
+    stop and start at those ages, and nothing covers the open interval between
+    them.
+    """
+    recovery = sorted((entry for entry in by_plate.get(plate, [])
+                       if entry["entryId"].startswith(RECOVERY_PREFIX)),
+                      key=lambda entry: (entry["youngestAgeMa"], entry["oldestAgeMa"], entry["entryId"]))
+    return [{"youngestMa": float(left["oldestAgeMa"]), "oldestMa": float(right["youngestAgeMa"]),
+             "reason": "source-seam"}
+            for left, right in zip(recovery, recovery[1:])
+            if float(right["youngestAgeMa"]) > float(left["oldestAgeMa"])]
+
+
+def binding_kind(by_plate: dict[int, list[dict]], plate: int, override: bool) -> str:
+    """Which preference branch :func:`select_palette_entry` takes for a binding plate.
+
+    ``restoration`` and ``recovery`` name plates whose palette carries entries that
+    displace the native motion; ``override`` and ``partition`` name where the
+    binding plate itself came from. The four are exclusive in the shipped palette
+    and the compiler refuses to ship a plate that is both, because one enum field
+    could not then say which branch the runtime must take.
+    """
+    entry_ids = [entry["entryId"] for entry in by_plate.get(plate, [])]
+    restoration = any(entry_id.startswith(RESTORATION_PREFIX) for entry_id in entry_ids)
+    recovery = any(entry_id.startswith(RECOVERY_PREFIX) for entry_id in entry_ids)
+    if restoration and recovery:
+        raise CompileError(f"plate {plate} carries both restoration and recovery palette entries")
+    if (restoration or recovery) and override:
+        raise CompileError(
+            f"plate {plate} is a PLATEID1 override target and a "
+            f"{'restoration' if restoration else 'recovery'} plate; the binding kind is ambiguous")
+    if restoration:
+        return "restoration"
+    if recovery:
+        return "recovery"
+    return "override" if override else "partition"
+
+
+def select_palette_entry(by_plate: dict[int, list[dict]], plate: int, age: float) -> dict | None:
+    """The one palette entry a piece on ``plate`` takes at ``age``, or ``None``.
+
+    This is the pointwise form of :func:`binding_entries` and the rule the runtime
+    implements from the shipped binding row; ``docs/data/palaeo-coastlines-format.md``
+    states it normatively and the validator asserts the two agree over every
+    lifecycle a shipped piece carries.
+
+    Coverage is closed, ``youngestAgeMa <= age <= oldestAgeMa``, and where two
+    entries of the same preference class meet, the one with the larger
+    ``youngestAgeMa`` wins: that is the entry the chain walks into going older, and
+    it is what keeps the oldest age of a lifecycle - which is inclusive - posed
+    when nothing starts above it.
+    """
+    entries = by_plate.get(plate, [])
+    if not entries:
+        return None
+    covering = [entry for entry in entries
+                if float(entry["youngestAgeMa"]) <= age <= float(entry["oldestAgeMa"])]
+
+    def newest(candidates: list[dict]) -> dict:
+        return max(candidates, key=lambda entry: (float(entry["youngestAgeMa"]), entry["entryId"]))
+
+    restoration = [entry for entry in covering if entry["entryId"].startswith(RESTORATION_PREFIX)]
+    if restoration:
+        return newest(restoration)
+    if any(entry["entryId"].startswith(RECOVERY_PREFIX) for entry in entries):
+        # A recovery plate never falls back to the native motion
+        # `apply_cao_native_triangulation_repair` rejected: outside its recovery
+        # entries the piece is unposable, and the gap is a declared source seam.
+        recovery = [entry for entry in covering if entry["entryId"].startswith(RECOVERY_PREFIX)]
+        return newest(recovery) if recovery else None
+    corrections = [entry for entry in covering if entry["entryId"].startswith("correction-plate-")]
+    natives = [entry for entry in covering if not entry["entryId"].startswith("correction-plate-")]
+    matches = corrections if (age >= 410 and corrections) else natives if natives else covering
+    return newest(matches) if matches else None
+
+
+def resolve_binding_coverage(by_plate: dict[int, list[dict]], plate: int, youngest: float,
+                             oldest: float) -> tuple[list[tuple[str, float, float]],
+                                                     list[tuple[float, float]]]:
+    """Walk :func:`select_palette_entry` across ``[youngest, oldest]``.
+
+    Returns the entry runs and the holes: ages inside the window at which the
+    plate has no entry the rule will take. A hole is legitimate only where the
+    binding row declares that source seam; anything else is a piece the runtime
+    would silently stop drawing while its lifecycle says it is still there.
+    """
+    edges = {float(youngest), float(oldest)}
+    for entry in by_plate.get(plate, []):
+        for value in (float(entry["youngestAgeMa"]), float(entry["oldestAgeMa"])):
+            if youngest < value < oldest:
+                edges.add(value)
+    ordered = sorted(edges)
+    segments: list[tuple[str, float, float]] = []
+    holes: list[tuple[float, float]] = []
+    for low, high in zip(ordered, ordered[1:]):
+        entry = select_palette_entry(by_plate, plate, 0.5 * (low + high))
+        if entry is None:
+            if holes and holes[-1][1] == low:
+                holes[-1] = (holes[-1][0], high)
+            else:
+                holes.append((low, high))
+        elif segments and segments[-1][0] == entry["entryId"] and segments[-1][2] == low:
+            segments[-1] = (entry["entryId"], segments[-1][1], high)
+        else:
+            segments.append((entry["entryId"], low, high))
+    # The oldest bound of a lifecycle is inclusive, so the piece is still drawn at
+    # exactly that age and an entry has to cover it.
+    if select_palette_entry(by_plate, plate, float(oldest)) is None:
+        holes.append((float(oldest), float(oldest)))
+    return segments, holes
 
 
 def binding_entries(by_plate: dict[int, list[dict]], plate: int, youngest: float,
@@ -793,7 +1000,7 @@ class LifecycleTable:
 
     @classmethod
     def from_catalog(cls, catalog: dict) -> "LifecycleTable":
-        return cls(catalog["lifecycles"])
+        return cls(catalog_lifecycles(catalog))
 
     def index(self, youngest: float, oldest: float) -> int:
         key = (round(float(youngest), 6), round(float(oldest), 6))
@@ -901,7 +1108,7 @@ def decode_ehpr(payload: bytes, catalog: dict | None = None) -> dict:
         start += count
     if start != vertex_count:
         raise CompileError("EHPR ring vertex counts do not sum to the header vertex count")
-    lifecycles = catalog["lifecycles"] if catalog is not None else None
+    lifecycles = catalog_lifecycles(catalog) if catalog is not None else None
     pieces = []
     cursor = 0
     for index in range(piece_count):
@@ -1219,14 +1426,30 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             evidence_table.append(record)
         return evidence_index[key]
 
+    # The shipped binding row is (plate, partition, kind, seams): the gap-free
+    # palette chain a piece takes is resolved at the requested age from the
+    # palette catalog, not carried per piece-window. Keying on the chain instead
+    # cost 7,079 rows and 1.7 MiB on `lm` alone.
     binding_table: list[dict] = []
-    binding_index: dict[str, int] = {}
+    binding_index: dict[tuple, int] = {}
+    gap_sets: list[list[dict]] = [[]]
 
-    def intern_binding(record: dict) -> int:
-        key = json.dumps(record, sort_keys=True)
+    def intern_gap_set(gaps: list[dict]) -> int:
+        key = json.dumps(gaps, sort_keys=True)
+        for index, existing in enumerate(gap_sets):
+            if json.dumps(existing, sort_keys=True) == key:
+                return index
+        gap_sets.append(gaps)
+        return len(gap_sets) - 1
+
+    def intern_binding(plate: int, partition: int, override: bool) -> int:
+        kind = binding_kind(by_plate, plate, override)
+        key = (plate, partition, kind)
         if key not in binding_index:
             binding_index[key] = len(binding_table)
-            binding_table.append(record)
+            binding_table.append({"bindingPlateId": plate, "partitionPlateId": partition,
+                                  "kind": kind,
+                                  "gapSet": intern_gap_set(plate_source_seams(by_plate, plate))})
         return binding_index[key]
 
     chart_table: list[dict] = []
@@ -1256,6 +1479,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     unposable_plates: dict[int, float] = defaultdict(float)
     co_moving = {"near": 0.0, "mid": 0.0, "far": 0.0}
     restoration_bound_pieces = 0
+    seam_crossing_pieces = 0
     restoration_bound_area = 0.0
     override_bound_pieces = 0
     per_interval: list[dict] = []
@@ -1315,6 +1539,8 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     interval_unposable_pieces += 1
                     continue
                 segments, motion_gaps = binding_result
+                if motion_gaps:
+                    seam_crossing_pieces += 1
                 restoration = any(entry_id.startswith(RESTORATION_PREFIX)
                                   for entry_id, _, _ in segments)
                 if restoration:
@@ -1343,16 +1569,8 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                 co_moving[bucket] += entry["areaSquareKilometres"]
                 if bucket == "far":
                     flags |= FLAG_FRAME_CONFLICT
-                binding = intern_binding({
-                    "paletteId": palette["id"],
-                    "bindingPlateId": binding_plate,
-                    "partitionPlateId": owner,
-                    "bindingSource": "source-plateid1-override" if flags & FLAG_PLATEID1_OVERRIDE
-                                     else "owner-partition",
-                    "entries": [{"entryId": entry_id, "validTimeMa": {"youngest": low, "oldest": high}}
-                                for entry_id, low, high in segments],
-                    "motionSupportGaps": motion_gaps,
-                })
+                binding = intern_binding(binding_plate, owner,
+                                         bool(flags & FLAG_PLATEID1_OVERRIDE))
                 shared = {"chartIndex": chart_index[row["index"]], "bindingIndex": binding,
                           "evidenceIndex": evidence, "flags": flags,
                           "areaSquareKilometres": entry["areaSquareKilometres"],
@@ -1434,9 +1652,10 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                 f"{class_name}: {len(table)} {label} records exceed the u16 piece field")
 
     total_cut = sum(row["emittedAreaSquareKilometres"] for row in per_interval)
-    catalog = {
-        "schemaVersion": 1,
-        "catalogId": f"palaeo-coastlines-{class_name}-v1",
+    provenance = {
+        "schemaVersion": PROVENANCE_SCHEMA_VERSION,
+        "provenanceId": f"palaeo-coastlines-{class_name}-provenance-v1",
+        "catalogId": f"palaeo-coastlines-{class_name}-v{CATALOG_SCHEMA_VERSION}",
         "class": class_name,
         "className": CLASS_NAMES[class_name],
         "appearance": SURFACE_APPEARANCE[class_name],
@@ -1498,6 +1717,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "overrideBoundPieces": override_bound_pieces,
             "overridePlateIds": sorted(override_plates),
             "restorationBoundPieces": restoration_bound_pieces,
+            "seamCrossingPieces": seam_crossing_pieces,
             "restorationBoundAreaSquareKilometres": round(restoration_bound_area, 3),
             "restorationPartitionPlateIds": list(NORTH_SEA_PARTITION_PLATES),
             "unposable": {
@@ -1537,8 +1757,9 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "4": RESTORATION_LIMITATION,
             "8": OFF_SCHEDULE_LIMITATION,
         },
-        "charts": chart_table,
-        "bindings": binding_table,
+        "charts": intern_chart_provenance(chart_table),
+        "bindings": pack_columns(binding_table, BINDING_FIELDS),
+        "gapSets": gap_sets,
         "evidence": evidence_table,
         "lifecycles": lifecycle_table.rows,
         "basinEdits": basin_report,
@@ -1562,8 +1783,110 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         },
         "elapsedSeconds": round(time.time() - started, 2),
     }
-    return {"catalog": catalog, "landByInterval": land_by_interval,
-            "shelfByInterval": shelf_by_interval}
+    catalog = runtime_catalog(class_name, palette, provenance, binding_table, gap_sets,
+                              evidence_table, lifecycle_table.rows, per_interval, by_plate)
+    return {"catalog": catalog, "provenance": provenance,
+            "landByInterval": land_by_interval, "shelfByInterval": shelf_by_interval}
+
+
+# --------------------------------------------------------------------------
+# runtime catalog
+# --------------------------------------------------------------------------
+
+def runtime_catalog(class_name: str, palette: dict, provenance: dict, bindings: list[dict],
+                    gap_sets: list[list[dict]], evidence: list[dict], lifecycles: list[dict],
+                    per_interval: list[dict], by_plate: dict[int, list[dict]]) -> dict:
+    """The document the browser downloads: the tables a piece index resolves into.
+
+    Everything a piece's u16 fields point at is here; every measurement the
+    validator re-derives, and every source-record identifier the map key does not
+    read, is in the provenance sidecar the ``provenance`` block names by digest.
+    The tables are columnar because the per-row key names, not the values, were
+    what the v1 catalog spent its megabytes on.
+    """
+    restoration_entry_ids = sorted(entry["entryId"] for entries in by_plate.values()
+                                   for entry in entries
+                                   if entry["entryId"].startswith(RESTORATION_PREFIX))
+    recovery_plate_ids = sorted({plate for plate, entries in by_plate.items()
+                                 if any(entry["entryId"].startswith(RECOVERY_PREFIX)
+                                        for entry in entries)})
+    return {
+        "schemaVersion": CATALOG_SCHEMA_VERSION,
+        "encoding": CATALOG_ENCODING,
+        "catalogId": provenance["catalogId"],
+        "class": class_name,
+        "className": CLASS_NAMES[class_name],
+        "appearance": SURFACE_APPEARANCE[class_name],
+        "format": {"magic": FORMAT_ID, "version": FORMAT_VERSION,
+                   "specification": "docs/data/palaeo-coastlines-format.md"},
+        "paletteId": palette["id"],
+        "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
+        "payloadNameTemplate": f"palaeo-{class_name}-<intervalId>.ehpr",
+        "maximumEdgeDegrees": MAX_REFINEMENT_EDGE_DEGREES,
+        # A piece's u16 chartIndex is the source-record ordinal: the sidecar's
+        # charts table has one row per index, in the same order.
+        "chartCount": provenance["charts"]["count"],
+        "flagLimitations": {
+            "1": FRAME_CONFLICT_LIMITATION,
+            "2": OVERRIDE_LIMITATION,
+            "4": RESTORATION_LIMITATION,
+            "8": OFF_SCHEDULE_LIMITATION,
+        },
+        "entrySelection": {
+            "rule": BINDING_ENTRY_RULE,
+            "coverage": "youngestAgeMa <= ageMa <= oldestAgeMa",
+            "tieBreak": "largest youngestAgeMa, then entryId",
+            "preference": [RESTORATION_PREFIX, RECOVERY_PREFIX, "correction-plate-", "plate-"],
+            "correctionPreferenceAgeMa": 410.0,
+            "restorationEntryIds": restoration_entry_ids,
+            "recoveryPlateIds": recovery_plate_ids,
+            "recoveryFallback": "unposable",
+        },
+        "bindingKinds": list(BINDING_KINDS),
+        "bindings": pack_columns(
+            [dict(row, kind=BINDING_KINDS.index(row["kind"])) for row in bindings],
+            BINDING_FIELDS),
+        "gapSets": gap_sets,
+        "evidence": evidence,
+        "lifecycles": pack_columns(lifecycles, ("youngestExclusiveMa", "oldestMa")),
+        "intervals": pack_columns([{
+            "intervalId": row["intervalId"],
+            "intervalIndex": row["intervalIndex"],
+            "fromAgeMa": row["fromAgeMa"],
+            "toAgeMa": row["toAgeMa"],
+            "midAgeMa": row["midAgeMa"],
+            "bytes": row["simplified"]["bytes"],
+            "sha256": row["simplified"]["sha256"],
+            "pieces": row["simplified"]["pieces"],
+            "rings": row["simplified"]["rings"],
+            "vertices": row["simplified"]["vertices"],
+            "collapsedRings": row["simplified"]["collapsedRings"],
+            "baseTriangles": row["reservation"]["baseTriangles"],
+            "estimatedTrianglesAtOneDegree": row["reservation"]["estimatedTrianglesAtOneDegree"],
+        } for row in per_interval], INTERVAL_FIELDS),
+    }
+
+
+def catalog_intervals(catalog: dict) -> list[dict]:
+    """Interval rows of a runtime catalog, oldest first, in the payload shape."""
+    return unpack_columns(catalog["intervals"])
+
+
+def catalog_bindings(catalog: dict) -> list[dict]:
+    """Binding rows with ``kind`` back as its name and the gap set resolved."""
+    rows = unpack_columns(catalog["bindings"])
+    for row in rows:
+        row["kind"] = catalog["bindingKinds"][row["kind"]]
+        row["motionSupportGaps"] = catalog["gapSets"][row["gapSet"]]
+    return rows
+
+
+def catalog_lifecycles(catalog: dict) -> list[dict]:
+    return unpack_columns(catalog["lifecycles"])
+
+
+def payload_url(class_name: str, interval_id: str) -> str:
+    return f"palaeo-{class_name}-{interval_id}.ehpr"
 
 
 # --------------------------------------------------------------------------
@@ -1612,16 +1935,32 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
                                store / "original" / class_name, store / "staging" / class_name,
                                estimate_triangles)
         catalog = result["catalog"]
-        catalog["inputs"] = inputs
-        catalog["rotationCheck"] = rotation_check
-        catalog["partitions"] = {"polygons": len(partitions), "datelineSplits": splits,
-                                 "ownerRule": ("smallest present-day partition polygon claims shared "
-                                               "ground first; ties by plate id, then source order, "
-                                               "then geometry index")}
-        catalog["generatedBy"] = "scripts/research/palaeo_coastlines_compile.py"
-        catalog["generatedAt"] = "2026-09-15"
-        catalog["runtime"] = {"pygplates": pygplates.__version__, "shapely": shapely.__version__,
-                              "numpy": np.__version__, "python": sys.version.split()[0]}
+        provenance = result["provenance"]
+        provenance["inputs"] = inputs
+        provenance["rotationCheck"] = rotation_check
+        provenance["partitions"] = {"polygons": len(partitions), "datelineSplits": splits,
+                                    "ownerRule": ("smallest present-day partition polygon claims shared "
+                                                  "ground first; ties by plate id, then source order, "
+                                                  "then geometry index")}
+        provenance["generatedBy"] = "scripts/research/palaeo_coastlines_compile.py"
+        provenance["generatedAt"] = "2026-09-15"
+        provenance["runtime"] = {"pygplates": pygplates.__version__, "shapely": shapely.__version__,
+                                 "numpy": np.__version__, "python": sys.version.split()[0]}
+        # The sidecar is written first: the catalog names it by digest, so the
+        # bytes have to exist before the catalog that pins them.
+        provenance_directory = store / "provenance"
+        provenance_directory.mkdir(parents=True, exist_ok=True)
+        provenance_path = provenance_directory / f"palaeo-{class_name}-provenance.json"
+        provenance_bytes = canonical(provenance)
+        provenance_path.write_bytes(provenance_bytes)
+        catalog["provenance"] = {
+            "path": str(provenance_path.relative_to(store)),
+            "bytes": len(provenance_bytes),
+            "sha256": sha256_bytes(provenance_bytes),
+            "records": catalog["chartCount"],
+            "store": ("offline only: the source-record provenance and every compile measurement "
+                      "live in the owned palaeo-coastlines store and never ship with the app"),
+        }
         path = store / "staging" / class_name / f"palaeo-{class_name}-catalog.json"
         path.write_bytes(canonical(catalog))
         (store / "original" / class_name / f"palaeo-{class_name}-catalog.json").write_bytes(
@@ -1632,20 +1971,24 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         for interval_id, entries in result["shelfByInterval"].items():
             shelf_by_interval[interval_id].extend(entries)
         summary[class_name] = {
-            "simplifiedBytes": catalog["totals"]["simplifiedBytes"],
-            "originalBytes": catalog["totals"]["originalBytes"],
-            "pieces": catalog["totals"]["pieces"],
-            "vertices": catalog["totals"]["vertices"],
-            "worstInterval": catalog["totals"]["worstIntervalByVertices"],
-            "worstIntervalVertices": catalog["totals"]["worstIntervalVertices"],
-            "worstIntervalEstimatedTriangles": catalog["totals"]["worstIntervalEstimatedTriangles"],
-            "areaRatioPercent": catalog["areaAudit"]["areaRatioPercent"],
-            "simplificationAreaErrorPercent": catalog["simplification"]["areaErrorPercent"],
-            "coMovingUnder25KmPercent": catalog["poseAudit"]["coMovingAreaPercent"]["under25Km"],
-            "unposablePieces": catalog["poseAudit"]["unposable"]["pieces"],
-            "restorationBoundPieces": catalog["poseAudit"]["restorationBoundPieces"],
+            "simplifiedBytes": provenance["totals"]["simplifiedBytes"],
+            "originalBytes": provenance["totals"]["originalBytes"],
+            "pieces": provenance["totals"]["pieces"],
+            "vertices": provenance["totals"]["vertices"],
+            "worstInterval": provenance["totals"]["worstIntervalByVertices"],
+            "worstIntervalVertices": provenance["totals"]["worstIntervalVertices"],
+            "worstIntervalEstimatedTriangles": provenance["totals"]["worstIntervalEstimatedTriangles"],
+            "areaRatioPercent": provenance["areaAudit"]["areaRatioPercent"],
+            "simplificationAreaErrorPercent": provenance["simplification"]["areaErrorPercent"],
+            "coMovingUnder25KmPercent": provenance["poseAudit"]["coMovingAreaPercent"]["under25Km"],
+            "unposablePieces": provenance["poseAudit"]["unposable"]["pieces"],
+            "restorationBoundPieces": provenance["poseAudit"]["restorationBoundPieces"],
+            "bindings": catalog["bindings"]["count"],
             "catalog": str(path.relative_to(store)),
-            "elapsedSeconds": catalog["elapsedSeconds"],
+            "catalogBytes": len(canonical(catalog)),
+            "provenance": str(provenance_path.relative_to(store)),
+            "provenanceBytes": len(provenance_bytes),
+            "elapsedSeconds": provenance["elapsedSeconds"],
         }
 
     tone_summary = None
@@ -1677,7 +2020,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
 
 def interval_index(intervals: list[dict], catalogs: dict[str, dict]) -> list[dict]:
     """The per-interval file index, oldest to youngest, one entry per compiled class."""
-    by_class = {name: {row["intervalId"]: row for row in catalog["intervals"]}
+    by_class = {name: {row["intervalId"]: row for row in catalog_intervals(catalog)}
                 for name, catalog in catalogs.items()}
     rows = []
     for order, interval in enumerate(intervals):
@@ -1689,12 +2032,12 @@ def interval_index(intervals: list[dict], catalogs: dict[str, dict]) -> list[dic
             if row is None:
                 continue
             entry["classes"][name] = {
-                "path": f"{name}/{row['simplified']['url']}",
-                "bytes": row["simplified"]["bytes"],
-                "sha256": row["simplified"]["sha256"],
-                "pieces": row["simplified"]["pieces"],
-                "vertices": row["simplified"]["vertices"],
-                "estimatedTriangles": row["reservation"]["estimatedTrianglesAtOneDegree"],
+                "path": f"{name}/{payload_url(name, row['intervalId'])}",
+                "bytes": row["bytes"],
+                "sha256": row["sha256"],
+                "pieces": row["pieces"],
+                "vertices": row["vertices"],
+                "estimatedTriangles": row["estimatedTrianglesAtOneDegree"],
             }
         entry["vertices"] = sum(row["vertices"] for row in entry["classes"].values())
         entry["estimatedTriangles"] = sum(row["estimatedTriangles"] for row in entry["classes"].values())

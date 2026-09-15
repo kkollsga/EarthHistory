@@ -18,7 +18,12 @@ Checks
 * every ``PLATEID1`` override and every basin edit operation carries a
   justification and a citation;
 * exactly one canonical interval active at every 5 Ma checkpoint 5-400 Ma;
+* the offline provenance sidecar still matches the sha256 the shipped catalog
+  pins on it, and carries one source record per ``chartCount``;
 * every u16 catalog index a piece carries fits its field and resolves;
+* every shipped binding row resolves gap-free under ``palaeo-binding-entry-v1``
+  over every piece lifecycle that uses it, agreeing entry for entry with the
+  compiler's chain builder, with holes only where the row declares a source seam;
 * exactly one owner per piece: two pieces of the same source record never
   overlap;
 * every piece on the North Sea partitions 303 and 315 is bound to the
@@ -29,10 +34,13 @@ Checks
   class table.
 
 ``--self-test`` proves each of those can fail: a corrupted hash, a dropped
-reference, a piece rebound to the wrong lifecycle, a widened catalog lifecycle, a
-catalog too short for the indices its pieces carry, an override rebound to its
-partition, a skipped restoration binding, an over-simplified payload and a removed
-piece are each rejected, and the clean inputs pass again afterwards.
+reference, an edited or truncated provenance sidecar, a piece rebound to the
+wrong lifecycle, a widened catalog lifecycle, a catalog too short for the indices
+its pieces carry, an override rebound to its partition, a binding rebound to a
+plate the palette does not cover, a mislabelled binding kind, an invented source
+seam, a North Sea window resolved without the restoration entries, an
+over-simplified payload and a removed piece are each rejected, and the clean
+inputs pass again afterwards.
 
 Run with the pinned pyGPlates environment.
 """
@@ -78,6 +86,9 @@ QUANTISATION_SEAM_WIDTH_KM = 2.0
 SIMPLIFIED_SEAM_WIDTH_KM = 12.0
 RESTORATION_WINDOW_YOUNGEST_MA = 130.0
 NORTH_SEA_PLATES = (303, 315)
+# A plate id the Cao v2.4 motion palette carries no entry for; the self-test rebinds
+# a shipped binding row to it to prove the gap-free resolution gate can fail.
+UNCOVERED_PLATE_ID = 999999
 
 # The audit's own witness table (docs/research/palaeo-coastlines-cao2017-audit.json,
 # "witnesses"): the classes that contain each present-day point in each probed
@@ -123,6 +134,7 @@ class Store:
         self.root = root
         self.overrides = dict(overrides or {})
         self._catalogs: dict[str, dict] = {}
+        self._provenance: dict[str, dict] = {}
 
     def read(self, relative: str) -> bytes:
         if relative in self.overrides:
@@ -133,12 +145,21 @@ class Store:
         return path.read_bytes()
 
     def catalog(self, class_name: str) -> dict:
-        # The catalogs are tens of megabytes of JSON and every payload decode needs
-        # the class lifecycle array, so each one is parsed once per store.
+        # Every payload decode needs the class lifecycle table, so each catalog is
+        # parsed once per store.
         if class_name not in self._catalogs:
             self._catalogs[class_name] = json.loads(
                 self.read(f"staging/{class_name}/palaeo-{class_name}-catalog.json"))
         return self._catalogs[class_name]
+
+    def provenance_bytes(self, class_name: str) -> bytes:
+        return self.read(f"provenance/palaeo-{class_name}-provenance.json")
+
+    def provenance(self, class_name: str) -> dict:
+        """The offline sidecar: source-record provenance and every compile measurement."""
+        if class_name not in self._provenance:
+            self._provenance[class_name] = json.loads(self.provenance_bytes(class_name))
+        return self._provenance[class_name]
 
     def payload(self, tier: str, class_name: str, interval_id: str) -> dict:
         return compiler.decode_ehpr(
@@ -147,6 +168,47 @@ class Store:
 
     def with_override(self, relative: str, payload: bytes) -> "Store":
         return Store(self.root, {**self.overrides, relative: payload})
+
+
+class ClassView:
+    """One class's shipped catalog and its offline sidecar, as row tables.
+
+    The shipped catalog is columnar and carries no source-record provenance, so a
+    check that needs a chart's ``PLATEID1`` or an interval's measured areas reads
+    the sidecar. Keeping the two behind one view is what lets every check state
+    which side of the split it is trusting.
+    """
+
+    def __init__(self, class_name: str, catalog: dict, provenance: dict):
+        self.class_name = class_name
+        self.catalog = catalog
+        self.provenance = provenance
+        self.intervals = compiler.catalog_intervals(catalog)
+        self.bindings = compiler.catalog_bindings(catalog)
+        self.lifecycles = compiler.catalog_lifecycles(catalog)
+        self.evidence = catalog["evidence"]
+        self.charts = compiler.expand_chart_provenance(provenance["charts"])
+        self.measurements = {row["intervalId"]: row for row in provenance["intervals"]}
+
+    @classmethod
+    def load(cls, store: Store, class_name: str) -> "ClassView":
+        return cls(class_name, store.catalog(class_name), store.provenance(class_name))
+
+    def mutated(self, catalog: dict | None = None, provenance: dict | None = None) -> "ClassView":
+        """A view over edited documents; the self-test's mutations go through here."""
+        return ClassView(self.class_name, catalog if catalog is not None else self.catalog,
+                         provenance if provenance is not None else self.provenance)
+
+    def measurement(self, interval_id: str) -> dict:
+        row = self.measurements.get(interval_id)
+        if row is None:
+            raise CorrectionError(
+                f"{self.class_name} {interval_id}: the provenance sidecar has no measurement row")
+        return row
+
+    def payload_relative(self, interval_id: str, tier: str = "simplified") -> str:
+        directory = "staging" if tier == "simplified" else "original"
+        return f"{directory}/{self.class_name}/{compiler.payload_url(self.class_name, interval_id)}"
 
 
 # --------------------------------------------------------------------------
@@ -196,26 +258,53 @@ def check_config(overrides: dict, basins: list[dict], interval_ids: set[str]) ->
             "basinOps": sum(len(basin["ops"]) for basin in basins)}
 
 
-def check_payload_identity(store: Store, catalog: dict, class_name: str) -> dict:
+def check_provenance(store: Store, view: ClassView) -> dict:
+    """The catalog pins the offline sidecar it moved its source records into.
+
+    Nothing the browser downloads names a Cao 2017 record any more, so the chain
+    from a shipped piece back to its DBF row runs through this digest. A sidecar
+    that no longer matches is a broken provenance chain, not a cosmetic drift.
+    """
+    declared = view.catalog.get("provenance")
+    if not isinstance(declared, dict):
+        raise CorrectionError(f"{view.class_name}: the catalog names no provenance sidecar")
+    payload = store.read(declared["path"].replace("\\", "/"))
+    digest = compiler.sha256_bytes(payload)
+    if len(payload) != declared["bytes"] or digest != declared["sha256"]:
+        raise CorrectionError(
+            f"{view.class_name}: the provenance sidecar is {len(payload)} bytes with sha256 "
+            f"{digest}; the catalog pins {declared['bytes']} bytes and {declared['sha256']}")
+    if declared["records"] != view.catalog["chartCount"] or len(view.charts) != declared["records"]:
+        raise CorrectionError(
+            f"{view.class_name}: the sidecar carries {len(view.charts)} source records; the catalog "
+            f"declares {view.catalog['chartCount']}")
+    if view.provenance.get("catalogId") != view.catalog["catalogId"]:
+        raise CorrectionError(f"{view.class_name}: the sidecar names a different catalog")
+    if sorted(view.measurements) != sorted(row["intervalId"] for row in view.intervals):
+        raise CorrectionError(f"{view.class_name}: the sidecar and the catalog list different intervals")
+    return {"path": declared["path"], "bytes": declared["bytes"], "sha256": declared["sha256"],
+            "records": declared["records"]}
+
+
+def check_payload_identity(store: Store, view: ClassView) -> dict:
     rows = []
-    for interval in catalog["intervals"]:
-        for tier in ("simplified", "original"):
-            descriptor = interval[tier]
-            payload = store.read(
-                f"{'staging' if tier == 'simplified' else 'original'}/{class_name}/{descriptor['url']}")
+    for interval in view.intervals:
+        measured = view.measurement(interval["intervalId"])
+        for tier, descriptor in (("simplified", interval), ("original", measured["original"])):
+            payload = store.read(view.payload_relative(interval["intervalId"], tier))
             digest = compiler.sha256_bytes(payload)
             if len(payload) != descriptor["bytes"] or digest != descriptor["sha256"]:
                 raise CorrectionError(
-                    f"{class_name} {interval['intervalId']} {tier}: payload identity changed "
+                    f"{view.class_name} {interval['intervalId']} {tier}: payload identity changed "
                     f"({len(payload)} bytes, sha256 {digest})")
         rows.append(interval["intervalId"])
     return {"verifiedPayloads": 2 * len(rows)}
 
 
-def check_schedule(catalog: dict) -> dict:
+def check_schedule(view: ClassView) -> dict:
     """Exactly one canonical interval active at every 5 Ma checkpoint 5-400 Ma."""
     intervals = [(row["intervalId"], row["fromAgeMa"], row["toAgeMa"])
-                 for row in catalog["intervals"]]
+                 for row in view.intervals]
     failures = []
     for age in [float(value) for value in range(5, 405, 5)]:
         active = [name for name, oldest, youngest in intervals if youngest < age <= oldest]
@@ -234,46 +323,56 @@ CATALOG_INDEX_FIELDS = (("chartIndex", "charts"), ("bindingIndex", "bindings"),
                         ("evidenceIndex", "evidence"), ("lifecycleIndex", "lifecycles"))
 
 
-def check_catalog_indices(store: Store, catalog: dict, class_name: str) -> dict:
+def catalog_table_sizes(view: ClassView) -> dict[str, int]:
+    """How many rows each u16 piece field may reach.
+
+    ``charts`` is the one the shipped catalog no longer carries: a piece's
+    ``chartIndex`` is the source-record ordinal and ``chartCount`` is the only
+    thing that bounds it, so the bound is declared and the sidecar is what has to
+    have that many rows (``check_provenance``).
+    """
+    return {"charts": view.catalog["chartCount"], "bindings": view.catalog["bindings"]["count"],
+            "evidence": len(view.evidence), "lifecycles": view.catalog["lifecycles"]["count"]}
+
+
+def check_catalog_indices(store: Store, view: ClassView) -> dict:
     """Every piece field is a u16 index the class catalog can actually resolve.
 
-    The piece record spends 12 bytes on six u16 fields, so a catalog array that
-    grew past 65,535 entries would silently alias. Both halves are asserted here:
-    the array lengths fit the field, and no emitted index points past its array.
+    The piece record spends 12 bytes on six u16 fields, so a catalog table that
+    grew past 65,535 rows would silently alias. Both halves are asserted here:
+    the table lengths fit the field, and no emitted index points past its table.
     """
-    sizes = {}
+    sizes = catalog_table_sizes(view)
     for field, name in CATALOG_INDEX_FIELDS:
-        length = len(catalog[name])
-        if length >= compiler.CATALOG_INDEX_CEILING:
+        if sizes[name] >= compiler.CATALOG_INDEX_CEILING:
             raise CorrectionError(
-                f"{class_name}: {length} {name} records do not fit the u16 {field} field")
-        sizes[name] = length
+                f"{view.class_name}: {sizes[name]} {name} records do not fit the u16 {field} field")
     worst = {field: -1 for field, _ in CATALOG_INDEX_FIELDS}
     pieces = 0
-    for interval in catalog["intervals"]:
-        for tier, directory in (("simplified", "staging"), ("original", "original")):
-            decoded = compiler.decode_ehpr(store.read(
-                f"{directory}/{class_name}/{interval[tier]['url']}"))
+    for interval in view.intervals:
+        for tier in ("simplified", "original"):
+            decoded = compiler.decode_ehpr(
+                store.read(view.payload_relative(interval["intervalId"], tier)))
             for piece in decoded["pieces"]:
                 for field, name in CATALOG_INDEX_FIELDS:
                     value = piece[field]
                     if value >= sizes[name]:
                         raise CorrectionError(
-                            f"{class_name} {interval['intervalId']} {tier}: {field} {value} "
+                            f"{view.class_name} {interval['intervalId']} {tier}: {field} {value} "
                             f"is outside the {sizes[name]} {name} records of the catalog")
                     worst[field] = max(worst[field], value)
                 pieces += 1
     return {"checkedPieces": pieces, "catalogSizes": sizes, "largestIndexUsed": worst}
 
 
-def check_lifecycles(store: Store, catalog: dict, class_name: str,
-                     rows_by_index: dict[int, dict]) -> dict:
+def check_lifecycles(store: Store, view: ClassView, rows_by_index: dict[int, dict]) -> dict:
     """Every piece carries its own source record's (TOAGE, FROMAGE] lifecycle."""
+    class_name = view.class_name
     checked = 0
-    for interval in catalog["intervals"]:
+    for interval in view.intervals:
         decoded = store.payload("staging", class_name, interval["intervalId"])
         for piece in decoded["pieces"]:
-            chart = catalog["charts"][piece["chartIndex"]]
+            chart = view.charts[piece["chartIndex"]]
             record = rows_by_index.get(chart["sourceRecordIndex"])
             if record is None:
                 if chart.get("basinOpId"):
@@ -297,26 +396,27 @@ def check_lifecycles(store: Store, catalog: dict, class_name: str,
     return {"checkedPieces": checked}
 
 
-def check_areas(store: Store, catalog: dict, class_name: str,
-                areas: dict[int, float]) -> dict:
+def check_areas(store: Store, view: ClassView, areas: dict[int, float]) -> dict:
     """Area preservation and simplification error, re-derived from the payloads."""
+    class_name = view.class_name
     total_source = 0.0
     total_cut = 0.0
     total_emitted = 0.0
     total_simplified = 0.0
     worst_interval_error = 0.0
     per_interval = []
-    for interval in catalog["intervals"]:
+    for interval in view.intervals:
+        measured = view.measurement(interval["intervalId"])
         original = store.payload("original", class_name, interval["intervalId"])
         simplified = store.payload("staging", class_name, interval["intervalId"])
         source = 0.0
-        for chart in catalog["charts"]:
+        for chart in view.charts:
             youngest, oldest = chart["toAgeMa"], chart["fromAgeMa"]
             if youngest < interval["fromAgeMa"] and interval["toAgeMa"] < oldest:
                 source += areas.get(chart["sourceRecordIndex"], 0.0)
         emitted = sum(audit.area_km2(compiler.piece_geometry(original, piece))
                       for piece in original["pieces"])
-        declared = interval["emittedAreaSquareKilometres"]
+        declared = measured["emittedAreaSquareKilometres"]
         if declared > 0 and abs(emitted - declared) / declared * 100.0 > 0.05:
             raise CorrectionError(
                 f"{class_name} {interval['intervalId']}: the emitted area re-derived from the payload "
@@ -326,8 +426,8 @@ def check_areas(store: Store, catalog: dict, class_name: str,
         # slivers below the 25 km2 floor. Both are declared per interval and both are
         # cross-checked above through the emitted term, so inflating one to hide
         # missing geometry fails this check.
-        cut = (emitted + interval["unposableAreaSquareKilometres"]
-               + interval["droppedBelowFloorSquareKilometres"])
+        cut = (emitted + measured["unposableAreaSquareKilometres"]
+               + measured["droppedBelowFloorSquareKilometres"])
         kept = sum(audit.area_km2(compiler.piece_geometry(simplified, piece))
                    for piece in simplified["pieces"])
         dropped = len(original["pieces"]) - len(simplified["pieces"])
@@ -341,14 +441,15 @@ def check_areas(store: Store, catalog: dict, class_name: str,
             raise CorrectionError(
                 f"{class_name} {interval['intervalId']}: simplification area error {error:.5f} % "
                 f"exceeds {SIMPLIFICATION_AREA_ERROR_PERCENT} %")
-        if interval["lostPieces"] > LOST_PIECES_PER_INTERVAL:
+        if measured["lostPieces"] > LOST_PIECES_PER_INTERVAL:
             raise CorrectionError(
-                f"{class_name} {interval['intervalId']}: {interval['lostPieces']} lost pieces "
+                f"{class_name} {interval['intervalId']}: {measured['lostPieces']} lost pieces "
                 f"exceed {LOST_PIECES_PER_INTERVAL}")
-        if interval["largestLostPieceSquareKilometres"] > LARGEST_LOST_PIECE_KM2:
+        if measured["largestLostPieceSquareKilometres"] > LARGEST_LOST_PIECE_KM2:
             raise CorrectionError(
                 f"{class_name} {interval['intervalId']}: a lost piece of "
-                f"{interval['largestLostPieceSquareKilometres']} km2 exceeds {LARGEST_LOST_PIECE_KM2} km2")
+                f"{measured['largestLostPieceSquareKilometres']} km2 exceeds "
+                f"{LARGEST_LOST_PIECE_KM2} km2")
         total_source += source
         total_cut += cut
         total_emitted += emitted
@@ -368,7 +469,8 @@ def check_areas(store: Store, catalog: dict, class_name: str,
             "emittedPercentOfSource": round(100.0 * total_emitted / total_source, 4)
                                       if total_source else 0.0,
             "unposablePercentOfSource": round(
-                100.0 * sum(row["unposableAreaSquareKilometres"] for row in catalog["intervals"])
+                100.0 * sum(view.measurement(row["intervalId"])["unposableAreaSquareKilometres"]
+                            for row in view.intervals)
                 / total_source, 4) if total_source else 0.0,
             "simplificationAreaErrorPercent": round(class_error, 6),
             "worstIntervalSimplificationAreaErrorPercent": round(worst_interval_error, 6),
@@ -401,92 +503,173 @@ def recovery_motion() -> tuple[set[int], dict[int, set[tuple[float, float]]]]:
     return recovery_motion._cache
 
 
-def check_bindings(catalog: dict, overrides: dict, class_name: str) -> dict:
-    """Override bindings, restoration bindings and gap-free palette coverage."""
+def piece_binding_windows(store: Store, view: ClassView) -> dict[tuple[int, int], tuple[float, float]]:
+    """Every (binding, lifecycle) pair a shipped piece carries, and the window it needs.
+
+    A piece is posed at any age inside its own ``(TOAGE, FROMAGE]`` lifecycle that
+    also falls inside the interval its payload covers, so that intersection is
+    exactly the span its binding has to resolve over.
+    """
+    windows: dict[tuple[int, int], tuple[float, float]] = {}
+    for interval in view.intervals:
+        decoded = store.payload("staging", view.class_name, interval["intervalId"])
+        for piece in decoded["pieces"]:
+            key = (piece["bindingIndex"], piece["lifecycleIndex"])
+            youngest = max(float(piece["lifecycleYoungestMa"]), float(interval["toAgeMa"]))
+            oldest = min(float(piece["lifecycleOldestMa"]), float(interval["fromAgeMa"]))
+            found = windows.get(key)
+            windows[key] = ((min(found[0], youngest), max(found[1], oldest)) if found
+                            else (youngest, oldest))
+    return windows
+
+
+def check_bindings(store: Store, view: ClassView, overrides: dict,
+                   by_plate: dict[int, list[dict]] | None = None) -> dict:
+    """Collapsed binding rows, and gap-free resolution over every lifecycle that uses one.
+
+    The shipped row is only (plate, partition, kind, seams); the gap-free chain of
+    palette entries is resolved at the requested age by
+    ``compiler.select_palette_entry``, the rule
+    ``docs/data/palaeo-coastlines-format.md`` states normatively and the runtime
+    implements. That makes the chain a derived quantity, so this check re-derives
+    it here: for every (binding, lifecycle) pair a shipped piece actually carries,
+    the rule must cover the whole window the piece is drawn over, except across the
+    source seams the row declares, and it must agree entry for entry with the
+    compiler's own chain builder.
+    """
+    class_name = view.class_name
     override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
     recovery_plates, recovery_seams = recovery_motion()
+    # `by_plate` is injectable so the self-test can prove the restoration and
+    # coverage gates against a palette that is missing the entries they depend on.
+    if by_plate is None:
+        _, by_plate = compiler.load_palette()
+    restoration_plates = {plate for plate, entries in by_plate.items()
+                          if any(entry["entryId"].startswith(compiler.RESTORATION_PREFIX)
+                                 for entry in entries)}
     seen_override_plates: set[int] = set()
-    restoration_bindings = 0
-    recovery_bindings = 0
-    seam_bindings = 0
-    for index, binding in enumerate(catalog["bindings"]):
-        entries = binding["entries"]
-        declared = {(gap["validTimeMa"]["youngest"], gap["validTimeMa"]["oldest"])
-                    for gap in binding.get("motionSupportGaps", [])}
-        allowed = recovery_seams.get(binding["bindingPlateId"], set())
-        if not declared <= allowed:
+    kinds = {name: 0 for name in compiler.BINDING_KINDS}
+    for index, binding in enumerate(view.bindings):
+        plate = binding["bindingPlateId"]
+        partition = binding["partitionPlateId"]
+        kind = binding["kind"]
+        if kind not in kinds:
+            raise CorrectionError(f"binding {index}: unknown kind {kind!r}")
+        kinds[kind] += 1
+        declared = {(gap["youngestMa"], gap["oldestMa"])
+                    for gap in binding["motionSupportGaps"]}
+        allowed = recovery_seams.get(plate, set())
+        if declared != allowed:
             raise CorrectionError(
-                f"binding {index}: declares motion support gaps {sorted(declared - allowed)} that "
-                f"plate {binding['bindingPlateId']} does not have in the palette")
-        for left, right in zip(entries, entries[1:]):
-            gap = (left["validTimeMa"]["oldest"], right["validTimeMa"]["youngest"])
-            if gap[0] == gap[1]:
-                continue
-            if gap in declared:
-                continue
-            raise CorrectionError(f"binding {index}: palette coverage has a gap")
-        if declared:
-            seam_bindings += 1
-        if binding["bindingSource"] == "source-plateid1-override":
-            seen_override_plates.add(binding["bindingPlateId"])
-            if binding["bindingPlateId"] not in override_plates:
+                f"binding {index}: declares source seams {sorted(declared)} but plate {plate} has "
+                f"{sorted(allowed)} in the palette")
+        expected_kind = ("restoration" if plate in restoration_plates
+                         else "recovery" if plate in recovery_plates
+                         else "override" if plate in override_plates and plate != partition
+                         else None)
+        if kind == "override":
+            seen_override_plates.add(plate)
+            if plate not in override_plates:
                 raise CorrectionError(
-                    f"binding {index}: plate {binding['bindingPlateId']} is bound by PLATEID1 but is "
-                    "not in the tracked override table")
-        elif binding["bindingPlateId"] != binding["partitionPlateId"]:
+                    f"binding {index}: plate {plate} is bound by PLATEID1 but is not in the "
+                    "tracked override table")
+        elif plate != partition:
             raise CorrectionError(
-                f"binding {index}: a piece is bound to plate {binding['bindingPlateId']} while its "
-                f"partition owner is {binding['partitionPlateId']} without an override")
-        if binding["bindingPlateId"] in recovery_plates:
-            stale = [entry["entryId"] for entry in entries
-                     if entry["entryId"].startswith(f"plate-{binding['bindingPlateId']}-")]
+                f"binding {index}: a piece is bound to plate {plate} while its partition owner is "
+                f"{partition} without an override")
+        if expected_kind is not None and kind != expected_kind:
+            raise CorrectionError(
+                f"binding {index}: plate {plate} resolves as a {expected_kind} binding but the row "
+                f"says {kind}")
+        if kind == "restoration" and partition not in NORTH_SEA_PLATES:
+            raise CorrectionError(
+                f"binding {index}: a restoration binding on partition {partition}, which is not a "
+                "North Sea partition")
+
+    windows = piece_binding_windows(store, view)
+    restoration_windows = 0
+    seam_windows = 0
+    for (binding_index, lifecycle_index), (youngest, oldest) in sorted(windows.items()):
+        if binding_index >= len(view.bindings):
+            raise CorrectionError(f"a piece names binding {binding_index}, which the catalog lacks")
+        binding = view.bindings[binding_index]
+        plate = binding["bindingPlateId"]
+        segments, holes = compiler.resolve_binding_coverage(by_plate, plate, youngest, oldest)
+        declared = {(gap["youngestMa"], gap["oldestMa"]) for gap in binding["motionSupportGaps"]}
+        for hole in holes:
+            if hole not in declared:
+                raise CorrectionError(
+                    f"binding {binding_index} (plate {plate}) does not resolve gap-free over "
+                    f"lifecycle {lifecycle_index}: no palette entry covers "
+                    f"{hole[0]}-{hole[1]} Ma inside [{youngest}, {oldest}] Ma, and the row declares "
+                    "no source seam there")
+        if not segments:
+            raise CorrectionError(
+                f"binding {binding_index} (plate {plate}) resolves to no palette entry at all over "
+                f"[{youngest}, {oldest}] Ma")
+        if holes:
+            seam_windows += 1
+        chain = compiler.binding_entries(by_plate, plate, youngest, oldest)
+        if chain is None:
+            raise CorrectionError(
+                f"binding {binding_index} (plate {plate}): the chain builder finds no coverage over "
+                f"[{youngest}, {oldest}] Ma that the pointwise rule resolved")
+        if [entry_id for entry_id, _, _ in chain[0]] != [entry_id for entry_id, _, _ in segments]:
+            raise CorrectionError(
+                f"binding {binding_index} (plate {plate}): the pointwise entry rule and the chain "
+                f"builder disagree over [{youngest}, {oldest}] Ma "
+                f"({[entry_id for entry_id, _, _ in segments][:3]} vs "
+                f"{[entry_id for entry_id, _, _ in chain[0]][:3]})")
+        if any(entry_id.startswith(compiler.RESTORATION_PREFIX) for entry_id, _, _ in segments):
+            restoration_windows += 1
+            if binding["partitionPlateId"] not in NORTH_SEA_PLATES:
+                raise CorrectionError(
+                    f"binding {binding_index}: restoration motion on partition "
+                    f"{binding['partitionPlateId']}")
+        if binding["partitionPlateId"] in NORTH_SEA_PLATES and binding["kind"] != "override":
+            # A North Sea piece above the restoration window must take the restored
+            # motion; native motion there detaches it from the restored shelf.
+            above = [(entry_id, low, high) for entry_id, low, high in segments
+                     if high > RESTORATION_WINDOW_YOUNGEST_MA]
+            native = [entry_id for entry_id, _, _ in above
+                      if not entry_id.startswith(compiler.RESTORATION_PREFIX)]
+            if native:
+                raise CorrectionError(
+                    f"binding {binding_index}: a piece on North Sea partition "
+                    f"{binding['partitionPlateId']} takes native motion {native[:2]} above "
+                    f"{RESTORATION_WINDOW_YOUNGEST_MA} Ma instead of the restoration entry")
+        if plate in recovery_plates:
+            stale = [entry_id for entry_id, _, _ in segments
+                     if entry_id.startswith(f"plate-{plate}-")]
             if stale:
                 raise CorrectionError(
-                    f"binding {index}: plate {binding['bindingPlateId']} carries recovered native "
-                    f"motion but this piece keeps inaccurate native entries {stale[:3]}")
-            recovery_bindings += 1
-        if binding["partitionPlateId"] in NORTH_SEA_PLATES and binding["bindingSource"] == "owner-partition":
-            window = [entry for entry in entries
-                      if entry["validTimeMa"]["oldest"] > RESTORATION_WINDOW_YOUNGEST_MA]
-            if window:
-                restored = [entry for entry in window
-                            if entry["entryId"].startswith(compiler.RESTORATION_PREFIX)]
-                if not restored:
-                    raise CorrectionError(
-                        f"binding {index}: a piece on North Sea partition "
-                        f"{binding['partitionPlateId']} takes native motion above "
-                        f"{RESTORATION_WINDOW_YOUNGEST_MA} Ma instead of the restoration entry")
-                covered = min(entry["validTimeMa"]["youngest"] for entry in restored)
-                if covered > max(RESTORATION_WINDOW_YOUNGEST_MA,
-                                 min(entry["validTimeMa"]["youngest"] for entry in window)) + 1e-6:
-                    raise CorrectionError(
-                        f"binding {index}: the restoration entry does not cover the whole window")
-                restoration_bindings += 1
-    return {"bindings": len(catalog["bindings"]),
+                    f"binding {binding_index}: plate {plate} carries recovered native motion but "
+                    f"this window resolves to inaccurate native entries {stale[:3]}")
+    return {"bindings": len(view.bindings), "bindingKinds": kinds,
+            "resolvedWindows": len(windows),
             "overrideBoundPlates": sorted(seen_override_plates),
-            "restorationBindings": restoration_bindings,
-            "recoveryBindings": recovery_bindings,
-            "recoveryPlateIds": sorted(recovery_plates),
-            "sourceSeamBindings": seam_bindings}
+            "restorationWindows": restoration_windows,
+            "sourceSeamWindows": seam_windows,
+            "recoveryPlateIds": sorted(recovery_plates)}
 
 
-def check_charts_use_overrides(store: Store, catalog: dict, overrides: dict,
-                               class_name: str) -> dict:
+def check_charts_use_overrides(store: Store, view: ClassView, overrides: dict) -> dict:
     """Every piece whose source PLATEID1 is in the override table is bound by it."""
+    class_name = view.class_name
     override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
     checked = 0
-    for interval in catalog["intervals"]:
+    for interval in view.intervals:
         decoded = store.payload("staging", class_name, interval["intervalId"])
         for piece in decoded["pieces"]:
-            chart = catalog["charts"][piece["chartIndex"]]
-            binding = catalog["bindings"][piece["bindingIndex"]]
+            chart = view.charts[piece["chartIndex"]]
+            binding = view.bindings[piece["bindingIndex"]]
             expected = chart["plateId1"] in override_plates
-            actual = binding["bindingSource"] == "source-plateid1-override"
+            actual = binding["kind"] == "override"
             if expected != actual:
                 raise CorrectionError(
                     f"{class_name} {interval['intervalId']}: source plate {chart['plateId1']} "
                     f"is {'in' if expected else 'not in'} the override table but the piece is "
-                    f"bound by {binding['bindingSource']}")
+                    f"bound as {binding['kind']}")
             if expected and binding["bindingPlateId"] != chart["plateId1"]:
                 raise CorrectionError(
                     f"{class_name} {interval['intervalId']}: override piece is bound to plate "
@@ -518,7 +701,7 @@ def sliver_width_km(geometry) -> float:
     return 2.0 * area / perimeter if perimeter > 0 else 0.0
 
 
-def check_one_owner(store: Store, catalog: dict, class_name: str, tier: str = "original",
+def check_one_owner(store: Store, view: ClassView, tier: str = "original",
                     width_tolerance_km: float = QUANTISATION_SEAM_WIDTH_KM) -> dict:
     """Two pieces of the same source record never claim the same ground.
 
@@ -535,10 +718,11 @@ def check_one_owner(store: Store, catalog: dict, class_name: str, tier: str = "o
     the boundary and says nothing; its *width* is the quantity that separates a
     seam from a genuine double claim, so that is what is gated here.
     """
+    class_name = view.class_name
     worst = 0.0
     worst_width = 0.0
     compared = 0
-    for interval in catalog["intervals"]:
+    for interval in view.intervals:
         decoded = store.payload(tier, class_name, interval["intervalId"])
         by_chart: dict[int, list] = {}
         for piece in decoded["pieces"]:
@@ -572,18 +756,19 @@ def check_one_owner(store: Store, catalog: dict, class_name: str, tier: str = "o
             "widthToleranceKilometres": width_tolerance_km}
 
 
-def check_co_moving(catalog: dict, class_name: str) -> dict:
-    measured = catalog["poseAudit"]["coMovingAreaPercent"]["under25Km"]
-    if class_name == "lm" and measured < CO_MOVING_LM_MINIMUM_PERCENT:
+def check_co_moving(view: ClassView) -> dict:
+    measured = view.provenance["poseAudit"]["coMovingAreaPercent"]["under25Km"]
+    if view.class_name == "lm" and measured < CO_MOVING_LM_MINIMUM_PERCENT:
         raise CorrectionError(
             f"lm co-moving area {measured} % is below {CO_MOVING_LM_MINIMUM_PERCENT} %")
     return {"coMovingUnder25KmPercent": measured}
 
 
-def check_frame_conflict_oracle(store: Store, catalog: dict, class_name: str,
+def check_frame_conflict_oracle(store: Store, view: ClassView,
                                 rotations, interval_ids: tuple[str, ...]) -> dict:
     """Recompute the frame-conflict flag from the rotation model on sampled intervals."""
-    by_id = {row["intervalId"]: row for row in catalog["intervals"]}
+    class_name = view.class_name
+    by_id = {row["intervalId"]: row for row in view.intervals}
     checked = 0
     for interval_id in interval_ids:
         interval = by_id.get(interval_id)
@@ -592,8 +777,8 @@ def check_frame_conflict_oracle(store: Store, catalog: dict, class_name: str,
         decoded = store.payload("staging", class_name, interval_id)
         age = interval["midAgeMa"]
         for piece in decoded["pieces"]:
-            chart = catalog["charts"][piece["chartIndex"]]
-            binding = catalog["bindings"][piece["bindingIndex"]]
+            chart = view.charts[piece["chartIndex"]]
+            binding = view.bindings[piece["bindingIndex"]]
             geometry = compiler.piece_geometry(decoded, piece)
             if geometry.is_empty or chart["plateId1"] is None:
                 continue
@@ -829,8 +1014,8 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
     manifest = compiler.load_json(CONFIG / "sources.json")
     overrides = compiler.load_json(CONFIG / "overrides.json")
     simplification = compiler.load_json(CONFIG / "simplification.json")
-    catalogs = {name: store.catalog(name) for name in classes}
-    interval_ids = {row["intervalId"] for row in catalogs[classes[0]]["intervals"]}
+    views = {name: ClassView.load(store, name) for name in classes}
+    interval_ids = {row["intervalId"] for row in views[classes[0]].intervals}
     basins = compiler.load_basins(interval_ids)
     rows_by_class = load_source_records()
     areas = source_areas(rows_by_class)
@@ -842,28 +1027,31 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
                     "config": check_config(overrides, basins, interval_ids),
                     "classes": {}}
     for class_name in classes:
-        catalog = catalogs[class_name]
+        view = views[class_name]
         rows_by_index = {row["index"]: row for row in rows_by_class[class_name]}
         block = {
-            "payloads": check_payload_identity(store, catalog, class_name),
-            "schedule": check_schedule(catalog),
-            "catalogIndices": check_catalog_indices(store, catalog, class_name),
-            "lifecycles": check_lifecycles(store, catalog, class_name, rows_by_index),
-            "areas": check_areas(store, catalog, class_name, areas[class_name]),
-            "bindings": check_bindings(catalog, overrides, class_name),
-            "overrides": check_charts_use_overrides(store, catalog, overrides, class_name),
-            "coMoving": check_co_moving(catalog, class_name),
+            "provenance": check_provenance(store, view),
+            "catalogBytes": len(store.read(
+                f"staging/{class_name}/palaeo-{class_name}-catalog.json")),
+            "payloads": check_payload_identity(store, view),
+            "schedule": check_schedule(view),
+            "catalogIndices": check_catalog_indices(store, view),
+            "lifecycles": check_lifecycles(store, view, rows_by_index),
+            "areas": check_areas(store, view, areas[class_name]),
+            "bindings": check_bindings(store, view, overrides),
+            "overrides": check_charts_use_overrides(store, view, overrides),
+            "coMoving": check_co_moving(view),
         }
         if full:
-            block["oneOwner"] = check_one_owner(store, catalog, class_name, "original",
+            block["oneOwner"] = check_one_owner(store, view, "original",
                                                 QUANTISATION_SEAM_WIDTH_KM)
-            block["simplifiedSeams"] = check_one_owner(store, catalog, class_name, "staging",
+            block["simplifiedSeams"] = check_one_owner(store, view, "staging",
                                                        SIMPLIFIED_SEAM_WIDTH_KM)
             block["frameConflictOracle"] = check_frame_conflict_oracle(
-                store, catalog, class_name, rotations, WITNESS_INTERVALS)
+                store, view, rotations, WITNESS_INTERVALS)
         block["areas"].pop("perInterval", None)
         result["classes"][class_name] = block
-    explain = build_explainer(rows_by_class, overrides, catalogs[classes[0]]["intervals"])
+    explain = build_explainer(rows_by_class, overrides, views[classes[0]].intervals)
     result["witnesses"] = check_witnesses(store, classes, explain)
     result["narrowFeatures"] = check_narrow_features(store, classes, simplification)
     result["outlineTones"] = check_tone_tables(store, classes)
@@ -903,12 +1091,14 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     manifest = compiler.load_json(CONFIG / "sources.json")
     overrides = compiler.load_json(CONFIG / "overrides.json")
     simplification = compiler.load_json(CONFIG / "simplification.json")
-    catalog = store.catalog(class_name)
-    interval_ids = {row["intervalId"] for row in catalog["intervals"]}
+    view = ClassView.load(store, class_name)
+    catalog = view.catalog
+    interval_ids = {row["intervalId"] for row in view.intervals}
     basins = compiler.load_basins(interval_ids)
     rows_by_class = load_source_records()
     rows_by_index = {row["index"]: row for row in rows_by_class[class_name]}
     areas = source_areas({class_name: rows_by_class[class_name]})[class_name]
+    catalog_relative = f"staging/{class_name}/palaeo-{class_name}-catalog.json"
     results = []
 
     # 1. a corrupted pinned input digest
@@ -935,110 +1125,146 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
                                   lambda: check_config(uncited, basins, interval_ids)))
     check_config(overrides, basins, interval_ids)
 
+    # 2b. a provenance sidecar whose bytes no longer match the digest the catalog pins
+    check_provenance(store, view)
+    tampered_bytes = bytearray(store.provenance_bytes(class_name))
+    tampered_bytes.extend(b" \n")
+    tampered_store = store.with_override(
+        f"provenance/palaeo-{class_name}-provenance.json", bytes(tampered_bytes))
+    results.append(expect_failure(
+        "provenance sidecar edited without a catalog update",
+        lambda: check_provenance(tampered_store, ClassView(
+            class_name, catalog, json.loads(bytes(tampered_bytes))))))
+    shortened = deepcopy(view.provenance)
+    shortened["charts"]["count"] -= 1
+    for field in compiler.CHART_PROVENANCE_FIELDS:
+        shortened["charts"][field] = shortened["charts"][field][:-1]
+    results.append(expect_failure(
+        "provenance sidecar missing a source record the catalog counts",
+        lambda: check_provenance(
+            store.with_override(f"provenance/palaeo-{class_name}-provenance.json",
+                                json.dumps(shortened).encode()),
+            ClassView(class_name, catalog, shortened))))
+    check_provenance(store, view)
+
     # 3. a piece rebound to the wrong lifecycle, and a widened catalog lifecycle
-    interval = catalog["intervals"][16]
-    relative = f"staging/{class_name}/{interval['simplified']['url']}"
+    interval = view.intervals[16]
+    relative = view.payload_relative(interval["intervalId"])
     original_bytes = store.read(relative)
-    check_lifecycles(store, catalog, class_name, rows_by_index)
+    check_lifecycles(store, view, rows_by_index)
     first = compiler.decode_ehpr(original_bytes)["pieces"][0]["lifecycleIndex"]
-    wrong = next(index for index, row in enumerate(catalog["lifecycles"])
-                 if row["oldestMa"] != catalog["lifecycles"][first]["oldestMa"])
+    wrong = next(index for index, row in enumerate(view.lifecycles)
+                 if row["oldestMa"] != view.lifecycles[first]["oldestMa"])
     widened = rewrite_piece_field(original_bytes, 0, "lifecycleIndex", wrong)
     widened_store = store.with_override(relative, widened)
     results.append(expect_failure(
         f"piece lifecycle index rebound from {first} to {wrong}",
-        lambda: check_lifecycles(widened_store, catalog, class_name, rows_by_index)))
+        lambda: check_lifecycles(widened_store, view, rows_by_index)))
     stretched = deepcopy(catalog)
-    stretched["lifecycles"][first]["oldestMa"] = 1200.0
-    stretched_store = store.with_override(
-        f"staging/{class_name}/palaeo-{class_name}-catalog.json",
-        json.dumps(stretched).encode())
+    stretched["lifecycles"]["oldestMa"][first] = 1200.0
+    stretched_view = view.mutated(catalog=stretched)
+    stretched_store = store.with_override(catalog_relative, json.dumps(stretched).encode())
     results.append(expect_failure(
         "catalog lifecycle widened to 1200 Ma",
-        lambda: check_lifecycles(stretched_store, stretched, class_name, rows_by_index)))
-    check_lifecycles(store, catalog, class_name, rows_by_index)
+        lambda: check_lifecycles(stretched_store, stretched_view, rows_by_index)))
+    check_lifecycles(store, view, rows_by_index)
 
     # 3b. a catalog index a piece cannot reach
-    check_catalog_indices(store, catalog, class_name)
-    truncated_catalog = deepcopy(catalog)
-    truncated_catalog["lifecycles"] = truncated_catalog["lifecycles"][:1]
+    check_catalog_indices(store, view)
+    truncated = deepcopy(catalog)
+    truncated["lifecycles"] = {"count": 1,
+                               "youngestExclusiveMa": truncated["lifecycles"]["youngestExclusiveMa"][:1],
+                               "oldestMa": truncated["lifecycles"]["oldestMa"][:1]}
     results.append(expect_failure(
         "class catalog missing the lifecycles its pieces name",
-        lambda: check_catalog_indices(store, truncated_catalog, class_name)))
-    check_catalog_indices(store, catalog, class_name)
+        lambda: check_catalog_indices(store, view.mutated(catalog=truncated))))
+    shrunk = deepcopy(catalog)
+    shrunk["chartCount"] = 1
+    results.append(expect_failure(
+        "catalog chartCount below the source-record ordinals its pieces carry",
+        lambda: check_catalog_indices(store, view.mutated(catalog=shrunk))))
+    check_catalog_indices(store, view)
 
     # 4. an override plate rebound to its partition
-    check_bindings(catalog, overrides, class_name)
-    check_charts_use_overrides(store, catalog, overrides, class_name)
+    check_bindings(store, view, overrides)
+    check_charts_use_overrides(store, view, overrides)
     rebound = deepcopy(catalog)
-    target = next(index for index, binding in enumerate(rebound["bindings"])
-                  if binding["bindingSource"] == "source-plateid1-override"
-                  and binding["bindingPlateId"] == 606)
-    rebound["bindings"][target]["bindingSource"] = "owner-partition"
-    rebound["bindings"][target]["bindingPlateId"] = rebound["bindings"][target]["partitionPlateId"]
+    kinds = rebound["bindingKinds"]
+    target = next(index for index, kind in enumerate(rebound["bindings"]["kind"])
+                  if kinds[kind] == "override"
+                  and rebound["bindings"]["bindingPlateId"][index] == 606)
+    rebound["bindings"]["kind"][target] = kinds.index("partition")
+    rebound["bindings"]["bindingPlateId"][target] = rebound["bindings"]["partitionPlateId"][target]
     results.append(expect_failure(
         "Lhasa 606 rebound to its partition owner",
-        lambda: check_charts_use_overrides(store, rebound, overrides, class_name)))
-    check_charts_use_overrides(store, catalog, overrides, class_name)
+        lambda: check_charts_use_overrides(store, view.mutated(catalog=rebound), overrides)))
+    check_charts_use_overrides(store, view, overrides)
 
     # 5. a North Sea piece that skips the restoration binding
-    skipped = deepcopy(catalog)
-    target = next(index for index, binding in enumerate(skipped["bindings"])
-                  if binding["partitionPlateId"] in NORTH_SEA_PLATES
-                  and binding["bindingSource"] == "owner-partition"
-                  and any(entry["entryId"].startswith(compiler.RESTORATION_PREFIX)
-                          for entry in binding["entries"]))
-    for entry in skipped["bindings"][target]["entries"]:
-        if entry["entryId"].startswith(compiler.RESTORATION_PREFIX):
-            entry["entryId"] = f"plate-{skipped['bindings'][target]['partitionPlateId']}-130-505"
-    results.append(expect_failure("North Sea piece bound to native motion inside the window",
-                                  lambda: check_bindings(skipped, overrides, class_name)))
-    check_bindings(catalog, overrides, class_name)
-
-    # 5b. a recovery plate that keeps its inaccurate native motion
-    reverted = deepcopy(catalog)
-    target = next(index for index, binding in enumerate(reverted["bindings"])
-                  if binding["bindingPlateId"] in recovery_motion()[0])
-    for entry in reverted["bindings"][target]["entries"]:
-        entry["entryId"] = f"plate-{reverted['bindings'][target]['bindingPlateId']}-0-1800"
+    _, by_plate = compiler.load_palette()
+    without_restoration = {plate: [entry for entry in entries
+                                   if not entry["entryId"].startswith(compiler.RESTORATION_PREFIX)]
+                           for plate, entries in by_plate.items()}
     results.append(expect_failure(
-        f"plate {reverted['bindings'][target]['bindingPlateId']} rebound to its unrecovered "
-        "native motion",
-        lambda: check_bindings(reverted, overrides, class_name)))
+        "North Sea partitions resolved without their restoration palette entries",
+        lambda: check_bindings(store, view, overrides, without_restoration)))
+    mislabelled = deepcopy(catalog)
+    target = next(index for index, partition in enumerate(mislabelled["bindings"]["partitionPlateId"])
+                  if partition in NORTH_SEA_PLATES
+                  and kinds[mislabelled["bindings"]["kind"][index]] == "restoration")
+    mislabelled["bindings"]["kind"][target] = kinds.index("partition")
+    results.append(expect_failure(
+        "North Sea restoration binding shipped as a plain partition binding",
+        lambda: check_bindings(store, view.mutated(catalog=mislabelled), overrides)))
+
+    # 5b. a binding row that does not resolve gap-free over a lifecycle that uses it
+    starved = deepcopy(catalog)
+    starved["bindings"]["bindingPlateId"][0] = UNCOVERED_PLATE_ID
+    starved["bindings"]["partitionPlateId"][0] = UNCOVERED_PLATE_ID
+    starved["bindings"]["kind"][0] = kinds.index("partition")
+    results.append(expect_failure(
+        f"binding rebound to plate {UNCOVERED_PLATE_ID}, which the palette does not cover",
+        lambda: check_bindings(store, view.mutated(catalog=starved), overrides)))
+
+    # 5c. a recovery plate that keeps its inaccurate native motion, and an invented seam
+    recovery_plates, _ = recovery_motion()
+    reverted = deepcopy(catalog)
+    target = next(index for index, plate in enumerate(reverted["bindings"]["bindingPlateId"])
+                  if plate in recovery_plates)
+    recovery_plate = reverted["bindings"]["bindingPlateId"][target]
+    reverted["bindings"]["kind"][target] = kinds.index("partition")
+    results.append(expect_failure(
+        f"plate {recovery_plate} shipped as a plain partition binding instead of a recovery one",
+        lambda: check_bindings(store, view.mutated(catalog=reverted), overrides)))
     invented = deepcopy(catalog)
-    invented["bindings"][target]["motionSupportGaps"] = [
-        {"validTimeMa": {"youngest": 40.0, "oldest": 41.0}, "youngestExclusive": True,
-         "oldestExclusive": True, "reason": "source-seam"}]
+    invented["gapSets"].append([{"youngestMa": 40.0, "oldestMa": 41.0, "reason": "source-seam"}])
+    invented["bindings"]["gapSet"][target] = len(invented["gapSets"]) - 1
     results.append(expect_failure(
         "binding declaring a source seam the palette does not have",
-        lambda: check_bindings(invented, overrides, class_name)))
-    check_bindings(catalog, overrides, class_name)
+        lambda: check_bindings(store, view.mutated(catalog=invented), overrides)))
+    check_bindings(store, view, overrides)
 
     # 6. an over-simplified payload
-    scoped = {"intervals": [interval], "charts": catalog["charts"]}
-    check_areas(store, scoped, class_name, areas)
+    scoped = view.mutated(
+        catalog={**catalog, "intervals": compiler.pack_columns([interval], compiler.INTERVAL_FIELDS)},
+        provenance={**view.provenance, "intervals": [view.measurement(interval["intervalId"])]})
+    check_areas(store, scoped, areas)
     coarse = over_simplify(store, class_name, interval)
     coarse_store = store.with_override(relative, coarse)
-    coarse_catalog = deepcopy(scoped)
-    coarse_catalog["intervals"][0] = deepcopy(interval)
-    coarse_catalog["intervals"][0]["simplified"] = {
-        "url": interval["simplified"]["url"], "bytes": len(coarse),
-        "sha256": compiler.sha256_bytes(coarse)}
     results.append(expect_failure(
         "interval re-simplified at 0.5 degrees",
-        lambda: check_areas(coarse_store, coarse_catalog, class_name, areas)))
-    check_areas(store, scoped, class_name, areas)
+        lambda: check_areas(coarse_store, scoped, areas)))
+    check_areas(store, scoped, areas)
 
     # 7. pieces removed from a shipped payload
     thinned = drop_pieces(store, original_bytes, 12)
     thinned_store = store.with_override(relative, thinned)
-    thinned_catalog = deepcopy(scoped)
     results.append(expect_failure(
         "twelve pieces removed from a shipped payload",
-        lambda: check_areas(thinned_store, thinned_catalog, class_name, areas)))
+        lambda: check_areas(thinned_store, scoped, areas)))
 
     # 8. a witness moved off its seaway
-    explain = build_explainer(rows_by_class, overrides, catalog["intervals"])
+    explain = build_explainer(rows_by_class, overrides, view.intervals)
     check_witnesses(store, [class_name], explain)
     moved = shift_payload(store.read(f"staging/{class_name}/palaeo-{class_name}-94-81.ehpr"), 3.0)
     moved_store = store.with_override(f"staging/{class_name}/palaeo-{class_name}-94-81.ehpr", moved)
@@ -1047,25 +1273,26 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     check_witnesses(store, [class_name], explain)
 
     # 9. a payload whose digest no longer matches its catalog
-    check_payload_identity(store, scoped, class_name)
+    check_payload_identity(store, scoped)
     results.append(expect_failure(
         "payload bytes changed without a catalog update",
-        lambda: check_payload_identity(widened_store, scoped, class_name)))
-    check_payload_identity(store, scoped, class_name)
+        lambda: check_payload_identity(widened_store, scoped)))
+    check_payload_identity(store, scoped)
 
     # 10. the tone tables truncated
     check_tone_tables(store, [class_name])
-    truncated = store.read("staging/outline-tones.ehpt")[:-3012]
+    truncated_tones = store.read("staging/outline-tones.ehpt")[:-3012]
     results.append(expect_failure(
         "one outline tone table removed",
-        lambda: check_tone_tables(store.with_override("staging/outline-tones.ehpt", truncated),
+        lambda: check_tone_tables(store.with_override("staging/outline-tones.ehpt", truncated_tones),
                                   [class_name])))
     check_tone_tables(store, [class_name])
 
     return {"mutationsRejected": len(results), "mutations": results,
-            "restoredChecks": {"inputs": "pass", "config": "pass", "lifecycles": "pass",
-                               "bindings": "pass", "areas": "pass", "witnesses": "pass",
-                               "payloadIdentity": "pass", "outlineTones": "pass"},
+            "restoredChecks": {"inputs": "pass", "config": "pass", "provenance": "pass",
+                               "lifecycles": "pass", "bindings": "pass", "areas": "pass",
+                               "witnesses": "pass", "payloadIdentity": "pass",
+                               "outlineTones": "pass"},
             "simplificationConfigSha256": compiler.sha256_path(CONFIG / "simplification.json"),
             "simplificationBaselineToleranceDegrees":
                 simplification["areaClasses"][0]["toleranceDegrees"],
