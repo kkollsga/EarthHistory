@@ -2378,7 +2378,7 @@
   ]
  },
  "catalogId": "palaeo-coastlines-lm-v2",
- "chartCount": 7325,
+ "chartCount": 7326,
  "class": "lm",
  "className": "landmass",
  "detachedIntervalIds": [
@@ -2487,6 +2487,26 @@
   },
   {
    "appearance": "palaeo-land",
+   "editorial": "EarthHistory modification after cox-sumbler-2002-middle-jurassic-scotland, johnson-1993-northern-north-sea, nsta-cns-moray-firth-2019, underhill-partington-1993-dome",
+   "limitations": [
+    "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
+    "the present-day polygon is cut by the present-day Cao et al. (2024) v2.4 static partitions and each piece rides one plate; it is not the authors' own reconstruction with the Matthews et al. (2016) rotations"
+   ],
+   "method": "present-day-class-reattached-to-cao2024-partition-v1",
+   "sourceIds": [
+    "cao-2017-paleogeography",
+    "matthews-2016-plate-boundaries",
+    "cao-v2.4-static-partitions",
+    "cox-sumbler-2002-middle-jurassic-scotland",
+    "johnson-1993-northern-north-sea",
+    "nsta-cns-moray-firth-2019",
+    "underhill-partington-1993-dome"
+   ],
+   "status": "derived-from-published-source",
+   "surfaceClass": "landmass"
+  },
+  {
+   "appearance": "palaeo-land",
    "editorial": "EarthHistory modification after ahmadi-2003-paleocene, anell-2012-cenozoic-north-sea, jones-2001-transient-uplift",
    "limitations": [
     "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
@@ -2587,7 +2607,7 @@
    26069,
    25460,
    27420,
-   27020,
+   27030,
    32038,
    31108,
    32090,
@@ -2614,7 +2634,7 @@
    126206,
    123934,
    133140,
-   133588,
+   133650,
    158814,
    153156,
    159602,
@@ -2669,7 +2689,7 @@
    118513,
    120094,
    113232,
-   109398,
+   109410,
    113558,
    115242,
    117029,
@@ -2804,7 +2824,7 @@
    936,
    936,
    997,
-   1086,
+   1087,
    1280,
    1209,
    1316,
@@ -2831,7 +2851,7 @@
    1099,
    1135,
    1180,
-   1280,
+   1281,
    1571,
    1436,
    1567,
@@ -2858,20 +2878,20 @@
    "671f9f8efb9a067dcc7f7299016a23f4f3b44a00680d32a0304524a97e8462f4",
    "58d22ca39ba9cb426bd87b393303ff14549f5e6f7ff63ad966f47e70d7b76ba8",
    "70b15563bfacec700db374c9342261ffb58ae725db8f1d2feaa83c9b09e64292",
-   "e692f49aac87ca3454f2d1a6a7f735f89d16c1a621dacb96926d4eb7ef43d776",
+   "006d6d1d63760041bdd20e5cb63b37902590fd0d5c5bfac7f0ac4a2ef8ed00ae",
    "141a22021974a487630ad693b4c9eb6af922941780cc7802b9a16e4c366438f9",
    "292de9daac3dc007fe77d5abc2c31e4142be6de8bae2ad3509d7722c2cd3dfb8",
    "8e560f03328c806169a49951d53cef7694c01d66c7b263fc278fce341dac591c",
    "edf0831d18511c2a79df7810c14e9c18b391fb61657ba26079fb05f540549101",
    "8018b1ab8c557a8341cdc082376bd79c0180f0a0f77b96d55747f391dd60608f",
    "f0e7fc3ed72beac5f348e018d410539a05fb0ad70bab1cbcbe1bc58328da847e",
-   "4111b22d51f48527e4075552fc5926bfa4ca54de92f0870aa1703f761868b491",
-   "083c5f7f555678a8d58da3b594c5cde7b992990bc9398a1a3a7881762a643231",
+   "0048e6041fc233e229640f9b6a77331261d5fc17d80b23b604274046ebd0f855",
+   "abf1a35d7f8c19629f2eabd9008df6f97a588a1e6281ac1eaec99247f84c11c6",
    "683326354e4c8c0cee1d34440887c234a9391830b274a4b49ecd134dab1325a9",
    "fb23308755022f10d757d26222d732e48a960753c788c040a31298c51d980f94",
    "174c1b598689bad99e60d50c5e4019139d3709410833052c30f719d974919217",
    "9bbeb82f19ad82d06f4fd72dea1fc644ae7647bb83f0abf87c92a4dcdc33f6ac",
-   "d55434da5ff5320b95f45e651ce6174d904d7a8c564e95f1015678b610e501fe"
+   "e928401e12eaf52e6ad6952fa9b0140b0171bd3e927d76b3880030a0f2e06c2e"
   ],
   "toAgeMa": [
    380.01,
@@ -2912,7 +2932,7 @@
    28186,
    27600,
    29696,
-   29491,
+   29503,
    35070,
    33936,
    35161,
@@ -3070,10 +3090,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-lm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 644330,
+  "bytes": 646340,
   "path": "provenance/palaeo-lm-provenance.json",
-  "records": 7325,
-  "sha256": "9a48de068c2d2fc8a2373afd0cd24e6b44c223bc81f13e47a1f01d0285a42bed",
+  "records": 7326,
+  "sha256": "d89681c0afa9d8816c236270ce1c301733f022cf08e0f5820ae6c3e198c5dbf7",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2

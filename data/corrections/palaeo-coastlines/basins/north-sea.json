@@ -4,7 +4,7 @@
  "title": "North Sea rift basin",
  "status": "edited",
  "pinnedAt": "2026-09-15",
- "description": "Basin edit contract for the North Sea. Phase 8 adds eleven cited operations in five Cao et al. (2017) map intervals: the Middle Devonian Orcadian Basin (402-380), the Zechstein-age Moray Firth (269-248), the Middle Jurassic East Shetland Platform and Brent/Vestland delta plain (179-166), and the emergent Shetland Platform of the Palaeocene-Eocene (58-49) and Eocene (49-37). Every geometry is EarthHistory's own coarse construction constrained by the published descriptions named in each operation's references; no figure, map plate or coordinate list from any cited publication is traced, digitised or redistributed, and the emitted rings are derived from the Cao et al. (2017) polygons. The intervals this contract deliberately leaves alone, and why, are listed in notes.leftAlone.",
+ "description": "Basin edit contract for the North Sea. Phase 8 adds twelve cited operations in five Cao et al. (2017) map intervals: the Middle Devonian Orcadian Basin (402-380), the Zechstein-age Moray Firth (269-248), the Middle Jurassic East Shetland Platform, Brent/Vestland delta plain and the Scottish landmass Cao maps as mountain (179-166), and the emergent Shetland Platform of the Palaeocene-Eocene (58-49) and Eocene (49-37). Every geometry is EarthHistory's own coarse construction constrained by the published descriptions named in each operation's references; no figure, map plate or coordinate list from any cited publication is traced, digitised or redistributed, and the emitted rings are derived from the Cao et al. (2017) polygons. The intervals this contract deliberately leaves alone, and why, are listed in notes.leftAlone.",
  "window": {
   "bbox": [-5.0, 53.0, 9.0, 62.5],
   "reason": "central and northern North Sea plus the southern Permian basin margin; the same window simplification.json protects from node reduction"
@@ -112,6 +112,20 @@
    "claimOrInference": "the delta geometry and the Mid-Jurassic doming that made the Central North Sea emergent are claims of the sources; the outline and the decision to draw the delta plain as land for the whole interval are EarthHistory inferences"
   },
   {
+   "opId": "north-sea-179-166-scottish-landmass-add-land",
+   "kind": "add-land",
+   "intervalIds": ["179-166"],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[-4.96, 58.05], [-3.75, 58.0], [-2.05, 59.25], [-1.35, 60.42], [-2.25, 60.42], [-3.45, 59.35], [-4.8, 58.25], [-4.96, 58.05]]]
+   },
+   "rationale": "This operation restates Cao's own classification in a shipped class; it is not a correction to Cao. Round 2 of the visual review reported the present-day point 3.0 W, 58.8 N rendering as continental crust of unmapped depth at 170 Ma while the Moray Firth 90 km south was land. Measured over the 179-166 Ma records of the pinned archive, that ground carries Cao's mountain class and neither landmass nor shallow marine: 17,742 km2 of the 20,045 km2 this outline covers is mountain, 2,121 km2 is ground Cao already maps as landmass, 883 km2 lies inside the East Shetland Platform operation above and only 209 km2 (1.0 %) carries no Cao class at all. Cao et al. (2017) treat the mountain class as terrestrial, so the source says this ground was land; it reaches the browser as water of unknown depth only because EarthHistory publishes the landmass and shallow-marine classes alone. The outline is therefore a coarse seven-vertex envelope of Cao's own Middle Jurassic mountain records over northern Scotland, the Pentland Firth and Orkney, and it moves neither of Cao's boundaries: 0 km2 of it falls on the 179-166 Ma shallow-marine class, so no mapped sea becomes land and no remove-shallow companion is needed. The published literature is an independent check on the sign, not the warrant for the outline: 'During the Jurassic Period, much of Scotland remained land; only the Inner Hebridean area and Moray Firth Basin were occupied by shallow seas to the margins of which the onshore outcrops are now restricted' (Cox and Sumbler 2002); the Orkney-Shetland Platform bounds the West Fair Isle Basin to the west (Johnson et al. 1993); regional doming from a transient plume head more than 1250 km in diameter truncated stratigraphy throughout the North Sea domain (Underhill and Partington 1993); and the NSTA/OGA Central North Sea and Moray Firth Middle Jurassic Bathonian depositional-facies map carries only 'Coastal and alluvial plain heterolithics' and 'Uplands' in the Moray Firth's western hinterland. South of about 59.4 N those statements corroborate the class independently; north of it, between Orkney and the Shetland Platform, 7,190 of 7,400 km2 is Cao mountain and the restatement is the whole warrant, because no retrieved source places a Middle Jurassic shoreline there. The operation stays inside the contract window, so the Inner Hebrides and the Minch west of 5 W are untouched, and it is confined to 179-166 Ma: at 203-179 and 166-146 Cao draws shallow marine across this ground and its mountain class is absent there, which is a different question that this contract does not answer. The class gap is global, not local - 125,464 km2 of Cao mountain inside this window alone carries neither shipped class at this interval - and the fix for that is a packaging decision, recorded in the research memos rather than chased with polygons.",
+   "spatialUncertaintyKilometres": 60.0,
+   "editorial": "EarthHistory modification after cox-sumbler-2002-middle-jurassic-scotland, johnson-1993-northern-north-sea, underhill-partington-1993-dome, nsta-cns-moray-firth-2019",
+   "references": ["cox-sumbler-2002-middle-jurassic-scotland", "johnson-1993-northern-north-sea", "underhill-partington-1993-dome", "nsta-cns-moray-firth-2019"],
+   "claimOrInference": "that this ground is terrestrial at 179-166 Ma is Cao et al. (2017)'s own classification, restated in a shipped class rather than corrected; the emergent Scottish landmass, the Orkney-Shetland Platform, the Mid-Jurassic dome and the NSTA upland and coastal-plain facies classes are claims of the other sources, cited as an independent check on the sign; the seven-vertex outline and the choice to publish the ground as landmass rather than leave it unclassified are EarthHistory inferences"
+  },
+  {
    "opId": "north-sea-58-49-shetland-platform-remove-shallow",
    "kind": "remove-shallow",
    "intervalIds": ["58-49"],
@@ -205,6 +219,12 @@
     "subject": "northern limit of the Zechstein Sea, and the Rotliegend desert phase",
     "reason": "Cao floods parts of the East Shetland Platform and the northern Viking Graben with its shallow-marine class at 269-248. The NSTA northern North Sea Zechstein maps carry both an evaporite-basin class and a non-marine class there and mark the Zechstein 'thin or absent' over parts of the platform, but nothing retrieved here places the northern shoreline, and the Zechstein Sea's connection to the Boreal ocean may well have run through this area. No edit is made. Separately, this one bin has to hold both the Rotliegend desert (a basin 'up to 2,000 km long and 500 km wide' with dune fields, playas and lacustrine mudstones) and the Zechstein Sea that followed it; a maximum-transgression bin keeps the marine end member and the desert phase is unrepresentable. That is a recorded limitation, not an edit.",
     "references": ["glennie-1972-rotliegend", "peryt-2010-zechstein", "nsta-nns-east-shetland-platform-2018"]
+   },
+   {
+    "intervalIds": ["49-37"],
+    "subject": "the East Shetland Platform proper in the Lutetian-Bartonian",
+    "reason": "The 49-37 Ma Shetland Platform operation stops at 0.2 E and leaves the East Shetland Platform east of it shallow marine, which is deliberate. The emergence statement the Palaeogene operations rest on names the Shetland Platform as a sediment source ('The Shetland Platform supplied sediment continuously, although at varying rates, until the latest Cenozoic'), not the platform east of it. The NSTA/OGA Northern North Sea and East Shetland Platform Eocene sheets describe the Lutetian-Bartonian Alba succession over that area as 'shelf sandstones of the Middle Mousa Formation and deep-water sandstones belonging to the Caran Sandstone Member', and the Millennium Atlas Eocene chapter has a deep-marine central basin with submarine-fan systems fed from a western source. A shelf is submerged, so the retrieved sources put the East Shetland Platform under water in this interval and the emergent ground west of it, where the operation already draws it. Nothing retrieved supports extending that land eastward and it is not extended. The validator carries a negative-control witness at 0.5 E, 61.0 N in this interval, so a later eastward extension without a citation fails a gate instead of passing quietly.",
+    "references": ["anell-2012-cenozoic-north-sea", "jones-2003-eocene", "nsta-nns-east-shetland-platform-2018"]
    }
   ],
   "rights": "Every publication named here is citation-only. No figure, map plate, polygon, coordinate list or table from any of them is traced, digitised, copied or redistributed. The NSTA/OGA packages are read as facies descriptions - which environments are marine and which are not - and their map extents are used as stated metadata; their geometry is not reproduced. The only redistributed palaeogeographic geometry in this program remains Cao et al. (2017), CC BY 3.0.",
@@ -347,6 +367,20 @@
    "constrains": "which depositional facies are marine and which are not in the Northern North Sea and East Shetland Platform; the Aalenian-Bathonian sheet carries shallow marine shelf and delta top sands alongside non-marine deposition and erosion, the Forties and Sele sheets carry a non-marine class against shelf, slope and basinal mudstones, the Permian sheet carries an evaporite basin subject to periodic marine inundation alongside fluvial and aeolian sands and non-marine deposition and erosion, and the Triassic succession is described as fluvial and alluvial sandstones",
    "claimOrInference": "claims of the source, read as facies descriptions; no polygon, plate or coordinate from these maps is traced or reproduced",
    "note": "Open Government Licence v3.0, https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/ . Package NNS_ESP.zip, held offline outside this repository. The packaged File Geodatabases are not build inputs; only the layered facies PDFs were read, and only as text."},
+  {"sourceId": "cox-sumbler-2002-middle-jurassic-scotland",
+   "citation": "Cox, B. M. and Sumbler, M. G. 2002. British Middle Jurassic Stratigraphy. Geological Conservation Review Series No. 26, Joint Nature Conservation Committee, Peterborough. ISBN 1-86107-479-4. Chapter 6, 'The Middle Jurassic stratigraphy of Scotland', by B. M. Cox, K. N. Page and N. Morton.",
+   "url": "https://geoguide.scottishgeologytrust.org/p/gcr26/gcr26_ch6midjurassicstratscotland",
+   "year": 2002,
+   "constrains": "the emergent Scottish land area through the Jurassic - 'During the Jurassic Period, much of Scotland remained land; only the Inner Hebridean area and Moray Firth Basin were occupied by shallow seas to the margins of which the onshore outcrops are now restricted' - and Middle Jurassic deposition affected by 'rejuvenation of the Scottish land area'",
+   "claimOrInference": "claims of the source",
+   "note": "No DOI. Geological Conservation Review chapter text published by JNCC under Open Government Licence v3.0 and read citation-only; the chapter page range is not adjudicated here."},
+  {"sourceId": "johnson-1993-northern-north-sea",
+   "citation": "Johnson, H., Richards, P. C., Long, D. and Graham, C. C. 1993. United Kingdom offshore regional report: the geology of the northern North Sea. HMSO for the British Geological Survey, London. ISBN 0-11-884497-0.",
+   "url": "https://webapps.bgs.ac.uk/Memoirs/docs/B01842.html",
+   "year": 1993,
+   "constrains": "the Orkney-Shetland Platform as the western bound of the West Fair Isle Basin, which 'extends from the east of Orkney to south-west of Shetland'",
+   "claimOrInference": "claim of the source",
+   "note": "No DOI. NERC copyright 1993, read citation-only; no map plate, figure or coordinate list is traced or redistributed."},
   {"sourceId": "earthhistory-north-sea-restoration-v1",
    "citation": "EarthHistory North Sea rigid UK-block restoration contract, data/corrections/north-sea-restoration/restoration-contract.json",
    "url": "data/corrections/north-sea-restoration/restoration-contract.json",

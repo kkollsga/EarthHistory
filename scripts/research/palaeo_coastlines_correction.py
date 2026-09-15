@@ -171,6 +171,13 @@ BASIN_EDIT_WITNESSES = (
                "north-sea-179-166-brent-delta-plain-add-land"], "classes": ["lm"]},
     {"witnessId": "northern-viking-graben", "position": (2.0, 61.5), "intervalId": "179-166",
      "opIds": [], "classes": ["sm"]},
+    # Cao 2017 carries the Middle Jurassic Scottish landmass in its mountain class,
+    # which is compiled but never shipped, so before the edit the browser drew
+    # unmapped crust between emergent Scotland and the mapped sea. The edit puts
+    # the same ground in the shipped landmass class; `m` stays in the expected set
+    # because the row must state what the source actually holds.
+    {"witnessId": "scottish-landmass-mid-jurassic", "position": (-3.0, 58.8), "intervalId": "179-166",
+     "opIds": ["north-sea-179-166-scottish-landmass-add-land"], "classes": ["lm", "m"]},
     {"witnessId": "shetland-platform-palaeocene", "position": (-1.5, 60.5), "intervalId": "58-49",
      "opIds": ["north-sea-58-49-shetland-platform-remove-shallow",
                "north-sea-58-49-shetland-platform-add-land"], "classes": ["lm"]},
@@ -178,6 +185,12 @@ BASIN_EDIT_WITNESSES = (
      "opIds": ["north-sea-49-37-shetland-platform-remove-shallow",
                "north-sea-49-37-shetland-platform-add-land"], "classes": ["lm"]},
     {"witnessId": "central-graben-eocene", "position": (3.0, 56.5), "intervalId": "49-37",
+     "opIds": [], "classes": ["sm"]},
+    # The Eocene operation deliberately stops at 0.2 E: the retrieved sources put
+    # the East Shetland Platform proper under a shelf sea in the Lutetian-Bartonian
+    # and the emergent ground west of it (contract notes.leftAlone). This control
+    # fails if the land is ever extended east without a citation.
+    {"witnessId": "east-shetland-platform-eocene", "position": (0.5, 61.0), "intervalId": "49-37",
      "opIds": [], "classes": ["sm"]},
 )
 

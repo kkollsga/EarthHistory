@@ -8,12 +8,13 @@ All notable changes to EarthHistory will be recorded here.
 
 - A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
   coast proxy with mapped palaeogeography for the 24 published map intervals
-  from `402-380` to `11-2` Ma. Two classes ship: 26,497 landmass pieces
-  (3,339,386 bytes) and 31,869 shallow-marine pieces (3,469,844 bytes), cut from
-  7,154 and 13,395 Cao et al. (2017) source records, plus two columnar class
-  catalogs (26,796 and 42,849 bytes) and 24 country-outline tone tables
-  (102,048 bytes for both files) — 6,980,923 bytes over 52 files, inside the
-  7 MiB budget `check-app-artifacts` now enforces. `dist` is 52,057,351 bytes
+  from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. Two
+  classes ship: 26,783 landmass pieces (3,415,378 bytes) and 31,868
+  shallow-marine pieces (3,519,149 bytes), cut from 7,155 and 13,395 Cao et al.
+  (2017) source records and the cited basin and lowstand contracts, plus two
+  columnar class catalogs (34,422 and 49,491 bytes) and 25 country-outline tone
+  tables (101,550 bytes for both files) — 7,036,077 bytes over 54 files, inside
+  the 7 MiB budget `check-app-artifacts` now enforces. `dist` is 52,057,351 bytes
   (49.65 MiB) against the unchanged 50 MiB ceiling.
 - The mechanism: the browser downloads polygon rings, not triangles. A published
   interval is one EHPR v1 payload per class — int16 lon/lat vertices, a 12-byte
@@ -43,16 +44,18 @@ All notable changes to EarthHistory will be recorded here.
   ownership asset and every existing citation are exactly what they were. The
   mountain class stays compiled and validated offline: it is not funded by the
   byte budget and does not ship.
-- Eleven cited local modifications to the Cao 2017 polygons in the North Sea,
+- Twelve cited local modifications to the Cao 2017 polygons in the North Sea,
   the first basin the plan's edit contract covers. In five of the twenty-four
   map intervals the source misstates the land-sea pattern at basin scale, and
-  113,728 km2 of landmass is added and 191,943 km2 of shallow marine removed to
+  130,789 km2 of landmass is added and 191,943 km2 of shallow marine removed to
   fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
   and goes back to being a lake in a continent (402-380 Ma); the Moray Firth
   emerges in the Zechstein while the Central North Sea evaporite basin stays
   flooded (269-248); the East Shetland Platform and the Brent/Vestland delta
   plain emerge in the Middle Jurassic, the delta plain bounded north by the
-  published ca. 60 degrees 30 minutes N limit (179-166); and the Shetland
+  published ca. 60 degrees 30 minutes N limit, and northern Scotland, the
+  Pentland Firth and Orkney stop rendering as water of unknown depth between
+  them (179-166); and the Shetland
   Platform emerges in the Palaeocene and Eocene, where Cao's own authors record
   fewer than twenty marine fossil collections constraining the whole globe
   (58-49, 49-37). Each operation carries its rationale, a 40-60 km spatial
@@ -185,6 +188,42 @@ All notable changes to EarthHistory will be recorded here.
   ring shipped outside its polygon group.
 
 ### Fixed
+
+- Draw the Middle Jurassic Scottish landmass as land instead of as water of
+  unknown depth. At 170 Ma the present-day point (-3, 58.8) rendered in the
+  crust blue that means "no class is mapped here" while the Moray Firth 90 km
+  south was land. Cao et al. (2017) do map it: that ground is their mountain
+  class, which they treat as terrestrial and which the byte budget does not
+  fund, so it never reaches the browser. 17,742 km2 of the 20,045 km2 the new
+  operation outlines is mountain, 2,121 km2 is ground Cao already calls
+  landmass, and only 209 km2 carries no Cao class at all. The operation
+  restates that classification in a class we publish rather than correcting the
+  source - it adds 17,061 km2 of landmass over northern Scotland, the Pentland
+  Firth and Orkney and moves neither of Cao's boundaries, because none of the
+  outline falls on the interval's shallow-marine class - with four published
+  sources cited as an independent check on the sign (Cox & Sumbler 2002 on the
+  emergent Jurassic Scottish land area, Johnson et al. 1993 on the
+  Orkney-Shetland Platform, Underhill & Partington 1993 on the Mid-Jurassic
+  dome, and the NSTA/OGA Central North Sea and Moray Firth Bathonian facies
+  sheet, whose only classes over that hinterland are "Coastal and alluvial
+  plain heterolithics" and "Uplands"). The class gap it exposes is global, not
+  local, and is recorded with its measurements rather than fixed here: 3.9
+  million km2 at 179-166 Ma, 15.8 at 49-37 and 23.6 at 20-11 Ma of Cao mountain
+  ground lie inside the continental crust extent carrying neither shipped
+  class. The Eocene East Shetland Platform east of 0.2 E was reviewed in the
+  same pass and deliberately left as shallow marine: the NSTA Eocene Alba sheet
+  describes it as shelf and deep-water sandstone, the Middle Eocene
+  fluvio-deltaic unit is confined to the platform's southern part, and the one
+  emergence statement names the Shetland Platform west of it. The validator now
+  holds an unedited control at (0.5, 61) that fails if the land is ever
+  extended east without a citation.
+- Stop the collapsed chapter card covering the open map key on a phone. At
+  390x844 the key panel opens full width to just under the header, and the
+  chapter card sat on top of it, hiding the key's own heading and its first
+  colour swatches. The open key now outranks the chapter card and still passes
+  under the timeline and the header, which it never reaches. Closed, the key
+  pill keeps its old place in the stack, and nothing about the panel's size,
+  contents or behaviour changes.
 
 - Keep today's land on the globe where the Cao 2017 maps stop. With the
   palaeo-coastline layer switched on at an age outside 2.01-402 Ma the mode

@@ -5,7 +5,12 @@ Research and compile date: 2026-09-15. Contract:
 [palaeo-coastlines-literature.md](palaeo-coastlines-literature.md) (what the
 publications say) and
 [palaeo-coastlines-cao2017.md](palaeo-coastlines-cao2017.md) (what the source
-is). This record says what was measured, what was changed, and what was left
+is). Two targeted literature records feed the Jurassic and Palaeogene
+operations:
+[palaeo-coastlines-north-sea-middle-jurassic.md](palaeo-coastlines-north-sea-middle-jurassic.md)
+and
+[palaeo-coastlines-north-sea-eocene-shetland.md](palaeo-coastlines-north-sea-eocene-shetland.md).
+This record says what was measured, what was changed, and what was left
 alone.
 
 Every statement below is tagged. **Measured** means a number this session
@@ -57,9 +62,14 @@ output referenced at the end.
 published record, and they are what this phase edits: a shallow sea over the
 Middle Devonian Orcadian Basin, a flooded Moray Firth in the Zechstein, and a
 flooded East Shetland/Shetland Platform in the Middle Jurassic and the
-Palaeogene.
+Palaeogene. A fourth operation is not a correction at
+all, and the table above cannot show it because the table only counts the two
+shipped classes: at 179–166 Ma the Scottish landmass north of the Moray Firth is
+Cao's **mountain** class, which EarthHistory compiles and validates but does not
+publish, so with `lm` and `sm` alone it reaches the browser as unmapped crust.
+That operation restates Cao's own classification in a class we ship.
 
-## The eleven operations
+## The twelve operations
 
 Areas are **measured** by the compiler during the run, inside the contract
 window and restricted to the operation's own interval. "dissolved" is the change
@@ -76,16 +86,18 @@ one quoted here.
 | 5 | 179–166 | `…-east-shetland-platform-add-land` | land added | +36,596 | 50 km | Fjellanger et al. 1996; Husmo et al. 2003; NSTA NNS/ESP |
 | 6 | 179–166 | `…-brent-delta-plain-remove-shallow` | shallow removed | −16,407 | 60 km | Fjellanger et al. 1996; Helland-Hansen et al. 1992; Husmo et al. 2003 |
 | 7 | 179–166 | `…-brent-delta-plain-add-land` | land added | +16,701 | 60 km | Fjellanger et al. 1996; Helland-Hansen et al. 1992; Underhill & Partington 1993 |
-| 8 | 58–49 | `…-shetland-platform-remove-shallow` | shallow removed | −32,229 | 60 km | Anell et al. 2012; Ahmadi et al. 2003; Jones et al. 2001; NSTA NNS/ESP |
-| 9 | 58–49 | `…-shetland-platform-add-land` | land added | +14,652 | 60 km | Anell et al. 2012; Ahmadi et al. 2003; Jones et al. 2001 |
-| 10 | 49–37 | `…-shetland-platform-remove-shallow` | shallow removed | −25,987 | 60 km | Anell et al. 2012; Jones et al. 2003; NSTA NNS/ESP |
-| 11 | 49–37 | `…-shetland-platform-add-land` | land added | +29,292 | 60 km | Anell et al. 2012; Jones et al. 2003 |
+| 8 | 179–166 | `…-scottish-landmass-add-land` | land added | +17,061 | 60 km | Cox & Sumbler 2002; Johnson et al. 1993; Underhill & Partington 1993; NSTA CNS/MF |
+| 9 | 58–49 | `…-shetland-platform-remove-shallow` | shallow removed | −32,229 | 60 km | Anell et al. 2012; Ahmadi et al. 2003; Jones et al. 2001; NSTA NNS/ESP |
+| 10 | 58–49 | `…-shetland-platform-add-land` | land added | +14,652 | 60 km | Anell et al. 2012; Ahmadi et al. 2003; Jones et al. 2001 |
+| 11 | 49–37 | `…-shetland-platform-remove-shallow` | shallow removed | −25,987 | 60 km | Anell et al. 2012; Jones et al. 2003; NSTA NNS/ESP |
+| 12 | 49–37 | `…-shetland-platform-add-land` | land added | +29,292 | 60 km | Anell et al. 2012; Jones et al. 2003 |
 
-Totals, **measured**: 113,728 km² of landmass added and 191,943 km² of shallow
+Totals, **measured**: 130,789 km² of landmass added and 191,943 km² of shallow
 marine removed, across five of the twenty-four intervals. A land addition is
 smaller than its own polygon wherever Cao already carried land there — operation
-9 adds 14,652 km² inside a 32,229 km² outline because roughly half of the
-Shetland Platform was already land at 58–49 Ma.
+10 adds 14,652 km² inside a 32,229 km² outline because roughly half of the
+Shetland Platform was already land at 58–49 Ma, and operation 8 adds
+17,061 km² inside a 20,045 km² outline for the same reason.
 
 ### 402–380 Ma — the Orcadian Basin is a lake in a continent, not a sea
 
@@ -144,7 +156,8 @@ Rotliegend desert — a basin "up to 2,000 km long and 500 km wide" (Glennie 197
 — and the Zechstein Sea that drowned it. A maximum-transgression bin keeps the
 marine end member; the desert phase is unrepresentable here.
 
-### 179–166 Ma — the East Shetland Platform and the Brent delta
+### 179–166 Ma — the East Shetland Platform, the Brent delta and the
+Scottish landmass
 
 **Measured.** Cao carries land over the Central North Sea and the Central Graben
 at this interval, which matches the published Mid-Jurassic dome, but draws the
@@ -164,12 +177,69 @@ Central North Sea emergent and was followed by "progressive pre-rift,
 Aalenian–early Bathonian marine onlap" as it deflated (Underhill & Partington
 1993).
 
-**Inferred.** Two edits. The platform west of the graben shoulder
+**Inferred.** Three edits. The platform west of the graben shoulder
 (−2.6°E…0.8°E, 60.3°N…62.4°N) is drawn as land, because a source area that
 supplies clastics is subaerial. The delta plain is drawn as land in a corridor
 from the Central North Sea north to the published 60°30′N limit (1°E…3.4°E,
 58°N…60.5°N). The graben axis north of that limit stays marine, which is where
 the delta drowned.
+
+The third is not a correction to Cao at all — it restates Cao's own
+classification in a class we publish. Round 2 of the visual review reported the
+present-day point (−3°E, 58.8°N) rendering as crust-blue “depth unmapped” at
+170 Ma while the Moray Firth 90 km to the south was land. **Measured**, from the
+pinned archive at 179–166 Ma: that ground carries Cao's **mountain** class and
+neither `lm` nor `sm`. Of the 20,045 km² the outline covers, 17,742 km² is
+mountain, 2,121 km² is ground Cao already maps as landmass, 883 km² falls inside
+the East Shetland Platform operation above, and 209 km² (1.0 %) carries no Cao
+class at all. Cao et al. (2017) treat mountain as terrestrial, so **the source
+already says this ground was land**; it reaches the browser as water only
+because the published class set is `lm` + `sm` (user decision, 2026-09-15). Any
+claim that Cao drowns Scotland at 179–166 Ma would be false, and the contract
+says so in as many words. The neighbouring intervals are a different question:
+at 203–179 and 166–146 Cao draws shallow marine across this ground and has no
+mountain record here at all, which
+[palaeo-coastlines-north-sea-middle-jurassic.md](palaeo-coastlines-north-sea-middle-jurassic.md)
+identifies as a genuine, well-supported literature disagreement at 166–146 and
+which this contract does not touch.
+
+**Sourced**, as an independent check on the sign only: “During the Jurassic
+Period, much of Scotland remained land; only the Inner Hebridean area and Moray
+Firth Basin were occupied by shallow seas to the margins of which the onshore
+outcrops are now restricted” (Cox & Sumbler 2002); the West Fair Isle Basin
+“extends from the east of Orkney to south-west of Shetland, and is bounded to
+the west by the Orkney–Shetland Platform” (Johnson et al. 1993); regional doming
+from a transient plume head “> 1250 km diameter” truncated stratigraphy
+“throughout the North Sea domain” (Underhill & Partington 1993); and the NSTA/OGA
+Central North Sea and Moray Firth Middle Jurassic Bathonian depositional-facies
+sheet carries only “Coastal and alluvial plain heterolithics” and “Uplands” in
+the Moray Firth's western hinterland.
+
+**Inferred.** The outline (−4.96°E…−1.35°E, 58.0°N…60.42°N, seven vertices) is a
+coarse envelope of Cao's own Middle Jurassic mountain records over northern
+Scotland, the Pentland Firth and Orkney; the choice to publish that ground as
+landmass rather than leave it unclassified is EarthHistory's. It moves neither
+of Cao's boundaries: **measured**, 0 km² of it falls on the 179–166 Ma
+shallow-marine class, so no `remove-shallow` companion is needed, and the
+compiler records a dissolved gain of 17,061 km². South of about 59.4°N the four
+sources above corroborate the class independently; north of it, between Orkney
+and the Shetland Platform, 7,190 of 7,400 km² is Cao mountain and the
+restatement is the whole warrant, because no retrieved source places a Middle
+Jurassic shoreline there. The Middle Jurassic memo's recommended
+literature-only extent stops at about 59.4°N for exactly that reason; this
+operation goes further north on Cao's classification, not on the literature, and
+the contract's `claimOrInference` says which is which. Uncertainty 60 km.
+
+**A name that must not migrate.** The Orcadian Basin is **Devonian**. The
+Jurassic name for this ground is the Scottish landmass / Orkney–Shetland
+Platform, which is why the operation is `…-scottish-landmass-add-land` and not an
+“Orcadian” one.
+
+**What is still not drawn.** Relief. “Land” here is the flat landmass class; the
+mountain tint the third Cao class would carry is not published, and neither is
+the rest of the mountain class — 125,464 km² of it inside this contract window
+alone carries neither shipped class at this interval. Six polygons cannot close
+a global class gap; see “One open limitation this round exposed” below.
 
 **The honest limitation.** One Cao interval holds an advance, a retreat and a
 second advance. These edits render the *maximum* extent, which is the only state
@@ -198,7 +268,34 @@ intervals. The outline stops well short of the Faroe–Shetland Basin to the
 north-west, which was a deep marine trough. It does not change between 58–49 and
 49–37 because nothing retrieved constrains how it changed: the interval boundary
 there is a change of evidence, not a change of coastline, and the contract says
-so rather than implying a stable shore. Uncertainty 60 km in both.
+so rather than implying a stable shore. Uncertainty 60 km in both. The targeted
+Palaeogene record
+[palaeo-coastlines-north-sea-eocene-shetland.md](palaeo-coastlines-north-sea-eocene-shetland.md)
+reaches the same outline independently and recommends two refinements this round
+did not make: attach the Middle Eocene shelf and provenance sources to the 49–37
+operation in place of the thin `jones-2003` + `anell-2012` pairing, and raise the
+uncertainty **on the eastern edge alone** from 60 km to 75 km, because no
+retrieved source places a Palaeogene shoreline anywhere between 0°E and 1.2°E.
+
+**The eastern limit is a decision, not an oversight.** Round 2 of the visual
+review asked whether the East Shetland Platform *proper* — east of the outline,
+around (0.5°E, 61°N) — should also be land in the Lutetian–Bartonian, since it
+renders shallow marine beside an emergent Shetland Platform. It should not, on
+the retrieved record. The emergence statement these operations rest on names the
+**Shetland Platform** as a sediment source, not the platform east of it. The
+NSTA/OGA Northern North Sea and East Shetland Platform **Eocene – Alba** sheet —
+the Middle Eocene sheet, i.e. this Cao interval — describes that ground as “shelf
+sandstones of the Middle Mousa Formation and deep-water sandstones belonging to
+the Caran Sandstone Member”, and its facies legend runs shelf sands, shelf
+mudstones, slope mudstones, basin and slope sands and basinal mudstones beside a
+single “Non-marine deposition” class; the Millennium Atlas Eocene chapter has a
+deep-marine central basin with submarine-fan systems fed from a western source
+(Jones et al. 2003). A shelf is submerged. So the sources put the East Shetland
+Platform under water in this interval and the emergent ground west of it, where
+the operation already draws it, and the outline is not extended east. The
+decision is carried as a gate, not only as prose: the validator now holds an
+unedited control at (0.5°E, 61°N) in 49–37 that must stay shallow marine, so a
+later eastward extension without a citation fails instead of passing quietly.
 
 ## What was deliberately left alone
 
@@ -209,17 +306,21 @@ so rather than implying a stable shore. Uncertainty 60 km in both.
 | 166–146, 146–135 | Late Jurassic rift seaways, Kimmeridge Clay | **Measured:** Cao already draws the Viking Graben, Central Graben, Moray Firth and Danish–Norwegian basin as shallow marine at both, and already carries emergent ground over Scotland, Norway and the Horda Platform at 146–135. **Inferred:** what the literature adds is either an environment Cao has no class for (anoxia; the mid-*eudoxus* δ¹³C event) or geometry finer than the evidence — Roberts et al. (2019) predict "numerous isolated footwall islands" at the Base Cretaceous, but that is backstripped **model output at one age**, and drawing islands from it would assert a precision neither the model nor Cao's ~30 km floor supports. |
 | 94–81, 81–58 | Late Cretaceous Chalk sea and platform flooding | The literature memo flags this as insufficiently constrained and it is untouched. Cao renders the window as dominantly shallow marine, which has the right sign for a deep epicontinental Chalk sea. How far the Chalk flooded the Shetland Platform and the other basin-margin highs, and when, is not settled by anything retrieved. 81–58 additionally merges the whole Chalk sea with the Palaeocene, so no single geometry can be right for both halves. |
 | 58–49 | Forties fan provenance | The memo flags provenance as unresolved and no edit rests on it. The Shetland Platform operations rest on the continuous-supply statement and the non-marine facies class instead, and the basin east of the platform is untouched. |
+| 49–37 | The East Shetland Platform proper, east of 0.2°E — see also [the Palaeogene Shetland memo](palaeo-coastlines-north-sea-eocene-shetland.md) | **Sourced:** the NSTA/OGA Eocene – Alba sheet — the Middle Eocene, i.e. this interval — describes that ground as “shelf sandstones of the Middle Mousa Formation and deep-water sandstones belonging to the Caran Sandstone Member”, and the Millennium Atlas Eocene chapter has a deep-marine central basin fed from a western source. The one emergence statement (Anell et al. 2012) names the Shetland Platform, which the operation already draws as land. **Inferred:** a shelf is submerged, so the platform stays shallow marine and the land is not extended east. Carried as an unedited control at (0.5°E, 61°N) so a later extension fails a gate. |
 | 269–248 | Northern limit of the Zechstein Sea | **Measured:** Cao floods parts of the East Shetland Platform and the northern Viking Graben. **Sourced:** the NSTA northern North Sea Permian sheet carries both an evaporite-basin class and a non-marine class there and marks the Zechstein "thin or absent" over parts of the platform. **Inferred:** nothing retrieved places the northern shoreline, and the Zechstein Sea's connection to the Boreal ocean may have run through exactly this area. No edit. |
 
 ## How the edits are carried and shown
 
 **Measured**, from the compiled catalogs:
 
-- Charts: `lm` 7,154 → 7,159 source records (five synthetic `add-land` records,
-  one per operation). `sm` stays at 13,395: a removal edits an existing record
-  rather than adding one.
-- Evidence rows, interned one per distinct reference set: `lm` 1 → 6, `sm`
-  1 → 7. The base row keeps `status: classified-map-polygon`; every edited row
+- Charts: one synthetic `lm` source record per `add-land` operation, six of them
+  after this round (`north-sea-269-248-moray-firth-add-land`,
+  `…-179-166-east-shetland-platform-add-land`, `…-179-166-brent-delta-plain-add-land`,
+  `…-179-166-scottish-landmass-add-land`, `…-58-49-shetland-platform-add-land`,
+  `…-49-37-shetland-platform-add-land`). `sm` stays at 13,395 records: a removal
+  edits an existing record rather than adding one.
+- Evidence rows, interned one per distinct reference set: `lm` 8 (the Cao base
+  row, six basin edits and the LGM lowstand row), `sm` 7. The base row keeps `status: classified-map-polygon`; every edited row
   carries `status: derived-from-published-source`, the edit's reference
   `sourceIds` appended to `cao-2017-paleogeography`,
   `matthews-2016-plate-boundaries` and `cao-v2.4-static-partitions`, and an
@@ -228,12 +329,14 @@ so rather than implying a stable shore. Uncertainty 60 km in both.
   both the East Shetland Platform and the Brent delta operations. The map key
   and the Sources panel read these rows, so a reference is on screen whenever an
   edited chart is.
-- Payload bytes: `lm` 3,339,386 → 3,340,128 (+742), `sm` 3,469,844 → 3,469,626
-  (−218). Only the five edited intervals changed; the other nineteen are
-  byte-identical, which is the scoping rule holding in practice. The published
-  set is 6,986,824 bytes over 52 files against the 7,340,032 byte budget, and
-  the renderer reservation is unchanged because the worst interval (29–20 Ma) is
-  untouched.
+- Payload bytes, this round: `lm` 3,414,276 → 3,415,378 (+1,102) from the one
+  added operation; `sm` unchanged at 3,519,149, because the Orcadian upland edit
+  touches no shallow-marine record. Only the 179–166 Ma payload changed; the
+  other twenty-four are byte-identical, which is the scoping rule holding in
+  practice. The published set is 7,036,077 bytes over 54 files against the
+  7,340,032 byte budget (303,955 bytes of headroom), and the renderer
+  reservation is unchanged: 297,114 vertices and 457,098 triangles, with the
+  worst interval untouched.
 - Added land binds to the Cao 2024 static partition that owns the ground, so
   inside this window it rides the EarthHistory North Sea rigid UK-block
   restoration exactly as the native charts do. The validator's restoration check
@@ -245,12 +348,14 @@ All run 2026-09-15 in the pinned pyGPlates environment.
 
 | Gate | Result |
 |---|---|
-| `palaeo_coastlines_compile.py --classes lm,sm,m` | pass, 123 s. Area preservation 100.0000 % (`lm`), 100.0000 % (`sm`), 100.0002 % (`m`) |
-| `palaeo_coastlines_correction.py --classes lm,sm,m --report` | **pass**, 75 s. 11 operations, 22 contract references, 6 basin-edit witnesses changed and 4 unedited controls unchanged |
-| `palaeo_coastlines_correction.py --self-test` | **pass**, 24 mutations rejected (20 before this phase) |
+| `palaeo_coastlines_compile.py --classes lm,sm,m` | pass, 120 s. Area preservation 100.0000 % (`lm`), 100.0000 % (`sm`), 100.0002 % (`m`) |
+| `palaeo_coastlines_correction.py --classes lm,sm,m --report` | **pass**, 71 s. 12 operations, 22 contract references, 7 basin-edit witnesses changed and 5 unedited controls unchanged |
+| `palaeo_coastlines_correction.py --self-test` | **pass**, 24 mutations rejected |
 | `palaeo_coastlines_qc.py --classes lm,sm,m` | **pass**. Worst simplification area error 0.0098 %, worst lost piece 27.8 km², narrow-feature change 0.0 km |
-| `validate_palaeo_coastlines_runtime.py` (+ `--self-test`) | **pass**, 8 mutations rejected |
+| `promote_palaeo_coastlines.py` | **pass**, 54 files, 7,036,077 bytes |
+| `validate_palaeo_coastlines_runtime.py` (+ `--self-test`) | **pass**, 15 mutations rejected |
 | `make check-corrections` | **pass** |
+| `make gate` | **pass** |
 
 Four gates are new or newly scoped in this phase, each proven red by a
 deliberate mutation and then restored:
@@ -260,6 +365,20 @@ deliberate mutation and then restored:
 3. a payload shifted off its own basin edit (the class the edit put there is no
    longer at the witness point);
 4. a basin-edit witness whose operation has been deleted from the contract.
+
+The two witnesses added in this round were proven red the same way before they
+were trusted (R1):
+
+- the Eocene control at (0.5°E, 61°N) was proven by extending both 49–37
+  Shetland Platform operations east to 1.2°E, recompiling and re-validating:
+  *basin-edit witness east-shetland-platform-eocene at 49-37: compiled classes
+  ['lm'], the contract expects ['sm'] (operations none: this is an unedited
+  control)*. The contract was restored and recompiled.
+- the Mid-Jurassic witness at (−3°E, 58.8°N) was proven by deleting
+  `north-sea-179-166-scottish-landmass-add-land` from the contract, recompiling
+  and re-validating: *basin-edit witness scottish-landmass-mid-jurassic:
+  operations ['north-sea-179-166-scottish-landmass-add-land'] are not in any
+  tracked basin contract*. The contract was restored and recompiled.
 
 Two scope rules are now enforced in the compiler rather than trusted. An
 operation's intervals must be contiguous in the canonical schedule, because an
@@ -277,6 +396,28 @@ cookie-cut costs, so a cited edit belongs on the source side of the ratio rather
 than appearing as lost or invented ground; the validator re-applies the contract
 to the pinned archive through the compiler's own code path rather than reading
 the numbers back from the catalog under test.
+
+## One open limitation this round exposed
+
+The Scottish-landmass finding is a local instance of a global one, and the global one is
+outside this contract's scope. **Measured** over the pinned archive, for every
+canonical interval, the Cao 2017 mountain class that carries neither `lm` nor
+`sm`, and the part of it that lies inside the Cao 2024 continental crust the
+globe draws as blue "depth unmapped":
+
+| Interval | mountain-only (km²) | of which inside Cao 2024 crust (km²) |
+|---|---:|---:|
+| 179–166 | 4,704,094 | 3,903,221 |
+| 49–37 | 16,050,826 | 15,832,772 |
+| 20–11 | 23,869,977 | 23,595,938 |
+
+Mountain-only ground is present in all twenty-four intervals, from 2.1 Mkm² at
+285–269 Ma to 23.9 Mkm² at 20–11 Ma. Wherever it falls inside the crust extent
+the browser paints emergent orogen as water of unknown depth, because the
+published class set is `lm` + `sm`. Six cited North Sea polygons cannot fix a
+global class gap; shipping the third class is a budget and product decision
+(the compiled `m` payload is 1,198,290 bytes against 303,975 bytes of remaining
+headroom), so it is preserved as a backlog item rather than decided here.
 
 ## One compiler follow-up closed
 
