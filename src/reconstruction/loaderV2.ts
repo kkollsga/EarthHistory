@@ -6,6 +6,18 @@ import { evaluateLifecycleSupport } from "./motion";
 import { decodeRequestedAgeMotionTile, selectRequestedAgeMotionTile,
   validateRequestedAgeMotionTileIndex, type RequestedAgeMotionTileIndex } from "./motionTiles";
 import {
+  selectPalaeoInterval,
+  validatePalaeoCoastlineClassCatalog,
+  validatePalaeoRingPayloadAgainstCatalog,
+  type PalaeoCoastlineClassCatalog,
+  type PalaeoCoastlineIntervalRecord,
+  type PalaeoCoastlinePayloadRecord,
+  type PalaeoRingPayloadMetadata,
+  type PalaeoSurfaceClass,
+} from "./palaeoRings";
+import type { PalaeoTriangulationRunner, PreparedPalaeoIntervalGeometry } from "./palaeoTriangulate";
+import type { PackageAsset } from "./identity";
+import {
   validateReconstructionCheckpointV2,
   validateReconstructionAnchorCatalogV2,
   validateReconstructionCoreV2,
@@ -15,6 +27,7 @@ import {
   type ReconstructionCheckpointV2,
   type ReconstructionCoreV2,
   type ReconstructionAnchorCatalogV2,
+  type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2,
 } from "./packageV2";
 import { decodeCaoBatchState, decodeCaoLineBatch, decodeCaoSpatialBatch, type DecodedCaoBatchState,
@@ -525,4 +538,282 @@ export async function loadVerifiedCaoBatchState(
   if (control.state.kind !== "asset") throw new Error("Cao batch state is uniform and has no asset");
   const bytes = await loadVerifiedBytes(control.state.asset, fetcher, signal);
   return decodeCaoBatchState(bytes, control.vertexCount);
+}
+
+// ---------------------------------------------------------------------------
+// palaeo-coastline map intervals
+// ---------------------------------------------------------------------------
+
+/**
+ * Resident payload bytes the palaeo interval store may hold. Two intervals of
+ * every compiled class sit far inside this; the bound exists so a scrub that
+ * walks the timeline cannot accumulate decoded intervals without an owner.
+ */
+export const PALAEO_INTERVAL_STORE_MAX_BYTES = 4 * 1024 * 1024;
+
+export interface LoadedPalaeoIntervalClass {
+  readonly surfaceClass: PalaeoSurfaceClass;
+  readonly catalog: PalaeoCoastlineClassCatalog;
+  readonly record: PalaeoCoastlineIntervalRecord;
+  readonly metadata: PalaeoRingPayloadMetadata;
+  readonly geometry: PreparedPalaeoIntervalGeometry;
+  readonly sourceBytes: number;
+}
+
+export interface LoadedPalaeoInterval {
+  readonly intervalId: string;
+  readonly intervalIndex: number;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+  readonly midAgeMa: number;
+  /** One entry per compiled class, in the manifest's declared class order. */
+  readonly classes: readonly LoadedPalaeoIntervalClass[];
+  readonly sourceBytes: number;
+}
+
+export interface LoadedPalaeoClassCatalog {
+  readonly surfaceClass: PalaeoSurfaceClass;
+  readonly catalog: PalaeoCoastlineClassCatalog;
+  readonly asset: PackageAsset;
+}
+
+/**
+ * A payload file name is resolved beside its own catalog. The catalog records
+ * bare file names, and the validator refuses a name carrying a path separator,
+ * so a catalog cannot redirect a fetch out of its own published directory.
+ */
+export function palaeoPayloadAsset(
+  catalogUrl: string,
+  record: PalaeoCoastlinePayloadRecord,
+): PackageAsset {
+  const separator = catalogUrl.lastIndexOf("/");
+  const directory = separator < 0 ? "" : catalogUrl.slice(0, separator + 1);
+  return Object.freeze({ url: `${directory}${record.url}`, bytes: record.bytes, sha256: record.sha256 });
+}
+
+/** Loads and validates every declared class catalog once; payloads stay age-demand loaded. */
+export async function loadVerifiedPalaeoClassCatalogs(
+  palaeo: PalaeoCoastlineAssets,
+  fetcher: StaticAssetFetcher,
+  signal?: AbortSignal,
+): Promise<readonly LoadedPalaeoClassCatalog[]> {
+  const loaded = await Promise.all(palaeo.classes.map(async (entry) => {
+    const catalog = await verifiedJson<PalaeoCoastlineClassCatalog>(entry.catalog, fetcher, signal);
+    validatePalaeoCoastlineClassCatalog(catalog, entry.surfaceClass);
+    return Object.freeze({ surfaceClass: entry.surfaceClass, catalog: deepFreeze(catalog),
+      asset: entry.catalog });
+  }));
+  if (signal?.aborted) throw new DOMException("palaeo-coastline catalog load aborted", "AbortError");
+  // Every class must publish the same interval schedule, or a requested age
+  // would draw land from one interval over a sea from another.
+  const schedule = loaded[0]!.catalog.intervals.map((interval) => interval.intervalId).join("|");
+  for (const entry of loaded) {
+    if (entry.catalog.intervals.map((interval) => interval.intervalId).join("|") !== schedule) {
+      throw new Error("palaeo-coastline classes publish different interval schedules");
+    }
+  }
+  return Object.freeze(loaded);
+}
+
+/** The published interval covering an age, using the same `(TOAGE, FROMAGE]` rule as a piece. */
+export function selectPalaeoIntervalForAge(
+  catalogs: readonly LoadedPalaeoClassCatalog[],
+  ageMa: number,
+): PalaeoCoastlineIntervalRecord | null {
+  return catalogs.length === 0 ? null : selectPalaeoInterval(catalogs[0]!.catalog, ageMa);
+}
+
+export async function loadVerifiedPalaeoIntervalClass(
+  entry: LoadedPalaeoClassCatalog,
+  intervalId: string,
+  fetcher: StaticAssetFetcher,
+  runner: PalaeoTriangulationRunner,
+  maxEdgeDegrees: number,
+  limits: { readonly maxVertices: number; readonly maxTriangles: number },
+  signal?: AbortSignal,
+): Promise<LoadedPalaeoIntervalClass> {
+  const record = entry.catalog.intervals.find((interval) => interval.intervalId === intervalId);
+  if (!record) throw new Error("palaeo-coastline interval absent from its class catalog");
+  const asset = palaeoPayloadAsset(entry.asset.url, record.simplified);
+  const bytes = await loadVerifiedBytes(asset, fetcher, signal);
+  if (signal?.aborted) throw new DOMException("palaeo-coastline interval load aborted", "AbortError");
+  const prepared = await runner.run(bytes, { maxEdgeDegrees, ...limits }, signal);
+  if (signal?.aborted) throw new DOMException("palaeo-coastline interval load aborted", "AbortError");
+  validatePalaeoRingPayloadAgainstCatalog(prepared.metadata, entry.catalog, record);
+  return Object.freeze({ surfaceClass: entry.surfaceClass, catalog: entry.catalog, record,
+    metadata: prepared.metadata, geometry: prepared.geometry, sourceBytes: record.simplified.bytes });
+}
+
+export async function loadVerifiedPalaeoInterval(
+  catalogs: readonly LoadedPalaeoClassCatalog[],
+  intervalId: string,
+  fetcher: StaticAssetFetcher,
+  runner: PalaeoTriangulationRunner,
+  reservation: PalaeoCoastlineAssets["reservation"],
+  signal?: AbortSignal,
+): Promise<LoadedPalaeoInterval> {
+  const classes: LoadedPalaeoIntervalClass[] = [];
+  for (const entry of catalogs) {
+    classes.push(await loadVerifiedPalaeoIntervalClass(entry, intervalId, fetcher, runner,
+      reservation.maxEdgeDegrees,
+      { maxVertices: reservation.maxIntervalVertices, maxTriangles: reservation.maxIntervalTriangles },
+      signal));
+  }
+  const vertices = classes.reduce((sum, entry) => sum + entry.geometry.vertexCount, 0);
+  const triangles = classes.reduce((sum, entry) => sum + entry.geometry.triangleCount, 0);
+  if (vertices > reservation.maxIntervalVertices || triangles > reservation.maxIntervalTriangles) {
+    throw new Error("palaeo-coastline interval exceeds its declared renderer reservation");
+  }
+  const record = classes[0]!.record;
+  return Object.freeze({ intervalId, intervalIndex: record.intervalIndex, fromAgeMa: record.fromAgeMa,
+    toAgeMa: record.toAgeMa, midAgeMa: record.midAgeMa, classes: Object.freeze(classes),
+    sourceBytes: classes.reduce((sum, entry) => sum + entry.sourceBytes, 0) });
+}
+
+interface PendingPalaeoInterval {
+  readonly promise: Promise<LoadedPalaeoInterval>;
+  readonly controller: AbortController;
+  consumers: number;
+}
+
+/**
+ * Two resident map intervals — the active one and one prefetched neighbour —
+ * and two unsettled loads, bounded by bytes as well as by count. Copied from
+ * `CaoCheckpointStore` because the failure it guards against is the same: a
+ * scrub across many intervals must not leave decoded geometry behind, and a
+ * fetcher that ignores its abort signal must not be able to pin one.
+ */
+export class CaoPalaeoIntervalStore {
+  private readonly resident = new Map<string, { value: LoadedPalaeoInterval; used: number }>();
+  private readonly pending = new Map<string, PendingPalaeoInterval>();
+  private readonly waiters = new Set<{ resolve(): void; reject(error: unknown): void;
+    signal?: AbortSignal; onAbort(): void }>();
+  private readonly maximumResidentBytes: number;
+  private clock = 0;
+  private closed = false;
+
+  constructor(
+    private readonly palaeo: PalaeoCoastlineAssets,
+    private readonly catalogs: readonly LoadedPalaeoClassCatalog[],
+    private readonly fetcher: StaticAssetFetcher,
+    private readonly runner: PalaeoTriangulationRunner,
+  ) {
+    this.maximumResidentBytes = Math.min(PALAEO_INTERVAL_STORE_MAX_BYTES,
+      palaeo.reservation.maxResidentSourceBytes);
+  }
+
+  get ledger() {
+    return Object.freeze({ residentCount: this.resident.size, pendingCount: this.pending.size,
+      residentSourceBytes: [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
+      pendingReservedSourceBytes: [...this.pending.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
+      maximumResidentCount: 2, maximumPendingCount: 2,
+      maximumResidentSourceBytes: this.maximumResidentBytes });
+  }
+
+  dispose(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.resident.clear();
+    for (const record of this.pending.values()) record.controller.abort();
+    for (const waiter of [...this.waiters]) {
+      this.waiters.delete(waiter);
+      waiter.signal?.removeEventListener("abort", waiter.onAbort);
+      waiter.reject(new DOMException("palaeo-coastline interval store disposed", "AbortError"));
+    }
+  }
+
+  async load(intervalId: string, signal?: AbortSignal): Promise<LoadedPalaeoInterval> {
+    if (this.closed) throw new Error("palaeo-coastline interval store disposed");
+    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
+    const declaredBytes = this.assetBytes(intervalId);
+    if (declaredBytes === 0) throw new Error("palaeo-coastline interval absent from its class catalog");
+    if (declaredBytes > this.maximumResidentBytes) {
+      throw new Error("palaeo-coastline interval exceeds the resident byte bound");
+    }
+    const cached = this.resident.get(intervalId);
+    if (cached) { cached.used = ++this.clock; return cached.value; }
+    let record = this.pending.get(intervalId);
+    if (record?.controller.signal.aborted) {
+      await this.waitForCapacity(signal);
+      return this.load(intervalId, signal);
+    }
+    if (!record) {
+      if (this.pending.size >= 2) {
+        await this.waitForCapacity(signal);
+        return this.load(intervalId, signal);
+      }
+      const controller = new AbortController();
+      const created = {} as PendingPalaeoInterval;
+      Object.assign(created, { controller, consumers: 0, promise: loadVerifiedPalaeoInterval(
+        this.catalogs, intervalId, this.fetcher, this.runner, this.palaeo.reservation, controller.signal,
+      ).then((value) => {
+        if (controller.signal.aborted || this.closed) {
+          throw new DOMException("palaeo-coastline interval load retired", "AbortError");
+        }
+        this.resident.set(intervalId, { value, used: ++this.clock });
+        this.evict();
+        return value;
+      }).finally(() => {
+        if (this.pending.get(intervalId) === created) this.pending.delete(intervalId);
+        this.notifyWaiter();
+      }) });
+      record = created;
+      this.pending.set(intervalId, record);
+    }
+    record.consumers += 1;
+    return new Promise((resolve, reject) => {
+      let complete = false;
+      const finish = () => {
+        if (complete) return;
+        complete = true;
+        signal?.removeEventListener("abort", onAbort);
+        record!.consumers -= 1;
+      };
+      const onAbort = () => {
+        finish();
+        if (record!.consumers === 0) record!.controller.abort();
+        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      record!.promise.then((value) => { if (!complete) { finish(); resolve(value); } },
+        (error) => { if (!complete) { finish(); reject(error); } });
+    });
+  }
+
+  private evict(): void {
+    const oldest = () => [...this.resident].sort((left, right) => left[1].used - right[1].used)[0]!;
+    while (this.resident.size > 2) this.resident.delete(oldest()[0]);
+    while (this.resident.size > 1
+      && [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0)
+        > this.maximumResidentBytes) {
+      this.resident.delete(oldest()[0]);
+    }
+  }
+
+  private assetBytes(intervalId: string): number {
+    return this.catalogs.reduce((sum, entry) => sum + (entry.catalog.intervals
+      .find((interval) => interval.intervalId === intervalId)?.simplified.bytes ?? 0), 0);
+  }
+
+  private async waitForCapacity(signal?: AbortSignal): Promise<void> {
+    if (this.waiters.size >= 2) throw new Error("palaeo-coastline capacity waiter bound exceeded");
+    await new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject, signal, onAbort: () => {
+        this.waiters.delete(waiter);
+        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
+      } };
+      this.waiters.add(waiter);
+      signal?.addEventListener("abort", waiter.onAbort, { once: true });
+    });
+    if (this.closed) throw new Error("palaeo-coastline interval store disposed");
+    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
+  }
+
+  private notifyWaiter(): void {
+    const waiter = this.waiters.values().next().value;
+    if (!waiter) return;
+    this.waiters.delete(waiter);
+    waiter.signal?.removeEventListener("abort", waiter.onAbort);
+    waiter.resolve();
+  }
 }

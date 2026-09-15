@@ -1,15 +1,23 @@
 import { packageFrameIdentity } from "./identity";
 import {
   CaoCheckpointStore,
+  CaoPalaeoIntervalStore,
   loadVerifiedCaoFoundationMetadata,
   loadVerifiedCaoFullMotionPalette,
   loadVerifiedCaoRequestedAgeMotionPalette,
   loadVerifiedCaoRequestedAgeMotionTileIndex,
   loadVerifiedCaoStaticFoundation,
+  loadVerifiedPalaeoClassCatalogs,
+  selectPalaeoIntervalForAge,
   warmVerifiedCaoCheckpointAssets,
   type LoadedCaoFoundation,
+  type LoadedPalaeoClassCatalog,
   type LoadedRequestedAgeMotionPalette,
 } from "./loaderV2";
+import { createPalaeoTriangulationRunner, type PalaeoTriangulationRunner } from "./palaeoTriangulate";
+import { createPreparedCaoPalaeoInterval, evaluateCaoPalaeoIntervalFrame,
+  type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
+import type { PalaeoSurfaceClass } from "./palaeoRings";
 import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type ReconstructionPackageManifestV2 } from "./packageV2";
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoRevision } from "./facadeV2";
@@ -82,6 +90,21 @@ export class CaoReconstructionRuntime {
   private readonly timelineListeners = new Set<(state: CaoTimelineLoadingState) => void>();
   private checkpointStore: CaoCheckpointStore | null = null;
   private readonly leases = new Map<string, () => void>();
+  /**
+   * Palaeo-coastline mode runs its own request chain: its own serial, abort
+   * controller, lease counter and interval store, so turning the mode on or
+   * scrubbing across a map interval never disturbs a native prepare in flight.
+   */
+  private palaeoEnabled = false;
+  private palaeoSerial = 0;
+  private palaeoActive: AbortController | null = null;
+  private palaeoCatalogController: AbortController | null = null;
+  private palaeoCatalogs: Promise<readonly LoadedPalaeoClassCatalog[]> | null = null;
+  private resolvedPalaeoCatalogs: readonly LoadedPalaeoClassCatalog[] | null = null;
+  private palaeoPendingIntervalId: string | null = null;
+  private palaeoStore: CaoPalaeoIntervalStore | null = null;
+  private palaeoRunner: PalaeoTriangulationRunner | null = null;
+  private readonly palaeoLeases = new Map<string, () => void>();
 
   readonly manifest: ReconstructionPackageManifestV2;
 
@@ -159,7 +182,16 @@ export class CaoReconstructionRuntime {
     this.background?.abort();
     this.lifetime.abort();
     this.checkpointStore?.dispose();
+    this.palaeoActive?.abort();
+    this.palaeoCatalogController?.abort();
+    this.palaeoStore?.dispose();
+    this.palaeoRunner?.dispose();
+    this.palaeoStore = null;
+    this.palaeoRunner = null;
+    this.palaeoCatalogs = null;
+    this.resolvedPalaeoCatalogs = null;
     for (const release of [...this.leases.values()]) release();
+    for (const release of [...this.palaeoLeases.values()]) release();
     this.timelineListeners.clear();
   }
 
@@ -183,13 +215,23 @@ export class CaoReconstructionRuntime {
     const foundationResidentSourceBytes = this.foundationStaticSourceBytes + motionBytes;
     const foregroundReservedSourceBytes = this.tilePending
       && !this.tileCache.has(this.tilePending.tileId) ? this.tilePending.assetBytes : 0;
+    const palaeoStore = this.palaeoStore?.ledger ?? { residentCount: 0, pendingCount: 0,
+      residentSourceBytes: 0, pendingReservedSourceBytes: 0, maximumResidentCount: 2,
+      maximumPendingCount: 2, maximumResidentSourceBytes: 0 };
+    const palaeoCatalogBytes = this.resolvedPalaeoCatalogs
+      ? this.resolvedPalaeoCatalogs.reduce((sum, entry) => sum + entry.asset.bytes, 0) : 0;
+    const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
+      intervalStore: palaeoStore, preparedLeaseCount: this.palaeoLeases.size,
+      totalSourceBytes: palaeoCatalogBytes + palaeoStore.residentSourceBytes
+        + palaeoStore.pendingReservedSourceBytes });
     return Object.freeze({ foundationResidentSourceBytes,
       foregroundReservedSourceBytes,
       backgroundReservedSourceBytes: this.backgroundReservedSourceBytes,
-      checkpoint, preparedLeaseCount: this.leases.size,
+      checkpoint, preparedLeaseCount: this.leases.size, palaeo,
       totalRuntimeSourceBytes: foundationResidentSourceBytes + foregroundReservedSourceBytes
         + checkpoint.residentSourceBytes
-        + checkpoint.pendingReservedSourceBytes + this.backgroundReservedSourceBytes });
+        + checkpoint.pendingReservedSourceBytes + this.backgroundReservedSourceBytes
+        + palaeo.totalSourceBytes });
   }
 
   subscribeTimelineLoading(listener: (state: CaoTimelineLoadingState) => void): () => void {
@@ -437,6 +479,183 @@ export class CaoReconstructionRuntime {
     const [foundation, motion] = await Promise.all([this.staticFoundation, this.motionForAge(requestedAgeMa)]);
     return Object.freeze({ foundation: Object.freeze({ ...foundation, paletteEntries: motion.entries }),
       sourceBytes: motion.sourceBytes, tier: motion.tier });
+  }
+
+
+  // -------------------------------------------------------------------------
+  // palaeo-coastline map intervals
+  // -------------------------------------------------------------------------
+
+  /**
+   * Turns the Cao 2017 palaeogeography mode on or off. Enabling loads and
+   * validates the declared class catalogs; disabling retires every palaeo
+   * resource this runtime owns — leases, store, worker — because nothing in the
+   * mode is drawn while it is off and zero palaeo bytes may stay resident.
+   */
+  setPalaeoCoastlinesEnabled(enabled: boolean): void {
+    if (this.lifetime.signal.aborted) throw new Error("Cao reconstruction runtime disposed");
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (enabled && !palaeo) throw new Error("Cao package has no palaeo-coastline section");
+    if (enabled === this.palaeoEnabled) return;
+    this.palaeoEnabled = enabled;
+    // Every in-flight palaeo prepare is stale the moment the mode changes.
+    this.palaeoSerial += 1;
+    this.palaeoActive?.abort();
+    this.palaeoActive = null;
+    this.palaeoPendingIntervalId = null;
+    if (enabled) {
+      const controller = new AbortController();
+      this.palaeoCatalogController = controller;
+      this.palaeoRunner ??= createPalaeoTriangulationRunner();
+      this.palaeoCatalogs = loadVerifiedPalaeoClassCatalogs(palaeo!, this.fetcher, controller.signal);
+      void this.palaeoCatalogs.catch(() => {});
+      return;
+    }
+    for (const release of [...this.palaeoLeases.values()]) release();
+    this.palaeoCatalogController?.abort();
+    this.palaeoCatalogController = null;
+    this.palaeoCatalogs = null;
+    this.resolvedPalaeoCatalogs = null;
+    this.palaeoStore?.dispose();
+    this.palaeoStore = null;
+    this.palaeoRunner?.dispose();
+    this.palaeoRunner = null;
+  }
+
+  get palaeoCoastlinesEnabled(): boolean {
+    return this.palaeoEnabled;
+  }
+
+  /**
+   * Prepares the published map interval covering one age. A request for an age
+   * still inside the interval already in flight keeps that load running: the
+   * interval is the streaming unit, and restarting it on every scrub sample
+   * would mean it only ever landed once the gesture stopped.
+   */
+  requestPalaeoInterval(requestedAgeMa: number): {
+    readonly signal: AbortSignal;
+    readonly prepared: Promise<PreparedCaoPalaeoInterval>;
+  } {
+    if (this.lifetime.signal.aborted) throw new Error("Cao reconstruction runtime disposed");
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo) throw new Error("Cao package has no palaeo-coastline section");
+    if (!this.palaeoEnabled) throw new Error("palaeo-coastline mode is disabled");
+    if (!Number.isFinite(requestedAgeMa) || requestedAgeMa < palaeo.ageDomainMa.youngest
+        || requestedAgeMa > palaeo.ageDomainMa.oldest) {
+      throw new Error("age outside the palaeo-coastline domain");
+    }
+    if (this.palaeoLeases.size >= 2) {
+      throw new Error("release a palaeo-coastline interval before requesting another");
+    }
+    const intervalId = this.resolvedPalaeoCatalogs
+      ? selectPalaeoIntervalForAge(this.resolvedPalaeoCatalogs, requestedAgeMa)?.intervalId ?? null
+      : null;
+    if (this.palaeoPendingIntervalId !== null && intervalId !== this.palaeoPendingIntervalId) {
+      this.palaeoActive?.abort();
+    }
+    if (intervalId !== null) this.palaeoPendingIntervalId = intervalId;
+    const controller = new AbortController();
+    this.palaeoActive = controller;
+    return { signal: controller.signal,
+      prepared: this.preparePalaeo(++this.palaeoSerial, requestedAgeMa, controller.signal) };
+  }
+
+  /** Warms the interval covering an age without taking a lease or reporting failure. */
+  async prefetchPalaeoInterval(requestedAgeMa: number, signal?: AbortSignal): Promise<void> {
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return;
+    const serial = this.palaeoSerial;
+    try {
+      const catalogs = await this.palaeoCatalogs;
+      if (!catalogs || !this.palaeoEnabled || serial !== this.palaeoSerial || signal?.aborted) return;
+      this.resolvedPalaeoCatalogs = catalogs;
+      const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
+      if (!record) return;
+      await this.palaeoIntervalStore(palaeo, catalogs).load(record.intervalId, signal);
+    } catch {
+      // Prefetch stays opportunistic; a foreground request reports its own failure.
+    }
+  }
+
+  private palaeoIntervalStore(
+    palaeo: NonNullable<ReconstructionPackageManifestV2["palaeoCoastlines"]>,
+    catalogs: readonly LoadedPalaeoClassCatalog[],
+  ): CaoPalaeoIntervalStore {
+    this.palaeoRunner ??= createPalaeoTriangulationRunner();
+    return this.palaeoStore ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, this.palaeoRunner);
+  }
+
+  /**
+   * Palette entries for a palaeo pose, resolved without touching the foreground
+   * age state the native request chain owns. A resident all-age palette or a
+   * cached tile answers immediately; otherwise this joins the foreground tile
+   * already in flight for the same window before starting its own.
+   */
+  private async palaeoPaletteEntries(
+    requestedAgeMa: number,
+    signal: AbortSignal,
+  ): Promise<ReadonlyMap<string, PreparedPaletteEntry>> {
+    if (this.fullPaletteEntries) return this.fullPaletteEntries;
+    const metadata = await this.metadata;
+    if (this.fullPaletteEntries) return this.fullPaletteEntries;
+    if (!this.tileIndex) {
+      const promise = this.foregroundFullPalette ??= loadVerifiedCaoFullMotionPalette(
+        this.manifest, metadata, this.fetcher, this.lifetime.signal,
+      );
+      const entries = await promise;
+      this.fullPaletteEntries = entries;
+      return entries;
+    }
+    const index = await this.tileIndex;
+    const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
+    const cached = this.tileCache.get(descriptor.tileId);
+    if (cached) return cached.entries;
+    const loaded = this.tilePending?.tileId === descriptor.tileId
+      ? await this.tilePending.promise
+      : await loadVerifiedCaoRequestedAgeMotionPalette(
+        this.manifest, metadata, requestedAgeMa, this.fetcher, signal, index);
+    if (this.fullPaletteEntries) return this.fullPaletteEntries;
+    this.tileCache.set(loaded.descriptor.tileId, loaded);
+    while (this.tileCache.size > 2) this.tileCache.delete(this.tileCache.keys().next().value!);
+    return loaded.entries;
+  }
+
+  private async preparePalaeo(
+    requestId: number,
+    requestedAgeMa: number,
+    signal: AbortSignal,
+  ): Promise<PreparedCaoPalaeoInterval> {
+    const palaeo = this.manifest.palaeoCoastlines!;
+    // Re-checked after every await: a mode toggle or an interval change makes a
+    // prepare stale even though its own fetches are still succeeding.
+    const requireCurrent = () => {
+      if (signal.aborted || requestId !== this.palaeoSerial || !this.palaeoEnabled
+          || this.lifetime.signal.aborted) {
+        throw new DOMException("stale palaeo-coastline interval", "AbortError");
+      }
+    };
+    requireCurrent();
+    const pending = this.palaeoCatalogs;
+    if (!pending) throw new Error("palaeo-coastline mode is disabled");
+    const catalogs = await pending;
+    requireCurrent();
+    this.resolvedPalaeoCatalogs = catalogs;
+    const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
+    if (!record) throw new Error("no palaeo-coastline interval covers the requested age");
+    const interval = await this.palaeoIntervalStore(palaeo, catalogs).load(record.intervalId, signal);
+    requireCurrent();
+    const paletteEntries = await this.palaeoPaletteEntries(requestedAgeMa, signal);
+    requireCurrent();
+    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
+    const baseColorRgb = Object.fromEntries(palaeo.classes.map((entry) =>
+      [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
+      readonly [number, number, number]>;
+    const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
+      requestId, packageId: this.manifest.packageId, packageRevision: this.manifest.revision,
+      frameIdentity: packageFrameIdentity(this.manifest.frame), baseColorRgb,
+    }, (identity) => { this.palaeoLeases.delete(identity); });
+    this.palaeoLeases.set(prepared.identity, prepared.release);
+    return prepared;
   }
 
   private async prepare(requestId: number, requestedAgeMa: number, signal: AbortSignal): Promise<PreparedCaoRevision> {
