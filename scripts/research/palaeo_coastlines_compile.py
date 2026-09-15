@@ -70,8 +70,13 @@ STORE = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastlines"
 FORMAT_ID = "EHPR"
 FORMAT_VERSION = 1
 HEADER_BYTES = 32
-PIECE_BYTES = 20
-RING_BYTES = 8
+PIECE_BYTES = 12
+RING_BYTES = 2
+# Every per-class catalog array a piece points at is indexed by a u16 field.
+CATALOG_INDEX_CEILING = 0x10000
+# A ring record is one u16: bit 15 marks a hole, bits 0-14 carry the vertex count.
+RING_HOLE_BIT = 0x8000
+RING_VERTEX_CEILING = 0x8000
 CLASS_CODES = {"lm": 1, "sm": 2, "m": 3}
 CLASS_NAMES = {"lm": "landmass", "sm": "shallow-marine", "m": "mountain"}
 SURFACE_APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
@@ -452,21 +457,27 @@ def load_palette() -> tuple[dict, dict[int, list[dict]]]:
     return catalog, by_plate
 
 
-def binding_entries(by_plate: dict[int, list[dict]], plate: int,
-                    youngest: float, oldest: float) -> list[tuple[str, float, float]] | None:
-    """Gap-free palette partition of [youngest, oldest] for one plate, or None.
+def binding_entries(by_plate: dict[int, list[dict]], plate: int, youngest: float,
+                    oldest: float) -> tuple[list[tuple[str, float, float]], list[dict]] | None:
+    """Palette partition of [youngest, oldest] for one plate, or None.
 
-    Entry preference at each age, taken from the emitters that already bind native
-    charts:
+    Returns the ordered segments and the source-seam gaps the segments step over.
+    Entry preference at each age is taken from the emitters that already bind
+    native charts:
 
     * ``restoration-`` wins inside its own window, which is how the native North
       Sea charts are bound (``apply_north_sea_restoration.expected_bindings``):
       below 130 Ma the native entries carry the chart and from 130 Ma the
       restoration entry does;
-    * ``native-recovery-plate-`` wins on the eight plates that carry one, because
+    * on the eight plates that carry ``native-recovery-plate-`` entries, those
+      entries are the *only* motion allowed, because
       ``apply_cao_native_triangulation_repair`` rejects any chart on those plates
       that keeps a ``plate-`` binding ("same-plate charts retain inaccurate native
-      motion");
+      motion"). Its own ``native_bindings`` builds a chart's bindings from the
+      recovery entries alone and its ``validate_binding_coverage`` tolerates only
+      the plate's declared ``SOURCE_DISCONTINUITY_GAPS`` between them, so a palaeo
+      piece steps over the same seams and records them instead of filling them
+      with the native motion that was rejected;
     * otherwise the material-correction emitter's preference between ``plate-``
       and ``correction-plate-`` at 410 Ma applies. The palaeo schedule stops at
       402 Ma, so that last branch is not reached by this compiler.
@@ -478,7 +489,14 @@ def binding_entries(by_plate: dict[int, list[dict]], plate: int,
     recovery = [entry for entry in entries if entry["entryId"].startswith(RECOVERY_PREFIX)]
     native = [entry for entry in entries
               if not entry["entryId"].startswith((RESTORATION_PREFIX, RECOVERY_PREFIX))]
+    # The seams between consecutive recovery entries are the source rotation's own
+    # discontinuities; the repair emitter lists the same pairs in
+    # SOURCE_DISCONTINUITY_GAPS and records them as chart motionSupportGaps.
+    seams = [(float(left["oldestAgeMa"]), float(right["youngestAgeMa"]))
+             for left, right in zip(recovery, recovery[1:])
+             if float(right["youngestAgeMa"]) > float(left["oldestAgeMa"])]
     segments: list[tuple[str, float, float]] = []
+    crossed: list[dict] = []
     cursor = float(youngest)
     guard = 0
     while cursor < oldest:
@@ -490,6 +508,18 @@ def binding_entries(by_plate: dict[int, list[dict]], plate: int,
         if chosen is None:
             chosen = next((entry for entry in recovery
                            if entry["youngestAgeMa"] <= cursor < entry["oldestAgeMa"]), None)
+        if chosen is None and recovery:
+            # A recovery plate never falls back to its rejected native motion: the
+            # cursor either stands on a declared source seam and steps over it, or
+            # the piece is unposable.
+            seam = next((pair for pair in seams if pair[0] == cursor), None)
+            if seam is None or seam[1] >= oldest:
+                return None
+            crossed.append({"validTimeMa": {"youngest": seam[0], "oldest": seam[1]},
+                            "youngestExclusive": True, "oldestExclusive": True,
+                            "reason": "source-seam"})
+            cursor = seam[1]
+            continue
         if chosen is None:
             matches = [entry for entry in native
                        if entry["youngestAgeMa"] <= cursor < entry["oldestAgeMa"]]
@@ -505,7 +535,10 @@ def binding_entries(by_plate: dict[int, list[dict]], plate: int,
                 return None
             chosen = matches[0]
         following = min(float(chosen["oldestAgeMa"]), float(oldest))
-        starts = [entry["youngestAgeMa"] for entry in restoration
+        # A preferred entry that starts inside the chosen one's span must cut it
+        # short, or a lower-preference entry would carry the piece past the age
+        # where the preferred one takes over.
+        starts = [entry["youngestAgeMa"] for entry in restoration + recovery
                   if cursor < entry["youngestAgeMa"] < following]
         if starts:
             following = min(starts)
@@ -513,12 +546,25 @@ def binding_entries(by_plate: dict[int, list[dict]], plate: int,
             return None
         segments.append((chosen["entryId"], cursor, following))
         cursor = following
-    return segments
+    return segments, crossed
 
 
 # --------------------------------------------------------------------------
 # node reduction
 # --------------------------------------------------------------------------
+
+def class_simplification(config: dict, class_name: str) -> dict:
+    """The simplification config as one class sees it.
+
+    ``classAreaClasses`` lets a class carry its own tolerance ladder. Everything
+    else - the vertex cap, the per-piece area guard, the protected windows and the
+    narrow-feature witnesses - is shared, so only the ladder is substituted.
+    """
+    ladder = config.get("classAreaClasses", {}).get(class_name)
+    if ladder is None:
+        return config
+    return {**config, "areaClasses": ladder}
+
 
 def tolerance_for(area: float, config: dict) -> float:
     tolerance = config["areaClasses"][0]["toleranceDegrees"]
@@ -731,11 +777,41 @@ def quantise_ring(coordinates) -> list[tuple[int, int]]:
     return out
 
 
+class LifecycleTable:
+    """The per-class catalog array of distinct ``(TOAGE, FROMAGE]`` pairs.
+
+    A piece stores a u16 index into this array instead of two f32 ages: the Cao
+    2017 schedule has 24 canonical pairs and 44 off-schedule ones, so tens of
+    thousands of pieces share a few dozen lifecycles.
+    """
+
+    def __init__(self, rows: list[dict] | None = None):
+        self.rows: list[dict] = []
+        self._index: dict[tuple[float, float], int] = {}
+        for row in rows or []:
+            self.index(row["youngestExclusiveMa"], row["oldestMa"])
+
+    @classmethod
+    def from_catalog(cls, catalog: dict) -> "LifecycleTable":
+        return cls(catalog["lifecycles"])
+
+    def index(self, youngest: float, oldest: float) -> int:
+        key = (round(float(youngest), 6), round(float(oldest), 6))
+        found = self._index.get(key)
+        if found is None:
+            found = len(self.rows)
+            if found >= CATALOG_INDEX_CEILING:
+                raise CompileError("lifecycle catalog exceeds the u16 piece field")
+            self._index[key] = found
+            self.rows.append({"youngestExclusiveMa": key[0], "oldestMa": key[1]})
+        return found
+
+
 def encode_ehpr(class_name: str, interval: dict, interval_index: int,
-                pieces: list[dict]) -> tuple[bytes, dict]:
+                pieces: list[dict], lifecycles: LifecycleTable) -> tuple[bytes, dict]:
     """EHPR v1: header, piece table, ring table, int16 lon/lat vertices."""
     piece_rows: list[tuple] = []
-    ring_rows: list[tuple[int, int]] = []
+    ring_rows: list[int] = []
     vertices: list[tuple[int, int]] = []
     collapsed_rings = 0
     dropped: list[int] = []
@@ -756,11 +832,19 @@ def encode_ehpr(class_name: str, interval: dict, interval_index: int,
         if not rings:
             dropped.append(order)
             continue
-        piece_rows.append((piece["chartIndex"], piece["bindingIndex"], piece["evidenceIndex"],
-                           float(piece["lifecycleYoungestMa"]), float(piece["lifecycleOldestMa"]),
-                           piece["flags"], len(rings)))
+        lifecycle = piece.get("lifecycleIndex")
+        if lifecycle is None:
+            lifecycle = lifecycles.index(piece["lifecycleYoungestMa"], piece["lifecycleOldestMa"])
+        row = (piece["chartIndex"], piece["bindingIndex"], piece["evidenceIndex"], lifecycle,
+               piece["flags"], len(rings))
+        if any(value >= CATALOG_INDEX_CEILING for value in row):
+            raise CompileError(f"{class_name}: a piece field does not fit u16: {row}")
+        piece_rows.append(row)
         for ring, hole in rings:
-            ring_rows.append((len(vertices), len(ring) | (0x80000000 if hole else 0)))
+            if len(ring) >= RING_VERTEX_CEILING:
+                raise CompileError(
+                    f"{class_name}: a ring of {len(ring)} vertices does not fit the u16 ring record")
+            ring_rows.append(len(ring) | (RING_HOLE_BIT if hole else 0))
             vertices.extend(ring)
     payload = bytearray(HEADER_BYTES + PIECE_BYTES * len(piece_rows)
                         + RING_BYTES * len(ring_rows) + 4 * len(vertices))
@@ -771,11 +855,10 @@ def encode_ehpr(class_name: str, interval: dict, interval_index: int,
                      float(interval["fromAgeMa"]), float(interval["toAgeMa"]))
     offset = HEADER_BYTES
     for row in piece_rows:
-        struct.pack_into("<IHHffHH", payload, offset, row[0], row[1], row[2], row[3], row[4],
-                         row[5], row[6])
+        struct.pack_into("<HHHHHH", payload, offset, *row)
         offset += PIECE_BYTES
-    for vertex_offset, packed_count in ring_rows:
-        struct.pack_into("<II", payload, offset, vertex_offset, packed_count)
+    for packed_count in ring_rows:
+        struct.pack_into("<H", payload, offset, packed_count)
         offset += RING_BYTES
     for x, y in vertices:
         struct.pack_into("<hh", payload, offset, x, y)
@@ -787,8 +870,13 @@ def encode_ehpr(class_name: str, interval: dict, interval_index: int,
                             "droppedPieceIndices": dropped}
 
 
-def decode_ehpr(payload: bytes) -> dict:
-    """Decode an EHPR v1 payload back to lon/lat rings (used by QC and the validator)."""
+def decode_ehpr(payload: bytes, catalog: dict | None = None) -> dict:
+    """Decode an EHPR v1 payload back to lon/lat rings (used by QC and the validator).
+
+    A piece always carries ``lifecycleIndex``. Pass the class catalog to resolve it
+    into ``lifecycleYoungestMa``/``lifecycleOldestMa``; an index the catalog does
+    not have is a decode failure, not a silent miss.
+    """
     if payload[:4] != FORMAT_ID.encode():
         raise CompileError("not an EHPR payload")
     (version, header_bytes, piece_count, ring_count, vertex_count,
@@ -805,17 +893,31 @@ def decode_ehpr(payload: bytes) -> dict:
     coordinates[:, 0] /= LON_SCALE
     coordinates[:, 1] /= LAT_SCALE
     rings = []
+    start = 0
     for index in range(ring_count):
-        start, packed = struct.unpack_from("<II", payload, ring_offset + RING_BYTES * index)
-        rings.append((start, packed & 0x7fffffff, bool(packed >> 31)))
+        packed = struct.unpack_from("<H", payload, ring_offset + RING_BYTES * index)[0]
+        count = packed & (RING_HOLE_BIT - 1)
+        rings.append((start, count, bool(packed & RING_HOLE_BIT)))
+        start += count
+    if start != vertex_count:
+        raise CompileError("EHPR ring vertex counts do not sum to the header vertex count")
+    lifecycles = catalog["lifecycles"] if catalog is not None else None
     pieces = []
     cursor = 0
     for index in range(piece_count):
-        (chart, binding, evidence, youngest, oldest, flags, ring_total) = struct.unpack_from(
-            "<IHHffHH", payload, piece_offset + PIECE_BYTES * index)
-        pieces.append({"chartIndex": chart, "bindingIndex": binding, "evidenceIndex": evidence,
-                       "lifecycleYoungestMa": youngest, "lifecycleOldestMa": oldest,
-                       "flags": flags, "rings": rings[cursor:cursor + ring_total]})
+        (chart, binding, evidence, lifecycle, flags, ring_total) = struct.unpack_from(
+            "<HHHHHH", payload, piece_offset + PIECE_BYTES * index)
+        piece = {"chartIndex": chart, "bindingIndex": binding, "evidenceIndex": evidence,
+                 "lifecycleIndex": lifecycle, "flags": flags,
+                 "rings": rings[cursor:cursor + ring_total]}
+        if lifecycles is not None:
+            if lifecycle >= len(lifecycles):
+                raise CompileError(
+                    f"EHPR piece {index} names lifecycle {lifecycle}; the catalog has "
+                    f"{len(lifecycles)}")
+            piece["lifecycleYoungestMa"] = float(lifecycles[lifecycle]["youngestExclusiveMa"])
+            piece["lifecycleOldestMa"] = float(lifecycles[lifecycle]["oldestMa"])
+        pieces.append(piece)
         cursor += ring_total
     if cursor != ring_count:
         raise CompileError("EHPR ring table is not partitioned by the piece table")
@@ -1072,6 +1174,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
     override_plates = set(overrides.get(class_name, []))
+    simplification = class_simplification(simplification, class_name)
     protected_boxes = [shapely.box(*window["bbox"])
                        for window in simplification["protectedWindows"]]
 
@@ -1156,6 +1259,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     restoration_bound_area = 0.0
     override_bound_pieces = 0
     per_interval: list[dict] = []
+    lifecycle_table = LifecycleTable()
     land_by_interval: dict[str, list[tuple[int, object]]] = {}
     shelf_by_interval: dict[str, list[tuple[int, object]]] = {}
     store.mkdir(parents=True, exist_ok=True)
@@ -1201,14 +1305,16 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     flags |= FLAG_PLATEID1_OVERRIDE
                 window_youngest = max(float(row["toAge"]), float(interval["toAgeMa"]))
                 window_oldest = min(float(row["fromAge"]), float(interval["fromAgeMa"]))
-                segments = binding_entries(by_plate, binding_plate, window_youngest, window_oldest)
-                if segments is None:
+                binding_result = binding_entries(by_plate, binding_plate,
+                                                 window_youngest, window_oldest)
+                if binding_result is None:
                     unposable_area += entry["areaSquareKilometres"]
                     unposable_pieces += 1
                     unposable_plates[binding_plate] += entry["areaSquareKilometres"]
                     interval_unposable_area += entry["areaSquareKilometres"]
                     interval_unposable_pieces += 1
                     continue
+                segments, motion_gaps = binding_result
                 restoration = any(entry_id.startswith(RESTORATION_PREFIX)
                                   for entry_id, _, _ in segments)
                 if restoration:
@@ -1245,6 +1351,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                                      else "owner-partition",
                     "entries": [{"entryId": entry_id, "validTimeMa": {"youngest": low, "oldest": high}}
                                 for entry_id, low, high in segments],
+                    "motionSupportGaps": motion_gaps,
                 })
                 shared = {"chartIndex": chart_index[row["index"]], "bindingIndex": binding,
                           "evidenceIndex": evidence, "flags": flags,
@@ -1269,9 +1376,9 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         shelf_by_interval[interval["intervalId"]] = shelf_entries
 
         original_payload, original_stats = encode_ehpr(class_name, interval, interval_order,
-                                                       original_pieces)
+                                                       original_pieces, lifecycle_table)
         simplified_payload, simplified_stats = encode_ehpr(class_name, interval, interval_order,
-                                                           simplified_pieces)
+                                                           simplified_pieces, lifecycle_table)
         name = f"palaeo-{class_name}-{interval['intervalId']}.ehpr"
         (store / name).write_bytes(original_payload)
         (staging / name).write_bytes(simplified_payload)
@@ -1319,10 +1426,12 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                             "maximumEdgeDegrees": MAX_REFINEMENT_EDGE_DEGREES},
         })
 
-    if len(binding_table) > 0xffff:
-        raise CompileError(f"{class_name}: {len(binding_table)} binding sets exceed the u16 piece field")
-    if len(evidence_table) > 0xffff:
-        raise CompileError(f"{class_name}: {len(evidence_table)} evidence records exceed the u16 piece field")
+    # Every catalog array a piece indexes is reached through a u16 field.
+    for label, table in (("chart", chart_table), ("binding", binding_table),
+                         ("evidence", evidence_table), ("lifecycle", lifecycle_table.rows)):
+        if len(table) >= CATALOG_INDEX_CEILING:
+            raise CompileError(
+                f"{class_name}: {len(table)} {label} records exceed the u16 piece field")
 
     total_cut = sum(row["emittedAreaSquareKilometres"] for row in per_interval)
     catalog = {
@@ -1403,6 +1512,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         "simplification": {
             "config": "data/corrections/palaeo-coastlines/simplification.json",
             "configSha256": sha256_path(CONFIG / "simplification.json"),
+            "areaClasses": simplification["areaClasses"],
             "areaErrorPercent": round(
                 100.0 * (sum(row["simplifiedAreaSquareKilometres"] for row in per_interval)
                          - total_cut) / total_cut, 5) if total_cut else 0.0,
@@ -1430,6 +1540,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         "charts": chart_table,
         "bindings": binding_table,
         "evidence": evidence_table,
+        "lifecycles": lifecycle_table.rows,
         "basinEdits": basin_report,
         "basinContracts": [{"basinId": basin["basinId"], "path": basin["_path"],
                             "sha256": basin["_sha256"], "ops": len(basin["ops"]),

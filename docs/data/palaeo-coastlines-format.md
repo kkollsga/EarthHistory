@@ -31,6 +31,11 @@ and its audit JSON.
 All integers and floats are little-endian. The file is four consecutive
 sections with no padding between them.
 
+The piece and ring records were compacted on 2026-09-15, before anything
+shipped: the piece record went from 20 bytes to 12 and the ring record from 8
+bytes to 2. The quantisation, the coordinate reference and the meaning of every
+field are unchanged.
+
 ### Header — 32 bytes
 
 | Offset | Type | Field |
@@ -46,22 +51,29 @@ sections with no padding between them.
 | 24 | f32 | interval oldest age, Ma (`FROMAGE`) |
 | 28 | f32 | interval youngest age, Ma (`TOAGE`) |
 
-### Piece table — 20 bytes per piece, starting at offset 32
+### Piece table — 12 bytes per piece, starting at offset 32
 
 | Offset | Type | Field |
 |---|---|---|
-| 0 | u32 | chart index into `catalog.charts` (the Cao 2017 source record) |
-| 4 | u16 | binding index into `catalog.bindings` (plate and palette entries) |
-| 6 | u16 | evidence index into `catalog.evidence` |
-| 8 | f32 | lifecycle youngest age, Ma — **exclusive** |
-| 12 | f32 | lifecycle oldest age, Ma — inclusive |
-| 16 | u16 | flags (below) |
-| 18 | u16 | ring count |
+| 0 | u16 | chart index into `catalog.charts` (the Cao 2017 source record) |
+| 2 | u16 | binding index into `catalog.bindings` (plate and palette entries) |
+| 4 | u16 | evidence index into `catalog.evidence` |
+| 6 | u16 | lifecycle index into `catalog.lifecycles` |
+| 8 | u16 | flags (below) |
+| 10 | u16 | ring count |
 
-The lifecycle is the source record's own `(TOAGE, FROMAGE]`, not the interval's.
-An off-schedule record appears in every canonical interval it overlaps and keeps
-its own lifecycle, so the runtime must test the piece, not the file, before
-drawing it at a requested age.
+Every field is a u16 index into a per-class catalog array, and the compiler
+refuses to write a class whose `charts`, `bindings`, `evidence` or `lifecycles`
+array has reached 65,536 entries. The validator re-asserts both halves: the
+array lengths fit the field, and no emitted index points past its array.
+
+The lifecycle is the source record's own `(TOAGE, FROMAGE]`, not the interval's;
+`catalog.lifecycles[]` holds the distinct `{youngestExclusiveMa, oldestMa}` pairs
+(64 for `lm`, 25 for `sm`, 38 for `m`), because the 24 published intervals and the
+44 off-schedule pairs are shared by tens of thousands of pieces. An off-schedule
+record appears in every canonical interval it overlaps and keeps its own
+lifecycle, so the runtime must test the piece, not the file, before drawing it at
+a requested age.
 
 Ring records are consumed in order: piece *n* owns the next `ringCount` entries
 after the pieces before it.
@@ -80,12 +92,17 @@ after the pieces before it.
 Bits 1, 2, 4 and 8 each add a limitation line, given verbatim in
 `catalog.flagLimitations`, to whatever the piece's evidence record already says.
 
-### Ring table — 8 bytes per ring
+### Ring table — 2 bytes per ring
 
 | Offset | Type | Field |
 |---|---|---|
-| 0 | u32 | first vertex index |
-| 4 | u32 | vertex count in bits 0–30; bit 31 set marks an interior ring (hole) |
+| 0 | u16 | vertex count in bits 0–14; bit 15 set marks an interior ring (hole) |
+
+The first vertex index is implicit: rings are consumed in order and each one
+starts where the previous ring ended, so the decoder carries a running cursor and
+the header's vertex count is the sum of every ring's count. The writer refuses a
+ring of 32,768 vertices or more; the widest ring measured across all three
+classes and both payload tiers is 3,972 vertices, in an `original` payload.
 
 A ring's vertices are not repeated to close it: the last vertex connects back to
 the first. A hole belongs to the most recent exterior ring in the same piece.
@@ -102,9 +119,9 @@ lon = value / 32767 * 180      lat = value / 32767 * 90
 The grid step is 0.005493° of longitude and 0.002747° of latitude, so the
 worst-case quantisation error is ±0.002747° in longitude (±306 m at the
 equator, less towards the poles) and ±0.001373° in latitude (±153 m
-everywhere). That is an order of magnitude below the 0.02° baseline
-simplification tolerance, so node reduction, not quantisation, sets the
-geometric error of a piece of any size. The exception is measured and recorded:
+everywhere). That is an order of magnitude below the baseline simplification
+tolerance (0.02° for `lm` and `m`, 0.05° for `sm`), so node reduction, not
+quantisation, sets the geometric error of a piece of any size. The exception is measured and recorded:
 a piece near the 25 km² cookie-cut floor is only a few grid cells across, and
 quantisation alone can move its area by tens of percent. The
 `areaErrorBySize` table in `dev-docs/bench/results/palaeo-coastlines-qc.json`
@@ -123,11 +140,12 @@ when overlapping partitions were allowed to claim the same ground twice). What
 survives on the wire is the shared boundary drawn twice — once for each
 neighbour. The `original` payload rounds both copies onto the int16 grid and the
 `simplified` payload approximates each of them separately, so two pieces of the
-same source record can overlap in a hairline sliver. Measured across all three
-classes and all 24 intervals, the widest such sliver is 0.20 km in the
-`original` payloads and 1.82 km in the `simplified` ones. A renderer that draws
-both neighbours opaquely will not see it; one that blends them may show a seam
-of that width.
+same source record can overlap in a hairline sliver. Measured across all 24
+intervals (`dev-docs/bench/results/palaeo-coastlines-validation.json`), the widest
+such sliver in an `original` payload is 0.26 km (`lm` and `sm`) and 0.20 km (`m`);
+in a `simplified` payload it is 3.12 km (`lm`), 8.24 km (`sm`, which is reduced at
+0.05°) and 1.82 km (`m`). A renderer that draws both neighbours opaquely will not
+see it; one that blends them may show a seam of that width.
 
 ## Class catalog
 
@@ -139,11 +157,19 @@ catalog carries the data they point at.
   published schedule, and the basin operation that created it if it is an edit.
 - `bindings[]` — one entry per distinct motion binding: the binding plate, the
   owner partition plate, whether the binding came from the partition or from the
-  `PLATEID1` override, and the gap-free list of palette entries with their
-  validity windows.
+  `PLATEID1` override, and the list of palette entries with their validity
+  windows. The list is gap-free except across a `motionSupportGaps` entry: on the
+  eight plates whose native motion was replaced by `native-recovery-plate-`
+  palette entries, those entries are the only motion a piece may take, and the
+  source rotation's own discontinuities between them (plate 626 at
+  119.999999–120 Ma and 79.1–79.100001 Ma) are stepped over and recorded rather
+  than filled with the `plate-` motion that `apply_cao_native_triangulation_repair`
+  rejects.
 - `evidence[]` — interned evidence records: status, surface class, appearance,
   method, `sourceIds`, `limitations`, and the `editorial` line when a basin edit
   contributed.
+- `lifecycles[]` — the distinct `{youngestExclusiveMa, oldestMa}` pairs the piece
+  table indexes, in first-use order.
 - `intervals[]` — per interval: source record count, areas, the simplification
   area error, lost pieces, and for both payload sets the file name, byte count,
   sha256, piece/ring/vertex counts. `reservation` carries the renderer's numbers:

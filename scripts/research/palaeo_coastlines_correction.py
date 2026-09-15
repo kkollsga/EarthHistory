@@ -18,6 +18,7 @@ Checks
 * every ``PLATEID1`` override and every basin edit operation carries a
   justification and a citation;
 * exactly one canonical interval active at every 5 Ma checkpoint 5-400 Ma;
+* every u16 catalog index a piece carries fits its field and resolves;
 * exactly one owner per piece: two pieces of the same source record never
   overlap;
 * every piece on the North Sea partitions 303 and 315 is bound to the
@@ -28,9 +29,10 @@ Checks
   class table.
 
 ``--self-test`` proves each of those can fail: a corrupted hash, a dropped
-reference, a widened lifecycle, an override rebound to its partition, a skipped
-restoration binding, an over-simplified payload and a removed piece are each
-rejected, and the clean inputs pass again afterwards.
+reference, a piece rebound to the wrong lifecycle, a widened catalog lifecycle, a
+catalog too short for the indices its pieces carry, an override rebound to its
+partition, a skipped restoration binding, an over-simplified payload and a removed
+piece are each rejected, and the clean inputs pass again afterwards.
 
 Run with the pinned pyGPlates environment.
 """
@@ -120,6 +122,7 @@ class Store:
     def __init__(self, root: Path, overrides: dict[str, bytes] | None = None):
         self.root = root
         self.overrides = dict(overrides or {})
+        self._catalogs: dict[str, dict] = {}
 
     def read(self, relative: str) -> bytes:
         if relative in self.overrides:
@@ -130,11 +133,17 @@ class Store:
         return path.read_bytes()
 
     def catalog(self, class_name: str) -> dict:
-        return json.loads(self.read(f"staging/{class_name}/palaeo-{class_name}-catalog.json"))
+        # The catalogs are tens of megabytes of JSON and every payload decode needs
+        # the class lifecycle array, so each one is parsed once per store.
+        if class_name not in self._catalogs:
+            self._catalogs[class_name] = json.loads(
+                self.read(f"staging/{class_name}/palaeo-{class_name}-catalog.json"))
+        return self._catalogs[class_name]
 
     def payload(self, tier: str, class_name: str, interval_id: str) -> dict:
-        return compiler.decode_ehpr(self.read(
-            f"{tier}/{class_name}/palaeo-{class_name}-{interval_id}.ehpr"))
+        return compiler.decode_ehpr(
+            self.read(f"{tier}/{class_name}/palaeo-{class_name}-{interval_id}.ehpr"),
+            self.catalog(class_name))
 
     def with_override(self, relative: str, payload: bytes) -> "Store":
         return Store(self.root, {**self.overrides, relative: payload})
@@ -219,6 +228,42 @@ def check_schedule(catalog: dict) -> dict:
     if failures:
         raise CorrectionError(f"half-open interval rule failed at {failures[:4]}")
     return {"insideCheckpoints": 80, "outsideCheckpoints": 29, "intervals": len(intervals)}
+
+
+CATALOG_INDEX_FIELDS = (("chartIndex", "charts"), ("bindingIndex", "bindings"),
+                        ("evidenceIndex", "evidence"), ("lifecycleIndex", "lifecycles"))
+
+
+def check_catalog_indices(store: Store, catalog: dict, class_name: str) -> dict:
+    """Every piece field is a u16 index the class catalog can actually resolve.
+
+    The piece record spends 12 bytes on six u16 fields, so a catalog array that
+    grew past 65,535 entries would silently alias. Both halves are asserted here:
+    the array lengths fit the field, and no emitted index points past its array.
+    """
+    sizes = {}
+    for field, name in CATALOG_INDEX_FIELDS:
+        length = len(catalog[name])
+        if length >= compiler.CATALOG_INDEX_CEILING:
+            raise CorrectionError(
+                f"{class_name}: {length} {name} records do not fit the u16 {field} field")
+        sizes[name] = length
+    worst = {field: -1 for field, _ in CATALOG_INDEX_FIELDS}
+    pieces = 0
+    for interval in catalog["intervals"]:
+        for tier, directory in (("simplified", "staging"), ("original", "original")):
+            decoded = compiler.decode_ehpr(store.read(
+                f"{directory}/{class_name}/{interval[tier]['url']}"))
+            for piece in decoded["pieces"]:
+                for field, name in CATALOG_INDEX_FIELDS:
+                    value = piece[field]
+                    if value >= sizes[name]:
+                        raise CorrectionError(
+                            f"{class_name} {interval['intervalId']} {tier}: {field} {value} "
+                            f"is outside the {sizes[name]} {name} records of the catalog")
+                    worst[field] = max(worst[field], value)
+                pieces += 1
+    return {"checkedPieces": pieces, "catalogSizes": sizes, "largestIndexUsed": worst}
 
 
 def check_lifecycles(store: Store, catalog: dict, class_name: str,
@@ -330,16 +375,58 @@ def check_areas(store: Store, catalog: dict, class_name: str,
             "perInterval": per_interval}
 
 
+def recovery_motion() -> tuple[set[int], dict[int, set[tuple[float, float]]]]:
+    """Recovery plates and the source seams between their recovery entries.
+
+    ``apply_cao_native_triangulation_repair`` rejects any chart on these plates that
+    keeps a ``plate-`` binding ("same-plate charts retain inaccurate native motion"),
+    so a palaeo piece must not keep one either. Its ``validate_binding_coverage``
+    tolerates exactly one kind of hole in the coverage, the plate's declared
+    ``SOURCE_DISCONTINUITY_GAPS``; those are re-derived here from the palette's own
+    recovery entries so a binding cannot declare a seam the palette does not have.
+    """
+    if not hasattr(recovery_motion, "_cache"):
+        catalog = compiler.load_palette()[0]
+        by_plate: dict[int, list[dict]] = {}
+        for entry in catalog["entries"]:
+            if entry["entryId"].startswith(compiler.RECOVERY_PREFIX):
+                by_plate.setdefault(entry["plateId"], []).append(entry)
+        seams = {}
+        for plate, entries in by_plate.items():
+            rows = sorted(entries, key=lambda entry: entry["youngestAgeMa"])
+            seams[plate] = {(float(left["oldestAgeMa"]), float(right["youngestAgeMa"]))
+                            for left, right in zip(rows, rows[1:])
+                            if float(right["youngestAgeMa"]) > float(left["oldestAgeMa"])}
+        recovery_motion._cache = (set(by_plate), seams)
+    return recovery_motion._cache
+
+
 def check_bindings(catalog: dict, overrides: dict, class_name: str) -> dict:
     """Override bindings, restoration bindings and gap-free palette coverage."""
     override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
+    recovery_plates, recovery_seams = recovery_motion()
     seen_override_plates: set[int] = set()
     restoration_bindings = 0
+    recovery_bindings = 0
+    seam_bindings = 0
     for index, binding in enumerate(catalog["bindings"]):
         entries = binding["entries"]
+        declared = {(gap["validTimeMa"]["youngest"], gap["validTimeMa"]["oldest"])
+                    for gap in binding.get("motionSupportGaps", [])}
+        allowed = recovery_seams.get(binding["bindingPlateId"], set())
+        if not declared <= allowed:
+            raise CorrectionError(
+                f"binding {index}: declares motion support gaps {sorted(declared - allowed)} that "
+                f"plate {binding['bindingPlateId']} does not have in the palette")
         for left, right in zip(entries, entries[1:]):
-            if left["validTimeMa"]["oldest"] != right["validTimeMa"]["youngest"]:
-                raise CorrectionError(f"binding {index}: palette coverage has a gap")
+            gap = (left["validTimeMa"]["oldest"], right["validTimeMa"]["youngest"])
+            if gap[0] == gap[1]:
+                continue
+            if gap in declared:
+                continue
+            raise CorrectionError(f"binding {index}: palette coverage has a gap")
+        if declared:
+            seam_bindings += 1
         if binding["bindingSource"] == "source-plateid1-override":
             seen_override_plates.add(binding["bindingPlateId"])
             if binding["bindingPlateId"] not in override_plates:
@@ -350,6 +437,14 @@ def check_bindings(catalog: dict, overrides: dict, class_name: str) -> dict:
             raise CorrectionError(
                 f"binding {index}: a piece is bound to plate {binding['bindingPlateId']} while its "
                 f"partition owner is {binding['partitionPlateId']} without an override")
+        if binding["bindingPlateId"] in recovery_plates:
+            stale = [entry["entryId"] for entry in entries
+                     if entry["entryId"].startswith(f"plate-{binding['bindingPlateId']}-")]
+            if stale:
+                raise CorrectionError(
+                    f"binding {index}: plate {binding['bindingPlateId']} carries recovered native "
+                    f"motion but this piece keeps inaccurate native entries {stale[:3]}")
+            recovery_bindings += 1
         if binding["partitionPlateId"] in NORTH_SEA_PLATES and binding["bindingSource"] == "owner-partition":
             window = [entry for entry in entries
                       if entry["validTimeMa"]["oldest"] > RESTORATION_WINDOW_YOUNGEST_MA]
@@ -369,7 +464,10 @@ def check_bindings(catalog: dict, overrides: dict, class_name: str) -> dict:
                 restoration_bindings += 1
     return {"bindings": len(catalog["bindings"]),
             "overrideBoundPlates": sorted(seen_override_plates),
-            "restorationBindings": restoration_bindings}
+            "restorationBindings": restoration_bindings,
+            "recoveryBindings": recovery_bindings,
+            "recoveryPlateIds": sorted(recovery_plates),
+            "sourceSeamBindings": seam_bindings}
 
 
 def check_charts_use_overrides(store: Store, catalog: dict, overrides: dict,
@@ -749,6 +847,7 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
         block = {
             "payloads": check_payload_identity(store, catalog, class_name),
             "schedule": check_schedule(catalog),
+            "catalogIndices": check_catalog_indices(store, catalog, class_name),
             "lifecycles": check_lifecycles(store, catalog, class_name, rows_by_index),
             "areas": check_areas(store, catalog, class_name, areas[class_name]),
             "bindings": check_bindings(catalog, overrides, class_name),
@@ -787,15 +886,15 @@ def expect_failure(label: str, call) -> str:
     raise CorrectionError(f"self-test: mutation {label!r} was accepted")
 
 
-def rewrite_piece_field(payload: bytes, index: int, field: str, value: float) -> bytes:
+PIECE_FIELD_OFFSETS = {"chartIndex": 0, "bindingIndex": 2, "evidenceIndex": 4,
+                       "lifecycleIndex": 6, "flags": 8, "ringCount": 10}
+
+
+def rewrite_piece_field(payload: bytes, index: int, field: str, value: int) -> bytes:
+    """Set one u16 field of one piece record, leaving the payload otherwise intact."""
     data = bytearray(payload)
     offset = compiler.HEADER_BYTES + compiler.PIECE_BYTES * index
-    if field == "lifecycleOldestMa":
-        struct.pack_into("<f", data, offset + 12, value)
-    elif field == "lifecycleYoungestMa":
-        struct.pack_into("<f", data, offset + 8, value)
-    else:
-        raise ValueError(field)
+    struct.pack_into("<H", data, offset + PIECE_FIELD_OFFSETS[field], int(value))
     return bytes(data)
 
 
@@ -836,17 +935,37 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
                                   lambda: check_config(uncited, basins, interval_ids)))
     check_config(overrides, basins, interval_ids)
 
-    # 3. a widened lifecycle in a shipped payload
+    # 3. a piece rebound to the wrong lifecycle, and a widened catalog lifecycle
     interval = catalog["intervals"][16]
     relative = f"staging/{class_name}/{interval['simplified']['url']}"
     original_bytes = store.read(relative)
     check_lifecycles(store, catalog, class_name, rows_by_index)
-    widened = rewrite_piece_field(original_bytes, 0, "lifecycleOldestMa", 1200.0)
+    first = compiler.decode_ehpr(original_bytes)["pieces"][0]["lifecycleIndex"]
+    wrong = next(index for index, row in enumerate(catalog["lifecycles"])
+                 if row["oldestMa"] != catalog["lifecycles"][first]["oldestMa"])
+    widened = rewrite_piece_field(original_bytes, 0, "lifecycleIndex", wrong)
     widened_store = store.with_override(relative, widened)
     results.append(expect_failure(
-        "piece lifecycle widened to 1200 Ma",
+        f"piece lifecycle index rebound from {first} to {wrong}",
         lambda: check_lifecycles(widened_store, catalog, class_name, rows_by_index)))
+    stretched = deepcopy(catalog)
+    stretched["lifecycles"][first]["oldestMa"] = 1200.0
+    stretched_store = store.with_override(
+        f"staging/{class_name}/palaeo-{class_name}-catalog.json",
+        json.dumps(stretched).encode())
+    results.append(expect_failure(
+        "catalog lifecycle widened to 1200 Ma",
+        lambda: check_lifecycles(stretched_store, stretched, class_name, rows_by_index)))
     check_lifecycles(store, catalog, class_name, rows_by_index)
+
+    # 3b. a catalog index a piece cannot reach
+    check_catalog_indices(store, catalog, class_name)
+    truncated_catalog = deepcopy(catalog)
+    truncated_catalog["lifecycles"] = truncated_catalog["lifecycles"][:1]
+    results.append(expect_failure(
+        "class catalog missing the lifecycles its pieces name",
+        lambda: check_catalog_indices(store, truncated_catalog, class_name)))
+    check_catalog_indices(store, catalog, class_name)
 
     # 4. an override plate rebound to its partition
     check_bindings(catalog, overrides, class_name)
@@ -876,6 +995,25 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
                                   lambda: check_bindings(skipped, overrides, class_name)))
     check_bindings(catalog, overrides, class_name)
 
+    # 5b. a recovery plate that keeps its inaccurate native motion
+    reverted = deepcopy(catalog)
+    target = next(index for index, binding in enumerate(reverted["bindings"])
+                  if binding["bindingPlateId"] in recovery_motion()[0])
+    for entry in reverted["bindings"][target]["entries"]:
+        entry["entryId"] = f"plate-{reverted['bindings'][target]['bindingPlateId']}-0-1800"
+    results.append(expect_failure(
+        f"plate {reverted['bindings'][target]['bindingPlateId']} rebound to its unrecovered "
+        "native motion",
+        lambda: check_bindings(reverted, overrides, class_name)))
+    invented = deepcopy(catalog)
+    invented["bindings"][target]["motionSupportGaps"] = [
+        {"validTimeMa": {"youngest": 40.0, "oldest": 41.0}, "youngestExclusive": True,
+         "oldestExclusive": True, "reason": "source-seam"}]
+    results.append(expect_failure(
+        "binding declaring a source seam the palette does not have",
+        lambda: check_bindings(invented, overrides, class_name)))
+    check_bindings(catalog, overrides, class_name)
+
     # 6. an over-simplified payload
     scoped = {"intervals": [interval], "charts": catalog["charts"]}
     check_areas(store, scoped, class_name, areas)
@@ -892,7 +1030,7 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     check_areas(store, scoped, class_name, areas)
 
     # 7. pieces removed from a shipped payload
-    thinned = drop_pieces(original_bytes, 12)
+    thinned = drop_pieces(store, original_bytes, 12)
     thinned_store = store.with_override(relative, thinned)
     thinned_catalog = deepcopy(scoped)
     results.append(expect_failure(
@@ -930,7 +1068,10 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
                                "payloadIdentity": "pass", "outlineTones": "pass"},
             "simplificationConfigSha256": compiler.sha256_path(CONFIG / "simplification.json"),
             "simplificationBaselineToleranceDegrees":
-                simplification["areaClasses"][0]["toleranceDegrees"]}
+                simplification["areaClasses"][0]["toleranceDegrees"],
+            "simplificationClassBaselineToleranceDegrees": {
+                name: ladder[0]["toleranceDegrees"]
+                for name, ladder in simplification.get("classAreaClasses", {}).items()}}
 
 
 def over_simplify(store: Store, class_name: str, interval: dict) -> bytes:
@@ -944,27 +1085,29 @@ def over_simplify(store: Store, class_name: str, interval: dict) -> bytes:
             geometry = compiler.piece_geometry(decoded, piece)
         pieces.append({"chartIndex": piece["chartIndex"], "bindingIndex": piece["bindingIndex"],
                        "evidenceIndex": piece["evidenceIndex"], "flags": piece["flags"],
-                       "lifecycleYoungestMa": piece["lifecycleYoungestMa"],
-                       "lifecycleOldestMa": piece["lifecycleOldestMa"], "geometry": geometry})
+                       "lifecycleIndex": piece["lifecycleIndex"], "geometry": geometry})
     payload, _ = compiler.encode_ehpr(class_name, {"fromAgeMa": decoded["fromAgeMa"],
                                                    "toAgeMa": decoded["toAgeMa"]},
-                                      decoded["intervalIndex"], pieces)
+                                      decoded["intervalIndex"], pieces,
+                                      compiler.LifecycleTable.from_catalog(
+                                          store.catalog(class_name)))
     return payload
 
 
-def drop_pieces(payload: bytes, count: int) -> bytes:
+def drop_pieces(store: Store, payload: bytes, count: int) -> bytes:
     decoded = compiler.decode_ehpr(payload)
     class_name = {code: name for name, code in compiler.CLASS_CODES.items()}[decoded["classCode"]]
     pieces = []
     for piece in decoded["pieces"][count:]:
         pieces.append({"chartIndex": piece["chartIndex"], "bindingIndex": piece["bindingIndex"],
                        "evidenceIndex": piece["evidenceIndex"], "flags": piece["flags"],
-                       "lifecycleYoungestMa": piece["lifecycleYoungestMa"],
-                       "lifecycleOldestMa": piece["lifecycleOldestMa"],
+                       "lifecycleIndex": piece["lifecycleIndex"],
                        "geometry": compiler.piece_geometry(decoded, piece)})
     rebuilt, _ = compiler.encode_ehpr(class_name, {"fromAgeMa": decoded["fromAgeMa"],
                                                    "toAgeMa": decoded["toAgeMa"]},
-                                      decoded["intervalIndex"], pieces)
+                                      decoded["intervalIndex"], pieces,
+                                      compiler.LifecycleTable.from_catalog(
+                                          store.catalog(class_name)))
     return rebuilt
 
 

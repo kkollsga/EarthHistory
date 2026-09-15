@@ -107,7 +107,7 @@ def load_pair(store: Path, class_name: str, interval_id: str) -> tuple[dict, dic
 
 def piece_key(piece: dict) -> tuple:
     return (piece["chartIndex"], piece["bindingIndex"], piece["evidenceIndex"],
-            round(piece["lifecycleYoungestMa"], 6), round(piece["lifecycleOldestMa"], 6))
+            piece["lifecycleIndex"])
 
 
 def pair_pieces(original: dict, simplified: dict) -> tuple[list[tuple[dict, dict]], list[dict]]:

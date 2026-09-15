@@ -20,6 +20,16 @@
    "reason": "continent-scale pieces only; the audit measures -0.030 % (lm) at this tolerance applied to every piece, so applying it to the few largest is far inside the gate"
   }
  ],
+ "classAreaClasses": {
+  "sm": [
+   {
+    "minimumAreaSquareKilometres": 0,
+    "toleranceDegrees": 0.05,
+    "reason": "shallow marine is an environment class whose mapped boundary is a modelled facies limit, not a coastline, so the audit's 0.05 degree variant is the defensible tolerance for it: the audit measured -0.030 % area error with 0.05 degrees applied to every piece, well inside the 0.05 % gate, and the per-piece 0.1 % guard, the narrow-feature witnesses and the protected North Sea window still apply unchanged"
+   }
+  ]
+ },
+ "classAreaClassesReason": "the areaClasses ladder above is the default for every class; a class named here replaces the whole ladder. Only the ladder is per class - the vertex cap, the per-piece area guard, the protected windows and the narrow-feature witnesses stay shared.",
  "vertexCapPerPiece": 20000,
  "vertexCapEscalation": {
   "factor": 2.0,
