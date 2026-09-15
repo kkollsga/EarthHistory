@@ -11,12 +11,16 @@ Checks
 
 * pinned input hashes for the archive, its members, the plate model, the
   rotation files and the motion palette;
-* area preservation net of partition overlap inside [99.9, 100.5] %;
+* area preservation net of partition overlap inside [99.9, 100.5] %, measured
+  against source areas that carry the tracked basin edits, re-applied here from
+  the archive and the contract rather than read back from the catalog;
 * simplification area error at most 0.05 %, per class and per interval;
 * at most 5 lost pieces per interval and none above 500 km2;
 * co-moving landmass area at least 85 %;
 * every ``PLATEID1`` override and every basin edit operation carries a
-  justification and a citation;
+  justification, a citation, a positive spatial uncertainty and an editorial
+  line, names only intervals the contract declares, and stays inside the
+  contract's window bbox;
 * exactly one canonical interval active at every 5 Ma checkpoint 5-400 Ma;
 * the offline provenance sidecar still matches the sha256 the shipped catalog
   pins on it, and carries one source record per ``chartCount``;
@@ -31,15 +35,21 @@ Checks
 * the narrow-feature witnesses (Viking Graben, Central Graben, Moray Firth,
   Zechstein margin) change width by at most 2 km;
 * the seaway witnesses and the negative controls reproduce the audit's own
-  class table.
+  class table, except where a tracked basin edit declares the change;
+* every cited basin edit reached the shipped payload at its own witness point,
+  and an unedited control in the same window and interval is untouched.
 
 ``--self-test`` proves each of those can fail: a corrupted hash, a dropped
-reference, an edited or truncated provenance sidecar, a piece rebound to the
+reference, a basin edit whose geometry is translated outside the contract's
+window, a basin edit on an interval the contract does not declare, an edited or
+truncated provenance sidecar, a piece rebound to the
 wrong lifecycle, a widened catalog lifecycle, a catalog too short for the indices
 its pieces carry, an override rebound to its partition, a binding rebound to a
 plate the palette does not cover, a mislabelled binding kind, an invented source
 seam, a North Sea window resolved without the restoration entries, an
-over-simplified payload and a removed piece are each rejected, and the clean
+over-simplified payload, a removed piece, a payload shifted off its basin edit
+and a basin-edit witness whose operation was deleted from the contract are each
+rejected, and the clean
 inputs pass again afterwards.
 
 Run with the pinned pyGPlates environment.
@@ -58,6 +68,8 @@ from pathlib import Path
 
 import pygplates
 import shapely
+import shapely.affinity
+import shapely.geometry
 from shapely.geometry import LineString
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
@@ -122,6 +134,52 @@ WITNESS_CLASSES = {
         "402-380": ["lm"], "269-248": ["sm"], "248-224": ["lm"], "94-81": ["sm"]}),
 }
 WITNESS_INTERVALS = ("402-380", "269-248", "248-224", "94-81")
+
+# A cited basin edit is allowed to move a witness, but only where the contract
+# says so. Each row names the witness the edit moves, the operation that moves
+# it, and the class set the compiled payload must carry afterwards; the class set
+# *before* the edit is not typed here, it is re-measured from the pinned archive.
+# A witness that moves without a row, or a row whose operation is gone, fails.
+WITNESS_BASIN_EDITS = {
+    ("north-sea-centre", "402-380"): {
+        "opId": "north-sea-402-380-orcadian-remove-shallow",
+        "classes": ["lm"],
+        "reason": "the Middle Devonian Orcadian Basin is lacustrine and alluvial land, not an "
+                  "epicontinental sea; the shallow-marine class is removed and the landmass kept",
+    },
+}
+
+# Points that prove each cited North Sea edit reached the shipped payloads. The
+# expected class set is the edit's intent; the Cao source class set at the same
+# point is re-measured from the archive and reported beside it, so the record
+# shows what changed rather than asserting it.
+BASIN_EDIT_WITNESSES = (
+    {"witnessId": "orcadian-central-north-sea", "position": (1.5, 58.0), "intervalId": "402-380",
+     "opIds": ["north-sea-402-380-orcadian-remove-shallow"], "classes": ["lm"]},
+    {"witnessId": "orcadian-east-of-the-edit", "position": (5.5, 57.0), "intervalId": "402-380",
+     "opIds": [], "classes": ["lm", "sm"]},
+    {"witnessId": "zechstein-moray-firth", "position": (-2.0, 57.9), "intervalId": "269-248",
+     "opIds": ["north-sea-269-248-moray-firth-remove-shallow",
+               "north-sea-269-248-moray-firth-add-land"], "classes": ["lm"]},
+    {"witnessId": "zechstein-central-north-sea", "position": (3.0, 56.5), "intervalId": "269-248",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "east-shetland-platform", "position": (0.0, 61.0), "intervalId": "179-166",
+     "opIds": ["north-sea-179-166-east-shetland-platform-remove-shallow",
+               "north-sea-179-166-east-shetland-platform-add-land"], "classes": ["lm"]},
+    {"witnessId": "brent-delta-plain", "position": (2.5, 59.5), "intervalId": "179-166",
+     "opIds": ["north-sea-179-166-brent-delta-plain-remove-shallow",
+               "north-sea-179-166-brent-delta-plain-add-land"], "classes": ["lm"]},
+    {"witnessId": "northern-viking-graben", "position": (2.0, 61.5), "intervalId": "179-166",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "shetland-platform-palaeocene", "position": (-1.5, 60.5), "intervalId": "58-49",
+     "opIds": ["north-sea-58-49-shetland-platform-remove-shallow",
+               "north-sea-58-49-shetland-platform-add-land"], "classes": ["lm"]},
+    {"witnessId": "shetland-platform-eocene", "position": (-1.5, 60.5), "intervalId": "49-37",
+     "opIds": ["north-sea-49-37-shetland-platform-remove-shallow",
+               "north-sea-49-37-shetland-platform-add-land"], "classes": ["lm"]},
+    {"witnessId": "central-graben-eocene", "position": (3.0, 56.5), "intervalId": "49-37",
+     "opIds": [], "classes": ["sm"]},
+)
 
 
 class CorrectionError(ValueError):
@@ -224,13 +282,27 @@ def load_source_records() -> dict[str, list[dict]]:
         return {name: audit.read_class(archive, name) for name in ("lm", "sm", "m")}
 
 
-def source_areas(rows_by_class: dict[str, list[dict]]) -> dict[str, dict[int, float]]:
-    """Spherical area of every dated source record, re-derived from the archive."""
+def source_areas(rows_by_class: dict[str, list[dict]], basins: list[dict] | None = None,
+                 intervals: list[dict] | None = None) -> dict[str, dict[int, float]]:
+    """Spherical area of every dated source record, re-derived from the archive.
+
+    The area-preservation gate measures what the cookie-cut costs, so the cited
+    basin edits belong on the source side of the ratio rather than showing up as
+    lost or invented ground. They are applied here through the compiler's own
+    ``apply_basin_ops``, driven by the pinned archive and the tracked contract
+    JSON, so a contract that moved more ground than it declares still fails: the
+    numbers are never read back from the catalog under test.
+    """
     table: dict[str, dict[int, float]] = {}
     for name, rows in rows_by_class.items():
         kept, _ = compiler.quarantine(rows)
-        table[name] = {row["index"]: audit.area_km2(compiler.record_polygon(row, densify=True))
-                       for row in kept}
+        geometries = {row["index"]: compiler.record_polygon(row, densify=True) for row in kept}
+        if basins:
+            # Same inputs and same order as the compiler, so a record the edit
+            # adds lands on the same source record index the catalog names.
+            kept, geometries, _ = compiler.apply_basin_ops(name, kept, geometries, basins,
+                                                           intervals or [])
+        table[name] = {row["index"]: audit.area_km2(geometries[row["index"]]) for row in kept}
     return table
 
 
@@ -249,6 +321,14 @@ def check_config(overrides: dict, basins: list[dict], interval_ids: set[str]) ->
         for op in basin["ops"]:
             if not op.get("rationale"):
                 raise CorrectionError(f"basin {basin['basinId']} op {op['opId']}: no rationale")
+            if not str(op.get("editorial", "")).startswith(compiler.EDITORIAL_PREFIX):
+                raise CorrectionError(
+                    f"basin {basin['basinId']} op {op['opId']}: the editorial line must start with "
+                    f"{compiler.EDITORIAL_PREFIX!r}")
+            uncertainty = op.get("spatialUncertaintyKilometres")
+            if not isinstance(uncertainty, (int, float)) or uncertainty <= 0:
+                raise CorrectionError(
+                    f"basin {basin['basinId']} op {op['opId']}: no positive spatial uncertainty")
     for class_name, block in overrides["classes"].items():
         for row in block["plates"]:
             if not row.get("sourceIds") or not row.get("justification"):
@@ -256,7 +336,13 @@ def check_config(overrides: dict, basins: list[dict], interval_ids: set[str]) ->
                     f"{class_name} override {row['plateId1']}: an override needs a cited justification")
     return {"overrideClasses": sorted(overrides["classes"]),
             "basins": [basin["basinId"] for basin in basins],
-            "basinOps": sum(len(basin["ops"]) for basin in basins)}
+            "basinOps": sum(len(basin["ops"]) for basin in basins),
+            "basinOpsByInterval": {
+                basin["basinId"]: {
+                    interval_id: sum(1 for op in basin["ops"] if interval_id in op["intervalIds"])
+                    for interval_id in basin.get("intervals", [])}
+                for basin in basins},
+            "basinReferences": {basin["basinId"]: len(basin["references"]) for basin in basins}}
 
 
 def check_provenance(store: Store, view: ClassView) -> dict:
@@ -834,26 +920,103 @@ def check_witnesses(store: Store, classes: list[str], explain=None) -> dict:
     for interval_id in WITNESS_INTERVALS:
         unions = {name: class_union(store, name, interval_id) for name in classes}
         for witness, (position, expected_by_interval) in WITNESS_CLASSES.items():
-            expected = [name for name in expected_by_interval[interval_id] if name in classes]
+            source_expected = expected_by_interval[interval_id]
+            edit = WITNESS_BASIN_EDITS.get((witness, interval_id))
+            expected = [name for name in (edit["classes"] if edit else source_expected)
+                        if name in classes]
             point = shapely.Point(*position)
             found = sorted(name for name, geometry in unions.items()
                            if not geometry.is_empty and geometry.contains(point))
             if found == sorted(expected):
-                rows.append({"witnessId": witness, "intervalId": interval_id, "classes": found})
+                row = {"witnessId": witness, "intervalId": interval_id, "classes": found}
+                if edit:
+                    row["basinEdit"] = {"opId": edit["opId"],
+                                        "caoSourceClasses": sorted(source_expected),
+                                        "reason": edit["reason"]}
+                rows.append(row)
                 continue
             missing = sorted(set(expected) - set(found))
             unexpected = sorted(set(found) - set(expected))
             reason = (explain(witness, position, interval_id, missing)
                       if explain is not None and missing and not unexpected else None)
             if reason is None:
+                measured = (f"the audit measured {sorted(source_expected)} and basin edit "
+                            f"{edit['opId']} expects {sorted(edit['classes'])}" if edit
+                            else f"the audit measured {sorted(expected)}")
                 raise CorrectionError(
-                    f"witness {witness} at {interval_id}: compiled classes {found}, "
-                    f"the audit measured {sorted(expected)}")
+                    f"witness {witness} at {interval_id}: compiled classes {found}, {measured}")
             explained.append({"witnessId": witness, "intervalId": interval_id,
                               "missingClasses": missing, **reason})
             rows.append({"witnessId": witness, "intervalId": interval_id, "classes": found,
                          "explainedAbsence": reason["reason"]})
     return {"checkedWitnesses": len(rows), "explainedAbsences": explained, "rows": rows}
+
+
+def check_basin_edit_witnesses(store: Store, classes: list[str], basins: list[dict],
+                               rows_by_class: dict[str, list[dict]],
+                               intervals: list[dict]) -> dict:
+    """Every cited basin edit reached the shipped payloads, and nothing else moved.
+
+    Two kinds of row. A row naming operations asserts that the edited point now
+    carries the class set the edit intends; a row naming none is a control inside
+    the same basin window and interval that the edit must leave exactly as Cao
+    drew it. The Cao source class set is re-measured from the pinned archive for
+    both, so the record reports what changed rather than asserting it, and the
+    operations a row names are checked against the tracked contract: a row whose
+    operation has been deleted fails instead of quietly passing.
+    """
+    known_ops = {op["opId"] for basin in basins for op in basin["ops"]}
+    by_id = {interval["intervalId"]: interval for interval in intervals}
+    points = [shapely.Point(*witness["position"]) for witness in BASIN_EDIT_WITNESSES]
+    # One densified source polygon per record that covers any witness point, built
+    # once: `record_polygon` is the expensive call and there are thousands of rows.
+    source_hits: dict[tuple[str, int], list[int]] = {}
+    for name in classes:
+        for row in rows_by_class[name]:
+            if row["toAge"] is None or row["fromAge"] is None or row["toAge"] >= row["fromAge"]:
+                continue
+            geometry = compiler.record_polygon(row, densify=False)
+            inside = [index for index, point in enumerate(points) if geometry.contains(point)]
+            if inside:
+                source_hits[(name, row["index"])] = inside
+    unions: dict[tuple[str, str], object] = {}
+    rows = []
+    for index, witness in enumerate(BASIN_EDIT_WITNESSES):
+        missing_ops = sorted(set(witness["opIds"]) - known_ops)
+        if missing_ops:
+            raise CorrectionError(
+                f"basin-edit witness {witness['witnessId']}: operations {missing_ops} are not in "
+                "any tracked basin contract")
+        interval = by_id[witness["intervalId"]]
+        point = points[index]
+        expected = sorted(name for name in witness["classes"] if name in classes)
+        found = []
+        for name in classes:
+            key = (name, witness["intervalId"])
+            if key not in unions:
+                unions[key] = class_union(store, name, witness["intervalId"])
+            union = unions[key]
+            if not union.is_empty and union.contains(point):
+                found.append(name)
+        found.sort()
+        if found != expected:
+            raise CorrectionError(
+                f"basin-edit witness {witness['witnessId']} at {witness['intervalId']}: compiled "
+                f"classes {found}, the contract expects {expected} "
+                f"(operations {witness['opIds'] or 'none: this is an unedited control'})")
+        source = sorted(
+            name for name in classes
+            if any(index in source_hits.get((name, row["index"]), ())
+                   for row in rows_by_class[name]
+                   if row["toAge"] is not None and row["fromAge"] is not None
+                   and row["toAge"] < interval["fromAgeMa"]
+                   and interval["toAgeMa"] < row["fromAge"]))
+        rows.append({"witnessId": witness["witnessId"], "intervalId": witness["intervalId"],
+                     "position": list(witness["position"]), "opIds": list(witness["opIds"]),
+                     "caoSourceClasses": source, "compiledClasses": found,
+                     "changed": source != found})
+    return {"checkedWitnesses": len(rows), "editedWitnesses": sum(1 for row in rows if row["opIds"]),
+            "controls": sum(1 for row in rows if not row["opIds"]), "rows": rows}
 
 
 def build_explainer(rows_by_class: dict[str, list[dict]], overrides: dict, intervals: list[dict]):
@@ -1019,7 +1182,7 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
     interval_ids = {row["intervalId"] for row in views[classes[0]].intervals}
     basins = compiler.load_basins(interval_ids)
     rows_by_class = load_source_records()
-    areas = source_areas(rows_by_class)
+    areas = source_areas(rows_by_class, basins, views[classes[0]].intervals)
     rotations = pygplates.RotationModel([str(audit.ROTATION_YOUNG), str(audit.ROTATION_OLD)],
                                         default_anchor_plate_id=0)
     audit.check_rotation_model([audit.ROTATION_YOUNG, audit.ROTATION_OLD])
@@ -1054,6 +1217,8 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
         result["classes"][class_name] = block
     explain = build_explainer(rows_by_class, overrides, views[classes[0]].intervals)
     result["witnesses"] = check_witnesses(store, classes, explain)
+    result["basinEditWitnesses"] = check_basin_edit_witnesses(
+        store, classes, basins, rows_by_class, views[classes[0]].intervals)
     result["narrowFeatures"] = check_narrow_features(store, classes, simplification)
     result["outlineTones"] = check_tone_tables(store, classes)
     result["status"] = "pass"
@@ -1098,7 +1263,7 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     basins = compiler.load_basins(interval_ids)
     rows_by_class = load_source_records()
     rows_by_index = {row["index"]: row for row in rows_by_class[class_name]}
-    areas = source_areas({class_name: rows_by_class[class_name]})[class_name]
+    areas = source_areas({class_name: rows_by_class[class_name]}, basins, view.intervals)[class_name]
     catalog_relative = f"staging/{class_name}/palaeo-{class_name}-catalog.json"
     results = []
 
@@ -1117,9 +1282,44 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         "opId": "self-test-op", "kind": "add-shallow", "intervalIds": ["269-248"],
         "geometry": {"type": "Polygon",
                      "coordinates": [[[2.0, 55.0], [3.0, 55.0], [3.0, 56.0], [2.0, 56.0], [2.0, 55.0]]]},
-        "rationale": "self-test", "spatialUncertaintyKilometres": 25.0, "references": []})
+        "rationale": "self-test", "spatialUncertaintyKilometres": 25.0,
+        "editorial": compiler.EDITORIAL_PREFIX + "nothing at all",
+        "references": []})
     results.append(expect_failure("basin edit operation with no reference",
                                   lambda: check_config(overrides, dropped, interval_ids)))
+    # An operation is scoped twice: by the contract's window bbox and by the
+    # intervals the contract declares. Both scopes are proven here, because a
+    # breach of either would edit ground or an age no citation in the contract
+    # reaches. The template is a real operation from the contract, so the
+    # mutation differs from a shipped edit in exactly the scope under test.
+    template = deepcopy(basins[0]["ops"][0]) if basins[0]["ops"] else {
+        "opId": "self-test-op", "kind": "add-shallow",
+        "intervalIds": [basins[0]["intervals"][0]] if basins[0].get("intervals") else ["269-248"],
+        "geometry": {"type": "Polygon",
+                     "coordinates": [[[2.0, 55.0], [3.0, 55.0], [3.0, 56.0], [2.0, 56.0], [2.0, 55.0]]]},
+        "rationale": "self-test", "spatialUncertaintyKilometres": 25.0,
+        "editorial": compiler.EDITORIAL_PREFIX + "the contract references",
+        "references": [basins[0]["references"][0]["sourceId"]]}
+    outside_window = deepcopy(basins)
+    escaped = deepcopy(template)
+    escaped["opId"] = "self-test-outside-window"
+    minimum_lon, minimum_lat, maximum_lon, maximum_lat = basins[0]["window"]["bbox"]
+    shift = (maximum_lon - minimum_lon) + 5.0
+    escaped["geometry"] = shapely.geometry.mapping(
+        shapely.affinity.translate(shapely.geometry.shape(template["geometry"]), xoff=shift))
+    outside_window[0]["ops"].append(escaped)
+    results.append(expect_failure(
+        f"basin edit operation whose geometry is {shift} degrees outside the basin window",
+        lambda: check_config(overrides, outside_window, interval_ids)))
+    undeclared = deepcopy(basins)
+    stray = deepcopy(template)
+    stray["opId"] = "self-test-undeclared-interval"
+    stray["intervalIds"] = [next(interval_id for interval_id in sorted(interval_ids)
+                                 if interval_id not in basins[0].get("intervals", []))]
+    undeclared[0]["ops"].append(stray)
+    results.append(expect_failure(
+        f"basin edit operation on {stray['intervalIds'][0]}, an interval the contract does not declare",
+        lambda: check_config(overrides, undeclared, interval_ids)))
     uncited = deepcopy(overrides)
     uncited["classes"][class_name]["plates"][0]["sourceIds"] = []
     results.append(expect_failure("PLATEID1 override with no citation",
@@ -1272,6 +1472,33 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     results.append(expect_failure("payload shifted 3 degrees east",
                                   lambda: check_witnesses(moved_store, [class_name], explain)))
     check_witnesses(store, [class_name], explain)
+
+    # 8b. a cited basin edit that did not reach the payload
+    measured = check_basin_edit_witnesses(store, [class_name], basins, rows_by_class,
+                                          view.intervals)
+    # The witness this mutation needs is one where the class is present *only*
+    # because the edit put it there; at a witness that also sits inside a
+    # continent-sized Cao polygon a small shift would still land inside it and
+    # the mutation would prove nothing.
+    edited = next(row for row in measured["rows"]
+                  if row["opIds"] and class_name in row["compiledClasses"]
+                  and class_name not in row["caoSourceClasses"])
+    edited_interval = edited["intervalId"]
+    edited_relative = view.payload_relative(edited_interval)
+    unedited = shift_payload(store.read(edited_relative), 3.0)
+    unedited_store = store.with_override(edited_relative, unedited)
+    results.append(expect_failure(
+        f"{class_name} {edited_interval} payload shifted off its basin edit",
+        lambda: check_basin_edit_witnesses(unedited_store, [class_name], basins,
+                                           rows_by_class, view.intervals)))
+    dropped_op = deepcopy(basins)
+    dropped_op[0]["ops"] = [op for op in dropped_op[0]["ops"]
+                            if op["opId"] != edited["opIds"][0]]
+    results.append(expect_failure(
+        "a basin edit witness whose operation was deleted from the contract",
+        lambda: check_basin_edit_witnesses(store, [class_name], dropped_op,
+                                           rows_by_class, view.intervals)))
+    check_basin_edit_witnesses(store, [class_name], basins, rows_by_class, view.intervals)
 
     # 9. a payload whose digest no longer matches its catalog
     check_payload_identity(store, scoped)

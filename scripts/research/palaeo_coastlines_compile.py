@@ -11,8 +11,10 @@ Pipeline, per class and per canonical map interval:
 
 1. stream the rings from the pinned archive (never extracted);
 2. apply the basin edit contracts in ``data/corrections/palaeo-coastlines/basins``
-   (the North Sea contract ships with zero operations; the schema, window,
-   interval references and citations are still validated);
+   (schema, window, declared intervals, references and citations are validated
+   first; an operation may only touch the intervals the contract declares, its
+   geometry may only lie inside the declared window, and a record it edits may
+   not stay active outside those intervals);
 3. densify every edge on great circles and split the two wide partition
    polygons at the antimeridian before any planar Boolean;
 4. cookie-cut against the present-day static partitions with **exactly one
@@ -97,6 +99,11 @@ CHART_PROVENANCE_FIELDS = ("sourceRecordIndex", "plateId1", "fromAgeMa", "toAgeM
                            "featureIdRef", "offSchedule", "basinOpId")
 
 CLASS_CODES = {"lm": 1, "sm": 2, "m": 3}
+# What `promote_palaeo_coastlines.py` publishes today. The mountain class stays
+# compiled and validated offline (user decision 2026-09-15), so it must not reach
+# the outline-tone tables or their interval index. `--shipped-classes` overrides
+# this; the promote script re-asserts the staged list against its own.
+SHIPPED_CLASSES = ("lm", "sm")
 CLASS_NAMES = {"lm": "landmass", "sm": "shallow-marine", "m": "mountain"}
 SURFACE_APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
 
@@ -107,6 +114,11 @@ MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
 FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
 RESTORATION_PREFIX = "restoration-"
 RECOVERY_PREFIX = "native-recovery-plate-"
+# The editorial line every basin-edited chart carries, and the prefix each
+# operation in a basin contract has to declare for itself. `evidence_record`
+# builds the shipped line from the same constant, so the contract and the
+# emitted evidence cannot drift apart.
+EDITORIAL_PREFIX = "EarthHistory modification after "
 NORTH_SEA_PARTITION_PLATES = (303, 315)
 MAX_REFINEMENT_EDGE_DEGREES = 1.0
 REFINEMENT_TRIANGLE_CAP = 1 << 20
@@ -317,9 +329,12 @@ def validate_overrides(overrides: dict) -> dict:
 def validate_basin(basin: dict, interval_ids: set[str]) -> None:
     """Validate one basin edit contract against the D3 schema.
 
-    The North Sea contract ships with zero operations. The schema is still
-    enforced here so an uncited or out-of-window edit cannot enter a build
-    later without the compiler rejecting it.
+    Two separate scopes are enforced, because a violation of either would put an
+    edit somewhere its citations do not reach: the geometry must lie inside the
+    declared window bbox, and every operation may only name an interval the
+    contract's own ``intervals`` list declares. The declared list is what the
+    research record and the map key describe, so an operation that reaches past
+    it would edit an age nothing in the record accounts for.
     """
     window = basin["window"]["bbox"]
     if len(window) != 4 or window[0] >= window[2] or window[1] >= window[3]:
@@ -332,6 +347,14 @@ def validate_basin(basin: dict, interval_ids: set[str]) -> None:
             if not reference.get(field):
                 raise CompileError(
                     f"basin {basin['basinId']} reference {reference.get('sourceId')}: missing {field}")
+    declared = list(basin.get("intervals", []))
+    unknown_declared = sorted(set(declared) - interval_ids)
+    if unknown_declared:
+        raise CompileError(
+            f"basin {basin['basinId']}: declared intervals {unknown_declared} are not canonical")
+    if basin["ops"] and not declared:
+        raise CompileError(
+            f"basin {basin['basinId']}: operations are present but no interval is declared")
     kinds = set(basin["opSchema"]["kinds"])
     window_box = shapely.box(*window)
     for op in basin["ops"]:
@@ -346,10 +369,27 @@ def validate_basin(basin: dict, interval_ids: set[str]) -> None:
             if source_id not in known:
                 raise CompileError(
                     f"basin {basin['basinId']} op {op['opId']}: reference {source_id} is not in the contract")
+        if not op["intervalIds"]:
+            raise CompileError(f"basin {basin['basinId']} op {op['opId']}: no interval")
         unknown_intervals = sorted(set(op["intervalIds"]) - interval_ids)
         if unknown_intervals:
             raise CompileError(
                 f"basin {basin['basinId']} op {op['opId']}: {unknown_intervals} are not canonical intervals")
+        undeclared = sorted(set(op["intervalIds"]) - set(declared))
+        if undeclared:
+            raise CompileError(
+                f"basin {basin['basinId']} op {op['opId']}: {undeclared} are not in the contract's "
+                "declared intervals")
+        editorial = op.get("editorial", "")
+        if not editorial.startswith(EDITORIAL_PREFIX):
+            raise CompileError(
+                f"basin {basin['basinId']} op {op['opId']}: editorial must start with "
+                f"{EDITORIAL_PREFIX!r}")
+        uncertainty = op.get("spatialUncertaintyKilometres")
+        if not isinstance(uncertainty, (int, float)) or uncertainty <= 0:
+            raise CompileError(
+                f"basin {basin['basinId']} op {op['opId']}: spatialUncertaintyKilometres must be "
+                "a positive number")
         geometry = polygonal(shape(op["geometry"]))
         if geometry.is_empty:
             raise CompileError(f"basin {basin['basinId']} op {op['opId']}: empty geometry")
@@ -434,8 +474,23 @@ def apply_basin_ops(class_name: str, rows: list[dict], geometries: dict[int, obj
     it names, ``add-*`` introduces one synthetic record with the operation's own
     lifecycle, and ``replace-ring`` swaps the geometry of one named record inside
     the basin window. Every operation records the area it changed.
+
+    Two scope rules are enforced here rather than trusted:
+
+    * the operation's declared intervals have to be contiguous in the canonical
+      schedule, because an ``add-*`` record carries one ``(TOAGE, FROMAGE]``
+      lifecycle and a gap in the list would silently edit the interval between;
+    * a record an operation edits has to stay inside that lifecycle. Geometry is
+      held per source record, not per interval, so editing a record that is also
+      active outside the declared intervals would move the coastline at an age
+      the contract never cites. The compiler refuses instead of leaking.
+
+    Every record an operation actually changes carries that operation's
+    ``references``, so its evidence record is interned with the edit's citations
+    in ``sourceIds`` and the map key shows them whenever the piece is on screen.
     """
     by_id = {interval["intervalId"]: interval for interval in intervals}
+    order = {interval["intervalId"]: index for index, interval in enumerate(intervals)}
     report: list[dict] = []
     next_index = (max((row["index"] for row in rows), default=-1) + 1)
     for basin in basins:
@@ -448,18 +503,52 @@ def apply_basin_ops(class_name: str, rows: list[dict], geometries: dict[int, obj
             if kind != "replace-ring" and target_class != class_name:
                 continue
             geometry = densify_geometry(polygonal(shape(op["geometry"])))
+            positions = sorted(order[interval_id] for interval_id in op["intervalIds"])
+            if positions != list(range(positions[0], positions[0] + len(positions))):
+                raise CompileError(
+                    f"basin {basin['basinId']} op {op['opId']}: {op['intervalIds']} are not "
+                    "contiguous in the canonical schedule")
             touched = [by_id[interval_id] for interval_id in op["intervalIds"]]
             oldest = max(interval["fromAgeMa"] for interval in touched)
             youngest = min(interval["toAgeMa"] for interval in touched)
-            before = sum(area_km2(geometries[row["index"]]) for row in rows
-                         if geometries[row["index"]].intersects(window))
+            def window_areas() -> tuple[float, float]:
+                """Class area inside the basin window over the operation's own intervals.
+
+                Restricted to the records active in ``(youngest, oldest]``, because
+                every other record is untouched and its area would only dilute the
+                measurement. Two figures: the summed one counts each record
+                separately, so records of one class that overlap are counted twice;
+                the dissolved one is the ground the class actually covers inside the
+                window, which is what "area changed" means to a reader of the
+                research record.
+                """
+                parts = [geometries[row["index"]] for row in rows
+                         if row["toAge"] < oldest and youngest < row["fromAge"]
+                         and geometries[row["index"]].intersects(window)]
+                summed = sum(area_km2(part.intersection(window)) for part in parts)
+                dissolved = shapely.union_all(parts).intersection(window) if parts else None
+                return summed, (area_km2(dissolved) if dissolved is not None else 0.0)
+
+            before, dissolved_before = window_areas()
+            edited_records = 0
             if kind.startswith("remove"):
                 for row in rows:
                     if not (row["toAge"] < oldest and youngest < row["fromAge"]):
                         continue
                     current = geometries[row["index"]]
-                    if current.intersects(geometry):
-                        geometries[row["index"]] = polygonal(current.difference(geometry))
+                    if not current.intersects(geometry):
+                        continue
+                    if not (oldest >= row["fromAge"] and youngest <= row["toAge"]):
+                        raise CompileError(
+                            f"basin {basin['basinId']} op {op['opId']}: record {row['index']} is "
+                            f"active over ({row['toAge']}, {row['fromAge']}], which reaches outside "
+                            f"the operation's ({youngest}, {oldest}] intervals")
+                    geometries[row["index"]] = polygonal(current.difference(geometry))
+                    row["references"] = sorted(set(row.get("references", [])) | set(op["references"]))
+                    row["basinId"] = basin["basinId"]
+                    row["basinOpId"] = "+".join(
+                        sorted(set((row.get("basinOpId") or "").split("+")) - {""} | {op["opId"]}))
+                    edited_records += 1
             elif kind.startswith("add"):
                 rows.append({"index": next_index, "class": class_name, "fromAge": oldest,
                              "toAge": youngest, "timeMa": None, "plateId1": op.get("plateId1"),
@@ -468,21 +557,39 @@ def apply_basin_ops(class_name: str, rows: list[dict], geometries: dict[int, obj
                              "references": op["references"]})
                 geometries[next_index] = geometry
                 next_index += 1
+                edited_records = 1
             else:  # replace-ring
                 target = op["targetRecordIndex"]
                 if target not in geometries:
                     raise CompileError(f"op {op['opId']}: record {target} is not in class {class_name}")
+                target_row = next(row for row in rows if row["index"] == target)
+                if not (oldest >= target_row["fromAge"] and youngest <= target_row["toAge"]):
+                    raise CompileError(
+                        f"basin {basin['basinId']} op {op['opId']}: record {target} is active over "
+                        f"({target_row['toAge']}, {target_row['fromAge']}], which reaches outside "
+                        f"the operation's ({youngest}, {oldest}] intervals")
                 current = geometries[target]
                 geometries[target] = polygonal(
                     polygonal(current.difference(window)).union(geometry))
-            after = sum(area_km2(geometries[row["index"]]) for row in rows
-                        if geometries[row["index"]].intersects(window))
+                target_row["references"] = sorted(
+                    set(target_row.get("references", [])) | set(op["references"]))
+                target_row["basinId"] = basin["basinId"]
+                target_row["basinOpId"] = "+".join(
+                    sorted(set((target_row.get("basinOpId") or "").split("+")) - {""} | {op["opId"]}))
+                edited_records = 1
+            after, dissolved_after = window_areas()
             report.append({"basinId": basin["basinId"], "opId": op["opId"], "kind": kind,
                            "class": class_name, "intervalIds": op["intervalIds"],
                            "references": op["references"],
+                           "spatialUncertaintyKilometres": op["spatialUncertaintyKilometres"],
+                           "editedRecords": edited_records,
                            "areaBeforeSquareKilometres": round(before, 3),
                            "areaAfterSquareKilometres": round(after, 3),
-                           "areaChangeSquareKilometres": round(after - before, 3)})
+                           "areaChangeSquareKilometres": round(after - before, 3),
+                           "dissolvedAreaBeforeSquareKilometres": round(dissolved_before, 3),
+                           "dissolvedAreaAfterSquareKilometres": round(dissolved_after, 3),
+                           "dissolvedAreaChangeSquareKilometres": round(
+                               dissolved_after - dissolved_before, 3)})
     return rows, geometries, report
 
 
@@ -1178,7 +1285,7 @@ def evidence_record(class_name: str, basin_references: list[str], edited: bool) 
         "limitations": limitations,
     }
     if edited:
-        record["editorial"] = "EarthHistory modification after " + ", ".join(sorted(basin_references))
+        record["editorial"] = EDITORIAL_PREFIX + ", ".join(sorted(basin_references))
     return record
 
 
@@ -1372,12 +1479,17 @@ def build_tone_tables(segments: dict, intervals: list[dict],
 def compile_class(class_name: str, rows: list[dict], intervals: list[dict], partitions: list[dict],
                   tree: STRtree, rotations, by_plate: dict[int, list[dict]], palette: dict,
                   overrides: dict[str, list[int]], simplification: dict, basins: list[dict],
-                  store: Path, staging: Path, estimate_triangles: bool) -> dict:
+                  store: Path, staging: Path, estimate_triangles: bool,
+                  canonical_intervals: list[dict] | None = None) -> dict:
     started = time.time()
     kept_rows, quarantined = quarantine(rows)
     geometries = {row["index"]: record_polygon(row, densify=True) for row in kept_rows}
+    # Basin ops resolve their lifecycles against the full published schedule, not
+    # against a development `--intervals` subset: an edit's ages are a property of
+    # the contract, so a partial run must emit the same geometry for the intervals
+    # it does compile.
     kept_rows, geometries, basin_report = apply_basin_ops(
-        class_name, kept_rows, geometries, basins, intervals)
+        class_name, kept_rows, geometries, basins, canonical_intervals or intervals)
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
     override_plates = set(overrides.get(class_name, []))
@@ -1894,7 +2006,7 @@ def payload_url(class_name: str, interval_id: str) -> str:
 # --------------------------------------------------------------------------
 
 def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
-                interval_filter: set[str] | None) -> dict:
+                interval_filter: set[str] | None, shipped: list[str]) -> dict:
     started = time.time()
     manifest = load_json(CONFIG / "sources.json")
     inputs = verify_sources(manifest)
@@ -1909,6 +2021,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
     audit.checkpoint_report(rows_by_class, intervals)
     interval_ids = {interval["intervalId"] for interval in intervals}
     basins = load_basins(interval_ids)
+    canonical_intervals = list(intervals)
     if interval_filter:
         unknown = sorted(interval_filter - interval_ids)
         if unknown:
@@ -1933,7 +2046,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         result = compile_class(class_name, rows_by_class[class_name], intervals, partitions, tree,
                                rotations, by_plate, palette, overrides, simplification, basins,
                                store / "original" / class_name, store / "staging" / class_name,
-                               estimate_triangles)
+                               estimate_triangles, canonical_intervals)
         catalog = result["catalog"]
         provenance = result["provenance"]
         provenance["inputs"] = inputs
@@ -1966,10 +2079,14 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         (store / "original" / class_name / f"palaeo-{class_name}-catalog.json").write_bytes(
             canonical(catalog))
         catalogs[class_name] = catalog
-        for interval_id, entries in result["landByInterval"].items():
-            land_by_interval[interval_id].extend(entries)
-        for interval_id, entries in result["shelfByInterval"].items():
-            shelf_by_interval[interval_id].extend(entries)
+        # A tone table is read against what the browser actually draws. A class
+        # that is compiled but not promoted contributes no pixels, so it must not
+        # darken an outline segment either.
+        if class_name in shipped:
+            for interval_id, entries in result["landByInterval"].items():
+                land_by_interval[interval_id].extend(entries)
+            for interval_id, entries in result["shelfByInterval"].items():
+                shelf_by_interval[interval_id].extend(entries)
         summary[class_name] = {
             "simplifiedBytes": provenance["totals"]["simplifiedBytes"],
             "originalBytes": provenance["totals"]["originalBytes"],
@@ -1992,7 +2109,8 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         }
 
     tone_summary = None
-    if {"lm", "m"} & set(classes):
+    shipped_compiled = [name for name in classes if name in shipped]
+    if {"lm", "m"} & set(shipped_compiled):
         segments = load_country_segments()
         crust = load_cao2024_crust()
         payload, tone_catalog = build_tone_tables(segments, intervals, land_by_interval,
@@ -2001,9 +2119,24 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         tone_path.write_bytes(payload)
         tone_catalog["geometryAsset"] = {"url": tone_path.name, "bytes": len(payload),
                                          "sha256": sha256_bytes(payload)}
-        tone_catalog["darkClassesUsed"] = sorted({"lm", "m"} & set(classes))
-        tone_catalog["shelfClassesUsed"] = sorted(({"sm"} & set(classes)) | {"cao-2024-continental-crust"})
-        tone_catalog["intervals"] = interval_index(intervals, catalogs)
+        tone_catalog["darkClassesUsed"] = sorted({"lm", "m"} & set(shipped_compiled))
+        tone_catalog["shelfClassesUsed"] = sorted(
+            ({"sm"} & set(shipped_compiled)) | {"cao-2024-continental-crust"})
+        tone_catalog["shippedClasses"] = list(shipped_compiled)
+        # The legend has to name the classes this table was actually built from,
+        # or it would promise dark ink over a class the build does not publish.
+        tone_catalog["values"]["0"] = (
+            "dark ink: the segment midpoint is inside a "
+            + " or ".join(CLASS_NAMES[name] for name in tone_catalog["darkClassesUsed"])
+            + " piece of the same plate")
+        tone_catalog["values"]["1"] = (
+            "light over shallow ground: mapped "
+            + " or ".join(CLASS_NAMES[name] for name in tone_catalog["shelfClassesUsed"]
+                          if name in CLASS_NAMES)
+            + " of the same plate, or Cao 2024 continental crust of that plate whose depth the "
+              "model does not state")
+        tone_catalog["intervals"] = interval_index(
+            intervals, {name: catalogs[name] for name in shipped_compiled})
         (store / "staging" / "outline-tones.json").write_bytes(canonical(tone_catalog))
         tone_summary = {"url": tone_path.name, "bytes": len(payload),
                         "sha256": tone_catalog["geometryAsset"]["sha256"],
@@ -2019,7 +2152,13 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
 
 
 def interval_index(intervals: list[dict], catalogs: dict[str, dict]) -> list[dict]:
-    """The per-interval file index, oldest to youngest, one entry per compiled class."""
+    """The per-interval file index, oldest to youngest, one entry per **shipped** class.
+
+    `compile_all` passes only the classes the promote script publishes. Indexing a
+    compiled-but-unshipped class here would name a payload URL the package never
+    serves, and the vertex and triangle totals below would reserve for geometry
+    the browser never receives.
+    """
     by_class = {name: {row["intervalId"]: row for row in catalog_intervals(catalog)}
                 for name, catalog in catalogs.items()}
     rows = []
@@ -2077,6 +2216,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--classes", default="lm,sm,m",
                         help="comma-separated subset of lm,sm,m (default: all three)")
+    parser.add_argument("--shipped-classes", default=",".join(SHIPPED_CLASSES),
+                        help=("comma-separated classes the promote script publishes; only these "
+                              "appear in the outline-tone interval index and colour a tone table "
+                              f"(default: {','.join(SHIPPED_CLASSES)})"))
     parser.add_argument("--intervals", default=None,
                         help="comma-separated canonical interval ids, for development runs")
     parser.add_argument("--store", type=Path, default=STORE,
@@ -2093,9 +2236,14 @@ def main() -> None:
     unknown = [name for name in classes if name not in CLASS_CODES]
     if unknown:
         parser.error(f"unknown classes {unknown}")
+    shipped = [name.strip() for name in args.shipped_classes.split(",") if name.strip()]
+    unknown = [name for name in shipped if name not in CLASS_CODES]
+    if unknown:
+        parser.error(f"unknown shipped classes {unknown}")
     interval_filter = ({name.strip() for name in args.intervals.split(",") if name.strip()}
                        if args.intervals else None)
-    result = compile_all(classes, args.store, not args.no_triangle_estimate, interval_filter)
+    result = compile_all(classes, args.store, not args.no_triangle_estimate, interval_filter,
+                         shipped)
     print(json.dumps(result, indent=1))
 
 

@@ -113,6 +113,19 @@ def reservation(catalogs: dict[str, dict]) -> dict:
 
 def copy_shipped(staging: Path) -> list[Path]:
     """Replace the published palaeo directory with exactly what ships."""
+    # The compiler decides which classes colour a tone table and appear in its
+    # interval index; this script decides which class payloads ship. The two
+    # lists are the same list, so a drift is a build error rather than a tone
+    # table that darkens outlines over geometry the browser never receives.
+    # Checked before the published directory is removed, so a mismatch leaves
+    # the existing package intact.
+    staged_shipped = json.loads(
+        (staging / "outline-tones.json").read_text()).get("shippedClasses")
+    if staged_shipped != list(SHIPPED_CLASSES):
+        raise SystemExit(
+            f"the staged tone tables were compiled for classes {staged_shipped}; this script "
+            f"publishes {list(SHIPPED_CLASSES)}. Recompile with "
+            f"--shipped-classes {','.join(SHIPPED_CLASSES)}.")
     if PALAEO_DIR.exists():
         shutil.rmtree(PALAEO_DIR)
     copied: list[Path] = []

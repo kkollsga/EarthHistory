@@ -202,7 +202,7 @@ tables are expanded by the palaeo decoder.
 | `bindingKinds` | `["partition", "override", "restoration", "recovery"]` |
 | `bindings` | columnar, one row per distinct motion binding |
 | `gapSets` | the distinct declared source-seam sets a binding row points at |
-| `evidence` | an object array (one row per class today, more once a basin edit lands) |
+| `evidence` | an object array, one row per distinct reference set: the unedited class row plus one per basin-edit reference set |
 | `lifecycles` | columnar `{youngestExclusiveMa, oldestMa}` |
 | `intervals` | columnar, one row per shipped interval |
 
@@ -219,9 +219,15 @@ the renderer's reservation, `maximumEdgeDegrees` its edge bound. The
 unsimplified `original` payload's own record stays in the sidecar: it never
 ships.
 
-`evidence[]` rows are unchanged: `status`, `surfaceClass`, `appearance`,
-`method`, `sourceIds`, `limitations`, and `editorial` exactly when a cited basin
-edit contributed.
+`evidence[]` rows: `status`, `surfaceClass`, `appearance`, `method`,
+`sourceIds`, `limitations`, and `editorial` exactly when a cited basin edit
+contributed. The unedited row carries `status: classified-map-polygon`; an
+edited row carries `status: derived-from-published-source`, the edit's reference
+ids appended to the three published ones, and an `editorial` line
+"EarthHistory modification after &lt;refs&gt;". Rows are interned, so two
+operations that cite the same references share one row and two that do not get
+two. Measured 2026-09-15 with the North Sea contract's eleven operations: lm 6
+rows, sm 7 rows.
 
 ### Binding rows
 
@@ -340,7 +346,10 @@ measurement it re-derives.
 
 - `charts` — columnar, one row per compiled source record, in `chartIndex`
   order: `sourceRecordIndex` (the DBF row), `plateId1`, `fromAgeMa`, `toAgeMa`,
-  `featureIdRef`, `offSchedule`, `basinOpId`. `featureIdRef` indexes the
+  `featureIdRef`, `offSchedule`, `basinOpId`. `basinOpId` is `null` for an
+  untouched Cao record, one operation id for a record a basin edit added or
+  changed, and several joined by `+` where more than one operation touched the
+  same record. `featureIdRef` indexes the
   `featureIds` string table, because thousands of cut pieces share one GPlates
   feature id; this is the `<field>Ref` convention of
   `scripts/research/cao_package_intern.py`.
@@ -355,7 +364,7 @@ measurement it re-derives.
   `rotationCheck`, `totals`, `generatedBy`, `generatedAt`, `runtime` — the
   compile record.
 
-Measured 2026-09-15: lm 548,246 B, sm 966,168 B, m 386,943 B.
+Measured 2026-09-15: lm 557,524 B, sm 977,914 B, m 387,560 B.
 
 ## Outline tone tables — `outline-tones.ehpt`
 
@@ -377,7 +386,7 @@ order as `intervals[]` in `outline-tones.json`. Segment *i* lives in byte
 
 | Value | Tone |
 |---|---|
-| 0 | dark ink: the segment midpoint is inside a landmass or mountain piece of the same plate |
+| 0 | dark ink: the segment midpoint is inside a piece of a shipped dark class (`lm`, and `m` if a build ever publishes it) on the same plate |
 | 1 | light over shallow ground: mapped shallow marine of the same plate, or Cao 2024 continental crust of that plate whose depth the model does not state |
 | 2 | light over deep or unmapped ground |
 | 3 | inactive: the country-reference chart is not active at the interval mid-age |
@@ -393,12 +402,18 @@ the payload directory), `bytes`, `sha256`, `pieces`, `vertices` and
 `estimatedTriangles`. The tone payload's own `bytes` and `sha256` are recorded
 in `geometryAsset`.
 
-`classes` indexes every class the compiler produced, not only the classes a
-build publishes: the mountain class is compiled and validated offline and is
-listed here with its measurements, while `public/data` carries only `lm` and
-`sm`. The index is a compile record, never a fetch list — the runtime derives a
-payload url from its own class catalog's `payloadNameTemplate` and downloads
-only the classes the package manifest declares.
+`classes` indexes exactly the classes the build publishes, named in
+`shippedClasses` at the top level of the same document and passed to the
+compiler as `--shipped-classes`. The mountain class is compiled and validated
+offline and appears in neither: indexing it here would name a payload url the
+package never serves, and its vertex and triangle totals would reserve for
+geometry the browser never receives. The same list decides which classes colour
+a tone table, so a segment is never inked dark over a class the build withholds.
+`promote_palaeo_coastlines.py` refuses to publish staged tables whose
+`shippedClasses` disagrees with what it copies. The index remains a compile
+record, never a fetch list — the runtime derives a payload url from its own
+class catalog's `payloadNameTemplate` and downloads only the classes the package
+manifest declares.
 
 The midpoint of each segment is decoded from `country-reference.ehgl`; the plate
 comes from the segment's own country-reference chart. The match is by plate id,

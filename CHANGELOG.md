@@ -43,6 +43,42 @@ All notable changes to EarthHistory will be recorded here.
   ownership asset and every existing citation are exactly what they were. The
   mountain class stays compiled and validated offline: it is not funded by the
   byte budget and does not ship.
+- Eleven cited local modifications to the Cao 2017 polygons in the North Sea,
+  the first basin the plan's edit contract covers. In five of the twenty-four
+  map intervals the source misstates the land-sea pattern at basin scale, and
+  113,728 km2 of landmass is added and 191,943 km2 of shallow marine removed to
+  fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
+  and goes back to being a lake in a continent (402-380 Ma); the Moray Firth
+  emerges in the Zechstein while the Central North Sea evaporite basin stays
+  flooded (269-248); the East Shetland Platform and the Brent/Vestland delta
+  plain emerge in the Middle Jurassic, the delta plain bounded north by the
+  published ca. 60 degrees 30 minutes N limit (179-166); and the Shetland
+  Platform emerges in the Palaeocene and Eocene, where Cao's own authors record
+  fewer than twenty marine fossil collections constraining the whole globe
+  (58-49, 49-37). Each operation carries its rationale, a 40-60 km spatial
+  uncertainty, its references with DOI or URL, and an editorial line
+  "EarthHistory modification after <refs>"; the edited charts carry those
+  references in their evidence records, so the map key names them whenever an
+  edited chart is on screen. Every geometry is EarthHistory's own coarse
+  five-to-seven-vertex construction sized from the published descriptions, and
+  the literature is citation-only: no figure, map plate or coordinate list is
+  traced, digitised or redistributed, the two NSTA/OGA regional packages
+  (Open Government Licence v3.0) are read as facies descriptions only, and the
+  only redistributed palaeogeographic geometry remains Cao et al. (2017). Six
+  interval groups are deliberately left untouched and the contract says why,
+  including the Late Cretaceous platform flooding and the Forties provenance the
+  literature memo flags as unsettled, the Late Jurassic rift seaways Cao already
+  gets right, and the northern limit of the Zechstein Sea nothing retrieved
+  places. The record is
+  `docs/research/palaeo-coastlines-north-sea-edits.md`. The published set grows
+  by 5,901 bytes to 6,986,824 over the same 52 files, the renderer reservation
+  is unchanged, and the nineteen unedited intervals are byte-identical. In the
+  same change the country-outline tone tables stop describing geometry the build
+  withholds: they had been inked from the unshipped mountain class as well as
+  the landmass class, drawing 261 outline segments at 402-380 Ma dark over land
+  the browser never receives, and both the tables and their interval index are
+  now built from the shipped class list alone, which the promote script refuses
+  to publish against a mismatch.
 
 ### Changed
 

@@ -4278,7 +4278,7 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "8a62b319c74f101b5ebf3158d15aa33e833949356f84a10faf418521d57c81c8",
+          "sha256": "8db1085a8c412c651850cbd690853cae8a638ad6dffe4c16a7ab8ac4b227b851",
           "bytes": 41295
         },
         {
@@ -7661,8 +7661,8 @@
         {
           "role": "lm/palaeo-lm-179-166.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-179-166.ehpr",
-          "bytes": 133264,
-          "sha256": "f094740b917b7a848435c8e5a3eb5192b1809d99568c1da7bf28192a0698564a"
+          "bytes": 133588,
+          "sha256": "e692f49aac87ca3454f2d1a6a7f735f89d16c1a621dacb96926d4eb7ef43d776"
         },
         {
           "role": "lm/palaeo-lm-20-11.ehpr",
@@ -7691,8 +7691,8 @@
         {
           "role": "lm/palaeo-lm-269-248.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-269-248.ehpr",
-          "bytes": 116272,
-          "sha256": "af4f6529ea6d14453dd52c8228d22f57b2389c7c241607c487229f4b0248041b"
+          "bytes": 116334,
+          "sha256": "ba605472454cda073a87b3ba5e2f97fe6b542a0a9aec6a330f8891b5d21ca75c"
         },
         {
           "role": "lm/palaeo-lm-285-269.ehpr",
@@ -7751,14 +7751,14 @@
         {
           "role": "lm/palaeo-lm-49-37.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-49-37.ehpr",
-          "bytes": 170146,
-          "sha256": "a9cdedd0a19a1d26e3b96dd05246182121c64a0e6e5c4982b35811277b648b24"
+          "bytes": 170324,
+          "sha256": "083c5f7f555678a8d58da3b594c5cde7b992990bc9398a1a3a7881762a643231"
         },
         {
           "role": "lm/palaeo-lm-58-49.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-58-49.ehpr",
-          "bytes": 163534,
-          "sha256": "1d530cc25adedbdc3dd3d3c42541658e4b7cbf07dfebf3ef0c1d16234d030038"
+          "bytes": 163712,
+          "sha256": "4111b22d51f48527e4075552fc5926bfa4ca54de92f0870aa1703f761868b491"
         },
         {
           "role": "lm/palaeo-lm-81-58.ehpr",
@@ -7775,20 +7775,20 @@
         {
           "role": "lm/palaeo-lm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-catalog.json",
-          "bytes": 26796,
-          "sha256": "57db4a291160c4b972712b1c2c12ae650733c44b2c38224e4d1384748900102d"
+          "bytes": 31416,
+          "sha256": "f10632f3827b02dd1aab276fbd8b3de4ff5cd5f5bc74bcc74eed7aa1c3dd0c70"
         },
         {
           "role": "outline-tones.ehpt",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.ehpt",
           "bytes": 72320,
-          "sha256": "b5d6b7d194f74fcc5da891de81afa333a7807ea6ad173e2dfa0ba631410e9ea9"
+          "sha256": "4852a399903e7afa97ae87636ded0f4177ec277be1884e724efce7eeb4ae2342"
         },
         {
           "role": "outline-tones.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.json",
-          "bytes": 29728,
-          "sha256": "0497578877f07fb7b585a1a44ff63ae9d45e9a75df19ed92df8576cbd68e0179"
+          "bytes": 24045,
+          "sha256": "9e54333eaead454c1a2ae5283fb987772816e5f5950d6d7115cc531bf14bde04"
         },
         {
           "role": "sm/palaeo-sm-11-2.ehpr",
@@ -7823,8 +7823,8 @@
         {
           "role": "sm/palaeo-sm-179-166.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-179-166.ehpr",
-          "bytes": 120602,
-          "sha256": "c9994ce81f3fe42800f5c2af7b9a5e13ec62a943bff2048b81b047c72d30b96b"
+          "bytes": 120482,
+          "sha256": "1fcde2b72104891850d5d3811a91bdcaee4841430b8aa8e1b9223e51be5e4167"
         },
         {
           "role": "sm/palaeo-sm-20-11.ehpr",
@@ -7853,8 +7853,8 @@
         {
           "role": "sm/palaeo-sm-269-248.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-269-248.ehpr",
-          "bytes": 106294,
-          "sha256": "67caeab96265418227f1468af24efb899be4d66d1b18657e4ceb1514a64b692d"
+          "bytes": 106314,
+          "sha256": "1b20c3a983b64eab1547db338a94cbf2aca5cf809867b232015133bc7fba7fcb"
         },
         {
           "role": "sm/palaeo-sm-285-269.ehpr",
@@ -7907,20 +7907,20 @@
         {
           "role": "sm/palaeo-sm-402-380.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-402-380.ehpr",
-          "bytes": 152102,
-          "sha256": "56f812215d293177951ce56f8282e3fc4cd88c2ca9139a598bd0124a53853b90"
+          "bytes": 152032,
+          "sha256": "2d69a49563ccf5b30acdbf85530ba53df8b2d3107e0b0e33494a9e568e2aba78"
         },
         {
           "role": "sm/palaeo-sm-49-37.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-49-37.ehpr",
-          "bytes": 198902,
-          "sha256": "6fd4d8afa3910b02ca7df1fb94af36e7043cd54fbcd1fa5d836667a18aa63672"
+          "bytes": 198842,
+          "sha256": "3ba6c52857d503f61041b9cc3dad1277b300b1e01b74c7fc395f057395ccbc36"
         },
         {
           "role": "sm/palaeo-sm-58-49.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-58-49.ehpr",
-          "bytes": 178356,
-          "sha256": "5cf9babfa0f1a5a2cfca0a61cf2f07a9e9c9189bee21647e2be990fc59eb82c8"
+          "bytes": 178368,
+          "sha256": "1aa116d25d1a63b9eca33e1120726e3732e34d36b9371ef4299ab240b58d737a"
         },
         {
           "role": "sm/palaeo-sm-81-58.ehpr",
@@ -7937,8 +7937,8 @@
         {
           "role": "sm/palaeo-sm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-catalog.json",
-          "bytes": 42849,
-          "sha256": "7ad7a02f6ecb5acd551b7097092a42428684333804383ef0e6527178b4bc6a7b"
+          "bytes": 49289,
+          "sha256": "465e0fce8c1b19d69cb81ed7da9877e11808acf94095667efeaeeab7200484f4"
         }
       ]
     }
