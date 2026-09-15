@@ -4,6 +4,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-09-16
+
 ### Changed
 
 - **Palaeo mountains are a readable light brown on screen, not only in their
@@ -31,6 +33,39 @@ All notable changes to EarthHistory will be recorded here.
   the final aims, against the 30 floor) before the colour moved.
 
 ### Added
+
+- **`at=` deep links are posed through time.** `at=<lon>,<lat>` is a present-day
+  coordinate, but the camera read it as a direction in the rendered frame: a
+  link written at 90 Ma framed whatever ground the plate model had rotated under
+  that direction, and nothing on screen said so. The coordinate is now carried
+  through the motion frame, so the camera aims at the reconstructed position of
+  the ground the link names while the hash keeps naming the ground. A browser
+  check aims `#age=90&at=-100,45` at the Western Interior Seaway, requires the
+  settled camera longitude to differ from -100 by more than 3 degrees, and reads
+  the centre pick back as a present-day direction within 5 degrees of the
+  coordinate the link asked for.
+- **`focus=north-sea-rift` has an anchor of its own** in the Cao anchor catalog:
+  a `poi-anchor` chart cut to the validity of the Cao fragment that carries it,
+  270-130 Ma, with the point's 200 km coordinate uncertainty and the two source
+  ids it cites. A browser check proves the link moves the camera more than 2
+  degrees off its resting pose at 255 Ma.
+- **Three more inland seas**, each two ops with the contract's mandated
+  `add-shallow` companion beneath its land removal: the **San Juan Basin** arm
+  of the Western Interior Seaway at 81-58 Ma (the marine Lewis Shale under the
+  Pictured Cliffs Sandstone), the **North Alpine Foreland Basin** at 37-29 Ma
+  (the fully marine Untere Meeresmolasse of the Rupelian) and the **South
+  Makassar Basin** at 49-37 Ma (Middle Eocene extension of the south-eastern
+  Sundaland margin). Every candidate witness the six review memos produced is
+  pinned in `data/corrections/palaeo-coastlines/witnesses-pending.json`
+  (76 rows) rather than left in prose, and the defensible ones are ingested:
+  the source witness table goes from 89 to 104 rows over twenty probed intervals
+  and the basin-edit table from 52 to 59.
+- **The map key states what the class set cannot say**
+  (`src/data/palaeoKeyText.ts`): an interval is the maximum flooding of a
+  10-27 Myr bin rather than a shoreline at one moment, shallow marine is an
+  environment and not a water depth, there is no lake or brackish class, and a
+  feature below the source's ~30 km class floor is absent from the map rather
+  than dry.
 
 - **Restored pre-collision margins for the Alps and the Scandinavian
   Caledonides.** The Cao 2024 model builds both orogens out of present-day crust
@@ -72,13 +107,13 @@ All notable changes to EarthHistory will be recorded here.
 - A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
   coast proxy with mapped palaeogeography for the 24 published map intervals
   from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. All
-  three Cao surface classes ship: 26,796 landmass pieces (3,449,240 bytes),
-  31,271 shallow-marine pieces (3,493,033 bytes) and 12,151 mountain pieces
-  (1,195,909 bytes), cut from 7,155, 13,395 and 4,789 Cao et al. (2017) source
+  three Cao surface classes ship: 26,095 landmass pieces (3,398,702 bytes),
+  28,500 shallow-marine pieces (3,221,980 bytes) and 11,710 mountain pieces
+  (1,153,074 bytes), cut from 7,363, 13,400 and 4,787 Cao et al. (2017) source
   records and the cited basin and lowstand contracts, plus three columnar class
-  catalogs and 25 country-outline tone tables (107,504 bytes for both files) —
-  8,245,686 bytes over 80 files, inside the 8.5 MiB budget `check-app-artifacts`
-  now enforces. `dist` is 51,542,105 bytes (49.15 MiB) against the unchanged
+  catalogs and 25 country-outline tone tables (107,502 bytes for both files) —
+  8,022,435 bytes over 80 files, inside the 8.5 MiB budget `check-app-artifacts`
+  now enforces. `dist` is 51,431,072 bytes (49.05 MiB) against the unchanged
   50 MiB ceiling.
 - The mechanism: the browser downloads polygon rings, not triangles. A published
   interval is one EHPR v1 payload per class — int16 lon/lat vertices, a 12-byte
@@ -115,15 +150,15 @@ All notable changes to EarthHistory will be recorded here.
   in the blue the map key defines as "Cao 2024 continental crust, depth
   unmapped", asserting an absence of evidence the source does not have over
   areas the size of continents. At 170 Ma the Pentland Firth between Caithness
-  and Orkney rendered as water 90 km from land that was drawn. The colour is
-  `#c8a97e`: the dark outline and label ink clears it at 6.86:1, and it
-  separates from the `palaeo-land` olive by hue rather than by lightness
-  (CIE76 dE 21.1; 56.7 against the shallow-marine teal). Precedence is
-  unchanged — mountain over land over corrections over shallow marine over
-  shelf — and the map key's "Palaeo mountain" row returns with the class. The
-  class carries Cao's own evidence row and adds no new literature claim; its
-  limitation line says it is a mapped relief class, neither an elevation nor a
-  modern topographic surface.
+  and Orkney rendered as water 90 km from land that was drawn. The class first
+  shipped with the base colour `#c8a97e`, which the tone census recorded above
+  measured as unreadable once the renderer had lit it; it ships as `#fd7328`,
+  and that Changed entry records the measurement and the final rendered tone.
+  Precedence is unchanged — mountain over land over corrections over shallow
+  marine over shelf — and the map key's "Palaeo mountain" row returns with the
+  class. The class carries Cao's own evidence row and adds no new literature
+  claim; its limitation line says it is a mapped relief class, neither an
+  elevation nor a modern topographic surface.
 - The mountain class is funded by a lossless reclaim, not by dropping a tier.
   The shipped package already interned repeated chart fields; the interned field
   list grew from four to twelve and the references moved into one dense column
@@ -133,7 +168,7 @@ All notable changes to EarthHistory will be recorded here.
   against the 1,172,814 the class needed. Every chart is deep-equal after
   expansion and the whole document is canonically equal; six deliberate
   mutations are proven red in both halves of the codec. `PALAEO_MAX_BYTES` rose
-  from 7 to 8.5 MiB, inside what was reclaimed, and `dist` keeps 886,695 bytes
+  from 7 to 8.5 MiB, inside what was reclaimed, and `dist` keeps 997,728 bytes
   of margin under the 50 MiB ceiling. Two further reclaims were measured and
   deliberately left untaken — mountain node reduction at 0.05 degrees (41,654
   bytes, 3.5 % of the class, for a real loss of boundary detail) and interning
@@ -307,7 +342,7 @@ All notable changes to EarthHistory will be recorded here.
   58-49 and 49-37 Ma** and closes at 37-29. The plan had recorded it as land in
   every interval and called restoring it the highest-value fix available; that
   came from probing only the four intervals in which the strait is dry, and
-  `WITNESS_INTERVALS` now spans nineteen intervals rather than twelve so the
+  `WITNESS_INTERVALS` now spans twenty intervals rather than twelve so the
   same blind spot cannot recur. Two more of those rows keep western Amazonia
   drawn as land through the Neogene rather than as shallow marine, which would
   assert the contested marine reading of the Pebas system over the published
@@ -316,7 +351,7 @@ All notable changes to EarthHistory will be recorded here.
   Jurassic footwall archipelago, the Forties-Montrose High, the Tampen Spur -
   so that a later change has to be deliberate. Every row is a class SET rather
   than a membership test, because three of the findings are invisible to a
-  membership test. `palaeo_coastlines_correction.py --self-test` now proves 33
+  membership test. `palaeo_coastlines_correction.py --self-test` now proves 35
   mutations red, up from 27.
 - A **pre-collision extent gate**, `scripts/research/validate_precollision_extent.py`,
   and the unit test `src/reconstruction/precollisionExtent.test.ts` beside it.
