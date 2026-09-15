@@ -63,29 +63,47 @@ describe("interned Cao package documents", () => {
     expect(() => validateReconstructionCoreV2(core, packageManifest, palette)).not.toThrow();
   });
 
-  it("rejects a chart dictionary reference outside its table", async () => {
+  it("rejects a chart column reference outside its table", async () => {
     const packageManifest = await manifest();
     const interned = await raw(packageManifest.core.url) as
-      { chartDictionaries: Record<string, unknown[]>; charts: Record<string, unknown>[] };
+      { chartDictionaries: Record<string, unknown[]>;
+        chartColumns: Record<string, number[]>; charts: Record<string, unknown>[] };
     const past = clone(interned);
-    past.charts[0]!.lifecycleRef = past.chartDictionaries.lifecycle!.length;
+    past.chartColumns.lifecycle![0] = past.chartDictionaries.lifecycle!.length;
     expect(() => expandInternedPackageDocument(past)).toThrow(/dictionary reference out of range/);
 
     const negative = clone(interned);
-    (negative.charts[0]!.evidence as Record<string, unknown>).limitationsRef = -1;
+    negative.chartColumns["evidence.limitations"]![0] = -1;
     expect(() => expandInternedPackageDocument(negative))
       .toThrow(/dictionary reference out of range/);
 
     const fractional = clone(interned);
-    fractional.charts[0]!.motionBindingsRef = 1.5;
+    fractional.chartColumns.motionBindings![0] = 1.5;
     expect(() => expandInternedPackageDocument(fractional))
       .toThrow(/dictionary reference out of range/);
+  });
+
+  it("rejects a chart column that no longer spans the charts or lost its dictionary", async () => {
+    const packageManifest = await manifest();
+    const interned = await raw(packageManifest.core.url) as
+      { chartDictionaries: Record<string, unknown[]>;
+        chartColumns: Record<string, number[]>; charts: Record<string, unknown>[] };
+    const short = clone(interned);
+    short.chartColumns.role!.pop();
+    expect(() => expandInternedPackageDocument(short))
+      .toThrow(/chart column role does not span the charts/);
+
+    const orphan = clone(interned);
+    delete orphan.chartDictionaries.kind;
+    expect(() => expandInternedPackageDocument(orphan))
+      .toThrow(/chart column kind has no dictionary/);
   });
 
   it("expands the material correction catalog and rejects a corrupt evidence reference", async () => {
     const packageManifest = await manifest();
     const interned = await raw(packageManifest.materialCorrections!.catalog.url) as
-      { chartDictionaries: Record<string, unknown[]>; charts: Record<string, unknown>[] };
+      { chartDictionaries: Record<string, unknown[]>;
+        chartColumns: Record<string, number[]>; charts: Record<string, unknown>[] };
     const catalog = expandInternedPackageDocument(interned) as MaterialCorrectionCatalogV1;
     expect(catalog.charts).toHaveLength(212);
     for (const chart of catalog.charts) expect(chart.evidence.sourceIds.length).toBeGreaterThan(0);
@@ -94,7 +112,7 @@ describe("interned Cao package documents", () => {
     expect(() => validateMaterialCorrectionCatalogV1(catalog, packageManifest, core)).not.toThrow();
 
     const corrupt = clone(interned);
-    corrupt.charts[0]!.evidenceRef = corrupt.chartDictionaries.evidence!.length;
+    corrupt.chartColumns.evidence![0] = corrupt.chartDictionaries.evidence!.length;
     expect(() => expandInternedPackageDocument(corrupt))
       .toThrow(/dictionary reference out of range/);
   });

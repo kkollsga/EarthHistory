@@ -1,0 +1,2743 @@
+{
+  "recordId": "palaeo-coastlines-collision-shortening-v1",
+  "measuredAt": "2026-09-15",
+  "memo": "docs/research/palaeo-coastlines-collision-shortening.md",
+  "question": "Is enough continental crust compacted in the reconstruction to build the mountains the timeline names?",
+  "model": {
+    "packageId": "cao-v2.4",
+    "sources": [
+      "shapes_continents.gpmlz",
+      "shapes_coasts.gpmlz",
+      "1000_0_rotfile.rot",
+      "1800_1000_rotfile.rot",
+      "public/data/reconstruction/cao-v2.4/core.json",
+      "public/data/reconstruction/cao-v2.4/palaeo-coastlines/"
+    ],
+    "kmPerDegreeLatitude": 111.1951,
+    "features": {
+      "Lesser Himalayan pass margin Greater Indian Basin": {
+        "plateId": 501,
+        "validFromMa": 600.0,
+        "validToMa": null,
+        "areaKm2": 103003.1,
+        "bboxDeg": [
+          71.007,
+          26.6955,
+          96.1886,
+          34.7384
+        ]
+      },
+      "Tethyan Himalayan microcontinent of Greater India": {
+        "plateId": 501,
+        "validFromMa": 600.0,
+        "validToMa": null,
+        "areaKm2": 482290.6,
+        "bboxDeg": [
+          70.7611,
+          26.8368,
+          97.0217,
+          35.5236
+        ]
+      },
+      "Greater India based on Gibbons et al. (2015) Gondwana Research": {
+        "plateId": 501,
+        "validFromMa": 600.0,
+        "validToMa": 10.0,
+        "areaKm2": 4202230.5,
+        "bboxDeg": [
+          63.1254,
+          19.7601,
+          101.257,
+          40.1695
+        ]
+      },
+      "Apulia": {
+        "plateId": 3307,
+        "validFromMa": 500.0,
+        "validToMa": null,
+        "areaKm2": 53636.8,
+        "bboxDeg": [
+          15.2117,
+          39.5499,
+          19.3031,
+          41.9308
+        ]
+      },
+      "Eastern Dinaride Platform": {
+        "plateId": 308,
+        "validFromMa": 319.0,
+        "validToMa": null,
+        "areaKm2": 222022.3,
+        "bboxDeg": [
+          8.7592,
+          36.5854,
+          26.1836,
+          47.7655
+        ]
+      },
+      "Adria": {
+        "plateId": 307,
+        "validFromMa": 319.0,
+        "validToMa": null,
+        "areaKm2": 343796.8,
+        "bboxDeg": [
+          7.5359,
+          40.6337,
+          20.1922,
+          46.6828
+        ]
+      },
+      "Northern Highlands": {
+        "plateId": 303,
+        "validFromMa": 600.0,
+        "validToMa": null,
+        "areaKm2": 460106.7,
+        "bboxDeg": [
+          -12.0713,
+          51.3665,
+          1.3567,
+          61.0023
+        ]
+      },
+      "Greenland": {
+        "plateId": 102,
+        "validFromMa": 3600.0,
+        "validToMa": 0.0,
+        "areaKm2": 3225156.1,
+        "bboxDeg": [
+          -75.8183,
+          59.2593,
+          -2.8224,
+          83.8859
+        ]
+      }
+    },
+    "charts": {
+      "Greater India based on Gibbons et al. (2015) Gondwana Research": {
+        "chartId": "cao-continent:GPlates-66e2d112-6f76-43ca-9708-15deea4317c0:870:0",
+        "lifecycleOldestMa": 600,
+        "lifecycleYoungestMa": 10
+      },
+      "Tethyan Himalayan microcontinent of Greater India": {
+        "chartId": "cao-continent:GPlates-aafe6b23-982f-48fa-a16a-5f82639878b2:807:0",
+        "lifecycleOldestMa": 600,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Lesser Himalayan pass margin Greater Indian Basin": {
+        "chartId": "cao-continent:GPlates-69813d64-82e1-4b24-83c8-6167489b0be3:689:0",
+        "lifecycleOldestMa": 600,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Adria": {
+        "chartId": "cao-continent:GPlates-1bbe281b-a43e-4a5d-b95c-d63887613f76:702:0",
+        "lifecycleOldestMa": 319,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Apulia": {
+        "chartId": "cao-continent:GPlates-9b3a7784-8687-4bc8-aba1-30050003e5a2:447:0",
+        "lifecycleOldestMa": 500,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Eastern Dinaride Platform": {
+        "chartId": "cao-continent:GPlates-cfcd0506-4bd0-4241-b693-4a6aabbb8b43:697:0",
+        "lifecycleOldestMa": 319,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Greenland": {
+        "chartId": "cao-continent:GPlates-d82088ea-8bb9-4ecf-9a55-f26f46c0865a:104:0",
+        "lifecycleOldestMa": 1800.0,
+        "lifecycleYoungestMa": 0.0
+      },
+      "Baltica shield (unnamed, four parts)": {
+        "chartId": "cao-continent:GPlates-e3821237-72f5-42a3-8f7c-33a220b0dc37:861:0",
+        "lifecycleOldestMa": 1000,
+        "lifecycleYoungestMa": 0.0,
+        "parts": 4
+      },
+      "Eurasia (410 Ma authoring junction)": {
+        "chartId": "cao-continent:GPlates-f081121d-b804-48fd-81af-c25d0ad58bf1:867:0",
+        "lifecycleOldestMa": 410,
+        "lifecycleYoungestMa": 0.0
+      }
+    },
+    "groupsPresentFrame": {
+      "greater_india_extension": {
+        "features": 3,
+        "presentFrameAreaKm2": 4787524.2,
+        "bbox": [
+          63.1254,
+          19.7601,
+          101.257,
+          40.1695
+        ]
+      },
+      "india_present_crust": {
+        "features": 18,
+        "presentFrameAreaKm2": 4036650.4,
+        "bbox": [
+          65.9958,
+          5.4183,
+          96.3873,
+          34.4497
+        ]
+      },
+      "asia_collider": {
+        "features": 96,
+        "presentFrameAreaKm2": 23810479.1,
+        "bbox": [
+          -9.5329,
+          27.447,
+          160.8828,
+          82.1385
+        ]
+      },
+      "asia_tibet_only": {
+        "features": 7,
+        "presentFrameAreaKm2": 1157593.1,
+        "bbox": [
+          74.72,
+          27.447,
+          98.86,
+          36.42
+        ]
+      },
+      "adria": {
+        "features": 3,
+        "presentFrameAreaKm2": 619455.9,
+        "bbox": [
+          7.5359,
+          36.5854,
+          26.1836,
+          47.7655
+        ]
+      },
+      "europe": {
+        "features": 44,
+        "presentFrameAreaKm2": 14978876.7,
+        "bbox": [
+          -21.0199,
+          35.1274,
+          70.7347,
+          82.4134
+        ]
+      },
+      "baltica": {
+        "features": 22,
+        "presentFrameAreaKm2": 8519607.3,
+        "bbox": [
+          1.4927,
+          43.9169,
+          69.2612,
+          82.1385
+        ]
+      },
+      "laurentia": {
+        "features": 67,
+        "presentFrameAreaKm2": 21414325.1,
+        "bbox": [
+          -150.2376,
+          23.8862,
+          1.3567,
+          83.8859
+        ]
+      },
+      "laurentia_no_scotland": {
+        "features": 65,
+        "presentFrameAreaKm2": 20562845.2,
+        "bbox": [
+          -150.2376,
+          23.8862,
+          -2.8224,
+          83.8859
+        ]
+      },
+      "greenland": {
+        "features": 1,
+        "presentFrameAreaKm2": 3225156.1,
+        "bbox": [
+          -75.8183,
+          59.2593,
+          -2.8224,
+          83.8859
+        ]
+      },
+      "scotland_303": {
+        "features": 2,
+        "presentFrameAreaKm2": 851479.9,
+        "bbox": [
+          -21.0199,
+          49.6065,
+          1.3567,
+          61.486
+        ]
+      }
+    }
+  },
+  "collisions": {
+    "india-asia": {
+      "orogen": "Himalaya - Tibetan Plateau",
+      "lowerPlate": "India (Cao plate 501 / 5011)",
+      "upperPlate": "Lhasa 606, Qiangtang 616/61601, Tarim 580, Eurasia 301/302/430",
+      "literature": {
+        "minimumKm": 1000.0,
+        "floorKm": 800.0,
+        "bandKm": [
+          800.0,
+          1350.0
+        ],
+        "maximumDefensibleKm": 3000.0,
+        "datum": "the Main Frontal Thrust at the Sub-Himalayan front, about 27.5 N at 85 E",
+        "quantity": "pre-collision northward extent of Indian continental crust beyond the present northern edge of India",
+        "tag": "inference-from-published-minimum-shortening"
+      },
+      "model": {
+        "extentBeyondPresentMarginKm": {
+          "72E": {
+            "greaterIndiaSpans": [
+              [
+                32.04,
+                40.04
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                17.08,
+                34.36
+              ]
+            ],
+            "tibetSpans": [],
+            "greaterIndiaNorthLimitDeg": 40.04,
+            "indiaPresentCrustNorthLimitDeg": 34.36,
+            "extentBeyondPresentMarginKm": 631.6
+          },
+          "75E": {
+            "greaterIndiaSpans": [
+              [
+                32.16,
+                40.16
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                7.0,
+                7.9
+              ],
+              [
+                8.52,
+                9.4
+              ],
+              [
+                10.5,
+                32.74
+              ]
+            ],
+            "tibetSpans": [
+              [
+                35.34,
+                36.04
+              ]
+            ],
+            "greaterIndiaNorthLimitDeg": 40.16,
+            "indiaPresentCrustNorthLimitDeg": 32.74,
+            "extentBeyondPresentMarginKm": 825.1
+          },
+          "80E": {
+            "greaterIndiaSpans": [
+              [
+                28.46,
+                39.9
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                5.6,
+                8.2
+              ],
+              [
+                10.18,
+                29.16
+              ]
+            ],
+            "tibetSpans": [
+              [
+                30.9,
+                35.36
+              ]
+            ],
+            "greaterIndiaNorthLimitDeg": 39.9,
+            "indiaPresentCrustNorthLimitDeg": 29.16,
+            "extentBeyondPresentMarginKm": 1194.2
+          },
+          "85E": {
+            "greaterIndiaSpans": [
+              [
+                27.32,
+                39.36
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                18.58,
+                27.3
+              ]
+            ],
+            "tibetSpans": [
+              [
+                29.46,
+                35.22
+              ]
+            ],
+            "greaterIndiaNorthLimitDeg": 39.36,
+            "indiaPresentCrustNorthLimitDeg": 27.3,
+            "extentBeyondPresentMarginKm": 1341.0
+          },
+          "88E": {
+            "greaterIndiaSpans": [
+              [
+                20.24,
+                22.26
+              ],
+              [
+                26.74,
+                38.66
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                20.2,
+                26.72
+              ]
+            ],
+            "tibetSpans": [
+              [
+                29.38,
+                35.34
+              ]
+            ],
+            "greaterIndiaNorthLimitDeg": 38.66,
+            "indiaPresentCrustNorthLimitDeg": 26.72,
+            "extentBeyondPresentMarginKm": 1327.7
+          },
+          "92E": {
+            "greaterIndiaSpans": [
+              [
+                21.38,
+                25.26
+              ],
+              [
+                26.94,
+                37.1
+              ]
+            ],
+            "indiaPresentCrustSpans": [
+              [
+                24.34,
+                26.92
+              ]
+            ],
+            "tibetSpans": [
+              [
+                29.34,
+                34.94
+              ]
+            ],
+            "greaterIndiaNorthLimitDeg": 37.1,
+            "indiaPresentCrustNorthLimitDeg": 26.92,
+            "extentBeyondPresentMarginKm": 1132.0
+          }
+        },
+        "presentFrameOverlapKm2": {
+          "greaterIndiaVsTibet": {
+            "area_a_km2": 4303680.9,
+            "area_b_km2": 1157587.0,
+            "overlap_km2": 1156449.6
+          },
+          "greaterIndiaVsAsiaAll": {
+            "area_a_km2": 4303690.7,
+            "area_b_km2": 23711740.9,
+            "overlap_km2": 1676447.0
+          },
+          "greaterIndiaVsIndiaPresent": {
+            "area_a_km2": 4303676.8,
+            "area_b_km2": 4036628.5,
+            "overlap_km2": 457874.2
+          }
+        },
+        "reconstructedOverlap": {
+          "140": {
+            "areaA_km2": 4303699.6,
+            "areaB_km2": 1157586.4,
+            "overlapKm2": 0.0,
+            "minGapKm": 5876.5,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "120": {
+            "areaA_km2": 4303698.9,
+            "areaB_km2": 1157586.0,
+            "overlapKm2": 0.0,
+            "minGapKm": 5567.9,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "100": {
+            "areaA_km2": 4303696.5,
+            "areaB_km2": 1157586.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 4710.1,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "80": {
+            "areaA_km2": 4303693.9,
+            "areaB_km2": 1157586.0,
+            "overlapKm2": 0.0,
+            "minGapKm": 3736.1,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "70": {
+            "areaA_km2": 4303691.9,
+            "areaB_km2": 1157585.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 2970.1,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "60": {
+            "areaA_km2": 4303689.0,
+            "areaB_km2": 1157585.0,
+            "overlapKm2": 0.0,
+            "minGapKm": 1595.6,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "55": {
+            "areaA_km2": 4303687.7,
+            "areaB_km2": 1157584.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 995.7,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "50": {
+            "areaA_km2": 4303686.0,
+            "areaB_km2": 1157584.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 356.3,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "45": {
+            "areaA_km2": 4303685.1,
+            "areaB_km2": 1157584.9,
+            "overlapKm2": 0.0,
+            "minGapKm": 18.9,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "40": {
+            "areaA_km2": 4303684.6,
+            "areaB_km2": 1157585.2,
+            "overlapKm2": 50106.9,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "30": {
+            "areaA_km2": 4303683.6,
+            "areaB_km2": 1157585.6,
+            "overlapKm2": 335703.9,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "20": {
+            "areaA_km2": 4303682.5,
+            "areaB_km2": 1157586.1,
+            "overlapKm2": 478370.8,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "15": {
+            "areaA_km2": 4303682.1,
+            "areaB_km2": 1157586.3,
+            "overlapKm2": 562821.9,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 7
+          },
+          "10": {
+            "areaA_km2": 4303681.8,
+            "areaB_km2": 1157586.5,
+            "overlapKm2": 854112.5,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 7
+          }
+        },
+        "reconstructedOverlapBroadAsia": {
+          "100": {
+            "areaA_km2": 4303701.8,
+            "areaB_km2": 23105683.3,
+            "overlapKm2": 0.0,
+            "minGapKm": 4482.1,
+            "ringsA": 3,
+            "ringsB": 97
+          },
+          "80": {
+            "areaA_km2": 4303703.8,
+            "areaB_km2": 23105682.4,
+            "overlapKm2": 0.0,
+            "minGapKm": 3509.3,
+            "ringsA": 3,
+            "ringsB": 97
+          },
+          "60": {
+            "areaA_km2": 4303701.0,
+            "areaB_km2": 23105681.9,
+            "overlapKm2": 0.0,
+            "minGapKm": 1517.8,
+            "ringsA": 3,
+            "ringsB": 97
+          },
+          "50": {
+            "areaA_km2": 4303697.8,
+            "areaB_km2": 23250058.5,
+            "overlapKm2": 0.0,
+            "minGapKm": 342.0,
+            "ringsA": 3,
+            "ringsB": 98
+          },
+          "40": {
+            "areaA_km2": 4303695.9,
+            "areaB_km2": 23250059.6,
+            "overlapKm2": 50109.2,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 98
+          },
+          "30": {
+            "areaA_km2": 4303694.6,
+            "areaB_km2": 23711737.6,
+            "overlapKm2": 335700.3,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 99
+          },
+          "20": {
+            "areaA_km2": 4303693.2,
+            "areaB_km2": 23711738.7,
+            "overlapKm2": 478361.8,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 99
+          },
+          "10": {
+            "areaA_km2": 4303692.0,
+            "areaB_km2": 23711739.8,
+            "overlapKm2": 870151.4,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 99
+          }
+        },
+        "convergenceKm": {
+          "gi_north_tip_85E__lhasa_south_85E": {
+            "140": 6478.9,
+            "120": 5973.4,
+            "100": 5121.7,
+            "80": 3986.9,
+            "70": 3154.3,
+            "60": 1779.5,
+            "55": 1195.6,
+            "52": 788.1,
+            "50": 523.3,
+            "45": 196.0,
+            "40": 92.6,
+            "35": 126.3,
+            "30": 276.4,
+            "20": 605.3,
+            "10": 798.0,
+            "0": 1034.1
+          },
+          "india_margin_85E__lhasa_south_85E": {
+            "140": 7836.6,
+            "120": 7341.1,
+            "100": 6481.7,
+            "80": 5354.6,
+            "70": 4519.6,
+            "60": 3147.1,
+            "55": 2562.0,
+            "52": 2154.0,
+            "50": 1888.8,
+            "45": 1548.9,
+            "40": 1404.6,
+            "35": 1253.4,
+            "30": 1098.7,
+            "20": 774.1,
+            "10": 569.8,
+            "0": 333.6
+          },
+          "india_margin_85E__qiangtang_north_85E": {
+            "140": 10263.2,
+            "120": 9910.3,
+            "100": 8582.1,
+            "80": 7404.0,
+            "70": 6531.9,
+            "60": 5122.1,
+            "55": 4516.4,
+            "52": 4016.5,
+            "50": 3689.3,
+            "45": 3194.9,
+            "40": 2895.4,
+            "35": 2625.4,
+            "30": 2349.7,
+            "20": 1790.6,
+            "10": 1351.0,
+            "0": 889.6
+          },
+          "gi_north_tip_80E__lhasa_south_80E": {
+            "140": 6242.8,
+            "120": 5826.2,
+            "100": 5010.9,
+            "80": 3913.2,
+            "70": 3090.7,
+            "60": 1708.9,
+            "55": 1124.0,
+            "52": 719.9,
+            "50": 447.9,
+            "45": 103.8,
+            "40": 53.4,
+            "35": 215.5,
+            "30": 331.2,
+            "20": 577.3,
+            "10": 754.7,
+            "0": 956.3
+          },
+          "india_margin_80E__lhasa_south_80E": {
+            "140": 7414.6,
+            "120": 7021.0,
+            "100": 6187.9,
+            "80": 5108.8,
+            "70": 4291.4,
+            "60": 2907.2,
+            "55": 2314.0,
+            "52": 1906.8,
+            "50": 1647.5,
+            "45": 1304.7,
+            "40": 1151.3,
+            "35": 1022.4,
+            "30": 894.8,
+            "20": 629.1,
+            "10": 447.4,
+            "0": 244.6
+          },
+          "gi_north_tip_92E__lhasa_south_92E": {
+            "140": 7044.1,
+            "120": 6418.8,
+            "100": 5534.9,
+            "80": 4355.7,
+            "70": 3512.1,
+            "60": 2163.5,
+            "55": 1592.7,
+            "52": 1187.6,
+            "50": 921.4,
+            "45": 593.8,
+            "40": 466.3,
+            "35": 274.0,
+            "30": 84.8,
+            "20": 351.7,
+            "10": 553.5,
+            "0": 834.0
+          },
+          "india_margin_92E__lhasa_south_92E": {
+            "140": 8178.3,
+            "120": 7545.0,
+            "100": 6669.0,
+            "80": 5484.2,
+            "70": 4632.5,
+            "60": 3291.8,
+            "55": 2725.7,
+            "52": 2320.8,
+            "50": 2047.2,
+            "45": 1713.6,
+            "40": 1582.5,
+            "35": 1408.1,
+            "30": 1218.9,
+            "20": 813.1,
+            "10": 580.9,
+            "0": 300.2
+          }
+        }
+      },
+      "verdict": {
+        "verdict": "pass",
+        "transect": "85E",
+        "modelExtentKm": 1341.0,
+        "minimumKm": 1000.0,
+        "shortfallKm": null
+      }
+    },
+    "adria-europe": {
+      "orogen": "Alps",
+      "lowerPlate": "Europe (Cao plates 302/305 and the distal European margin)",
+      "upperPlate": "Adria 307, Apulia 3307, Eastern Dinaride Platform 308",
+      "literature": {
+        "minimumKm": 140.0,
+        "floorKm": 140.0,
+        "bandKm": [
+          140.0,
+          300.0
+        ],
+        "maximumDefensibleKm": 300.0,
+        "datum": "the present northern outline of Adriatic crust, the Adria-Europe partition boundary at about 47.3 N on 10 E",
+        "quantity": "pre-collision northward extent of Adriatic continental crust beyond its present northern outline",
+        "tag": "inference-from-published-margin-widths",
+        "companionMinima": {
+          "alpineNorthSouthShorteningSince35MaKm": 120.0,
+          "alpineNorthSouthConvergenceSince84MaKm": 480.0,
+          "europeanMarginShortenedKm": 230.0,
+          "continentalFractionOfAlpineConvergencePercent": 63.0
+        }
+      },
+      "model": {
+        "extentBeyondPresentMarginKm": {
+          "8E": {
+            "adriaSpans": [
+              [
+                44.46,
+                45.56
+              ]
+            ],
+            "europeSpans": [
+              [
+                46.3,
+                48.82
+              ],
+              [
+                49.78,
+                55.0
+              ]
+            ],
+            "adriaNorthLimitDeg": 45.56,
+            "europeSouthLimitDeg": 46.3,
+            "adriaEuropeOverlapKm": -82.3
+          },
+          "10E": {
+            "adriaSpans": [
+              [
+                42.82,
+                47.3
+              ]
+            ],
+            "europeSpans": [
+              [
+                47.32,
+                49.2
+              ],
+              [
+                50.84,
+                54.98
+              ]
+            ],
+            "adriaNorthLimitDeg": 47.3,
+            "europeSouthLimitDeg": 47.32,
+            "adriaEuropeOverlapKm": -2.2
+          },
+          "12E": {
+            "adriaSpans": [
+              [
+                41.7,
+                47.68
+              ]
+            ],
+            "europeSpans": [
+              [
+                47.7,
+                49.24
+              ],
+              [
+                51.52,
+                54.48
+              ]
+            ],
+            "adriaNorthLimitDeg": 47.68,
+            "europeSouthLimitDeg": 47.7,
+            "adriaEuropeOverlapKm": -2.2
+          },
+          "14E": {
+            "adriaSpans": [
+              [
+                40.66,
+                47.06
+              ]
+            ],
+            "europeSpans": [
+              [
+                47.92,
+                48.44
+              ],
+              [
+                51.92,
+                54.06
+              ]
+            ],
+            "adriaNorthLimitDeg": 47.06,
+            "europeSouthLimitDeg": 47.92,
+            "adriaEuropeOverlapKm": -95.6
+          }
+        },
+        "presentFrameOverlapKm2": {
+          "area_a_km2": 619452.9,
+          "area_b_km2": 14880181.1,
+          "overlap_km2": 0.0
+        },
+        "reconstructedOverlap": {
+          "140": {
+            "areaA_km2": 596792.9,
+            "areaB_km2": 14844251.8,
+            "overlapKm2": 0.0,
+            "minGapKm": 467.6,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "100": {
+            "areaA_km2": 596793.3,
+            "areaB_km2": 14878316.8,
+            "overlapKm2": 0.0,
+            "minGapKm": 575.6,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "80": {
+            "areaA_km2": 610147.3,
+            "areaB_km2": 14880180.6,
+            "overlapKm2": 0.0,
+            "minGapKm": 461.9,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "60": {
+            "areaA_km2": 617490.6,
+            "areaB_km2": 14880135.9,
+            "overlapKm2": 0.0,
+            "minGapKm": 337.8,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "45": {
+            "areaA_km2": 618065.4,
+            "areaB_km2": 14880180.9,
+            "overlapKm2": 0.0,
+            "minGapKm": 273.5,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "35": {
+            "areaA_km2": 619057.3,
+            "areaB_km2": 14859414.6,
+            "overlapKm2": 0.0,
+            "minGapKm": 166.2,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "25": {
+            "areaA_km2": 619452.7,
+            "areaB_km2": 14873401.3,
+            "overlapKm2": 0.0,
+            "minGapKm": 103.8,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "20": {
+            "areaA_km2": 619452.8,
+            "areaB_km2": 14880181.0,
+            "overlapKm2": 0.0,
+            "minGapKm": 83.4,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "10": {
+            "areaA_km2": 619452.8,
+            "areaB_km2": 14880181.1,
+            "overlapKm2": 0.0,
+            "minGapKm": 26.4,
+            "ringsA": 3,
+            "ringsB": 47
+          },
+          "0": {
+            "areaA_km2": 619452.9,
+            "areaB_km2": 14880181.1,
+            "overlapKm2": 0.0,
+            "minGapKm": 0.0,
+            "ringsA": 3,
+            "ringsB": 47
+          }
+        },
+        "convergenceKm": {
+          "adria_north_10E__europe_south_10E": {
+            "140": 1103.2,
+            "100": 958.1,
+            "84": 812.5,
+            "80": 788.9,
+            "60": 586.6,
+            "45": 494.9,
+            "40": 429.5,
+            "35": 360.8,
+            "30": 308.5,
+            "25": 259.1,
+            "20": 209.0,
+            "15": 168.7,
+            "10": 128.3,
+            "5": 85.7,
+            "0": 44.5
+          },
+          "adria_po_10E__europe_molasse_10E": {
+            "140": 1423.5,
+            "100": 1260.3,
+            "84": 1105.1,
+            "80": 1089.0,
+            "60": 884.5,
+            "45": 795.9,
+            "40": 738.4,
+            "35": 668.4,
+            "30": 611.7,
+            "25": 563.3,
+            "20": 513.8,
+            "15": 479.7,
+            "10": 444.8,
+            "5": 405.9,
+            "0": 366.9
+          },
+          "adria_po_12E__europe_south_12E": {
+            "140": 1502.9,
+            "100": 1281.7,
+            "84": 1095.4,
+            "80": 1075.3,
+            "60": 852.2,
+            "45": 754.8,
+            "40": 692.1,
+            "35": 618.0,
+            "30": 558.1,
+            "25": 506.9,
+            "20": 454.8,
+            "15": 418.6,
+            "10": 381.7,
+            "5": 341.0,
+            "0": 300.2
+          }
+        }
+      },
+      "verdict": {
+        "verdict": "fail",
+        "transect": "10E",
+        "modelExtentKm": 0.0,
+        "minimumKm": 140.0,
+        "shortfallKm": 140.0
+      }
+    },
+    "baltica-laurentia": {
+      "orogen": "Scandinavian Caledonides (Scandian orogeny)",
+      "lowerPlate": "Baltica (Cao plate 302 and sub-blocks 30202/30203/30204)",
+      "upperPlate": "Laurentia 101 family, Greenland 102, Northern Highlands 303",
+      "literature": {
+        "minimumKm": 140.0,
+        "floorKm": 140.0,
+        "bandKm": [
+          140.0,
+          370.0
+        ],
+        "maximumDefensibleKm": 400.0,
+        "datum": "the present Norwegian coastline, taken from the model's own plate-302 coastline polygons (5.38 E at 62 N, 12.56 E at 66 N)",
+        "quantity": "pre-collision westward extent of Baltican continental crust beyond the present Norwegian coastline",
+        "tag": "inference-from-published-nappe-translation",
+        "byLatitude": {
+          "62N": 140.0,
+          "66N": 250.0,
+          "70N": 400.0
+        },
+        "companionMinima": {
+          "scandinavianCaledonideShorteningKm": 400.0,
+          "preferredShorteningBandKm": [
+            450.0,
+            650.0
+          ],
+          "laurentianRetroWedgeShorteningKm": 200.0,
+          "wholeOrogenContinentalShorteningKm": 600.0,
+          "balticaLeadingEdgeSubductionDepthKm": 125.0,
+          "horizontalUnderthrustingKm": [
+            200.0,
+            250.0
+          ]
+        }
+      },
+      "model": {
+        "extentBeyondPresentCoastKm": {
+          "58N": {
+            "balticaCrustSpans": [
+              [
+                2.2,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                7.08,
+                7.08
+              ],
+              [
+                11.52,
+                11.7
+              ],
+              [
+                11.76,
+                12.88
+              ],
+              [
+                12.96,
+                16.66
+              ],
+              [
+                22.06,
+                22.2
+              ],
+              [
+                24.42,
+                35.0
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 2.2,
+            "balticaCoastWestLimitDeg": 7.08,
+            "crustBeyondCoastKm": 287.6,
+            "kmPerDegreeLongitude": 58.92
+          },
+          "60N": {
+            "balticaCrustSpans": [
+              [
+                1.98,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                5.4,
+                5.68
+              ],
+              [
+                5.76,
+                5.84
+              ],
+              [
+                6.02,
+                18.86
+              ],
+              [
+                20.12,
+                20.2
+              ],
+              [
+                22.84,
+                22.86
+              ],
+              [
+                23.0,
+                23.08
+              ],
+              [
+                23.18,
+                23.42
+              ],
+              [
+                23.46,
+                23.92
+              ],
+              [
+                24.44,
+                24.44
+              ],
+              [
+                30.04,
+                31.06
+              ],
+              [
+                31.58,
+                35.0
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 1.98,
+            "balticaCoastWestLimitDeg": 5.4,
+            "crustBeyondCoastKm": 190.1,
+            "kmPerDegreeLongitude": 55.6
+          },
+          "62N": {
+            "balticaCrustSpans": [
+              [
+                3.04,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                5.38,
+                17.36
+              ],
+              [
+                21.3,
+                28.54
+              ],
+              [
+                29.64,
+                34.46
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 3.04,
+            "balticaCoastWestLimitDeg": 5.38,
+            "crustBeyondCoastKm": 122.2,
+            "kmPerDegreeLongitude": 52.2
+          },
+          "64N": {
+            "balticaCrustSpans": [
+              [
+                6.12,
+                19.18
+              ],
+              [
+                25.4,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                9.98,
+                11.08
+              ],
+              [
+                11.48,
+                20.84
+              ],
+              [
+                23.42,
+                33.4
+              ],
+              [
+                33.58,
+                35.0
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 6.12,
+            "balticaCoastWestLimitDeg": 9.98,
+            "crustBeyondCoastKm": 188.2,
+            "kmPerDegreeLongitude": 48.74
+          },
+          "66N": {
+            "balticaCrustSpans": [
+              [
+                9.42,
+                18.18
+              ],
+              [
+                22.14,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                12.56,
+                12.78
+              ],
+              [
+                12.94,
+                31.28
+              ],
+              [
+                31.44,
+                34.66
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 9.42,
+            "balticaCoastWestLimitDeg": 12.56,
+            "crustBeyondCoastKm": 142.0,
+            "kmPerDegreeLongitude": 45.23
+          },
+          "68N": {
+            "balticaCrustSpans": [
+              [
+                12.14,
+                35.0
+              ]
+            ],
+            "balticaCoastSpans": [
+              [
+                15.4,
+                15.4
+              ],
+              [
+                15.94,
+                16.14
+              ],
+              [
+                16.22,
+                16.24
+              ],
+              [
+                16.36,
+                16.4
+              ],
+              [
+                16.46,
+                35.0
+              ]
+            ],
+            "balticaCrustWestLimitDeg": 12.14,
+            "balticaCoastWestLimitDeg": 15.4,
+            "crustBeyondCoastKm": 135.8,
+            "kmPerDegreeLongitude": 41.65
+          }
+        },
+        "presentFrameOverlapKm2": {
+          "area_a_km2": 8420940.8,
+          "area_b_km2": 20562549.3,
+          "overlap_km2": 0.0
+        },
+        "reconstructedOverlap": {
+          "460": {
+            "areaA_km2": 7080117.7,
+            "areaB_km2": 19451590.0,
+            "overlapKm2": 0.0,
+            "minGapKm": 2345.0,
+            "ringsA": 23,
+            "ringsB": 63
+          },
+          "450": {
+            "areaA_km2": 7080123.7,
+            "areaB_km2": 19451589.5,
+            "overlapKm2": 0.0,
+            "minGapKm": 2028.6,
+            "ringsA": 23,
+            "ringsB": 63
+          },
+          "440": {
+            "areaA_km2": 7080129.0,
+            "areaB_km2": 19451588.8,
+            "overlapKm2": 0.0,
+            "minGapKm": 1136.5,
+            "ringsA": 23,
+            "ringsB": 63
+          },
+          "430": {
+            "areaA_km2": 7080129.9,
+            "areaB_km2": 19451586.8,
+            "overlapKm2": 122404.8,
+            "minGapKm": 0.0,
+            "ringsA": 23,
+            "ringsB": 63
+          },
+          "420": {
+            "areaA_km2": 7080129.8,
+            "areaB_km2": 19451586.8,
+            "overlapKm2": 108489.3,
+            "minGapKm": 0.0,
+            "ringsA": 23,
+            "ringsB": 63
+          },
+          "410": {
+            "areaA_km2": 8420941.7,
+            "areaB_km2": 20277094.3,
+            "overlapKm2": 107098.1,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 65
+          },
+          "400": {
+            "areaA_km2": 8420941.7,
+            "areaB_km2": 20277094.3,
+            "overlapKm2": 89232.7,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 65
+          },
+          "390": {
+            "areaA_km2": 8420941.6,
+            "areaB_km2": 20277094.3,
+            "overlapKm2": 72006.6,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 64
+          },
+          "380": {
+            "areaA_km2": 8420941.6,
+            "areaB_km2": 20277094.3,
+            "overlapKm2": 72006.6,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 64
+          }
+        },
+        "reconstructedOverlapGreenland": {
+          "450": {
+            "areaA_km2": 7080134.2,
+            "areaB_km2": 3225141.8,
+            "overlapKm2": 0.0,
+            "minGapKm": 2031.0,
+            "ringsA": 23,
+            "ringsB": 1
+          },
+          "440": {
+            "areaA_km2": 7080134.7,
+            "areaB_km2": 3225141.9,
+            "overlapKm2": 0.0,
+            "minGapKm": 1147.5,
+            "ringsA": 23,
+            "ringsB": 1
+          },
+          "430": {
+            "areaA_km2": 7080134.6,
+            "areaB_km2": 3225141.7,
+            "overlapKm2": 122402.1,
+            "minGapKm": 0.0,
+            "ringsA": 23,
+            "ringsB": 1
+          },
+          "420": {
+            "areaA_km2": 7080134.6,
+            "areaB_km2": 3225141.7,
+            "overlapKm2": 108486.6,
+            "minGapKm": 0.0,
+            "ringsA": 23,
+            "ringsB": 1
+          },
+          "410": {
+            "areaA_km2": 8420945.3,
+            "areaB_km2": 3225141.4,
+            "overlapKm2": 107095.3,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 1
+          },
+          "400": {
+            "areaA_km2": 8420945.3,
+            "areaB_km2": 3225141.4,
+            "overlapKm2": 89230.0,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 1
+          },
+          "390": {
+            "areaA_km2": 8420945.3,
+            "areaB_km2": 3225141.4,
+            "overlapKm2": 72003.9,
+            "minGapKm": 0.0,
+            "ringsA": 25,
+            "ringsB": 1
+          }
+        },
+        "reconstructedGapScotland": {
+          "450": {
+            "areaA_km2": 7080134.2,
+            "areaB_km2": 851469.5,
+            "overlapKm2": 0.0,
+            "minGapKm": 1566.5,
+            "ringsA": 23,
+            "ringsB": 2
+          },
+          "440": {
+            "areaA_km2": 7080134.5,
+            "areaB_km2": 851471.2,
+            "overlapKm2": 0.0,
+            "minGapKm": 1021.9,
+            "ringsA": 23,
+            "ringsB": 2
+          },
+          "430": {
+            "areaA_km2": 7080134.4,
+            "areaB_km2": 851474.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 41.4,
+            "ringsA": 23,
+            "ringsB": 2
+          },
+          "420": {
+            "areaA_km2": 7080134.4,
+            "areaB_km2": 851474.7,
+            "overlapKm2": 0.0,
+            "minGapKm": 41.4,
+            "ringsA": 23,
+            "ringsB": 2
+          },
+          "410": {
+            "areaA_km2": 8420945.2,
+            "areaB_km2": 851475.3,
+            "overlapKm2": 0.0,
+            "minGapKm": 41.3,
+            "ringsA": 25,
+            "ringsB": 2
+          },
+          "400": {
+            "areaA_km2": 8420945.2,
+            "areaB_km2": 851475.3,
+            "overlapKm2": 0.0,
+            "minGapKm": 41.3,
+            "ringsA": 25,
+            "ringsB": 2
+          },
+          "390": {
+            "areaA_km2": 8420945.2,
+            "areaB_km2": 851475.3,
+            "overlapKm2": 0.0,
+            "minGapKm": 41.3,
+            "ringsA": 25,
+            "ringsB": 2
+          }
+        },
+        "convergenceKm": {
+          "baltica_west_62N__greenland_east_62N": {
+            "480": 6165.1,
+            "470": 5244.8,
+            "460": 3108.8,
+            "450": 2524.6,
+            "440": 1911.4,
+            "430": 1068.3,
+            "425": 1080.0,
+            "420": 1091.6,
+            "410": 1114.9,
+            "400": 1138.2,
+            "390": 1161.5,
+            "380": 1161.5,
+            "0": 2232.9
+          },
+          "baltica_west_66N__greenland_east_66N": {
+            "480": 6461.8,
+            "470": 5519.8,
+            "460": 3276.8,
+            "450": 2538.3,
+            "440": 1701.9,
+            "430": 991.7,
+            "425": 1002.5,
+            "420": 1013.4,
+            "410": 1035.3,
+            "400": 1057.3,
+            "390": 1079.3,
+            "380": 1079.3,
+            "0": 1946.9
+          },
+          "baltica_inland_62N__greenland_east_62N": {
+            "480": 6389.5,
+            "470": 5483.0,
+            "460": 3433.0,
+            "450": 2884.4,
+            "440": 2215.7,
+            "430": 1419.9,
+            "425": 1431.6,
+            "420": 1443.3,
+            "410": 1466.7,
+            "400": 1490.1,
+            "390": 1513.5,
+            "380": 1513.5,
+            "0": 2569.1
+          },
+          "baltica_west_62N__scotland_nw": {
+            "480": 5703.6,
+            "470": 4773.6,
+            "460": 2622.4,
+            "450": 2058.6,
+            "440": 1497.2,
+            "430": 628.2,
+            "425": 628.3,
+            "420": 628.3,
+            "410": 628.3,
+            "400": 628.3,
+            "390": 628.3,
+            "380": 628.3,
+            "0": 628.3
+          }
+        }
+      },
+      "verdict": {
+        "verdict": "fail",
+        "transect": "62N",
+        "modelExtentKm": 122.2,
+        "minimumKm": 140.0,
+        "shortfallKm": 17.8,
+        "at66N": {
+          "modelExtentKm": 142.0,
+          "minimumKm": 250.0,
+          "shortfallKm": 108.0
+        },
+        "strictModelExtentKm": 0.0,
+        "strictNote": "the 122.2 km of Baltican crust west of the coast at 62 N is the modern stretched Atlantic shelf, not a restored Caledonian margin; on a strict reading the model carries no restored pre-collision Baltican margin at all"
+      }
+    }
+  },
+  "palaeoLayer": {
+    "method": "docs/research/palaeo-coastlines-north-sea-formation-checks.md probe: decode each shipped EHPR payload, rebuild every piece, test a present-day (lon, lat) for containment, and read the piece's catalog binding row",
+    "payloadIntegrity": "all probed lm and sm payload sha256 values equal the digests their own class catalog pins",
+    "points": {
+      "greater-india-tip-85E": [
+        85.0,
+        39.0
+      ],
+      "greater-india-mid-85E": [
+        85.0,
+        35.0
+      ],
+      "greater-india-south-85E": [
+        85.0,
+        31.0
+      ],
+      "tethyan-himalaya-85E": [
+        85.0,
+        29.0
+      ],
+      "india-margin-85E": [
+        85.0,
+        27.0
+      ],
+      "greater-india-tip-80E": [
+        80.0,
+        39.0
+      ],
+      "greater-india-tip-92E": [
+        92.0,
+        36.5
+      ],
+      "adria-po-10E": [
+        10.0,
+        45.2
+      ],
+      "adria-north-10E": [
+        10.0,
+        47.2
+      ],
+      "europe-molasse-10E": [
+        10.0,
+        48.5
+      ],
+      "baltica-shelf-62N": [
+        3.1,
+        62.0
+      ],
+      "baltica-inland-62N": [
+        10.0,
+        62.0
+      ],
+      "baltica-shelf-66N": [
+        9.6,
+        66.0
+      ],
+      "greenland-east-66N": [
+        -34.4,
+        66.0
+      ],
+      "scotland-nw": [
+        -5.5,
+        58.3
+      ]
+    },
+    "probes": {
+      "117-94": {
+        "greater-india-tip-85E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616*",
+            "616"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "greater-india-south-85E": {
+          "lm": [],
+          "sm": [
+            "606*",
+            "501*"
+          ]
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [],
+          "sm": [
+            "606*",
+            "501*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "5011"
+          ],
+          "sm": []
+        },
+        "greater-india-tip-80E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "606*",
+            "616*"
+          ]
+        },
+        "greater-india-tip-92E": {
+          "lm": [
+            "457"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": [
+            "307",
+            "306*"
+          ]
+        },
+        "adria-north-10E": {
+          "lm": [],
+          "sm": [
+            "308",
+            "306*"
+          ]
+        },
+        "europe-molasse-10E": {
+          "lm": [],
+          "sm": [
+            "306*",
+            "305"
+          ]
+        },
+        "baltica-shelf-62N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "greenland-east-66N": {
+          "lm": [
+            "102"
+          ],
+          "sm": []
+        },
+        "scotland-nw": {
+          "lm": [],
+          "sm": []
+        }
+      },
+      "94-81": {
+        "greater-india-tip-85E": {
+          "lm": [
+            "580"
+          ],
+          "sm": []
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616"
+          ],
+          "sm": [
+            "501*"
+          ]
+        },
+        "greater-india-south-85E": {
+          "lm": [],
+          "sm": [
+            "501*"
+          ]
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [],
+          "sm": [
+            "506*",
+            "501*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "5011"
+          ],
+          "sm": [
+            "506*",
+            "501*",
+            "501*"
+          ]
+        },
+        "greater-india-tip-80E": {
+          "lm": [
+            "580"
+          ],
+          "sm": []
+        },
+        "greater-india-tip-92E": {
+          "lm": [
+            "457",
+            "457"
+          ],
+          "sm": []
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": [
+            "3307*"
+          ]
+        },
+        "adria-north-10E": {
+          "lm": [],
+          "sm": [
+            "308",
+            "3307*"
+          ]
+        },
+        "europe-molasse-10E": {
+          "lm": [],
+          "sm": [
+            "305",
+            "3307*"
+          ]
+        },
+        "baltica-shelf-62N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "greenland-east-66N": {
+          "lm": [],
+          "sm": [
+            "102"
+          ]
+        },
+        "scotland-nw": {
+          "lm": [
+            "303*"
+          ],
+          "sm": []
+        }
+      },
+      "81-58": {
+        "greater-india-tip-85E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "greater-india-south-85E": {
+          "lm": [
+            "616*"
+          ],
+          "sm": [
+            "501*",
+            "606*",
+            "606*"
+          ]
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [],
+          "sm": [
+            "501*",
+            "606*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "5011"
+          ],
+          "sm": [
+            "501*",
+            "501*"
+          ]
+        },
+        "greater-india-tip-80E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "greater-india-tip-92E": {
+          "lm": [
+            "457",
+            "457"
+          ],
+          "sm": [
+            "606*"
+          ]
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": [
+            "526*",
+            "526*"
+          ]
+        },
+        "adria-north-10E": {
+          "lm": [],
+          "sm": [
+            "308"
+          ]
+        },
+        "europe-molasse-10E": {
+          "lm": [],
+          "sm": [
+            "305"
+          ]
+        },
+        "baltica-shelf-62N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "greenland-east-66N": {
+          "lm": [],
+          "sm": [
+            "102"
+          ]
+        },
+        "scotland-nw": {
+          "lm": [
+            "303*"
+          ],
+          "sm": [
+            "303*"
+          ]
+        }
+      },
+      "58-49": {
+        "greater-india-tip-85E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "501*"
+          ]
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616*",
+            "606*"
+          ],
+          "sm": [
+            "501*"
+          ]
+        },
+        "greater-india-south-85E": {
+          "lm": [
+            "606",
+            "616*"
+          ],
+          "sm": [
+            "501*",
+            "501*"
+          ]
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [
+            "501",
+            "616*"
+          ],
+          "sm": [
+            "501*",
+            "501*",
+            "606*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "5011"
+          ],
+          "sm": [
+            "501*",
+            "501*"
+          ]
+        },
+        "greater-india-tip-80E": {
+          "lm": [
+            "580"
+          ],
+          "sm": [
+            "501*"
+          ]
+        },
+        "greater-india-tip-92E": {
+          "lm": [
+            "457"
+          ],
+          "sm": []
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": []
+        },
+        "adria-north-10E": {
+          "lm": [
+            "308"
+          ],
+          "sm": []
+        },
+        "europe-molasse-10E": {
+          "lm": [
+            "305"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-62N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "greenland-east-66N": {
+          "lm": [],
+          "sm": [
+            "102"
+          ]
+        },
+        "scotland-nw": {
+          "lm": [
+            "303*"
+          ],
+          "sm": [
+            "303*"
+          ]
+        }
+      },
+      "49-37": {
+        "greater-india-tip-85E": {
+          "lm": [
+            "580"
+          ],
+          "sm": []
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616"
+          ],
+          "sm": []
+        },
+        "greater-india-south-85E": {
+          "lm": [
+            "606",
+            "606"
+          ],
+          "sm": []
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [
+            "606*",
+            "616*",
+            "501"
+          ],
+          "sm": [
+            "501*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "606*",
+            "5011"
+          ],
+          "sm": []
+        },
+        "greater-india-tip-80E": {
+          "lm": [
+            "580"
+          ],
+          "sm": []
+        },
+        "greater-india-tip-92E": {
+          "lm": [
+            "457"
+          ],
+          "sm": []
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": [
+            "306*"
+          ]
+        },
+        "adria-north-10E": {
+          "lm": [],
+          "sm": [
+            "308"
+          ]
+        },
+        "europe-molasse-10E": {
+          "lm": [
+            "305"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-62N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [],
+          "sm": [
+            "302"
+          ]
+        },
+        "greenland-east-66N": {
+          "lm": [],
+          "sm": [
+            "102"
+          ]
+        },
+        "scotland-nw": {
+          "lm": [
+            "303*"
+          ],
+          "sm": []
+        }
+      },
+      "402-380": {
+        "greater-india-tip-85E": {
+          "lm": [],
+          "sm": [
+            "501*"
+          ]
+        },
+        "greater-india-mid-85E": {
+          "lm": [
+            "616*"
+          ],
+          "sm": [
+            "501*",
+            "606*",
+            "616*"
+          ]
+        },
+        "greater-india-south-85E": {
+          "lm": [],
+          "sm": [
+            "501*",
+            "606*"
+          ]
+        },
+        "tethyan-himalaya-85E": {
+          "lm": [],
+          "sm": [
+            "501*",
+            "606*"
+          ]
+        },
+        "india-margin-85E": {
+          "lm": [
+            "5011"
+          ],
+          "sm": []
+        },
+        "greater-india-tip-80E": {
+          "lm": [],
+          "sm": []
+        },
+        "greater-india-tip-92E": {
+          "lm": [],
+          "sm": [
+            "501*",
+            "606*",
+            "616*",
+            "601*"
+          ]
+        },
+        "adria-po-10E": {
+          "lm": [],
+          "sm": [
+            "3307*"
+          ]
+        },
+        "adria-north-10E": {
+          "lm": [],
+          "sm": [
+            "308"
+          ]
+        },
+        "europe-molasse-10E": {
+          "lm": [],
+          "sm": [
+            "305"
+          ]
+        },
+        "baltica-shelf-62N": {
+          "lm": [
+            "302",
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-inland-62N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "baltica-shelf-66N": {
+          "lm": [
+            "302"
+          ],
+          "sm": []
+        },
+        "greenland-east-66N": {
+          "lm": [],
+          "sm": []
+        },
+        "scotland-nw": {
+          "lm": [
+            "303*",
+            "303*"
+          ],
+          "sm": []
+        }
+      }
+    },
+    "probeLegend": "plate id of the piece containing the point, per class; a trailing '*' marks a PLATEID1 override binding rather than a partition binding; an empty list means no piece of that class covers the point",
+    "boundGround": {
+      "117-94": {
+        "lm-501": {
+          "pieces": 15,
+          "bboxDeg": [
+            71.765,
+            4.592,
+            97.023,
+            29.856
+          ]
+        },
+        "lm-307": null,
+        "lm-3307": null,
+        "lm-302": {
+          "pieces": 37,
+          "bboxDeg": [
+            3.565,
+            43.916,
+            69.26,
+            82.139
+          ]
+        },
+        "lm-102": {
+          "pieces": 25,
+          "bboxDeg": [
+            -75.819,
+            57.392,
+            -16.359,
+            83.886
+          ]
+        },
+        "sm-501": {
+          "pieces": 57,
+          "bboxDeg": [
+            64.7,
+            3.843,
+            97.139,
+            38.577
+          ]
+        },
+        "sm-307": {
+          "pieces": 2,
+          "bboxDeg": [
+            7.537,
+            43.452,
+            13.129,
+            45.911
+          ]
+        },
+        "sm-3307": null,
+        "sm-302": {
+          "pieces": 26,
+          "bboxDeg": [
+            1.494,
+            44.136,
+            69.254,
+            80.884
+          ]
+        },
+        "sm-102": {
+          "pieces": 24,
+          "bboxDeg": [
+            -50.72,
+            56.776,
+            -4.093,
+            83.853
+          ]
+        }
+      },
+      "94-81": {
+        "lm-501": {
+          "pieces": 13,
+          "bboxDeg": [
+            67.414,
+            8.707,
+            93.128,
+            30.024
+          ]
+        },
+        "lm-307": null,
+        "lm-3307": {
+          "pieces": 8,
+          "bboxDeg": [
+            4.653,
+            36.981,
+            23.978,
+            54.988
+          ]
+        },
+        "lm-302": {
+          "pieces": 28,
+          "bboxDeg": [
+            4.917,
+            44.499,
+            69.26,
+            81.419
+          ]
+        },
+        "lm-102": {
+          "pieces": 7,
+          "bboxDeg": [
+            -75.819,
+            60.004,
+            -2.846,
+            83.839
+          ]
+        },
+        "sm-501": {
+          "pieces": 86,
+          "bboxDeg": [
+            60.207,
+            5.491,
+            96.963,
+            39.541
+          ]
+        },
+        "sm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            7.553,
+            44.993,
+            12.069,
+            46.682
+          ]
+        },
+        "sm-3307": {
+          "pieces": 61,
+          "bboxDeg": [
+            3.686,
+            35.998,
+            31.603,
+            55.768
+          ]
+        },
+        "sm-302": {
+          "pieces": 27,
+          "bboxDeg": [
+            1.494,
+            43.916,
+            68.766,
+            82.139
+          ]
+        },
+        "sm-102": {
+          "pieces": 22,
+          "bboxDeg": [
+            -62.212,
+            59.333,
+            -2.752,
+            83.886
+          ]
+        }
+      },
+      "81-58": {
+        "lm-501": {
+          "pieces": 15,
+          "bboxDeg": [
+            66.189,
+            8.723,
+            97.023,
+            29.601
+          ]
+        },
+        "lm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            10.575,
+            41.977,
+            11.129,
+            42.623
+          ]
+        },
+        "lm-3307": null,
+        "lm-302": {
+          "pieces": 26,
+          "bboxDeg": [
+            5.449,
+            45.023,
+            69.26,
+            82.106
+          ]
+        },
+        "lm-102": {
+          "pieces": 8,
+          "bboxDeg": [
+            -75.819,
+            59.24,
+            -6.394,
+            83.776
+          ]
+        },
+        "sm-501": {
+          "pieces": 82,
+          "bboxDeg": [
+            64.118,
+            5.364,
+            97.298,
+            40.148
+          ]
+        },
+        "sm-307": {
+          "pieces": 2,
+          "bboxDeg": [
+            7.537,
+            42.115,
+            20.193,
+            45.625
+          ]
+        },
+        "sm-3307": null,
+        "sm-302": {
+          "pieces": 27,
+          "bboxDeg": [
+            1.494,
+            43.916,
+            67.744,
+            73.808
+          ]
+        },
+        "sm-102": {
+          "pieces": 24,
+          "bboxDeg": [
+            -62.212,
+            57.974,
+            -2.142,
+            83.886
+          ]
+        }
+      },
+      "58-49": {
+        "lm-501": {
+          "pieces": 14,
+          "bboxDeg": [
+            72.666,
+            5.361,
+            97.023,
+            34.495
+          ]
+        },
+        "lm-307": {
+          "pieces": 2,
+          "bboxDeg": [
+            14.508,
+            41.326,
+            16.178,
+            42.167
+          ]
+        },
+        "lm-3307": {
+          "pieces": 2,
+          "bboxDeg": [
+            15.936,
+            39.89,
+            17.864,
+            41.379
+          ]
+        },
+        "lm-302": {
+          "pieces": 27,
+          "bboxDeg": [
+            5.197,
+            45.111,
+            69.26,
+            81.941
+          ]
+        },
+        "lm-102": {
+          "pieces": 5,
+          "bboxDeg": [
+            -74.88,
+            59.614,
+            -14.272,
+            83.886
+          ]
+        },
+        "sm-501": {
+          "pieces": 101,
+          "bboxDeg": [
+            60.454,
+            -1.829,
+            97.419,
+            39.89
+          ]
+        },
+        "sm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            7.537,
+            44.427,
+            12.519,
+            46.682
+          ]
+        },
+        "sm-3307": null,
+        "sm-302": {
+          "pieces": 18,
+          "bboxDeg": [
+            1.5,
+            44.081,
+            68.551,
+            82.139
+          ]
+        },
+        "sm-102": {
+          "pieces": 18,
+          "bboxDeg": [
+            -75.819,
+            58.331,
+            -2.076,
+            81.881
+          ]
+        }
+      },
+      "49-37": {
+        "lm-501": {
+          "pieces": 13,
+          "bboxDeg": [
+            72.353,
+            8.696,
+            97.023,
+            35.523
+          ]
+        },
+        "lm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            15.579,
+            41.458,
+            16.568,
+            41.928
+          ]
+        },
+        "lm-3307": {
+          "pieces": 1,
+          "bboxDeg": [
+            16.178,
+            39.717,
+            18.65,
+            41.541
+          ]
+        },
+        "lm-302": {
+          "pieces": 29,
+          "bboxDeg": [
+            5.329,
+            44.4,
+            67.744,
+            79.824
+          ]
+        },
+        "lm-102": {
+          "pieces": 5,
+          "bboxDeg": [
+            -74.22,
+            59.724,
+            -9.196,
+            83.886
+          ]
+        },
+        "sm-501": {
+          "pieces": 71,
+          "bboxDeg": [
+            60.196,
+            -28.667,
+            96.705,
+            37.791
+          ]
+        },
+        "sm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            7.537,
+            44.427,
+            8.971,
+            46.037
+          ]
+        },
+        "sm-3307": null,
+        "sm-302": {
+          "pieces": 27,
+          "bboxDeg": [
+            1.494,
+            43.916,
+            69.26,
+            82.139
+          ]
+        },
+        "sm-102": {
+          "pieces": 24,
+          "bboxDeg": [
+            -75.819,
+            58.691,
+            -2.39,
+            83.886
+          ]
+        }
+      },
+      "402-380": {
+        "lm-501": {
+          "pieces": 15,
+          "bboxDeg": [
+            64.739,
+            6.842,
+            92.107,
+            28.115
+          ]
+        },
+        "lm-307": null,
+        "lm-3307": null,
+        "lm-302": {
+          "pieces": 29,
+          "bboxDeg": [
+            1.494,
+            47.385,
+            60.284,
+            79.824
+          ]
+        },
+        "lm-102": {
+          "pieces": 28,
+          "bboxDeg": [
+            -75.072,
+            59.328,
+            -3.62,
+            83.886
+          ]
+        },
+        "sm-501": {
+          "pieces": 41,
+          "bboxDeg": [
+            59.998,
+            16.733,
+            98.177,
+            41.799
+          ]
+        },
+        "sm-307": {
+          "pieces": 1,
+          "bboxDeg": [
+            7.537,
+            44.455,
+            12.876,
+            46.682
+          ]
+        },
+        "sm-3307": {
+          "pieces": 25,
+          "bboxDeg": [
+            6.532,
+            36.012,
+            26.769,
+            46.042
+          ]
+        },
+        "sm-302": {
+          "pieces": 34,
+          "bboxDeg": [
+            2.999,
+            43.916,
+            69.26,
+            82.139
+          ]
+        },
+        "sm-102": {
+          "pieces": 1,
+          "bboxDeg": [
+            -62.536,
+            81.711,
+            -34.092,
+            83.155
+          ]
+        }
+      }
+    }
+  }
+}

@@ -54,7 +54,7 @@ import struct
 import sys
 import time
 import zipfile
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -103,11 +103,12 @@ CHART_PROVENANCE_FIELDS = ("sourceRecordIndex", "plateId1", "fromAgeMa", "toAgeM
                            "featureIdRef", "offSchedule", "basinOpId", "contractId")
 
 CLASS_CODES = {"lm": 1, "sm": 2, "m": 3}
-# What `promote_palaeo_coastlines.py` publishes today. The mountain class stays
-# compiled and validated offline (user decision 2026-09-15), so it must not reach
-# the outline-tone tables or their interval index. `--shipped-classes` overrides
-# this; the promote script re-asserts the staged list against its own.
-SHIPPED_CLASSES = ("lm", "sm")
+# What `promote_palaeo_coastlines.py` publishes. All three Cao 2017 surface
+# classes ship (user decision 2026-09-15): withholding `m` painted emergent
+# orogen as unmapped crust in every interval. The ice class `i` is still not
+# compiled. `--shipped-classes` overrides this; the promote script re-asserts
+# the staged list against its own.
+SHIPPED_CLASSES = ("lm", "sm", "m")
 CLASS_NAMES = {"lm": "landmass", "sm": "shallow-marine", "m": "mountain"}
 SURFACE_APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
 
@@ -350,18 +351,40 @@ def verify_sources(manifest: dict) -> dict:
 
 
 def validate_overrides(overrides: dict) -> dict:
-    """Every override plate needs a justification and a citation (Phase 2 gate)."""
+    """Every override plate needs a justification, a citation and a footprint.
+
+    The footprint is the constraint that keeps a ``PLATEID1`` value from moving
+    ground an ocean away onto a small plate: measured 2026-09-15, the Apulia
+    (3307) override was rebinding shallow-marine pieces spanning 3.7-31.6 E and
+    36.0-55.8 N onto a plate whose whole present-day Cao 2024 crust is
+    15.2-19.3 E, 39.6-41.9 N. Returned per class as ``plateId -> bbox``; a cut
+    piece outside its plate's bbox keeps the partition binding.
+    """
+    resolved: dict[str, dict[int, tuple[float, float, float, float]]] = {}
     for class_name, block in overrides["classes"].items():
         listed = block["overridePlateIds"]
         if listed != [row["plateId1"] for row in block["plates"]]:
             raise CompileError(f"{class_name}: override index disagrees with the plate table")
+        footprints: dict[int, tuple[float, float, float, float]] = {}
         for row in block["plates"]:
+            plate = row["plateId1"]
             if not row.get("justification"):
-                raise CompileError(f"{class_name} override {row['plateId1']}: no justification")
+                raise CompileError(f"{class_name} override {plate}: no justification")
             if not row.get("sourceIds"):
-                raise CompileError(f"{class_name} override {row['plateId1']}: no sourceIds")
-    return {class_name: list(block["overridePlateIds"])
-            for class_name, block in overrides["classes"].items()}
+                raise CompileError(f"{class_name} override {plate}: no sourceIds")
+            footprint = row.get("footprint")
+            if not isinstance(footprint, dict) or not footprint.get("basis") \
+                    or not footprint.get("reason"):
+                raise CompileError(f"{class_name} override {plate}: no declared footprint")
+            box = footprint.get("bufferedBbox")
+            if not (isinstance(box, list) and len(box) == 4
+                    and box[0] < box[2] and box[1] < box[3]):
+                raise CompileError(f"{class_name} override {plate}: malformed footprint bbox")
+            if not isinstance(footprint.get("bufferKilometres"), (int, float)):
+                raise CompileError(f"{class_name} override {plate}: no stated footprint buffer")
+            footprints[plate] = tuple(float(value) for value in box)
+        resolved[class_name] = footprints
+    return resolved
 
 
 def validate_basin(basin: dict, interval_ids: set[str]) -> None:
@@ -1679,7 +1702,10 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             geometries[row["index"]] = record_polygon(row, densify=True)
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
-    override_plates = set(overrides.get(class_name, []))
+    override_footprints = dict(overrides.get(class_name, {}))
+    override_plates = set(override_footprints)
+    override_declined_pieces: Counter[int] = Counter()
+    override_applied_pieces: Counter[int] = Counter()
     simplification = class_simplification(simplification, class_name)
     protected_boxes = [shapely.box(*window["bbox"])
                        for window in simplification["protectedWindows"]]
@@ -1830,8 +1856,22 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                 flags = 0
                 binding_plate = owner
                 if source_plate is not None and source_plate in override_plates:
-                    binding_plate = source_plate
-                    flags |= FLAG_PLATEID1_OVERRIDE
+                    # A PLATEID1 value is not evidence on its own: the override
+                    # applies only where the piece sits on or near that plate's
+                    # own declared footprint (overrides.json). Everything else
+                    # keeps the partition binding and is counted as declined.
+                    west, south, east, north = override_footprints[source_plate]
+                    # The whole piece has to fit, not just a seat: a seat is not
+                    # stable under node reduction for a multi-part piece, and a
+                    # piece that reaches outside the footprint is exactly the
+                    # case the footprint exists to refuse.
+                    left, bottom, right, top = entry["original"].bounds
+                    if west <= left and right <= east and south <= bottom and top <= north:
+                        binding_plate = source_plate
+                        flags |= FLAG_PLATEID1_OVERRIDE
+                        override_applied_pieces[source_plate] += 1
+                    else:
+                        override_declined_pieces[source_plate] += 1
                 window_youngest = max(float(row["toAge"]), float(interval["toAgeMa"]))
                 window_oldest = min(float(row["fromAge"]), float(interval["fromAgeMa"]))
                 binding_result = binding_entries(by_plate, binding_plate,
@@ -2022,6 +2062,16 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             },
             "overrideBoundPieces": override_bound_pieces,
             "overridePlateIds": sorted(override_plates),
+            # Per plate: pieces the footprint accepted, pieces it turned back to
+            # partition binding, and the footprint they were tested against.
+            "overrideFootprints": {
+                str(plate): {
+                    "bufferedBbox": list(override_footprints[plate]),
+                    "appliedPieces": override_applied_pieces.get(plate, 0),
+                    "declinedPieces": override_declined_pieces.get(plate, 0),
+                    "eligiblePieces": (override_applied_pieces.get(plate, 0)
+                                       + override_declined_pieces.get(plate, 0)),
+                } for plate in sorted(override_plates)},
             "restorationBoundPieces": restoration_bound_pieces,
             "seamCrossingPieces": seam_crossing_pieces,
             "restorationBoundAreaSquareKilometres": round(restoration_bound_area, 3),

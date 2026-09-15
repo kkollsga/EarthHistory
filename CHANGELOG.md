@@ -8,14 +8,15 @@ All notable changes to EarthHistory will be recorded here.
 
 - A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
   coast proxy with mapped palaeogeography for the 24 published map intervals
-  from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. Two
-  classes ship: 26,783 landmass pieces (3,415,378 bytes) and 31,868
-  shallow-marine pieces (3,519,149 bytes), cut from 7,155 and 13,395 Cao et al.
-  (2017) source records and the cited basin and lowstand contracts, plus two
-  columnar class catalogs (34,422 and 49,491 bytes) and 25 country-outline tone
-  tables (101,550 bytes for both files) — 7,036,077 bytes over 54 files, inside
-  the 7 MiB budget `check-app-artifacts` now enforces. `dist` is 52,057,351 bytes
-  (49.65 MiB) against the unchanged 50 MiB ceiling.
+  from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. All
+  three Cao surface classes ship: 26,769 landmass pieces (3,418,479 bytes),
+  31,271 shallow-marine pieces (3,467,192 bytes) and 12,151 mountain pieces
+  (1,195,501 bytes), cut from 7,155, 13,395 and 4,789 Cao et al. (2017) source
+  records and the cited basin and lowstand contracts, plus three columnar class
+  catalogs and 25 country-outline tone tables (107,501 bytes for both files) —
+  8,188,673 bytes over 80 files, inside the 8.5 MiB budget `check-app-artifacts`
+  now enforces. `dist` is 51,455,724 bytes (49.07 MiB) against the unchanged
+  50 MiB ceiling.
 - The mechanism: the browser downloads polygon rings, not triangles. A published
   interval is one EHPR v1 payload per class — int16 lon/lat vertices, a 12-byte
   piece record and a 2-byte ring record — which a worker decodes, ear-clips with
@@ -42,24 +43,80 @@ All notable changes to EarthHistory will be recorded here.
   off. With the layer off the drawn globe, the native Cao 2024 composition, the
   country outline's single dark ink, every correction, anchor, boundary and
   ownership asset and every existing citation are exactly what they were. The
-  mountain class stays compiled and validated offline: it is not funded by the
-  byte budget and does not ship.
-- Twelve cited local modifications to the Cao 2017 polygons in the North Sea,
-  the first basin the plan's edit contract covers. In five of the twenty-four
+  Cao 2017 ice class `i` is still not compiled.
+- The **mountain class** `palaeo-mountain`, shipped as light-brown polygons
+  above palaeo land. Withholding it was a measured defect, not a preference:
+  Cao classes ground as mountain in all twenty-four intervals — from 2.1 million
+  km2 at 285-269 Ma to 23.9 million km2 at 20-11 Ma — and where that ground
+  carried neither of the two published classes the globe painted emergent orogen
+  in the blue the map key defines as "Cao 2024 continental crust, depth
+  unmapped", asserting an absence of evidence the source does not have over
+  areas the size of continents. At 170 Ma the Pentland Firth between Caithness
+  and Orkney rendered as water 90 km from land that was drawn. The colour is
+  `#c8a97e`: the dark outline and label ink clears it at 6.86:1, and it
+  separates from the `palaeo-land` olive by hue rather than by lightness
+  (CIE76 dE 21.1; 56.7 against the shallow-marine teal). Precedence is
+  unchanged — mountain over land over corrections over shallow marine over
+  shelf — and the map key's "Palaeo mountain" row returns with the class. The
+  class carries Cao's own evidence row and adds no new literature claim; its
+  limitation line says it is a mapped relief class, neither an elevation nor a
+  modern topographic surface.
+- The mountain class is funded by a lossless reclaim, not by dropping a tier.
+  The shipped package already interned repeated chart fields; the interned field
+  list grew from four to twelve and the references moved into one dense column
+  per field, because twelve repeated key names per chart cost more than the
+  references they introduce. `core.json` falls from 3,216,469 to 1,426,795 bytes
+  and the material-correction catalog from 284,232 to 220,600 — 1,853,306 bytes,
+  against the 1,172,814 the class needed. Every chart is deep-equal after
+  expansion and the whole document is canonically equal; six deliberate
+  mutations are proven red in both halves of the codec. `PALAEO_MAX_BYTES` rose
+  from 7 to 8.5 MiB, inside what was reclaimed, and `dist` keeps 973,076 bytes
+  of margin under the 50 MiB ceiling. Two further reclaims were measured and
+  deliberately left untaken — mountain node reduction at 0.05 degrees (41,654
+  bytes, 3.5 % of the class, for a real loss of boundary detail) and interning
+  `motion-palette.json` (588,257 bytes, but fifteen offline scripts read that
+  catalog directly) — because the requirement was already met.
+- **`PLATEID1` overrides are bounded by a declared footprint.** Every override
+  entry now carries the bounding box of that plate's own present-day Cao 2024
+  static partitions, buffered by a stated 500 km — twice the 250 km
+  frame-conflict threshold — and a cut piece is rebound by its `PLATEID1` only
+  if the whole piece fits inside it. Without the bound a plate id alone carried
+  ground an ocean away: the Apulia (3307) override was rebinding shallow-marine
+  pieces spanning 3.7-31.6 E and 36.0-55.8 N onto a plate whose entire
+  present-day crust is 15.2-19.3 E, 39.6-41.9 N. The rule turns 3,545 of 9,934
+  eligible shallow-marine pieces, 413 of 1,287 landmass and 440 of 985 mountain
+  pieces back to partition binding, where the frame-conflict flag discloses the
+  disagreement instead of hiding it; a piece whose partition owner then has no
+  gap-free motion coverage is not drawn rather than posed on an invented
+  rotation. The validator rejects an override piece outside its footprint, and
+  an override entry with no footprint at all.
+- Twenty cited local modifications to the Cao 2017 polygons in the North Sea,
+  the first basin the plan's edit contract covers. In eight of the twenty-four
   map intervals the source misstates the land-sea pattern at basin scale, and
-  130,789 km2 of landmass is added and 191,943 km2 of shallow marine removed to
-  fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
+  113,050 km2 of landmass is added net and 195,578 km2 of shallow marine removed
+  net to fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
   and goes back to being a lake in a continent (402-380 Ma); the Moray Firth
   emerges in the Zechstein while the Central North Sea evaporite basin stays
   flooded (269-248); the East Shetland Platform and the Brent/Vestland delta
   plain emerge in the Middle Jurassic, the delta plain bounded north by the
   published ca. 60 degrees 30 minutes N limit, and northern Scotland, the
   Pentland Firth and Orkney stop rendering as water of unknown depth between
-  them (179-166); and the Shetland
+  them (179-166); the Scottish landmass stays emergent through the Late Jurassic
+  where Cao drowns it and the literature does not (166-146); the Viking Graben
+  at Heather time, the Egersund Basin at Tau and Draupne time, the eastern
+  Norwegian-Danish Basin and the southern North Sea at the late Ryazanian
+  transgression stop rendering as dry ground over their own source-rock kitchens
+  (166-146, 146-135, 135-117); and the Shetland
   Platform emerges in the Palaeocene and Eocene, where Cao's own authors record
   fewer than twenty marine fossil collections constraining the whole globe
-  (58-49, 49-37). Each operation carries its rationale, a 40-60 km spatial
-  uncertainty, its references with DOI or URL, and an editorial line
+  (58-49, 49-37). Those four Late Jurassic and Early Cretaceous removals are a
+  different kind of edit from the rest: in each, Cao overlaps one of its own
+  landmass polygons on its own shallow-marine polygon and the landmass wins the
+  draw order, so what is removed is an artefact of a maximum-transgression bin
+  rather than a disagreement with the source. Two `add-shallow` companions cover
+  the intervals where no shallow-marine polygon lies underneath, so a removal
+  never leaves mapped sea rendered as crust of unmapped depth. Each operation
+  carries its rationale, a 40-75 km spatial uncertainty, its references with DOI or URL, and an editorial line
   "EarthHistory modification after <refs>"; the edited charts carry those
   references in their evidence records, so the map key names them whenever an
   edited chart is on screen. Every geometry is EarthHistory's own coarse
@@ -73,15 +130,29 @@ All notable changes to EarthHistory will be recorded here.
   literature memo flags as unsettled, the Late Jurassic rift seaways Cao already
   gets right, and the northern limit of the Zechstein Sea nothing retrieved
   places. The record is
-  `docs/research/palaeo-coastlines-north-sea-edits.md`. The published set grows
-  by 5,901 bytes to 6,986,824 over the same 52 files, the renderer reservation
-  is unchanged, and the nineteen unedited intervals are byte-identical. In the
-  same change the country-outline tone tables stop describing geometry the build
-  withholds: they had been inked from the unshipped mountain class as well as
-  the landmass class, drawing 261 outline segments at 402-380 Ma dark over land
-  the browser never receives, and both the tables and their interval index are
-  now built from the shipped class list alone, which the promote script refuses
-  to publish against a mismatch.
+  `docs/research/palaeo-coastlines-north-sea-edits.md`, with four measured
+  companions: the formation checks, the Middle Jurassic and Eocene Shetland
+  literature records, and the Norwegian shelf checks against the Norlex
+  lithostratigraphic wallchart and the Sodir formation charts. Two further
+  refinements come from those: the Brent rationale now says that 60 degrees
+  30 minutes N bounds the *Vestland* system and not the Brent maximum (a delta
+  *front* at about 61 degrees 30 minutes N that the operation deliberately does
+  not reach), and cites the Central North Sea dome for the emergence of the
+  ground south of the delta but explicitly not for its sediment supply, naming
+  both sides of the open provenance controversy; and the East Shetland Platform
+  outline is pulled back to 0.55 E between 60.9 and 61.3 N so it stops short of
+  the Unst Basin, which preserves a Brent Group succession. The Palaeogene
+  operations gain the Grid and Frigg lithostratigraphy, the Hermod provenance
+  record, the Middle Eocene platform succession, the Palaeogene palaeobathymetry
+  and the platform's structural history, and their stated spatial uncertainty
+  rises to 75 km because no retrieved source places a Palaeogene shoreline
+  anywhere between 0 and 1.2 E. No Nordland Ridge or Loppa High operation
+  follows from the wallchart: a hatched hiatus column states that section is
+  missing, not that the ground stood above sea level, and both are carried as
+  drift witnesses instead. The country-outline tone tables and their interval
+  index are built from the shipped class list alone — which the promote script
+  refuses to publish against a mismatch — so a segment is inked dark over the
+  mountain class now that the class ships, and was not while it did not.
 - One optional **Last Glacial Maximum lowstand state** inside the same layer, at
   26.5-19.5 ka: the first interval the layer carries that is not Cao et al.
   (2017) geometry at all. It is the NOAA ETOPO 2022 60 arc-second surface at or
@@ -129,9 +200,8 @@ All notable changes to EarthHistory will be recorded here.
   interval dropped by accident while accepting the intended 2 Myr gap; the
   shallow-marine payload for the interval is a header-only 32-byte file, because
   a eustatic contour says where land was and nothing about where a shallow sea
-  was, and the validator fails if it is not empty. The published set grows by
-  48,151 bytes to 7,034,975 over 54 files, inside the same 7 MiB budget, and
-  every other interval is byte-identical. `validate_palaeo_coastlines_runtime.py`
+  was, and the validator fails if it is not empty. The interval cost 48,151
+  bytes when it landed, and every other interval stayed byte-identical. `validate_palaeo_coastlines_runtime.py`
   now pins the four ETOPO crop digests, the contour datum, the window, the
   footprint bounds, the measured areas, the required limitations and references,
   and eight witnesses - Dogger Bank, the Sunda shelf and the Bering land bridge

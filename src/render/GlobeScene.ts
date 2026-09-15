@@ -443,7 +443,7 @@ function createCaoGpuRetirementOwner(
  * never may.
  *
  * Measured 2026-09-15 over the promoted `lm`+`sm` set: the worst interval
- * (29-20 Ma) refines to 262,202 vertices and 427,088 triangles, whose retained
+ * (29-20 Ma) refines to 300,697 vertices and 483,487 triangles, whose retained
  * source copies and tracked GPU buffers come to about 19 MiB. That is 1.87x the
  * compiler's own triangle estimate, because this runtime bisects conformingly
  * while the compiler models each triangle alone; the 1 degree edge bound is the
@@ -453,14 +453,14 @@ function createCaoGpuRetirementOwner(
  */
 const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
   maxBatches: 64,
-  maxVertices: 300_000,
-  maxTriangles: 480_000,
-  maxRetainedSourceBytes: 24 * 1024 * 1024,
+  maxVertices: 380_000,
+  maxTriangles: 580_000,
+  maxRetainedSourceBytes: 30 * 1024 * 1024,
   maxPublicationBytes: 512 * 1024,
   maxSpatialIndexBytes: 512 * 1024,
 });
 const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_PALAEO_RETIREMENT_MAX_BYTES = 32 * 1024 * 1024;
+const CAO_PALAEO_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;

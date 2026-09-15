@@ -132,8 +132,24 @@ WITNESS_CLASSES = {
         "402-380": ["sm"], "269-248": ["m"], "248-224": ["lm"], "94-81": ["sm"]}),
     "doggerland": ((2.5, 54.5), {
         "402-380": ["lm"], "269-248": ["sm"], "248-224": ["lm"], "94-81": ["sm"]}),
+    # Mid-Norway and the Barents: the hatched Nordland Ridge and Loppa High
+    # columns of the Norwegian lithostratigraphic wallchart are missing section,
+    # not emergence, so no basin contract draws either. These three rows are the
+    # drift detectors that keep that open question honest: the Neogene Nordland
+    # Ridge must not start rendering as land without a source that states
+    # exposure, and the map's own Miocene emergent Loppa High - unevidenced
+    # either way - must not move silently.
+    "nordland-ridge-crest": ((10.902, 66.925), {"11-2": ["sm"]}),
+    "loppa-high-crest": ((20.546, 72.057), {"248-224": ["sm"], "20-11": ["lm"]}),
 }
-WITNESS_INTERVALS = ("402-380", "269-248", "248-224", "94-81")
+# Every interval the audit table, the narrow-feature transects and the tone
+# index are checked at. The four original intervals span the schedule; the eight
+# added in 2026-09-15's second North Sea round are the ones the cited edits
+# touch, plus the Neogene pair the mid-Norway and Barents witnesses need. A
+# witness that does not name an interval is simply not checked there, so this
+# tuple can grow without re-measuring every row.
+WITNESS_INTERVALS = ("402-380", "269-248", "248-224", "179-166", "166-146", "146-135",
+                     "135-117", "94-81", "58-49", "49-37", "20-11", "11-2")
 
 # A cited basin edit is allowed to move a witness, but only where the contract
 # says so. Each row names the witness the edit moves, the operation that moves
@@ -191,6 +207,83 @@ BASIN_EDIT_WITNESSES = (
     # and the emergent ground west of it (contract notes.leftAlone). This control
     # fails if the land is ever extended east without a citation.
     {"witnessId": "east-shetland-platform-eocene", "position": (0.5, 61.0), "intervalId": "49-37",
+     "opIds": [], "classes": ["sm"]},
+
+    # ---------------------------------------------------------------- 2026-09-15
+    # The formation checks (docs/research/palaeo-coastlines-north-sea-formation-
+    # checks.md) and the Norwegian shelf checks (…-norwegian-shelf-checks.md)
+    # measured the shipped payload against named lithostratigraphic units. These
+    # rows are what those two memos found, so a future compile cannot lose them.
+    # Rows with an opId are the three places Cao overlaps its own landmass on its
+    # own shallow-marine polygon and the cited removals now fix; rows with none
+    # are controls the edits must leave exactly as Cao drew them.
+
+    # Devonian and Permian: the Old Red Sandstone continent, and the Zechstein flip.
+    {"witnessId": "orcadian-old-red-sandstone", "position": (2.0, 57.0), "intervalId": "380-359",
+     "opIds": [], "classes": ["lm"]},
+    {"witnessId": "southern-north-sea-tornquist-incursion", "position": (4.0, 54.0),
+     "intervalId": "380-359", "opIds": [], "classes": ["sm"]},
+    {"witnessId": "rotliegend-auk-pre-desert", "position": (2.07, 56.4), "intervalId": "285-269",
+     "opIds": [], "classes": ["lm"]},
+    {"witnessId": "zechstein-auk-field", "position": (2.07, 56.4), "intervalId": "269-248",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "zechstein-viking-graben-north-limit", "position": (2.5, 60.5),
+     "intervalId": "269-248", "opIds": [], "classes": ["lm"]},
+
+    # Triassic and Early Jurassic controls.
+    {"witnessId": "skagerrak-triassic-dryland", "position": (7.0, 56.8), "intervalId": "248-224",
+     "opIds": [], "classes": ["lm"]},
+    {"witnessId": "dunlin-viking-graben", "position": (2.5, 60.5), "intervalId": "203-179",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "dunlin-east-shetland-basin", "position": (1.5, 61.0), "intervalId": "203-179",
+     "opIds": [], "classes": ["sm"]},
+
+    # Middle Jurassic: the delta-plain pair fixes the shoreline to a 0.5 degree
+    # band at 60.5/61.0 N, which is the whole point of the Vestland limit.
+    {"witnessId": "brent-delta-plain-north-limit", "position": (2.0, 60.5), "intervalId": "179-166",
+     "opIds": ["north-sea-179-166-brent-delta-plain-remove-shallow",
+               "north-sea-179-166-brent-delta-plain-add-land"], "classes": ["lm"]},
+    {"witnessId": "brent-delta-drowned-axis", "position": (2.0, 61.0), "intervalId": "179-166",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "mid-jurassic-dome-central-graben-no", "position": (3.2, 56.5),
+     "intervalId": "179-166", "opIds": [], "classes": ["lm"]},
+
+    # Late Jurassic and Early Cretaceous: the three cited land removals, their
+    # controls, and the Utsira High, which is emergent at 166-146 and drowned by
+    # 146-135 and must not creep either way.
+    {"witnessId": "heather-viking-graben", "position": (2.5, 60.5), "intervalId": "166-146",
+     "opIds": ["north-sea-166-146-viking-graben-remove-land"], "classes": ["sm"]},
+    {"witnessId": "tau-egersund-basin-late", "position": (5.5, 57.8), "intervalId": "166-146",
+     "opIds": ["north-sea-166-135-egersund-basin-remove-land"], "classes": ["sm"]},
+    {"witnessId": "tau-egersund-basin", "position": (5.5, 57.8), "intervalId": "146-135",
+     "opIds": ["north-sea-166-135-egersund-basin-remove-land"], "classes": ["sm"]},
+    {"witnessId": "draupne-viking-graben", "position": (2.5, 60.5), "intervalId": "146-135",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "norwegian-danish-basin-ryazanian", "position": (8.0, 56.5),
+     "intervalId": "146-135",
+     "opIds": ["north-sea-166-117-norwegian-danish-basin-remove-land"], "classes": ["sm"]},
+    {"witnessId": "norwegian-danish-basin-cromer-knoll", "position": (8.0, 56.5),
+     "intervalId": "135-117",
+     "opIds": ["north-sea-166-117-norwegian-danish-basin-remove-land"], "classes": ["sm"]},
+    {"witnessId": "southern-north-sea-valhall", "position": (4.0, 54.0), "intervalId": "135-117",
+     "opIds": ["north-sea-135-117-southern-north-sea-remove-land"], "classes": ["sm"]},
+    {"witnessId": "utsira-high-late-jurassic-island", "position": (2.235, 58.836),
+     "intervalId": "166-146", "opIds": [], "classes": ["lm", "sm"]},
+    {"witnessId": "utsira-high-north-tip-drowned", "position": (2.801, 59.526),
+     "intervalId": "166-146", "opIds": [], "classes": ["sm"]},
+    {"witnessId": "utsira-high-drowned", "position": (2.235, 58.836), "intervalId": "146-135",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "norwegian-danish-basin-west-control", "position": (6.0, 57.2),
+     "intervalId": "146-135", "opIds": [], "classes": ["sm"]},
+
+    # Chalk sea, and the two Cenozoic basin-axis points: an environment class,
+    # never a depth. Frigg and Utsira are both shallow marine and must stay both
+    # non-land and classified - a `neither` result there would be a payload loss.
+    {"witnessId": "ekofisk-chalk-sea", "position": (3.22, 56.55), "intervalId": "94-81",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "frigg-fan-axis", "position": (2.0, 59.5), "intervalId": "58-49",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "utsira-shelf", "position": (2.0, 59.5), "intervalId": "20-11",
      "opIds": [], "classes": ["sm"]},
 )
 
@@ -756,32 +849,74 @@ def check_bindings(store: Store, view: ClassView, overrides: dict,
             "recoveryPlateIds": sorted(recovery_plates)}
 
 
+#: Slack, in degrees, between the bounding box the compiler tested (the
+#: unsimplified cut piece) and the one this check re-derives (the simplified,
+#: int16-quantised ring). Node reduction only ever shrinks a box, so an accepted
+#: override stays inside to within the 0.003 degree quantisation step and 0.05
+#: is an order of magnitude of headroom. The converse is deliberately not
+#: asserted: node reduction can drop a whole small component of a multi-part
+#: piece (measured 2026-09-15, sm record 6902 at 94-81 Ma is cut to a piece
+#: reaching 8.537 E unsimplified and 9.256 E as shipped), so a declined piece
+#: can look enclosed once simplified.
+OVERRIDE_FOOTPRINT_TOLERANCE_DEGREES = 0.05
+
+
 def check_charts_use_overrides(store: Store, view: ClassView, overrides: dict) -> dict:
-    """Every piece whose source PLATEID1 is in the override table is bound by it."""
+    """A piece is rebound by its PLATEID1 exactly where that plate's footprint allows it.
+
+    A piece bound as ``override`` must carry its source PLATEID1 as the binding
+    plate *and* lie entirely inside that override entry's declared footprint:
+    without the second half a PLATEID1 value alone moved ground an ocean away
+    onto a small plate (measured 2026-09-15, the Apulia 3307 override reached
+    3.7-31.6 E and 36.0-55.8 N from a plate whose present-day crust spans
+    15.2-19.3 E). A piece whose PLATEID1 is in the table but which is not bound
+    as an override is counted and reported rather than asserted about: the
+    shipped ring cannot prove where the *unsimplified* cut piece reached, and the
+    compiler's own per-plate accepted/declined tallies are in the provenance
+    sidecar. The test is the piece's bounding box, not a seat: a representative
+    point is not stable under node reduction for a multi-part piece.
+    """
     class_name = view.class_name
-    override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
+    entries = {row["plateId1"]: row for row in overrides["classes"][class_name]["plates"]}
+    slack = OVERRIDE_FOOTPRINT_TOLERANCE_DEGREES
     checked = 0
+    declined = 0
     for interval in view.intervals:
         decoded = store.payload("staging", class_name, interval["intervalId"])
         for piece in decoded["pieces"]:
             chart = view.charts[piece["chartIndex"]]
             binding = view.bindings[piece["bindingIndex"]]
-            expected = chart["plateId1"] in override_plates
+            plate = chart["plateId1"]
+            entry = entries.get(plate)
             actual = binding["kind"] == "override"
-            if expected != actual:
-                raise CorrectionError(
-                    f"{class_name} {interval['intervalId']}: source plate {chart['plateId1']} "
-                    f"is {'in' if expected else 'not in'} the override table but the piece is "
-                    f"bound as {binding['kind']}")
-            if expected and binding["bindingPlateId"] != chart["plateId1"]:
-                raise CorrectionError(
-                    f"{class_name} {interval['intervalId']}: override piece is bound to plate "
-                    f"{binding['bindingPlateId']}, not to its PLATEID1 {chart['plateId1']}")
-            if bool(piece["flags"] & compiler.FLAG_PLATEID1_OVERRIDE) != expected:
+            if bool(piece["flags"] & compiler.FLAG_PLATEID1_OVERRIDE) != actual:
                 raise CorrectionError(
                     f"{class_name} {interval['intervalId']}: the override flag disagrees with the binding")
+            if actual and entry is None:
+                raise CorrectionError(
+                    f"{class_name} {interval['intervalId']}: piece is bound as an override but its "
+                    f"source plate {plate} is not in the override table")
+            if entry is None:
+                continue
+            if actual and binding["bindingPlateId"] != plate:
+                raise CorrectionError(
+                    f"{class_name} {interval['intervalId']}: override piece is bound to plate "
+                    f"{binding['bindingPlateId']}, not to its PLATEID1 {plate}")
+            west, south, east, north = entry["footprint"]["bufferedBbox"]
+            left, bottom, right, top = compiler.piece_geometry(decoded, piece).bounds
+            inside = (west - slack <= left and right <= east + slack
+                      and south - slack <= bottom and top <= north + slack)
+            if actual and not inside:
+                box = [round(value, 3) for value in (left, bottom, right, top)]
+                raise CorrectionError(
+                    f"{class_name} {interval['intervalId']}: override piece for plate {plate} "
+                    f"spans {box}, outside its declared footprint {[west, south, east, north]}")
             checked += 1
-    return {"checkedPieces": checked, "overridePlates": sorted(override_plates)}
+            if not actual:
+                declined += 1
+    return {"checkedPieces": checked, "declinedByFootprint": declined,
+            "overridePlates": sorted(entries),
+            "footprintToleranceDegrees": slack}
 
 
 def sliver_width_km(geometry) -> float:
@@ -936,7 +1071,9 @@ def check_witnesses(store: Store, classes: list[str], explain=None) -> dict:
     for interval_id in WITNESS_INTERVALS:
         unions = {name: class_union(store, name, interval_id) for name in classes}
         for witness, (position, expected_by_interval) in WITNESS_CLASSES.items():
-            source_expected = expected_by_interval[interval_id]
+            source_expected = expected_by_interval.get(interval_id)
+            if source_expected is None:
+                continue
             edit = WITNESS_BASIN_EDITS.get((witness, interval_id))
             expected = [name for name in (edit["classes"] if edit else source_expected)
                         if name in classes]
@@ -1417,6 +1554,26 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         lambda: check_charts_use_overrides(store, view.mutated(catalog=rebound), overrides)))
     check_charts_use_overrides(store, view, overrides)
 
+    # 4b. an override footprint that no longer contains the pieces it rebound.
+    # This is the gate that stops a PLATEID1 value from carrying ground an ocean
+    # away onto a small plate, so it is proved by moving the footprint, not the
+    # piece: every accepted override for 606 is then outside its own declaration.
+    moved_footprint = deepcopy(overrides)
+    entry = next(row for row in moved_footprint["classes"][class_name]["plates"]
+                 if row["plateId1"] == 606)
+    west, south, east, north = entry["footprint"]["bufferedBbox"]
+    entry["footprint"]["bufferedBbox"] = [west - 180.0, south, east - 180.0, north]
+    results.append(expect_failure(
+        "the Lhasa 606 override footprint moved off the pieces it rebound",
+        lambda: check_charts_use_overrides(store, view, moved_footprint)))
+    dropped_footprint = deepcopy(overrides)
+    for row in dropped_footprint["classes"][class_name]["plates"]:
+        row.pop("footprint", None)
+    results.append(expect_failure(
+        "an override entry with no declared footprint",
+        lambda: check_config(dropped_footprint, basins, interval_ids)))
+    check_charts_use_overrides(store, view, overrides)
+
     # 5. a North Sea piece that skips the restoration binding
     _, by_plate = compiler.load_palette()
     without_restoration = {plate: [entry for entry in entries
@@ -1513,6 +1670,21 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     results.append(expect_failure(
         "a basin edit witness whose operation was deleted from the contract",
         lambda: check_basin_edit_witnesses(store, [class_name], dropped_op,
+                                           rows_by_class, view.intervals)))
+    # The three Late Jurassic and Early Cretaceous removals are the only edits
+    # that take land away rather than add it, so they are the ones a future
+    # contract edit could quietly drop without any add-land witness noticing.
+    # Naming one by id proves the witness rows that own them can fail.
+    REMOVAL_OP = "north-sea-166-146-viking-graben-remove-land"
+    dropped_removal = deepcopy(basins)
+    for basin in dropped_removal:
+        basin["ops"] = [op for op in basin["ops"] if op["opId"] != REMOVAL_OP]
+    if sum(len(basin["ops"]) for basin in dropped_removal) == \
+            sum(len(basin["ops"]) for basin in basins):
+        raise CorrectionError(f"self-test: {REMOVAL_OP} is not in any tracked contract")
+    results.append(expect_failure(
+        f"the cited {REMOVAL_OP} operation deleted from the contract",
+        lambda: check_basin_edit_witnesses(store, [class_name], dropped_removal,
                                            rows_by_class, view.intervals)))
     check_basin_edit_witnesses(store, [class_name], basins, rows_by_class, view.intervals)
 

@@ -34,13 +34,15 @@ async function packageManifest(): Promise<ReconstructionPackageManifestV2> {
     ReconstructionPackageManifestV2;
 }
 
-async function classCatalog(surfaceClass: "lm" | "sm") {
+type PalaeoClass = "lm" | "sm" | "m";
+
+async function classCatalog(surfaceClass: PalaeoClass) {
   const url = `palaeo-coastlines/${surfaceClass}/palaeo-${surfaceClass}-catalog.json`;
   return decodePalaeoCoastlineClassCatalog(
     JSON.parse(await readFile(resolve(root, url), "utf8")), surfaceClass);
 }
 
-async function payloadBuffer(surfaceClass: "lm" | "sm", url: string): Promise<ArrayBuffer> {
+async function payloadBuffer(surfaceClass: PalaeoClass, url: string): Promise<ArrayBuffer> {
   const bytes = await readFile(resolve(root, `palaeo-coastlines/${surfaceClass}/${url}`));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
@@ -131,12 +133,15 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
   it("keeps every promoted interval inside the declared reservation", async () => {
     const manifest = await packageManifest();
     const reservation = manifest.palaeoCoastlines!.reservation;
-    const catalogs = { lm: await classCatalog("lm"), sm: await classCatalog("sm") };
+    // All three shipped classes: the reservation is their per-interval sum, so
+    // leaving the mountain class out would validate a ceiling nothing tests.
+    const catalogs = { lm: await classCatalog("lm"), sm: await classCatalog("sm"),
+      m: await classCatalog("m") };
     const measured = new Map<string, { vertices: number; triangles: number; estimate: number }>();
     for (const [surfaceClass, catalog] of Object.entries(catalogs)) {
       for (const interval of catalog.intervals) {
         const prepared = preparePalaeoRingPayload(
-          await payloadBuffer(surfaceClass as "lm" | "sm", interval.payload.url),
+          await payloadBuffer(surfaceClass as PalaeoClass, interval.payload.url),
           { maxEdgeDegrees: reservation.maxEdgeDegrees,
             maxVertices: reservation.maxIntervalVertices,
             maxTriangles: reservation.maxIntervalTriangles });
@@ -150,6 +155,7 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
       }
     }
     expect(measured.size).toBe(25);
+    expect(Object.keys(catalogs)).toEqual(["lm", "sm", "m"]);
     for (const [intervalId, row] of measured) {
       expect(row.vertices, `${intervalId} vertices`).toBeLessThanOrEqual(reservation.maxIntervalVertices);
       expect(row.triangles, `${intervalId} triangles`).toBeLessThanOrEqual(reservation.maxIntervalTriangles);
@@ -159,7 +165,8 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     // reservation is the estimate scaled by 2.0 for exactly that reason; this
     // asserts the scale still covers the worst interval.
     const ratios = [...measured.values()].map((row) => row.triangles / row.estimate);
-    // Measured 2026-09-15: 1.63 at the median, 2.04 at the worst interval. The
+    // Measured 2026-09-15 over lm+sm+m: 1.88 at the worst interval (29-20 Ma,
+    // 300,697 vertices and 483,487 triangles against a 256,939 estimate). The
     // bound is a drift detector, and the reservation is sized on the worst
     // interval's absolute count, which the per-interval assertions above check.
     expect(Math.max(...ratios)).toBeLessThan(2.2);
@@ -177,7 +184,7 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
       expect(record.fromAgeMa).toBe(0.0265);
       expect(record.toAgeMa).toBe(0.0195);
       const payload = decodePalaeoRingPayload(
-        await payloadBuffer(catalog.class as "lm" | "sm", record.payload.url));
+        await payloadBuffer(catalog.class as PalaeoClass, record.payload.url));
       expect(() => validatePalaeoRingPayloadAgainstCatalog(payload, catalog, record)).not.toThrow();
       // A eustatic contour says where land was, not where a shallow sea was.
       if (catalog.class === "sm") expect(payload.pieces).toHaveLength(0);
@@ -350,6 +357,40 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     expect(tiles.length, `tiles fetched: ${tiles.join(", ")}`).toBe(1);
     prepared.release();
     runtime.dispose();
+  }, 120_000);
+
+  it("draws the mountain class where Cao maps mountain and nowhere else", async () => {
+    // The class the build withheld until 2026-09-15. Both witnesses are ground
+    // Cao classes as mountain at 179-166 Ma and as neither landmass nor shallow
+    // marine, so before the class shipped the browser painted them in the crust
+    // blue the map key defines as "depth unmapped".
+    const catalog = await classCatalog("m");
+    expect(catalog.class).toBe("m");
+    expect(catalog.className).toBe("mountain");
+    expect(catalog.appearance).toBe("palaeo-mountain");
+    expect(catalog.intervals).toHaveLength(25);
+    const record = catalog.intervals.find((interval) => interval.intervalId === "179-166")!;
+    const prepared = preparePalaeoRingPayload(await payloadBuffer("m", record.payload.url),
+      { maxEdgeDegrees: 1, maxVertices: 380_000, maxTriangles: 580_000 });
+    const { referenceDirections, indices } = prepared.geometry;
+    const covers = (longitude: number, latitude: number) => {
+      const direction = lonLat(longitude, latitude);
+      for (let triangle = 0; triangle < indices.length; triangle += 3) {
+        const corner = (slot: number) => {
+          const base = indices[triangle + slot]! * 3;
+          return [referenceDirections[base]!, referenceDirections[base + 1]!,
+            referenceDirections[base + 2]!];
+        };
+        if (insideSphericalTriangle(direction, corner(0), corner(1), corner(2))) return true;
+      }
+      return false;
+    };
+    expect(covers(-3, 58.8), "Scottish Highlands / Pentland Firth").toBe(true);
+    expect(covers(4.5, 60.5), "Horda Platform").toBe(true);
+    // The Viking Graben axis between them is not mountain in any Cao interval.
+    expect(covers(2, 60.5), "Viking Graben axis").toBe(false);
+    // And the class draws nothing over open ocean it never mapped.
+    expect(covers(-140, -30), "central South Pacific").toBe(false);
   }, 120_000);
 
   it("covers the ground a Gondwana piece encloses and nothing outside it", async () => {

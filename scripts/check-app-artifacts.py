@@ -16,11 +16,16 @@ ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_MANIFEST = Path("public/data/reconstruction/cao-v2.4/manifest.json")
 PALAEO_PREFIX = "public/data/reconstruction/cao-v2.4/palaeo-coastlines/"
 # D5 funded the Cao 2017 layer out of the 7.113 MiB the Phase 1 reclaim left
-# under the 50 MiB dist ceiling: landmass, shallow marine, the two class
-# catalogs, the outline tone tables and the detached LGM lowstand interval. The
-# mountain class is not funded and stays offline, so this bound is what a
-# recompile has to stay inside.
-PALAEO_MAX_BYTES = 7 * 1024 * 1024
+# under the 50 MiB dist ceiling: landmass, shallow marine, the class catalogs,
+# the outline tone tables and the detached LGM lowstand interval. The mountain
+# class was added on 2026-09-15 and the bound rose from 7 to 8.5 MiB, funded by
+# a further 1,853,306 bytes of lossless reclaim measured the same day
+# (`core.json` and the material-correction catalog moved their repeated chart
+# fields into dense columns, `dev-docs/bench/results/palaeo-coastlines-mountains-
+# stop-rule.md`). The raise is 1,572,864 bytes, inside what was reclaimed, and
+# `dist` keeps more than the 0.25 MiB of margin that stop rule requires. This
+# bound is what a recompile has to stay inside.
+PALAEO_MAX_BYTES = 17 * 1024 * 1024 // 2
 # The chord-sag contract: at 1 degree a flat chord sinks 242.6 m into the opaque
 # globe, less than the 400 m the shelf shell stands above it.
 PALAEO_MAX_EDGE_DEGREES = 1
@@ -270,7 +275,7 @@ def self_test() -> int:
         if check(root, 1, 1) != 1:
             print("check-app-artifacts self-test: FAIL: palaeo byte budget violation passed")
             return 1
-        PALAEO_MAX_BYTES = 7 * 1024 * 1024
+        PALAEO_MAX_BYTES = 17 * 1024 * 1024 // 2
         package["palaeoCoastlines"]["reservation"]["maxEdgeDegrees"] = 1.28
         package_manifest.write_text(json.dumps(package))
         manifest["inputs"]["package"].update({"bytes": package_manifest.stat().st_size,

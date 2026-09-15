@@ -91,11 +91,13 @@ under CC BY 3.0; the scientific record is
 [Cao 2017 palaeogeography as a palaeo-coastline source](../research/palaeo-coastlines-cao2017.md)
 and the wire format is [EHPR v1](palaeo-coastlines-format.md), which is the
 authority for the bytes, the columnar class catalog and the country-outline tone
-tables. `public/data/reconstruction/cao-v2.4/palaeo-coastlines/` holds two
-classes, `lm` (landmass) and `sm` (shallow marine), as one ring payload per
-class per published interval. The mountain class `m` is compiled and validated
-offline but is not funded by the byte budget and does not ship; the provenance
-sidecars and the unsimplified payloads never enter a build.
+tables. `public/data/reconstruction/cao-v2.4/palaeo-coastlines/` holds three
+classes, `lm` (landmass), `sm` (shallow marine) and `m` (mountain), as one ring
+payload per class per published interval. The mountain class shipped on
+2026-09-15: withholding it painted emergent orogen - between 2.1 and 23.9
+million km2 of ground per interval - as crust of unmapped depth. The Cao 2017
+ice class `i` is still not compiled, and the provenance sidecars and the
+unsimplified payloads never enter a build.
 
 The 24 published intervals run `402-380` to `11-2` Ma. A piece is drawn on its
 own `(TOAGE, FROMAGE]` lifecycle, not on the interval of the file it ships in,
@@ -157,16 +159,23 @@ passed through untouched.
 
 | Marker | Files | Encoding |
 | --- | --- | --- |
-| `chartDictionaries` (+ `chartIdCollapse: "v1"`) | `core.json`, `corrections/material-v1/catalog.json` | Repeated chart fields are stored once per distinct value |
+| `chartDictionaries` + `chartColumns` (+ `chartIdCollapse: "v1"`) | `core.json`, `corrections/material-v1/catalog.json` | Repeated chart fields are stored once per distinct value and referenced by one dense column per field |
 | `segmentIdEncoding: "age-sourceFeatureId-part-v1"` | `boundary-*.json` | `segmentId` is derived, not shipped; UUIDs and enums are interned per file |
 | `ringIdEncoding: "age-topologyId-ordinal-v1"` | `ownership-*.json` | `polygonId` and `ringId` are derived, not shipped |
 
 `chartDictionaries` maps a chart field name to the distinct values of that field
-in first-appearance order; a chart carries `<field>Ref: <index>` in place of the
-field. A dotted name (`evidence.limitations`) addresses a field of the chart's
-`evidence` object. `core.json` interns `lifecycle`, `surfaceEvidence`,
-`motionBindings` and `evidence.limitations`; the correction catalog interns
-`lifecycle`, `surfaceEvidence`, `motionBindings` and the whole `evidence` object.
+in first-appearance order, and `chartColumns` maps the same name to one
+reference per chart, in chart order. A dotted name (`evidence.limitations`)
+addresses a field of the chart's `evidence` object. Only a field every chart
+carries becomes a column, so every column is dense and exactly as long as
+`charts`; a field some charts lack (`motionSupportGaps`, on four of 4,995) stays
+written out in the chart. `core.json` columns `lifecycle`, `surfaceEvidence`,
+`motionBindings`, `evidence.limitations`, `evidence.sourceIds`,
+`evidence.status`, `sourceFeatureIds`, `sourceFeatureTypes`, `kind`, `role`,
+`chartRevision` and `geometryReferenceAgeMa`; the correction catalog columns the
+same list with the whole `evidence` object in place of its three parts. Columns
+rather than per-chart `<field>Ref` keys are what make the encoding pay: twelve
+repeated key names cost more per chart than the references they introduce.
 Under `chartIdCollapse: "v1"` a chart whose `fragmentOrCohortId` or `materialId`
 equals its `chartId` ships `fragmentOrCohortIdIsChartId`/`materialIdIsChartId`
 instead of the repeated string.
@@ -178,8 +187,9 @@ per-file `dictionaries`. `ownership-*.json` rebuilds `polygonId` as
 `<sourceAgeMa>:<topologyId>` and appends the ring's ordinal within its polygon
 for `ringId`, which requires each polygon's rings to stay contiguous in the file.
 
-A reference outside its table, a ring shipped outside its polygon group, and a
-derived identifier that collides with another are all rejected at decode or
+A reference outside its table, a column that no longer spans the charts or has
+lost its dictionary, a ring shipped outside its polygon group, and a derived
+identifier that collides with another are all rejected at decode or
 validation time rather than decoded into a different value
 (`src/reconstruction/packageIntern.test.ts`).
 

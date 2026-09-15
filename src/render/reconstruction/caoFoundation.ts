@@ -272,7 +272,11 @@ export function caoFoundationShellOffsetMetres(batchId: string, declared?: strin
  * `palaeo-shallow-marine` is a saturated teal held dark enough that the light
  * outline/label ink `#d0d4d5` keeps a 5.4:1 luminance contrast over it, while
  * reading as a distinctly greener, brighter body of water than the 0.58-dimmed
- * shelf blue it sits on. `palaeo-mountain` is a warm pale stone.
+ * shelf blue it sits on. `palaeo-mountain` is a light brown, chosen so that the
+ * dark outline/label ink [0.12, 0.15, 0.18] keeps a 6.86:1 luminance contrast
+ * over it (the outline tone table inks mountain ground dark, like land) and so
+ * that it separates from `palaeo-land` by hue rather than by lightness:
+ * CIE76 dE 21.1 against the olive, 56.7 against the shallow-marine teal.
  */
 export const CAO_FOUNDATION_DEFAULT_BASE_COLORS:
 Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>> = Object.freeze({
@@ -280,7 +284,7 @@ Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>
   shelf: Object.freeze([0.0431, 0.2863, 0.3922] as const),
   "palaeo-land": Object.freeze([0x9a / 255, 0xa8 / 255, 0x6b / 255] as const),
   "palaeo-shallow-marine": Object.freeze([0x14 / 255, 0x60 / 255, 0x6b / 255] as const),
-  "palaeo-mountain": Object.freeze([0xc9 / 255, 0xbd / 255, 0xa6 / 255] as const),
+  "palaeo-mountain": Object.freeze([0xc8 / 255, 0xa9 / 255, 0x7e / 255] as const),
 });
 
 /**

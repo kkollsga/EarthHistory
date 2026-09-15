@@ -54,30 +54,33 @@ function ageToken(age: unknown): string {
 function expandCharts(document: Row): Row {
   const dictionaries = document.chartDictionaries;
   if (!isRow(dictionaries)) throw new Error("Cao package chart dictionaries are malformed");
-  const tables = Object.entries(dictionaries).map(([name, value]) =>
-    [name, frozenTable(value, name)] as const);
+  const columnsRow = document.chartColumns;
+  if (!isRow(columnsRow)) throw new Error("Cao package chart columns are malformed");
   const collapse = document.chartIdCollapse === "v1";
   const charts = document.charts;
   if (!Array.isArray(charts)) throw new Error("Cao package charts are malformed");
-  const expanded = charts.map((record) => {
+  // A column is dense by construction: one reference per chart, in chart order.
+  const columns = Object.entries(columnsRow).map(([name, value]) => {
+    if (!Array.isArray(value) || value.length !== charts.length) {
+      throw new Error(`Cao package chart column ${name} does not span the charts`);
+    }
+    const table = dictionaries[name];
+    if (table === undefined) throw new Error(`Cao package chart column ${name} has no dictionary`);
+    const dot = name.indexOf(".");
+    return { name, column: value as readonly unknown[], table: frozenTable(table, name),
+      parent: dot >= 0 ? name.slice(0, dot) : null, field: dot >= 0 ? name.slice(dot + 1) : name };
+  });
+  const expanded = charts.map((record, position) => {
     if (!isRow(record)) throw new Error("Cao package chart is malformed");
     const chart: Row = { ...record };
-    for (const [name, table] of tables) {
-      const dot = name.indexOf(".");
-      if (dot >= 0) {
-        const parent = name.slice(0, dot);
-        const field = name.slice(dot + 1);
-        const nested = chart[parent];
-        if (!isRow(nested) || !(`${field}Ref` in nested)) continue;
-        const copy: Row = { ...nested };
-        copy[field] = resolve(copy[`${field}Ref`], table, name);
-        delete copy[`${field}Ref`];
-        chart[parent] = copy;
+    for (const { name, column, table, parent, field } of columns) {
+      const value = resolve(column[position], table, name);
+      if (parent === null) {
+        chart[field] = value;
         continue;
       }
-      if (!(`${name}Ref` in chart)) continue;
-      chart[name] = resolve(chart[`${name}Ref`], table, name);
-      delete chart[`${name}Ref`];
+      const nested = chart[parent];
+      chart[parent] = { ...(isRow(nested) ? nested : {}), [field]: value };
     }
     if (collapse) {
       for (const name of COLLAPSED_ID_FIELDS) {
@@ -89,6 +92,7 @@ function expandCharts(document: Row): Row {
   });
   const result: Row = { ...document, charts: expanded };
   delete result.chartDictionaries;
+  delete result.chartColumns;
   delete result.chartIdCollapse;
   return result;
 }

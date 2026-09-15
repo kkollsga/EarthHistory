@@ -179,7 +179,7 @@ describe("palaeo-coastline manifest section", () => {
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
       Object.assign(section.reservation, { maxEdgeDegrees: 1.28 })), domain)).toThrow(/reservation/);
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
-      Object.assign(section.reservation, { maxIntervalTriangles: 480_001 })), domain))
+      Object.assign(section.reservation, { maxIntervalTriangles: 580_001 })), domain))
       .toThrow(/reservation/);
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
       Object.assign(section.reservation, { maxResidentSourceBytes: 0 })), domain))

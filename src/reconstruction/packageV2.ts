@@ -394,11 +394,13 @@ const PALAEO_SURFACE_CLASS_IDS: readonly PalaeoCoastlineSurfaceClassId[] = Objec
 
 /**
  * Ceilings of the palaeo surface renderer instance in `GlobeScene`, measured
- * against the promoted `lm`+`sm` set in 2026-09-15 (worst interval 262,202
- * vertices and 427,088 triangles at the 1 degree refinement).
+ * against the promoted `lm`+`sm`+`m` set in 2026-09-15. Adding the mountain
+ * class moved the worst interval's declared reservation to 334,021 vertices and
+ * 513,878 triangles at the 1 degree refinement; these bounds keep about 13 %
+ * over that, the same headroom the two-class set carried.
  */
-const PALAEO_MAX_INTERVAL_VERTICES = 300_000;
-const PALAEO_MAX_INTERVAL_TRIANGLES = 480_000;
+const PALAEO_MAX_INTERVAL_VERTICES = 380_000;
+const PALAEO_MAX_INTERVAL_TRIANGLES = 580_000;
 const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
 
 export function validatePalaeoCoastlineAssets(

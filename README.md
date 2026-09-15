@@ -62,8 +62,8 @@ API credential. The production address is
   schematic globe guides. Exact tectonic geometry is available at marked ages;
   unmatched boundary geometry is not interpolated.
 - Switch on **Palaeo-coastlines (Cao 2017)** to replace the model coast proxy
-  with mapped landmass and shallow-marine polygons for the 24 published map
-  intervals between 402 and 2 Ma. The map steps at an interval boundary rather
+  with mapped landmass, shallow-marine and mountain polygons for the 24
+  published map intervals between 402 and 2 Ma. The map steps at an interval boundary rather
   than morphing, country outlines become light position markers over sea, and
   ages outside the schedule fall back to today's composition with a notice. The
   same layer carries one optional Last Glacial Maximum lowstand state at

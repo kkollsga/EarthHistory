@@ -106,8 +106,8 @@ earlier published versions retain their own asset sets and attribution.
   [doi:10.1016/j.gloplacha.2016.10.002](https://doi.org/10.1016/j.gloplacha.2016.10.002).
   EarthHistory derives a qualitative chronology constraint from the absence of
   mapped permanent-ice polygons between 81 and 285.01 Ma, and, for the
-  palaeo-coastline layer, redistributes the landmass and shallow-marine
-  polygons of the 24 published map intervals as a modified derivative. The
+  palaeo-coastline layer, redistributes the landmass, shallow-marine and
+  mountain polygons of the 24 published map intervals as a modified derivative. The
   modifications are EarthHistory's: the present-day polygons are cut by the
   present-day Cao et al. (2024) v2.4 static partitions, each piece is given one
   partition owner and rides that plate, node counts are reduced by

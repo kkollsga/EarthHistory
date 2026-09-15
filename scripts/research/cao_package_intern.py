@@ -19,11 +19,17 @@ the shipped package, and by the measurement in
 Encodings
   * ``interned charts`` (``core.json``, ``corrections/material-v1/catalog.json``)
     ``chartDictionaries`` maps a chart field name to its distinct values in
-    first-appearance order; a chart carries ``<field>Ref`` instead of the
-    field. A dotted name such as ``evidence.limitations`` addresses a field of
-    the chart's ``evidence`` object. With ``chartIdCollapse: "v1"`` a chart
+    first-appearance order, and ``chartColumns`` maps the same name to one
+    reference per chart, in chart order. A dotted name such as
+    ``evidence.limitations`` addresses a field of the chart's ``evidence``
+    object. Only a field every chart carries becomes a column, so a column is
+    always dense and exactly as long as ``charts``; a field some charts lack
+    stays written out in the chart. With ``chartIdCollapse: "v1"`` a chart
     whose ``fragmentOrCohortId``/``materialId`` equals its ``chartId`` ships
-    ``fragmentOrCohortIdIsChartId``/``materialIdIsChartId`` instead.
+    ``fragmentOrCohortIdIsChartId``/``materialIdIsChartId`` instead. The
+    columns are what make the encoding pay: the per-chart key names
+    (``"sourceFeatureTypesRef":0,`` and its twelve siblings) cost more than the
+    references they introduce.
   * ``segmentIdEncoding: "age-sourceFeatureId-part-v1"`` (``boundary-*.json``)
     ``segmentId`` is rebuilt as ``<sourceAgeMa>:<sourceFeatureId>:part:<sourcePart>``;
     the three GPlates UUID fields index a per-file ``strings`` table and the
@@ -48,11 +54,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 
-#: Chart fields interned in ``core.json``, in emission order.
-CORE_CHART_FIELDS = ("lifecycle", "surfaceEvidence", "motionBindings", "evidence.limitations")
+#: Chart fields interned in ``core.json``, in emission order. Every one of them
+#: repeats: the 4,995 charts carry 183 distinct lifecycles, 938 motion-binding
+#: arrays, 848 source-id lists, 1,985 source-feature-id lists, 14 feature-type
+#: lists, 13 limitation arrays, 7 surface-evidence objects, 5 chart revisions,
+#: 3 roles and one each of ``kind`` and ``geometryReferenceAgeMa``.
+#: ``motionSupportGaps`` is deliberately absent: only 4 charts carry it, so it
+#: cannot be a dense column and is cheaper written out.
+CORE_CHART_FIELDS = ("lifecycle", "surfaceEvidence", "motionBindings", "evidence.limitations",
+                     "evidence.sourceIds", "evidence.status", "sourceFeatureIds",
+                     "sourceFeatureTypes", "kind", "role", "chartRevision",
+                     "geometryReferenceAgeMa")
 #: Chart fields interned in the material-correction catalog. The catalog's 212
-#: charts repeat whole ``evidence`` objects, so the object is interned entire.
-CORRECTION_CHART_FIELDS = ("lifecycle", "surfaceEvidence", "motionBindings", "evidence")
+#: charts repeat whole ``evidence`` objects, so the object is interned entire
+#: and its parts are not interned separately.
+CORRECTION_CHART_FIELDS = ("lifecycle", "surfaceEvidence", "motionBindings", "evidence",
+                           "sourceFeatureIds", "sourceFeatureTypes", "kind", "role",
+                           "chartRevision", "geometryReferenceAgeMa")
 #: Identifier fields implied by ``chartId`` under ``chartIdCollapse: "v1"``.
 COLLAPSED_ID_FIELDS = ("fragmentOrCohortId", "materialId")
 
@@ -99,30 +117,45 @@ def _reference(index: object, table: list, label: str) -> None:
 # --------------------------------------------------------------------------- charts
 
 
+def _carries(chart: dict, name: str) -> bool:
+    """Whether one chart holds the named field, plain or dotted."""
+    if "." not in name:
+        return name in chart
+    parent, field = name.split(".", 1)
+    return isinstance(chart.get(parent), dict) and field in chart[parent]
+
+
+def _take(record: dict, name: str) -> object:
+    """Remove the named field from a chart record and return its value."""
+    if "." not in name:
+        return record.pop(name)
+    parent, field = name.split(".", 1)
+    nested = dict(record[parent])
+    value = nested.pop(field)
+    record[parent] = nested
+    return value
+
+
 def intern_charts(document: dict, fields: tuple[str, ...] = CORE_CHART_FIELDS) -> dict:
     """Return an interned copy of a document with a ``charts`` array."""
-    interners = {name: _Interner() for name in fields}
+    charts_in = document["charts"]
+    columnar = [name for name in fields
+                if all(_carries(chart, name) for chart in charts_in)]
+    interners = {name: _Interner() for name in columnar}
+    columns: dict[str, list[int]] = {name: [] for name in columnar}
     charts: list[dict] = []
-    for chart in document["charts"]:
+    for chart in charts_in:
         record = dict(chart)
-        for name in fields:
-            if "." in name:
-                parent, field = name.split(".", 1)
-                if parent not in record or field not in record[parent]:
-                    continue
-                nested = dict(record[parent])
-                nested[f"{field}Ref"] = interners[name].ref(nested.pop(field))
-                record[parent] = nested
-            elif name in record:
-                record[f"{name}Ref"] = interners[name].ref(record.pop(name))
+        for name in columnar:
+            columns[name].append(interners[name].ref(_take(record, name)))
         for name in COLLAPSED_ID_FIELDS:
             if record.get(name) == record.get("chartId"):
                 record[f"{name}IsChartId"] = True
                 record.pop(name)
         charts.append(record)
     result = {key: value for key, value in document.items() if key != "charts"}
-    result["chartDictionaries"] = {name: interners[name].values for name in fields
-                                   if interners[name].values}
+    result["chartDictionaries"] = {name: interners[name].values for name in columnar}
+    result["chartColumns"] = columns
     result["chartIdCollapse"] = "v1"
     result["charts"] = charts
     return result
@@ -131,31 +164,36 @@ def intern_charts(document: dict, fields: tuple[str, ...] = CORE_CHART_FIELDS) -
 def expand_charts(document: dict) -> dict:
     """Restore the chart objects an interned document encodes."""
     dictionaries = document.get("chartDictionaries", {})
+    columns = document.get("chartColumns", {})
     collapse = document.get("chartIdCollapse") == "v1"
+    records = document["charts"]
+    for name, column in columns.items():
+        if name not in dictionaries:
+            raise InterningError(f"chart column {name} has no dictionary")
+        if not isinstance(column, list) or len(column) != len(records):
+            raise InterningError(f"chart column {name} does not span the charts")
     charts: list[dict] = []
-    for record in document["charts"]:
+    for position, record in enumerate(records):
         chart = dict(record)
-        for name, table in dictionaries.items():
+        for name, column in columns.items():
+            table = dictionaries[name]
+            index = column[position]
+            _reference(index, table, name)
+            value = copy.deepcopy(table[index])
             if "." in name:
                 parent, field = name.split(".", 1)
-                if parent not in chart or f"{field}Ref" not in chart[parent]:
-                    continue
-                nested = dict(chart[parent])
-                index = nested.pop(f"{field}Ref")
-                _reference(index, table, name)
-                nested[field] = copy.deepcopy(table[index])
+                nested = dict(chart.get(parent) or {})
+                nested[field] = value
                 chart[parent] = nested
-            elif f"{name}Ref" in chart:
-                index = chart.pop(f"{name}Ref")
-                _reference(index, table, name)
-                chart[name] = copy.deepcopy(table[index])
+            else:
+                chart[name] = value
         if collapse:
             for name in COLLAPSED_ID_FIELDS:
                 if chart.pop(f"{name}IsChartId", False):
                     chart[name] = chart["chartId"]
         charts.append(chart)
     result = {key: value for key, value in document.items()
-              if key not in ("charts", "chartDictionaries", "chartIdCollapse")}
+              if key not in ("charts", "chartDictionaries", "chartColumns", "chartIdCollapse")}
     result["charts"] = charts
     return result
 
@@ -338,11 +376,17 @@ def self_test(package: Path) -> dict:
         report["coreBytes"] = _round_trip("core.json", original, interned, expand_charts)
         report["coreCharts"] = len(original["charts"])
         corrupt = json.loads(json.dumps(interned))
-        corrupt["charts"][0]["lifecycleRef"] = len(corrupt["chartDictionaries"]["lifecycle"])
-        _rejects("corrupt lifecycleRef", expand_charts, corrupt)
+        corrupt["chartColumns"]["lifecycle"][0] = len(corrupt["chartDictionaries"]["lifecycle"])
+        _rejects("corrupt lifecycle column reference", expand_charts, corrupt)
         corrupt = json.loads(json.dumps(interned))
-        corrupt["charts"][0]["evidence"]["limitationsRef"] = -1
-        _rejects("negative evidence.limitationsRef", expand_charts, corrupt)
+        corrupt["chartColumns"]["evidence.limitations"][0] = -1
+        _rejects("negative evidence.limitations column reference", expand_charts, corrupt)
+        corrupt = json.loads(json.dumps(interned))
+        corrupt["chartColumns"]["role"].pop()
+        _rejects("chart column shorter than the charts", expand_charts, corrupt)
+        corrupt = json.loads(json.dumps(interned))
+        del corrupt["chartDictionaries"]["kind"]
+        _rejects("chart column without its dictionary", expand_charts, corrupt)
 
     catalog_path = package / "corrections/material-v1/catalog.json"
     if catalog_path.is_file():
@@ -351,8 +395,8 @@ def self_test(package: Path) -> dict:
         report["correctionCatalogBytes"] = _round_trip(
             "catalog.json", original, interned, expand_charts)
         corrupt = json.loads(json.dumps(interned))
-        corrupt["charts"][0]["evidenceRef"] = len(corrupt["chartDictionaries"]["evidence"])
-        _rejects("corrupt evidenceRef", expand_charts, corrupt)
+        corrupt["chartColumns"]["evidence"][0] = len(corrupt["chartDictionaries"]["evidence"])
+        _rejects("corrupt evidence column reference", expand_charts, corrupt)
 
     boundary_bytes = 0
     boundary_files = sorted(package.glob("boundary-*.json"))

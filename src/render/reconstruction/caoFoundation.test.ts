@@ -1303,7 +1303,11 @@ describe("Cao foundation renderer boundary", () => {
     expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-land"].map((value) =>
       Math.round(value * 255))).toEqual([0x9a, 0xa8, 0x6b]);
     expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"].map((value) =>
-      Math.round(value * 255))).toEqual([0xc9, 0xbd, 0xa6]);
+      Math.round(value * 255))).toEqual([0xc8, 0xa9, 0x7e]);
+    // The mountain class is inked dark by the outline tone table, like land, so
+    // the dark ink is what has to stay legible over it: measured 6.86:1.
+    expect(contrastRatio(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"],
+      CAO_FOUNDATION_COUNTRY_LINE_DARK_INK)).toBeGreaterThan(3);
     const shallow = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-shallow-marine"];
     // Saturated teal: green and blue well above red, and blue at least as strong
     // as green, so it does not read as the olive of a landmass.

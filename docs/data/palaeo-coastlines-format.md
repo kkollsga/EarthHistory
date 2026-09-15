@@ -257,7 +257,19 @@ Cao et al. (2017).
 carried the palette chain.
 
 - `bindingPlateId` is the plate the piece rides. It is the owner partition's
-  plate, except for the tracked `PLATEID1` overrides.
+  plate, except for the tracked `PLATEID1` overrides, and an override applies
+  only inside its own declared footprint. Every entry of
+  `data/corrections/palaeo-coastlines/overrides.json` carries a `footprint`:
+  the bounding box of that plate's present-day Cao 2024 static partitions,
+  buffered by a stated 500 km, which is twice the 250 km frame-conflict
+  threshold. A cut piece is rebound by `PLATEID1` only if the whole piece fits
+  inside that box; anything further away keeps the partition binding and is
+  counted as a declined override in the provenance sidecar. Without the
+  footprint a plate id alone moved ground an ocean away: measured 2026-09-15,
+  the Apulia (3307) override was rebinding shallow-marine pieces spanning
+  3.7-31.6 E and 36.0-55.8 N onto a plate whose whole present-day crust is
+  15.2-19.3 E, 39.6-41.9 N. The footprint turned 3,545 of 9,934 eligible `sm`
+  pieces, 413 of 1,287 `lm` and 440 of 985 `m` back to partition binding.
 - `partitionPlateId` is the Cao 2024 static partition that owns the ground. The
   runtime uses it for the piece's fragment identity; it is not the motion plate
   when an override applies.
@@ -425,10 +437,11 @@ in `geometryAsset`.
 
 `classes` indexes exactly the classes the build publishes, named in
 `shippedClasses` at the top level of the same document and passed to the
-compiler as `--shipped-classes`. The mountain class is compiled and validated
-offline and appears in neither: indexing it here would name a payload url the
-package never serves, and its vertex and triangle totals would reserve for
-geometry the browser never receives. The same list decides which classes colour
+compiler as `--shipped-classes`. All three Cao 2017 surface classes ship since
+2026-09-15; the ice class `i` is not compiled and appears in neither, because
+indexing a class here would name a payload url the package never serves and
+would reserve vertices and triangles for geometry the browser never receives.
+The same list decides which classes colour
 a tone table, so a segment is never inked dark over a class the build withholds.
 `promote_palaeo_coastlines.py` refuses to publish staged tables whose
 `shippedClasses` disagrees with what it copies. The index remains a compile

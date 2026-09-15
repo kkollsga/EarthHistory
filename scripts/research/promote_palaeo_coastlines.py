@@ -34,7 +34,7 @@ PALAEO_DIR = PUBLIC_PKG / "palaeo-coastlines"
 DEFAULT_STAGING = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastlines/staging"
 
 SECTION_ID = "palaeo-coastlines-cao2017-v1"
-SHIPPED_CLASSES = ("lm", "sm")
+SHIPPED_CLASSES = ("lm", "sm", "m")
 
 # The outer envelope of every published interval: the Cao 2017 schedule
 # (402-380 ... 11-2 Ma) plus the detached LGM lowstand state at 26.5-19.5 ka.
@@ -50,9 +50,12 @@ AGE_DOMAIN_MA = {"youngest": 0.0195, "oldest": 402.0}
 # palaeo-land is the muted olive of a Cao 2017 landmass polygon and
 # palaeo-shallow-marine the saturated teal that keeps a 5.4:1 luminance contrast
 # under the light #d0d4d5 outline ink.
+# The renderer's own defaults (`CAO_FOUNDATION_DEFAULT_BASE_COLORS`); the
+# manifest ships them so the package, not the bundle, is the authority.
 BASE_COLOR_RGB = {
     "lm": [0x9A / 255, 0xA8 / 255, 0x6B / 255],
     "sm": [0x14 / 255, 0x60 / 255, 0x6B / 255],
+    "m": [0xC8 / 255, 0xA9 / 255, 0x7E / 255],
 }
 
 # Measured 2026-09-15 across all 24 promoted intervals by
