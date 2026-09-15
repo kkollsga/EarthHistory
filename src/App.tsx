@@ -98,6 +98,9 @@ const LAYER_META: Array<{
  */
 const PALAEO_CHARTS_ABSENT = "Cao 2017 map charts are not in this build";
 
+/** Stable empty identity, so a reset does not re-render the key with a new array. */
+const EMPTY_PALAEO_CLASSES: readonly string[] = Object.freeze([]);
+
 /** Citation metadata for a source id the palaeo catalogs name, where the project records one. */
 function palaeoSourceCitation(sourceId: string) {
   const source = sources.find((record) => record.id === sourceId);
@@ -238,6 +241,8 @@ export default function App() {
   });
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
   const [palaeoAssetsAvailable, setPalaeoAssetsAvailable] = useState(false);
+  /** The Cao 2017 classes this build publishes; the map key lists no other swatch. */
+  const [palaeoShippedClasses, setPalaeoShippedClasses] = useState<readonly string[]>(EMPTY_PALAEO_CLASSES);
   const [palaeoPrepared, setPalaeoPrepared] = useState<PreparedCaoPalaeoInterval | null>(null);
   const palaeoPreparedRef = useRef<PreparedCaoPalaeoInterval | null>(null);
   const [palaeoFrame, setPalaeoFrame] = useState<CaoPalaeoIntervalFrame | null>(null);
@@ -318,6 +323,7 @@ export default function App() {
       // The section is optional. Without it the layer control reports its
       // reason and stays disabled, and no palaeo asset is ever requested.
       setPalaeoAssetsAvailable(runtime.palaeoCoastlineAssetsAvailable);
+      setPalaeoShippedClasses(runtime.palaeoCoastlineSurfaceClasses);
       setCaoAgeDomainMa(Object.freeze([manifest.ageDomainMa.youngest, manifest.ageDomainMa.oldest]));
       setCaoRuntimeReady((value) => value + 1);
     }).catch((error: unknown) => {
@@ -334,6 +340,7 @@ export default function App() {
       setCaoSourceAges([]);
       setCaoAgeDomainMa(null);
       setPalaeoAssetsAvailable(false);
+      setPalaeoShippedClasses(EMPTY_PALAEO_CLASSES);
     };
   }, []);
 
@@ -872,6 +879,11 @@ export default function App() {
   const palaeoIntervalIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, ageMa);
   const palaeoInterval = palaeoIntervalIndex < 0 ? null : CAO_2017_MAP_INTERVALS[palaeoIntervalIndex]!;
   const palaeoKeyVisible = layers.palaeoCoastlines;
+  // A class the package does not publish gets no swatch: the mountain class is
+  // compiled and validated offline but deferred out of the shipped budget, and
+  // a key row for it would promise evidence no interval carries.
+  const palaeoClassInKey = (surfaceClass: string) =>
+    palaeoKeyVisible && palaeoShippedClasses.includes(surfaceClass);
   // The layer can be switched on while the age has no published map; it can
   // only be switched on at all while the charts exist to draw.
   const palaeoModeActive = layers.palaeoCoastlines && palaeoEvidence.unavailableReason === null;
@@ -1360,13 +1372,13 @@ export default function App() {
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
               <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
-              {palaeoKeyVisible && (
+              {palaeoClassInKey("lm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
               )}
-              {palaeoKeyVisible && (
+              {palaeoClassInKey("sm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Palaeo shallow sea</strong>Cao et al. 2017 shallow-marine polygons; an environment class, not a water depth</span></li>
               )}
-              {palaeoKeyVisible && (
+              {palaeoClassInKey("m") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
               )}
               <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible

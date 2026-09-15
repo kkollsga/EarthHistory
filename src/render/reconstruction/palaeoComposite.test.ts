@@ -12,6 +12,7 @@ import {
   caoCompositeCoversDirection,
   caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
+  caoPalaeoModeState,
   intersectCaoComposite,
   nextCaoPalaeoVisibilityState,
 } from "./palaeoComposite";
@@ -249,5 +250,73 @@ describe("palaeo composite surface", () => {
     crossing = nextCaoPalaeoVisibilityState(crossing, true);
     crossing = nextCaoPalaeoVisibilityState(crossing, true);
     expect(crossing).toEqual({ visible: true, pendingFrames: 0 });
+  });
+
+  it("keys native land off the effective mode, never off the layer flag", () => {
+    // The defect this pins: with the layer on at a fallback age the palaeo
+    // instance draws nothing, so hiding `batch-land` left bare shelf where
+    // today's coastline belongs — Africa as shelf sea at 0 Ma.
+    const state = (layerEnabled: boolean, insideDomain: boolean,
+      domainVisible: boolean, published: boolean) =>
+      caoPalaeoModeState({ layerEnabled, insideDomain, domainVisible, published });
+
+    // Layer off: today's composition, whatever the age or the resident charts.
+    for (const insideDomain of [false, true]) {
+      for (const domainVisible of [false, true]) {
+        for (const published of [false, true]) {
+          const off = state(false, insideDomain, domainVisible, published);
+          expect(off.mode).toBe("off");
+          expect(off.palaeoDrawn).toBe(false);
+          expect(off.nativeSurfaceMode).toBe("native");
+        }
+      }
+    }
+
+    // Layer on outside 2.01-402 Ma: the notice says fallback and the native
+    // stack keeps every class it draws with the layer off.
+    for (const domainVisible of [false, true]) {
+      const fallback = state(true, false, domainVisible, false);
+      expect(fallback.mode).toBe("fallback");
+      expect(fallback.palaeoDrawn).toBe(false);
+      expect(fallback.nativeSurfaceMode).toBe("native");
+    }
+
+    // Layer on inside the domain, interval not on screen yet: land stays drawn
+    // rather than blanking for the length of a fetch.
+    expect(state(true, true, false, false).mode).toBe("loading");
+    expect(state(true, true, false, true).mode).toBe("loading");
+    expect(state(true, true, true, false).mode).toBe("loading");
+    expect(state(true, true, false, true).nativeSurfaceMode).toBe("native");
+    expect(state(true, true, true, false).nativeSurfaceMode).toBe("native");
+
+    // Only a drawn palaeo interval hides native land.
+    const on = state(true, true, true, true);
+    expect(on.mode).toBe("on");
+    expect(on.palaeoDrawn).toBe(true);
+    expect(on.nativeSurfaceMode).toBe("palaeo");
+  });
+
+  it("carries the fallback hysteresis into the native land switch", () => {
+    // `domainVisible` is the hysteresis output, so the two never disagree: the
+    // frame that stops drawing palaeo charts is the frame native land returns.
+    let visibility = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
+    const frame = (insideDomain: boolean) => {
+      visibility = nextCaoPalaeoVisibilityState(visibility, insideDomain);
+      return caoPalaeoModeState({ layerEnabled: true, insideDomain,
+        domainVisible: visibility.visible, published: true });
+    };
+    // Scrubbing in across 402 Ma: two frames to show, and native land is hidden
+    // in the same frame the palaeo charts appear, never before.
+    expect(frame(true).nativeSurfaceMode).toBe("native");
+    expect(frame(true).nativeSurfaceMode).toBe("palaeo");
+    expect(frame(true).mode).toBe("on");
+    // Scrubbing back out: the notice flips at once, the surfaces one frame
+    // later, and they swap together.
+    const leaving = frame(false);
+    expect(leaving.mode).toBe("fallback");
+    expect(leaving.nativeSurfaceMode).toBe("palaeo");
+    const left = frame(false);
+    expect(left.mode).toBe("fallback");
+    expect(left.nativeSurfaceMode).toBe("native");
   });
 });

@@ -156,3 +156,55 @@ export function nextCaoPalaeoVisibilityState(
   }
   return Object.freeze({ visible: previous.visible, pendingFrames: previous.pendingFrames + 1 });
 }
+
+/**
+ * What the palaeo-coastline layer resolves to on screen, as the map key and the
+ * canvas diagnostics name it.
+ *
+ * `fallback` is an age with no Cao 2017 map interval — including the present
+ * day — and `loading` an age inside the domain whose interval has not been
+ * published yet.
+ */
+export type CaoPalaeoCoastlineMode = "off" | "fallback" | "loading" | "on";
+
+export interface CaoPalaeoModeInputs {
+  /** The `palaeoCoastlines` layer flag; what the viewer asked for. */
+  readonly layerEnabled: boolean;
+  readonly insideDomain: boolean;
+  /** Palaeo domain visibility after `nextCaoPalaeoVisibilityState`. */
+  readonly domainVisible: boolean;
+  /** Whether the palaeo instance has a published interval on screen. */
+  readonly published: boolean;
+}
+
+export interface CaoPalaeoModeState {
+  readonly mode: CaoPalaeoCoastlineMode;
+  /** Whether Cao 2017 charts are actually on screen this frame. */
+  readonly palaeoDrawn: boolean;
+  /**
+   * The stack the native instance draws and answers picks from. It is the
+   * effective mode, never the layer flag: `batch-land` may only be hidden while
+   * palaeo charts are drawn over it, or a fallback age — 0 Ma, 500 Ma — would
+   * lose today's land and leave bare shelf behind.
+   */
+  readonly nativeSurfaceMode: CaoFoundationSurfaceMode;
+}
+
+/**
+ * Resolves the layer flag, the age domain, the hysteresis state and the
+ * publication into one answer that the native visibility, the composite pick
+ * and coverage, the guide-label ink and the reported mode all read.
+ *
+ * `palaeoDrawn` carries the same one-frame hysteresis as the fallback
+ * transition, because it is `domainVisible` that carries it: native land is
+ * therefore restored in the same frame the palaeo charts leave the screen, and
+ * hidden in the same frame they arrive, with no frame showing neither.
+ */
+export function caoPalaeoModeState(inputs: CaoPalaeoModeInputs): CaoPalaeoModeState {
+  const palaeoDrawn = inputs.layerEnabled && inputs.domainVisible && inputs.published;
+  const mode: CaoPalaeoCoastlineMode = !inputs.layerEnabled ? "off"
+    : !inputs.insideDomain ? "fallback"
+      : palaeoDrawn ? "on" : "loading";
+  return Object.freeze({ mode, palaeoDrawn,
+    nativeSurfaceMode: palaeoDrawn ? "palaeo" : "native" });
+}

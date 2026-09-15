@@ -37,6 +37,7 @@ import {
   CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES,
   CAO_FOUNDATION_SURFACE_PRECEDENCE,
   CAO_FOUNDATION_SURFACE_SHELLS,
+  caoFoundationSurfaceClassVisible,
   CaoFoundationSurfaceRenderer,
   caoFoundationChordSagMetres,
   caoFoundationSurfaceClass,
@@ -67,6 +68,7 @@ import {
   packPreparedCaoPalette,
 } from "./caoFoundation";
 import { GpuRetirementOwner } from "./gpuRetirement";
+import { caoPalaeoModeState } from "./palaeoComposite";
 import { GUIDE_LABEL_LIGHT_INK_STYLE } from "../globeGuides";
 import {
   PALAEO_OUTLINE_TONE_LAND,
@@ -1391,6 +1393,38 @@ describe("Cao foundation renderer boundary", () => {
           `${upper.surfaceClass} over ${lower.surfaceClass}`)
           .toBeGreaterThan(lower.shellOffsetMetres);
       }
+    }
+  });
+
+  it("hides native land only in the effective palaeo mode", () => {
+    // The visibility set per {layer flag, effective mode}. `fallback` is the one
+    // the defect got wrong: the layer is on, the palaeo instance draws nothing,
+    // and native land must stay exactly where the layer-off composition has it.
+    const visibleClasses = (mode: "native" | "palaeo") =>
+      CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
+        caoFoundationSurfaceClassVisible(surfaceClass, mode));
+    const todaysComposition = ["shelf", "corrections", "land"];
+    expect(visibleClasses("native")).toEqual(todaysComposition);
+    expect(visibleClasses("palaeo")).toEqual(
+      ["shelf", "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain"]);
+
+    const cases = [
+      { layerOn: false, insideDomain: false, domainVisible: false, published: false, mode: "off" },
+      { layerOn: false, insideDomain: true, domainVisible: true, published: true, mode: "off" },
+      { layerOn: true, insideDomain: false, domainVisible: false, published: false, mode: "fallback" },
+      { layerOn: true, insideDomain: true, domainVisible: false, published: true, mode: "loading" },
+      { layerOn: true, insideDomain: true, domainVisible: true, published: false, mode: "loading" },
+      { layerOn: true, insideDomain: true, domainVisible: true, published: true, mode: "on" },
+    ] as const;
+    for (const probe of cases) {
+      const state = caoPalaeoModeState({ layerEnabled: probe.layerOn,
+        insideDomain: probe.insideDomain, domainVisible: probe.domainVisible,
+        published: probe.published });
+      expect(state.mode, JSON.stringify(probe)).toBe(probe.mode);
+      const classes = visibleClasses(state.nativeSurfaceMode);
+      expect(classes.includes("land"), `native land in mode ${state.mode}`)
+        .toBe(probe.mode !== "on");
+      if (probe.mode !== "on") expect(classes).toEqual(todaysComposition);
     }
   });
 

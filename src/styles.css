@@ -152,11 +152,20 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-info[data-status="loading"] .surface-status-dot { background: var(--copper-bright); }
 .surface-info[data-status="editorial"] .surface-status-dot { background: #a6a39a; }
 .surface-info[data-status="error"] .surface-status-dot { background: #d78c6e; }
+/* The key grew a palaeo block, an outline legend and an evidence list, and a
+   fixed 440px ceiling cut them off below the fold with nothing on screen saying
+   so. The panel takes the height the stage actually leaves between the header
+   and the timeline, and keeps a visible scrollbar for whatever still overflows
+   on a short window. */
 .surface-info-panel {
-  position: absolute; right: 0; bottom: calc(100% + 8px); width: min(360px, calc(100vw - 32px)); max-height: min(440px, calc(100vh - var(--header-height) - var(--timeline-height) - 74px));
-  overflow-y: auto; padding: 15px; border: 1px solid rgba(154, 199, 210, .28); background: rgba(5, 11, 14, .94);
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - var(--header-height) - var(--timeline-height) - 74px);
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  scrollbar-color: rgba(154, 199, 210, .42) transparent;
+  padding: 15px; border: 1px solid rgba(154, 199, 210, .28); background: rgba(5, 11, 14, .94);
   backdrop-filter: blur(16px); box-shadow: 0 18px 44px rgba(0, 0, 0, .42);
 }
+.surface-info-panel::-webkit-scrollbar { width: 8px; }
+.surface-info-panel::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(154, 199, 210, .42); }
 .surface-info-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .surface-info-heading span { color: var(--copper-bright); font-size: 9px; text-transform: uppercase; letter-spacing: .17em; }
 .surface-info-heading strong { color: var(--ink); font-family: var(--serif); font-size: 16px; font-weight: 400; }
@@ -456,9 +465,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .globe-stage { top: 92px; right: 0; bottom: var(--timeline-height); left: 0; min-height: 0; }
   .surface-info { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
   .surface-info summary { min-height: 44px; padding: 0 12px; }
-  .surface-info-panel { width: calc(100vw - 16px); max-height: min(48vh, calc(100vh - var(--header-height) - var(--timeline-height) - 66px)); }
-  /* The palaeo block adds three swatches, a legend and three sentences to a key
-     that already fills a phone panel, so it tightens rather than scrolls. */
+  .surface-info-panel { width: calc(100vw - 16px); max-height: calc(100vh - var(--header-height) - var(--timeline-height) - 66px); }
+  /* The palaeo block adds its swatches, a legend and three sentences to a key
+     that already fills a phone panel, so the phone tightens the spacing first
+     and only then scrolls. */
   .surface-color-key { gap: 6px; padding-bottom: 9px; }
   .surface-palaeo-key { padding-top: 9px; }
   .surface-palaeo-key .surface-info-note { margin-top: 5px; font-size: 9px; line-height: 1.4; }

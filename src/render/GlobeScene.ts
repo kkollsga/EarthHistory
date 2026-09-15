@@ -40,9 +40,11 @@ import {
   caoCompositeCoversDirection,
   caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
+  caoPalaeoModeState,
   CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   intersectCaoComposite,
   nextCaoPalaeoVisibilityState,
+  type CaoPalaeoModeState,
   type CaoPalaeoVisibilityState,
 } from "./reconstruction/palaeoComposite";
 import {
@@ -524,6 +526,12 @@ export class GlobeScene {
     tectonics: false, rivers: false, palaeoCoastlines: false };
   private palaeoRequestedAgeMa: number | null = null;
   private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
+  /**
+   * Whether the native instance is currently hiding `batch-land` in favour of
+   * palaeo charts. Cached because switching it walks the published group and
+   * rebuilds the renderer diagnostics, and this is consulted every frame.
+   */
+  private nativeSurfaceModeIsPalaeo = false;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
@@ -1344,11 +1352,15 @@ export class GlobeScene {
   /**
    * One layer record reaches both surface instances. The palaeo instance is
    * always in palaeo mode — its charts are the mode — while the native instance
-   * enters it only when the layer is on, which is what hides `batch-land`.
+   * enters it only while palaeo charts are actually drawn, which is what hides
+   * `batch-land`. The layer flag is not that condition: at a fallback age the
+   * layer is on and the palaeo instance draws nothing, so keying native land
+   * off the flag would leave bare shelf where today's coastline belongs.
+   * `updatePalaeoDomainVisibility` owns the effective answer and runs last.
    */
   private applyLayerVisibility(): void {
     const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
-      palaeoCoastlines: this.layers.palaeoCoastlines };
+      palaeoCoastlines: this.nativeSurfaceModeIsPalaeo };
     this.caoFoundationRenderer.setLayerVisibility(record);
     this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
     // Turning the mode off releases every palaeo interval lease in the runtime,
@@ -1373,11 +1385,16 @@ export class GlobeScene {
       this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility, requested);
     }
     const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
-    const drawn = this.palaeoVisibility.visible && palaeo.identity !== null;
+    const state = caoPalaeoModeState({ layerEnabled: this.layers.palaeoCoastlines,
+      insideDomain: inside, domainVisible: this.palaeoVisibility.visible,
+      published: palaeo.identity !== null });
+    // Native land, the composite pick and coverage, and the guide-label ink all
+    // follow the effective mode, so a fallback age keeps exactly today's
+    // composition instead of hiding land nothing has replaced.
+    this.applyNativeSurfaceMode(state);
+    const drawn = state.palaeoDrawn;
     const dataset = this.renderer.domElement.dataset;
-    dataset.caoPalaeoCoastlineMode = !this.layers.palaeoCoastlines ? "off"
-      : !inside ? "fallback"
-      : drawn ? "on" : "loading";
+    dataset.caoPalaeoCoastlineMode = state.mode;
     dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
       ? "age-outside-cao-2017-map-intervals" : "";
     dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
@@ -1385,15 +1402,36 @@ export class GlobeScene {
     // The interval on screen, not the one the age asks for: a load in flight
     // leaves the previous map drawn, and the diagnostic must say which.
     const intervalId = drawn ? this.publishedPalaeoIntervalId : null;
-    const assetBytes = (drawn ? this.palaeoIntervalSourceBytes : 0)
-      + (this.layers.palaeoCoastlines ? this.palaeoTonePayload?.byteLength ?? 0 : 0);
+    // Bytes behind what is on screen, for the same reason. The outline tone
+    // tables are fetched once per enablement and stay resident across a scrub,
+    // but they tone nothing at a fallback age — `applyCountryLineToneTable`
+    // clears the table there — so a fallback reports zero exactly as its
+    // interval id, its charts and its triangles do.
+    const assetBytes = drawn
+      ? this.palaeoIntervalSourceBytes + (this.palaeoTonePayload?.byteLength ?? 0) : 0;
     if (intervalId !== this.reportedPalaeoIntervalId || assetBytes !== this.reportedPalaeoAssetBytes) {
       this.reportedPalaeoIntervalId = intervalId;
       this.reportedPalaeoAssetBytes = assetBytes;
       dataset.caoPalaeoIntervalId = intervalId ?? "";
       dataset.caoPalaeoAssetBytes = String(assetBytes);
     }
-    this.applyCountryLineToneTable(dataset.caoPalaeoCoastlineMode === "on");
+    this.applyCountryLineToneTable(state.mode === "on");
+  }
+
+  /**
+   * Puts the native instance into the palaeo stack, or back into its own.
+   *
+   * One flag decides three things at once: whether `batch-land` is drawn,
+   * whether the composite ranks the palaeo classes into its precedence table,
+   * and which surfaces the guide-label ink reads as land. Keeping them on one
+   * switch is what stops a fallback age from hiding land in the picture while
+   * the pick still reports it.
+   */
+  private applyNativeSurfaceMode(state: CaoPalaeoModeState): void {
+    const palaeoMode = state.nativeSurfaceMode === "palaeo";
+    if (palaeoMode === this.nativeSurfaceModeIsPalaeo) return;
+    this.nativeSurfaceModeIsPalaeo = palaeoMode;
+    this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
   }
 
   /**

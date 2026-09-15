@@ -124,6 +124,30 @@ All notable changes to EarthHistory will be recorded here.
   an out-of-range dictionary reference, a colliding derived `segmentId` and a
   ring shipped outside its polygon group.
 
+### Fixed
+
+- Keep today's land on the globe where the Cao 2017 maps stop. With the
+  palaeo-coastline layer switched on at an age outside 2.01-402 Ma the mode
+  correctly fell back to today's composition, but the native land fill was
+  hidden anyway: visibility keyed off the layer flag rather than the effective
+  mode, and with the palaeo instance drawing nothing the shelf shone through
+  where a coastline belongs. At 0 Ma Africa rendered as shallow sea - land
+  pixels fell from 243,499 to 375 over the globe canvas and 70 per cent of it
+  differed from the layer-off control by a mean 56.9 of 255 per channel - while
+  the map key said it was showing the Cao 2024 coast proxy. Native land, the
+  composite pick and coverage and the guide-label ink now all follow one
+  effective mode that hides land only while Cao 2017 charts are actually drawn
+  over it, carrying the same one-frame hysteresis as the fallback transition, so
+  a link, a scrub across either boundary and a toggle at the present day each
+  leave exactly today's globe. The reported palaeo asset bytes follow the same
+  rule as the reported interval, charts and triangles: what is on screen, so the
+  resident outline tone tables no longer count at a fallback age. Two browser
+  checks compare the whole globe canvas at 0 and 500 Ma against their layer-off
+  controls per channel. In the same change the map key stops offering a
+  "Palaeo mountain" swatch for the class the budget does not fund, and its panel
+  takes the height the stage leaves it instead of a fixed 440 pixels that cut
+  the outline legend and the evidence list off below the fold.
+
 ## [0.1.11] - 2026-09-14
 
 ### Fixed

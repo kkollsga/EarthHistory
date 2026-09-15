@@ -118,8 +118,8 @@ async function globeLuminance(page: Page) {
  * the brighter of the two. Anything else - sky, clouds, outlines, the unlit
  * limb - falls in no bucket.
  */
-async function paintedSurfaceClasses(page: Page) {
-  const screenshot = await globe(page).screenshot();
+async function paintedSurfaceClasses(page: Page, image?: string) {
+  const screenshot = image ?? await globeCanvasImage(page);
   return page.evaluate(async (base64) => {
     const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
     const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
@@ -148,8 +148,60 @@ async function paintedSurfaceClasses(page: Page) {
     bitmap.close();
     return Object.fromEntries(Object.entries(buckets).map(([name, bucket]) => [name,
       { pixels: bucket.pixels, luminance: bucket.pixels === 0 ? 0 : bucket.sum / bucket.pixels }]));
-  }, screenshot.toString("base64")) as Promise<Record<"land" | "shallow" | "shelf",
+  }, screenshot) as Promise<Record<"land" | "shallow" | "shelf",
     { pixels: number; luminance: number }>>;
+}
+
+/** The globe canvas as base64 PNG, so one capture answers several questions. */
+async function globeCanvasImage(page: Page) {
+  return (await globe(page).screenshot()).toString("base64");
+}
+
+/**
+ * Channel difference between two globe-canvas captures.
+ *
+ * The fallback contract is an identity, not a resemblance: at an age with no
+ * Cao 2017 map the layer must compose exactly what the layer-off view composes,
+ * so the comparison is per channel over the whole canvas rather than a bucket
+ * count that a shelf-for-land substitution can satisfy.
+ */
+async function globeImageDifference(page: Page, first: string, second: string) {
+  return page.evaluate(async ([left, right]) => {
+    const decode = async (base64: string) => {
+      const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+      const surface = document.createElement("canvas");
+      surface.width = bitmap.width;
+      surface.height = bitmap.height;
+      const context = surface.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("screenshot difference canvas is unavailable");
+      context.drawImage(bitmap, 0, 0);
+      const image = context.getImageData(0, 0, bitmap.width, bitmap.height);
+      bitmap.close();
+      return image;
+    };
+    const before = await decode(left!);
+    const after = await decode(right!);
+    if (before.width !== after.width || before.height !== after.height) {
+      throw new Error("globe canvas changed size between captures");
+    }
+    let sum = 0;
+    let differing = 0;
+    let maxChannelDifference = 0;
+    for (let offset = 0; offset < before.data.length; offset += 4) {
+      let pixelMax = 0;
+      for (let channel = 0; channel < 3; channel += 1) {
+        const difference = Math.abs(before.data[offset + channel]! - after.data[offset + channel]!);
+        sum += difference;
+        if (difference > pixelMax) pixelMax = difference;
+      }
+      if (pixelMax > maxChannelDifference) maxChannelDifference = pixelMax;
+      if (pixelMax > 2) differing += 1;
+    }
+    const pixels = before.data.length / 4;
+    return { meanAbsoluteDifference: sum / (pixels * 3), maxChannelDifference,
+      fractionDiffering: differing / pixels };
+  }, [first, second]);
 }
 
 test("loads one local Cao reconstruction and the complete chapter picker", { tag: "@ci" }, async ({ page, baseURL }) => {
@@ -827,6 +879,29 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await expect(page.getByText(/Outline tone is a legibility device, not evidence/)).toBeVisible();
   await expect(page.getByTestId("timeline-interval-marks").locator(".interval-mark"))
     .toHaveCount(24);
+
+  // Only the classes this build publishes get a swatch. The mountain class is
+  // compiled and validated offline but deferred out of the budget, so a row for
+  // it would name evidence no interval carries.
+  await expect(page.getByText("Palaeo land", { exact: true })).toBeVisible();
+  await expect(page.getByText("Palaeo shallow sea", { exact: true })).toBeVisible();
+  await expect(page.getByText("Palaeo mountain", { exact: true })).toHaveCount(0);
+
+  // Nothing in the key is left below the fold with no way to reach it: the
+  // panel takes the height the stage leaves it, and scrolls the remainder.
+  const panel = page.locator(".surface-info-panel");
+  const metrics = await panel.evaluate((element) => ({
+    clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
+    top: element.getBoundingClientRect().top,
+    bottom: element.getBoundingClientRect().bottom }));
+  expect(metrics.top).toBeGreaterThanOrEqual(0);
+  expect(metrics.bottom).toBeLessThanOrEqual(900);
+  expect(metrics.clientHeight, "map key panel height at 1440x900").toBeGreaterThan(440);
+  const last = page.getByText(/Outline tone is a legibility device, not evidence/);
+  await last.scrollIntoViewIfNeeded();
+  const lastBox = (await last.boundingBox())!;
+  const panelBox = (await panel.boundingBox())!;
+  expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(panelBox.y + panelBox.height + 1);
 });
 
 test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ page }) => {
@@ -838,13 +913,71 @@ test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ p
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "fallback");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
   // The live wiring reports what is drawn, not what the age asks for. In a
-  // fallback nothing is published and nothing was fetched, and both say so.
+  // fallback nothing is published and nothing of what the mode holds resident
+  // reaches the screen, and every counter says so.
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-charts", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-triangles", "0");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-fallback-reason",
     "age-outside-cao-2017-map-intervals");
+});
+
+// The fallback is a composition, not just a notice. Native land is hidden only
+// while palaeo charts are drawn over it; at an age with no Cao 2017 map the
+// palaeo instance draws nothing, so hiding it left the shelf shining through -
+// Africa as shallow sea at 0 Ma. Both ends of the domain, each against its own
+// layer-off control, and one page load each so the pair stays inside the
+// per-test budget.
+for (const view of [{ ageMa: 0, at: "5,25" }, { ageMa: 500, at: "-100,-10" }]) {
+  test(`composes exactly today's globe at ${view.ageMa} Ma, where no Cao 2017 map exists`,
+    async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(`./#age=${view.ageMa}&layers=borders,guides&at=${view.at}`);
+      await waitForCao(page);
+      await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
+      const control = await globeCanvasImage(page);
+      const controlClasses = await paintedSurfaceClasses(page, control);
+      expect(controlClasses.land.pixels, "control land pixels").toBeGreaterThan(5_000);
+
+      await page.goto(`./#age=${view.ageMa}&layers=borders,guides,palaeoCoastlines&at=${view.at}`);
+      await page.reload();
+      await waitForCao(page);
+      await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+        { timeout: 30_000 }).toBe("fallback");
+      const fallback = await globeCanvasImage(page);
+      const difference = await globeImageDifference(page, control, fallback);
+      expect(difference.meanAbsoluteDifference, "mean channel difference").toBeLessThan(1);
+      const fallbackClasses = await paintedSurfaceClasses(page, fallback);
+      expect(Math.abs(fallbackClasses.land.pixels - controlClasses.land.pixels)
+        / controlClasses.land.pixels, "land pixel change").toBeLessThan(0.005);
+    });
+}
+
+test("keeps today's land when the palaeo layer is switched on at 0 Ma", async ({ page }) => {
+  // The same contract through the control rather than the link: a viewer who
+  // turns the layer on at the present day must not watch the continents go.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=0&layers=borders,guides&at=5,25");
+  await page.reload();
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
+  const control = await paintedSurfaceClasses(page);
+  expect(control.land.pixels, "control land pixels").toBeGreaterThan(5_000);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  await page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ }).click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("fallback");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-triangles", "0");
+  const toggled = await paintedSurfaceClasses(page);
+  expect(Math.abs(toggled.land.pixels - control.land.pixels) / control.land.pixels,
+    "land pixel change after the toggle").toBeLessThan(0.005);
+  // And the pick agrees with the picture: land, not the shelf under it.
+  expect(await page.evaluate(() => window.__earthHistorySurfaceProbe?.(20, 5) ?? "no-probe"))
+    .toBe("land");
 });
 
 test("leaves the palaeo layer off in a link written before it existed", async ({ page }) => {

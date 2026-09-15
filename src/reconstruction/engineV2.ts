@@ -20,7 +20,8 @@ import { createPreparedCaoPalaeoInterval, evaluateCaoPalaeoIntervalFrame,
 import { loadVerifiedBytes } from "./assetLoader";
 import type { PalaeoSurfaceClass } from "./palaeoRings";
 import type { StaticAssetFetcher } from "./assetLoader";
-import { immutableReconstructionPackageManifestV2, type ReconstructionPackageManifestV2 } from "./packageV2";
+import { immutableReconstructionPackageManifestV2, type PalaeoCoastlineSurfaceClassId,
+  type ReconstructionPackageManifestV2 } from "./packageV2";
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoRevision } from "./facadeV2";
 import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, type CaoMotionFrame } from "./motionFrameV2";
 import type { MaterialAddress } from "./types";
@@ -539,6 +540,19 @@ export class CaoReconstructionRuntime {
   /** Whether this package ships the Cao 2017 charts at all; false disables the control. */
   get palaeoCoastlineAssetsAvailable(): boolean {
     return this.manifest.palaeoCoastlines !== undefined;
+  }
+
+  /**
+   * The Cao 2017 classes this package actually publishes.
+   *
+   * The compiler validates all four classes offline but the budget funds only
+   * some of them, so the shipped set is a package fact rather than a constant.
+   * The map key reads it: a swatch for a class no interval carries would
+   * promise evidence the globe never draws.
+   */
+  get palaeoCoastlineSurfaceClasses(): readonly PalaeoCoastlineSurfaceClassId[] {
+    return Object.freeze((this.manifest.palaeoCoastlines?.classes ?? [])
+      .map((entry) => entry.surfaceClass));
   }
 
   /** Outstanding palaeo interval leases. A toggle must always bring this back to 0. */
