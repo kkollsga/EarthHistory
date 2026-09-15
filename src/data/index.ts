@@ -20,6 +20,8 @@ export type {
   ModernLandscapePreset,
   ModernClimateControl,
   ModernClimateGroup,
+  PalaeoCoastlineEvidence,
+  PalaeoEvidenceReference,
   ProceduralControls,
   CountryOutline,
   LandPolygon,

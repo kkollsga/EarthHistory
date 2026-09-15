@@ -15,3 +15,4 @@ export * from "./packageV2";
 export * from "./spatialV2";
 export * from "./types";
 export * from "./caoDomain";
+export * from "./outlineTones";

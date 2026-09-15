@@ -17,6 +17,26 @@ export function buildExplorerHash(params: URLSearchParams): string {
   return query ? `#${query}` : "#";
 }
 
+/**
+ * Read `#layers` into a layer record.
+ *
+ * The parameter is the complete set of visible layers, so a layer the link does
+ * not name is off — including a layer that did not exist when the link was
+ * written. That is what a shared link means: it shows the globe it described,
+ * not a later layer switched on by its default. An absent parameter is a
+ * different thing and keeps every default.
+ */
+export function parseLayerVisibility<T extends Record<keyof T, boolean>>(
+  layersParam: string | null,
+  defaults: T,
+): T {
+  if (layersParam === null) return { ...defaults };
+  const named = new Set(layersParam.split(",").filter((key) => key.length > 0));
+  const parsed: Record<string, boolean> = {};
+  for (const key of Object.keys(defaults)) parsed[key] = named.has(key);
+  return parsed as unknown as T;
+}
+
 export interface ThrottledHistoryWriter {
   /** Schedule a replaceState; coalesces to at most one write per minIntervalMs. */
   schedule(url: string): void;

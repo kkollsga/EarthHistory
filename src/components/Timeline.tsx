@@ -36,6 +36,38 @@ export const sliderToPointerClientX = (
 ) => left + thumbDiameter / 2
   + (Math.min(1000, Math.max(0, sliderPosition)) / 1000) * Math.max(0, width - thumbDiameter);
 
+/**
+ * Slider position, 0–1000, of an age inside the current range. Shared by the
+ * component and by the interval-mark test, so a mark and the thumb cannot drift
+ * onto different mappings.
+ */
+export function timelineSliderPosition(
+  ageMa: number,
+  rangeMin: number,
+  rangeMax: number,
+  linear: boolean,
+) {
+  const span = Math.max(1e-9, rangeMax - rangeMin);
+  const clamped = Math.min(rangeMax, Math.max(rangeMin, ageMa));
+  return linear ? ((clamped - rangeMin) / span) * 1000 : ageToSlider(clamped - rangeMin, span);
+}
+
+/**
+ * The map-interval marks that fall inside the visible range, ascending and
+ * without duplicates. Marks outside the range are dropped rather than clamped:
+ * a clamped mark would pile up against the scrubber's end and read as a
+ * boundary the source does not publish there.
+ */
+export function selectIntervalMarks(
+  marksMa: readonly number[],
+  rangeMin: number,
+  rangeMax: number,
+): readonly number[] {
+  const inside = marksMa.filter((age) =>
+    Number.isFinite(age) && age >= rangeMin - 1e-9 && age <= rangeMax + 1e-9);
+  return [...new Set(inside)].sort((left, right) => left - right);
+}
+
 export function formatAge(ageMa: number) {
   if (ageMa === 0) return "Today";
   if (ageMa >= 1000) {
@@ -56,6 +88,14 @@ interface TimelineProps {
   geographicSourceAgeBracketMa?: readonly [number, number];
   /** Live Cao package domain; Precambrian oldest bound extends at least to this age. */
   caoAgeDomainMa?: readonly [number, number];
+  /**
+   * Published map-interval bounds to mark on the scrubber, in Ma. Supplied only
+   * while a stepped map layer is on: the marks say where the geometry changes,
+   * so marking them with the layer off would claim a step that is not there.
+   * They are decoration, not controls — the scrubber itself stays the one
+   * keyboard target.
+   */
+  intervalMarksMa?: readonly number[];
   slices: TimeSlice[];
   playing: boolean;
   onPlayingChange: (playing: boolean) => void;
@@ -149,6 +189,7 @@ export function Timeline({
   geographicSourceAgeMa,
   geographicSourceAgeBracketMa,
   caoAgeDomainMa,
+  intervalMarksMa,
   slices,
   playing,
   onPlayingChange,
@@ -175,16 +216,16 @@ export function Timeline({
   const rangeMax = scaleMode === "phanerozoic" ? PHANEROZOIC_MAX_MA : precambrianMaxAge;
   const span = Math.max(1e-9, rangeMax - rangeMin);
   const linear = scaleMode === "phanerozoic";
-  const sliderPosition = (age: number) => {
-    const clamped = Math.min(rangeMax, Math.max(rangeMin, age));
-    if (linear) return ((clamped - rangeMin) / span) * 1000;
-    return ageToSlider(clamped - rangeMin, span);
-  };
+  const sliderPosition = (age: number) => timelineSliderPosition(age, rangeMin, rangeMax, linear);
   const sliderAge = (value: number) => {
     if (linear) return rangeMin + (value / 1000) * span;
     return rangeMin + sliderToAge(value, span);
   };
   const chapterMarks = useMemo(() => [...slices].sort((a, b) => a.ageMa - b.ageMa), [slices]);
+  const intervalMarks = useMemo(
+    () => selectIntervalMarks(intervalMarksMa ?? [], rangeMin, rangeMax),
+    [intervalMarksMa, rangeMax, rangeMin],
+  );
   const visibleScaleChapters = useMemo(
     () => chapterMarks.filter((slice) => slice.ageMa >= rangeMin - 1e-9 && slice.ageMa <= rangeMax + 1e-9),
     [chapterMarks, rangeMax, rangeMin],
@@ -366,6 +407,17 @@ export function Timeline({
           aria-label={`Geological age, ${formatAge(liveAgeMa)}`}
           aria-valuetext={formatAge(liveAgeMa)}
         />
+        {intervalMarks.length > 0 && (
+          <div className="interval-marks" aria-hidden="true" data-testid="timeline-interval-marks">
+            {intervalMarks.map((ageMark) => (
+              <span
+                key={ageMark}
+                className="interval-mark"
+                style={{ left: `${sliderPosition(ageMark) / 10}%` }}
+              />
+            ))}
+          </div>
+        )}
         <div className="chapter-marks" aria-hidden="true">
           {visibleScaleChapters.map((slice) => (
             <span

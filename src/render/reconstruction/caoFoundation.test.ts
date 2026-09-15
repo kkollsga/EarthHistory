@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { BufferAttribute, Group, InstancedBufferAttribute, InstancedBufferGeometry, IntType, LineSegments, Mesh } from "three";
+import { BufferAttribute, Color, Group, InstancedBufferAttribute, InstancedBufferGeometry, IntType, LineSegments, Mesh, SRGBColorSpace } from "three";
 import {
   CaoReconstructionRuntime,
   chartPickStateFromMotionFrame,
@@ -45,7 +45,11 @@ import {
   caoFoundationCountryLineHalfWidthPx,
   caoFoundationCountryLinePadPx,
   caoFoundationCountryLineQuadBytes,
+  CAO_FOUNDATION_COUNTRY_LINE_DARK_INK,
+  CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK,
+  CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE,
   createCaoFoundationCountryLineMaterial,
+  createCaoFoundationCountryLineToneTexture,
   createCaoFoundationGeometryResource,
   caoFoundationMaxDisplayedShellMetres,
   createCaoFoundationPaletteTexture,
@@ -63,6 +67,17 @@ import {
   packPreparedCaoPalette,
 } from "./caoFoundation";
 import { GpuRetirementOwner } from "./gpuRetirement";
+import { GUIDE_LABEL_LIGHT_INK_STYLE } from "../globeGuides";
+import {
+  PALAEO_OUTLINE_TONE_LAND,
+  PALAEO_OUTLINE_TONE_SHALLOW,
+  PALAEO_OUTLINE_TONE_TEXTURE_WIDTH,
+  buildPalaeoOutlineToneTexels,
+  decodePalaeoOutlineToneTables,
+  encodePalaeoOutlineToneTables,
+  palaeoOutlineToneTextureRows,
+  type PalaeoOutlineToneClass,
+} from "../../reconstruction/outlineTones";
 
 function fixture(entryCount = 2): PreparedCaoRevision {
   const values = new Float32Array(entryCount * 11);
@@ -160,6 +175,26 @@ function nodeOperands(root: unknown): Set<unknown> {
   }
   return new Set();
 }
+
+/**
+ * Descendants of `root` reachable without passing through `blocked`. A varying
+ * is the stage boundary, so "what does the fragment stage evaluate itself" is
+ * exactly this walk with the varying blocked.
+ */
+function nodeDescendantsExcept(root: unknown, blocked: unknown): Set<unknown> {
+  const seen = new Set<unknown>();
+  const visit = (node: unknown) => {
+    if (node === null || typeof node !== "object" || seen.has(node) || node === blocked) return;
+    seen.add(node);
+    const children = (node as { getChildren?: () => Iterable<unknown> }).getChildren;
+    if (typeof children === "function") for (const child of children.call(node)) visit(child);
+  };
+  visit(root);
+  return seen;
+}
+
+const textureNodesIn = (nodes: Iterable<unknown>) =>
+  [...nodes].filter((node) => (node as { isTextureNode?: boolean }).isTextureNode === true);
 
 function rendererDirection(longitude: number, latitude: number): [number, number, number] {
   const [x, y, z] = gplatesLonLat(longitude, latitude);
@@ -288,7 +323,9 @@ describe("Cao foundation renderer boundary", () => {
 
     const packed = packPreparedCaoPalette(fixture(), 2_048);
     const texture = createCaoFoundationPaletteTexture(packed);
-    const stroke = createCaoFoundationCountryLineMaterial(texture, packed.width, 0);
+    const strokeSegments = 9;
+    const stroke = createCaoFoundationCountryLineMaterial(texture, packed.width, 0,
+      strokeSegments);
     expect(stroke.material.opacity).toBe(0.92);
     for (const graph of [stroke]) {
       // A quad corner is rasterized up to a pixel and a half from the pixel its
@@ -385,9 +422,112 @@ describe("Cao foundation renderer boundary", () => {
       expect(fragmentGraph).toContain(fragmentSin);
       expect(fragmentGraph).not.toContain(vertexCullCos);
       expect(fragmentGraph).not.toContain(vertexCullSin);
+
+      // Two-tone ink. The colour must be a real mix of the two inks, not the
+      // dark constant it used to be: a colorNode left at `darkInk` would keep
+      // every outline legible over land and invisible over a palaeo sea, with
+      // the whole tone pipeline uploading tables nothing reads.
+      expect(graph.material.colorNode).not.toBeNull();
+      expect(graph.material.colorNode).not.toBe(graph.darkInk);
+      expect(graph.material.colorNode).not.toBe(graph.lightInk);
+      const colorNodes = nodeDescendants(graph.material.colorNode);
+      expect(colorNodes).toContain(graph.darkInk);
+      expect(colorNodes).toContain(graph.lightInk);
+      expect(colorNodes).toContain(graph.toneMix);
+      const colorOperands = nodeOperands(graph.material.colorNode);
+      expect(colorOperands).toContain(graph.darkInk);
+      expect(colorOperands).toContain(graph.lightInk);
+      expect(colorOperands).toContain(graph.toneMix);
+      // The tone arrives through exactly one varying, and that varying is flat:
+      // all four corners of a quad carry the same segment index, so there is no
+      // gradient to interpolate and a smooth varying would only invite one.
+      expect((graph.toneMix as { isVaryingNode?: boolean }).isVaryingNode).toBe(true);
+      expect((graph.toneMix as { interpolationType?: string }).interpolationType).toBe("flat");
+      expect([...colorNodes]
+        .filter((node) => (node as { isVaryingNode?: boolean }).isVaryingNode)).toHaveLength(1);
+      expect(nodeDescendants(graph.toneMix)).toContain(graph.segmentToneSample);
+      // And the texture load stays behind that varying. Reading the tone table
+      // in the fragment stage would run a texture load per outline fragment for
+      // a value that is constant across the whole quad.
+      const toneTextureNodes = textureNodesIn(colorNodes);
+      expect(toneTextureNodes).toHaveLength(1);
+      expect((toneTextureNodes[0] as { value?: unknown }).value).toBe(graph.toneTexture);
+      expect(textureNodesIn(nodeDescendantsExcept(graph.material.colorNode, graph.toneMix)))
+        .toHaveLength(0);
     }
+    // The inks themselves. The dark slate is unchanged, and the light grey is
+    // the guide labels' own water ink so an outline over a palaeo sea reads
+    // like a label over the same water.
+    expect([...CAO_FOUNDATION_COUNTRY_LINE_DARK_INK]).toEqual([0.12, 0.15, 0.18]);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE).toBe(GUIDE_LABEL_LIGHT_INK_STYLE);
+    expect([...CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK]).toEqual(
+      [...new Color().setStyle(GUIDE_LABEL_LIGHT_INK_STYLE, SRGBColorSpace).toArray()]);
+    // Decoded out of sRGB, so the outline matches the guide-label texture on
+    // screen rather than rendering a visibly brighter grey.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK[0]).toBeLessThan(0xd0 / 255);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK[0]).toBeGreaterThan(0.5);
+    stroke.toneTexture.dispose();
     stroke.material.dispose();
     texture.dispose();
+  });
+
+  it("carries one tone per outline segment and stays dark without a table", () => {
+    const segmentCount = 300;
+    const toneTexture = createCaoFoundationCountryLineToneTexture(segmentCount);
+    const rows = palaeoOutlineToneTextureRows(segmentCount);
+    expect(rows).toBe(3);
+    expect(toneTexture.image.width).toBe(PALAEO_OUTLINE_TONE_TEXTURE_WIDTH);
+    expect(toneTexture.image.height).toBe(rows);
+    // Zero-filled: `mix(dark, light, 0)` is `dark` exactly, so an outline with
+    // no table loaded is the single-ink outline this change started from.
+    expect([...(toneTexture.image.data as Uint8Array)].every((value) => value === 0)).toBe(true);
+    toneTexture.dispose();
+
+    const packed = packPreparedCaoPalette(fixture(), 2_048);
+    const palette = createCaoFoundationPaletteTexture(packed);
+    const graph = createCaoFoundationCountryLineMaterial(palette, packed.width, 0, segmentCount);
+    const data = graph.toneTexture.image.data as Uint8Array;
+    expect(graph.toneCounts()).toEqual({ darkSegments: segmentCount, lightSegments: 0 });
+
+    const classes = Array.from({ length: segmentCount }, (_, index) =>
+      (index < 120 ? PALAEO_OUTLINE_TONE_SHALLOW
+        : PALAEO_OUTLINE_TONE_LAND) as PalaeoOutlineToneClass);
+    const tables = decodePalaeoOutlineToneTables(
+      encodePalaeoOutlineToneTables([classes], segmentCount), segmentCount);
+    const texels = buildPalaeoOutlineToneTexels(tables, 0);
+
+    // `needsUpdate` is write-only on a three texture; `version` is what the
+    // backend actually re-uploads on, so that is what an upload is counted by.
+    const uploads = () => graph.toneTexture.version;
+    const beforeFirst = uploads();
+    expect(graph.setCountryLineToneTable(texels))
+      .toEqual({ darkSegments: 180, lightSegments: 120 });
+    expect(uploads()).toBe(beforeFirst + 1);
+    expect(data[0]).toBe(255);
+    expect(data[119]).toBe(255);
+    expect(data[120]).toBe(0);
+
+    // Reapplying the resident table must not re-upload it: the renderer
+    // reapplies on every publication, which is every scrub sample.
+    const beforeRepeat = uploads();
+    expect(graph.setCountryLineToneTable(texels.slice()))
+      .toEqual({ darkSegments: 180, lightSegments: 120 });
+    expect(uploads()).toBe(beforeRepeat);
+
+    // Null restores the all-dark table, and that *is* a change.
+    expect(graph.setCountryLineToneTable(null))
+      .toEqual({ darkSegments: segmentCount, lightSegments: 0 });
+    expect(uploads()).toBe(beforeRepeat + 1);
+    expect([...data].every((value) => value === 0)).toBe(true);
+
+    // A table sized for another outline package is rejected rather than
+    // partially applied.
+    expect(() => graph.setCountryLineToneTable(new Uint8Array(texels.length + 1)))
+      .toThrow(/tone table shape mismatch/);
+
+    graph.toneTexture.dispose();
+    graph.material.dispose();
+    palette.dispose();
   });
 
   it("expands a segment into a quad of the stroke's own width", () => {
@@ -606,9 +746,12 @@ describe("Cao foundation renderer boundary", () => {
     expect(caoFoundationCountryLineQuadBytes(0)).toBe(0);
     // Four corners of (quad-local corner, start, end, entry) at 40 bytes each,
     // plus six 32-bit indices.
-    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES).toBe(184);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES).toBe(200);
     expect(caoFoundationCountryLineQuadBytes(1_000))
       .toBe(1_000 * CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES);
+    // The shipped country batch, counted once so a per-corner attribute cannot
+    // be added without the ledger moving with it.
+    expect(caoFoundationCountryLineQuadBytes(12_045)).toBe(2_409_000);
     const shared = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const strip = { ...fixture(), lineBatches: [{ batchId: "countries",
       staticGeometryIdentity: "countries@1", vertexCount: 3, segmentCount: 2,
@@ -650,6 +793,12 @@ describe("Cao foundation renderer boundary", () => {
     expect(quadEndpoints("countryLineEnd", 0)).toEqual([0, 1, 0]);
     expect(quadEndpoints("countryLineStart", 1)).toEqual([0, 1, 0]);
     expect(quadEndpoints("countryLineEnd", 1)).toEqual([0, 0, 1]);
+    // Every corner carries its own segment index: the tone table is addressed
+    // by it, so a corner holding the wrong segment would paint one outline
+    // segment in another segment's ink.
+    const segmentAttribute = stripGeometry.getAttribute("countryLineSegmentIndex") as BufferAttribute;
+    expect(segmentAttribute.gpuType).toBe(IntType);
+    expect([...(segmentAttribute.array as Uint32Array)]).toEqual([0, 0, 0, 0, 1, 1, 1, 1]);
     stripResource.dispose();
   });
 
@@ -935,7 +1084,21 @@ describe("Cao foundation renderer boundary", () => {
     expect(lineDraws).toBe(1);
     expect(diagnostics).toMatchObject({ drawCount: 3, countryLineBatches: 1,
       countryLineSegments: 1, nativeBoundarySegments: 1, nativeBoundarySourceAgeMa: 0,
-      topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0 });
+      topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0,
+      // No tone table loaded: every segment is dark, which is the outline the
+      // globe drew before the palaeo mode existed.
+      countryLineToneDarkSegments: 1, countryLineToneLightSegments: 0 });
+    const oneLight = buildPalaeoOutlineToneTexels(decodePalaeoOutlineToneTables(
+      encodePalaeoOutlineToneTables([[PALAEO_OUTLINE_TONE_SHALLOW]], 1), 1), 0);
+    expect(surface.setCountryLineToneTable(oneLight))
+      .toEqual({ darkSegments: 0, lightSegments: 1 });
+    expect(surface.diagnostics()).toMatchObject({ countryLineToneLightSegments: 1 });
+    // A republication — every scrub sample is one — must keep the loaded tones
+    // rather than flashing the outline back to a single ink for a frame.
+    surface.publish({ ...revision }, 8);
+    expect(surface.countryLineToneCounts()).toEqual({ darkSegments: 0, lightSegments: 1 });
+    expect(surface.setCountryLineToneTable(null))
+      .toEqual({ darkSegments: 1, lightSegments: 0 });
     expect(group.children[0]!.children.filter(
       (child) => child.userData.overlayLayer === "borders")).toHaveLength(lineDraws);
     expect(surface.identifyTopology([1, 0, 0])).toEqual({ kind: "instantaneous-owner",

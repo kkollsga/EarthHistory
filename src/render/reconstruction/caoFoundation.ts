@@ -16,6 +16,7 @@ import {
   int,
   ivec2,
   materialOpacity,
+  mix,
   modelViewMatrix,
   modelWorldMatrix,
   screenDPR,
@@ -49,6 +50,10 @@ import {
   type ScalarOps,
   type UnitDirection,
 } from "../../reconstruction/arithmetic";
+import {
+  PALAEO_OUTLINE_TONE_TEXTURE_WIDTH,
+  palaeoOutlineToneTextureRows,
+} from "../../reconstruction/outlineTones";
 import { evaluateForwardPatchVertex } from "./patchKernel";
 import type { GpuRetirementOwner } from "./gpuRetirement";
 import { AtomicPrototypePublisher, type OwnedPrototypeResources } from "./publication";
@@ -414,6 +419,26 @@ export interface CaoFoundationLineMaterialGraph {
     vertexCullCos: Node<"float">; vertexCullSin: Node<"float">;
     fragmentCos: Node<"float">; fragmentSin: Node<"float">;
   }>;
+  /** The R8 tone table this material samples; zero-filled means every segment dark. */
+  readonly toneTexture: THREE.DataTexture;
+  /**
+   * The vertex-stage tone lookup, by segment index. It must stay in the vertex
+   * stage: a texture load in the fragment stage would run once per outline
+   * fragment for a value that is constant across the whole quad.
+   */
+  readonly segmentToneSample: Node<"float">;
+  /** The flat varying that carries the sample to the fragment stage. */
+  readonly toneMix: Node<"float">;
+  readonly darkInk: Node<"vec3">;
+  readonly lightInk: Node<"vec3">;
+  /**
+   * Replaces the tone table, uploading only when the bytes actually change.
+   * `null` restores the all-dark table, which is bit-identical to the outline
+   * before the palaeo mode existed: `mix(dark, light, 0)` is `dark` exactly.
+   */
+  setCountryLineToneTable(texels: Uint8Array | null): CaoFoundationOutlineToneCounts;
+  /** Tones the currently loaded table resolves to. */
+  readonly toneCounts: () => CaoFoundationOutlineToneCounts;
 }
 
 export interface CaoFoundationDiagnostics {
@@ -443,6 +468,9 @@ export interface CaoFoundationDiagnostics {
   readonly countryLineBatches: number;
   readonly countryLineVertices: number;
   readonly countryLineSegments: number;
+  /** Outline segments the resident tone table draws in each ink; dark is the default. */
+  readonly countryLineToneDarkSegments: number;
+  readonly countryLineToneLightSegments: number;
   readonly nativeBoundarySegments: number;
   readonly nativeBoundarySourceAgeMa: number | null;
   readonly topologyOwnershipRings: number;
@@ -850,6 +878,54 @@ export const CAO_FOUNDATION_COUNTRY_LINE_FEATHER_DEVICE_PX = 1;
 export const CAO_FOUNDATION_COUNTRY_LINE_DRAW_BUDGET = 1;
 
 /**
+ * The two inks a country outline is drawn in.
+ *
+ * The dark slate is the only ink the overlay has ever used and stays the whole
+ * outline whenever no tone table is loaded. The light grey is the guide labels'
+ * own water ink (`GUIDE_LABEL_LIGHT_INK_STYLE`, pinned equal by the unit test),
+ * so an outline crossing a palaeo sea reads like a label over the same water.
+ *
+ * The hex is an sRGB style; it is decoded into the renderer's working colour
+ * space here because that is what the guide-label texture upload does to the
+ * same value, and a raw component triple would render a visibly brighter grey.
+ * Two tones are a legibility device for a reference overlay, never evidence of
+ * a coastline: see the map key's outline-marker legend.
+ */
+export const CAO_FOUNDATION_COUNTRY_LINE_DARK_INK: readonly [number, number, number] =
+  Object.freeze([0.12, 0.15, 0.18]);
+export const CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE = "#d0d4d5";
+export const CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK: readonly [number, number, number] =
+  Object.freeze((() => {
+    const color = new THREE.Color().setStyle(
+      CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE, THREE.SRGBColorSpace);
+    return [color.r, color.g, color.b] as [number, number, number];
+  })());
+
+/** Per-segment tone counts a loaded outline tone table resolves to. */
+export interface CaoFoundationOutlineToneCounts {
+  readonly darkSegments: number;
+  readonly lightSegments: number;
+}
+
+/**
+ * The R8 texture one outline tone table is sampled through, zero-filled: every
+ * segment dark, which is exactly today's single-ink outline.
+ */
+export function createCaoFoundationCountryLineToneTexture(
+  segmentCount: number,
+): THREE.DataTexture {
+  const rows = palaeoOutlineToneTextureRows(segmentCount);
+  const texture = new THREE.DataTexture(
+    new Uint8Array(rows * PALAEO_OUTLINE_TONE_TEXTURE_WIDTH),
+    PALAEO_OUTLINE_TONE_TEXTURE_WIDTH, rows, THREE.RedFormat, THREE.UnsignedByteType);
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
  * Quad template shared by every country-line segment: four corners in
  * quad-local coordinates (`along`, `side`, 0) and the two triangles over them.
  * `along` selects which endpoint of the segment the corner sits at, `side`
@@ -866,11 +942,11 @@ export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT = 6;
 
 /**
  * Vertex- and index-buffer bytes each segment costs in the expanded form: four
- * corners carrying the quad-local corner, both endpoint directions and the
- * shared palette entry, plus six indices.
+ * corners carrying the quad-local corner, both endpoint directions, the shared
+ * palette entry and the segment's own index, plus six indices.
  */
 export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES =
-  CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT * (3 * 4 + 3 * 4 + 3 * 4 + 4)
+  CAO_FOUNDATION_COUNTRY_LINE_QUAD_VERTICES_PER_SEGMENT * (3 * 4 + 3 * 4 + 3 * 4 + 4 + 4)
   + CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT * 4;
 
 /**
@@ -878,8 +954,9 @@ export const CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES =
  *
  * The package stores two unshared vertices and an index pair per segment — 40
  * bytes for the shipped package. The quad form materialises four corners, each
- * carrying its quad-local coordinate and both endpoint directions, so it costs
- * 184 bytes per segment instead.
+ * carrying its quad-local coordinate, both endpoint directions and the segment
+ * index its outline tone is looked up by, so it costs 200 bytes per segment
+ * instead.
  * Those extra bytes buy a plain indexed draw: the instanced form is four bytes
  * *cheaper* per corner but pays a per-instance cost that a software rasterizer
  * charges in full, which made the overlay three times more expensive there than
@@ -1061,7 +1138,11 @@ export function createCaoFoundationCountryLineMaterial(
   paletteTexture: THREE.DataTexture,
   paletteWidth: number,
   displayFractionValue: number,
+  segmentCount: number,
 ): CaoFoundationLineMaterialGraph {
+  if (!Number.isSafeInteger(segmentCount) || segmentCount < 0) {
+    throw new Error("invalid Cao country line segment count");
+  }
   // A dark slate: the earlier mid-tone slate read as nearly invisible on phones
   // and pale land. Width comes from the screen-space quad, not from any shell
   // gap, and the single shell is the only thing the display-height guard has to
@@ -1091,8 +1172,23 @@ export function createCaoFoundationCountryLineMaterial(
     // A screen-space quad's winding flips with the segment's screen bearing.
     side: DoubleSide,
   });
-  // Dark slate stays visible across pale land and dark shelf water alike.
-  material.colorNode = vec3(0.12, 0.15, 0.18);
+  // Two-tone ink. The segment's own index reads one texel of the resident tone
+  // table in the *vertex* stage and passes it through a flat varying: the four
+  // corners of a quad carry the same segment index, so the tone is constant
+  // across the quad and interpolating it would only blur a value that has no
+  // gradient. Sampling in the fragment stage instead would run a texture load
+  // per outline fragment for that same constant.
+  const segmentIndex = int(attribute<"uint">("countryLineSegmentIndex", "uint"));
+  const toneTexture = createCaoFoundationCountryLineToneTexture(segmentCount);
+  const toneWidth = PALAEO_OUTLINE_TONE_TEXTURE_WIDTH;
+  const segmentToneSample = textureLoad(toneTexture,
+    ivec2(segmentIndex.mod(toneWidth), segmentIndex.div(toneWidth))).x;
+  const toneMix = varying(segmentToneSample).setInterpolation("flat");
+  const darkInk = vec3(...CAO_FOUNDATION_COUNTRY_LINE_DARK_INK);
+  const lightInk = vec3(...CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK);
+  // Dark slate stays visible across pale land and dark shelf water alike; the
+  // light grey is what keeps an outline legible over a mapped palaeo sea.
+  material.colorNode = mix(darkInk, lightInk, toneMix);
   const pointRadius = float(1 + shellOffset / EARTH_RADIUS_METRES);
   const cameraDirection = cameraPosition.normalize();
   const cameraRadius = cameraPosition.length();
@@ -1192,9 +1288,39 @@ export function createCaoFoundationCountryLineMaterial(
   });
   const coverage = evaluateCountryLineCoverage(tslScalarOps, coverageInputs);
   material.opacityNode = materialOpacity.mul(coverage).mul(horizonVisibility);
+  const toneData = (toneTexture.image as { data: Uint8Array }).data;
+  let toneCounts: CaoFoundationOutlineToneCounts =
+    Object.freeze({ darkSegments: segmentCount, lightSegments: 0 });
+  const setCountryLineToneTable = (
+    texels: Uint8Array | null,
+  ): CaoFoundationOutlineToneCounts => {
+    if (texels !== null && texels.length !== toneData.length) {
+      throw new Error("Cao country line tone table shape mismatch");
+    }
+    // The upload is the expensive half, so compare first: an interval change
+    // that leaves a table identical, and every repeated apply of the resident
+    // one, must not re-upload the texture.
+    let changed = false;
+    for (let index = 0; index < toneData.length; index += 1) {
+      const next = texels === null ? 0 : texels[index]!;
+      if (toneData[index] !== next) {
+        toneData[index] = next;
+        changed = true;
+      }
+    }
+    if (changed) toneTexture.needsUpdate = true;
+    let lightSegments = 0;
+    for (let segment = 0; segment < segmentCount; segment += 1) {
+      if (toneData[segment] !== 0) lightSegments += 1;
+    }
+    toneCounts = Object.freeze({ darkSegments: segmentCount - lightSegments, lightSegments });
+    return toneCounts;
+  };
   return Object.freeze({ material, displayFraction, vertexVisible, horizonVisibility,
     fragmentDirection, coverage, coverageInputs, halfWidthPixels, perpendicularPixels,
     quadOffsetVector, collapsedOffsetPixels,
+    toneTexture, segmentToneSample, toneMix, darkInk, lightInk,
+    setCountryLineToneTable, toneCounts: () => toneCounts,
     quadOffsetPixels: Object.freeze([quadOffsetPixels[0], quadOffsetPixels[1]] as const),
     horizonMargins: Object.freeze({ vertexCullCos, vertexCullSin, fragmentCos, fragmentSin }) });
 }
@@ -1227,6 +1353,10 @@ function createCountryLineQuadGeometry(
   const starts = new Float32Array(segmentCount * perSegment * 3);
   const ends = new Float32Array(segmentCount * perSegment * 3);
   const entries = new Uint32Array(segmentCount * perSegment);
+  // Every corner also carries the segment it belongs to, which is the row the
+  // outline tone table is sampled by. Four corners of one segment carry the
+  // same index, so the tone is constant across the quad.
+  const segmentIndices = new Uint32Array(segmentCount * perSegment);
   const indices = new Uint32Array(segmentCount * CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT);
   for (let segment = 0; segment < segmentCount; segment += 1) {
     const left = source.lineIndices[segment * 2]!;
@@ -1242,6 +1372,7 @@ function createCountryLineQuadGeometry(
       starts.set(start, vertex * 3);
       ends.set(end, vertex * 3);
       entries[vertex] = entry;
+      segmentIndices[vertex] = segment;
     }
     for (let slot = 0; slot < CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT; slot += 1) {
       indices[segment * CAO_FOUNDATION_COUNTRY_LINE_QUAD_INDICES_PER_SEGMENT + slot] =
@@ -1258,13 +1389,16 @@ function createCountryLineQuadGeometry(
   // buffer through vertexAttribIPointer rather than float conversion.
   entryAttribute.gpuType = THREE.IntType;
   geometry.setAttribute("countryLineEntryIndex", entryAttribute);
+  const segmentAttribute = new THREE.BufferAttribute(segmentIndices, 1);
+  segmentAttribute.gpuType = THREE.IntType;
+  geometry.setAttribute("countryLineSegmentIndex", segmentAttribute);
   // `position` holds the quad-local corner, so a computed bounding sphere would
   // describe quad-local space. Transparent sorting wants the shell the segments
   // actually live on.
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(),
     1 + CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES / EARTH_RADIUS_METRES);
   const gpuBytes = corners.byteLength + indices.byteLength
-    + starts.byteLength + ends.byteLength + entries.byteLength;
+    + starts.byteLength + ends.byteLength + entries.byteLength + segmentIndices.byteLength;
   if (gpuBytes !== caoFoundationCountryLineQuadBytes(segmentCount)) {
     throw new Error("Cao country line quad byte ledger mismatch");
   }
@@ -1448,10 +1582,30 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     private readonly displayFractions: readonly UniformNode<"float", number>[],
     private readonly verticalExaggerations: readonly UniformNode<"float", number>[],
     private readonly publicationGeometries: readonly THREE.BufferGeometry[],
+    private readonly lineGraphs: readonly CaoFoundationLineMaterialGraph[],
     private readonly retirement: GpuRetirementOwner,
     initialAgeMa: number,
   ) {
     this.scrubAgeMa = initialAgeMa;
+  }
+
+  /**
+   * Loads one outline tone table into every country-line material, or restores
+   * the all-dark table with `null`. Uploads only where the bytes change.
+   */
+  setCountryLineToneTable(texels: Uint8Array | null): void {
+    for (const graph of this.lineGraphs) graph.setCountryLineToneTable(texels);
+  }
+
+  outlineToneCounts(): CaoFoundationOutlineToneCounts {
+    let darkSegments = 0;
+    let lightSegments = 0;
+    for (const graph of this.lineGraphs) {
+      const counts = graph.toneCounts();
+      darkSegments += counts.darkSegments;
+      lightSegments += counts.lightSegments;
+    }
+    return Object.freeze({ darkSegments, lightSegments });
   }
 
   get requestedAgeMa(): number {
@@ -1547,6 +1701,7 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     this.disposed = true;
     this.materials.forEach((material) => material.dispose());
     this.publicationGeometries.forEach((geometry) => geometry.dispose());
+    this.lineGraphs.forEach((graph) => graph.toneTexture.dispose());
     this.palette.dispose();
     this.group.clear();
   }
@@ -1555,6 +1710,18 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
 const NATIVE_BOUNDARY_COLORS: Readonly<Record<NativeBoundaryKind, number>> = Object.freeze({
   ridge: 0xffb05c, subduction: 0xff7662, transform: 0x6ccbd0, other: 0xb8b2a5,
 });
+
+/**
+ * Publication bytes the outline tone textures cost: one R8 texel per segment,
+ * padded to the sampling width. Counted rather than assumed because the
+ * publication ledger is a hard bound and this is the only per-publication
+ * texture besides the palette.
+ */
+function estimateCountryLineToneTextureBytes(revision: PreparedCaoRevision): number {
+  return revision.lineBatches.reduce((sum, batch) => safeAdd(sum,
+    palaeoOutlineToneTextureRows(batch.segmentCount) * PALAEO_OUTLINE_TONE_TEXTURE_WIDTH,
+    "Cao outline tone texture"), 0);
+}
 
 function estimateNativeBoundaryBufferBytes(revision: PreparedCaoRevision): number {
   if (revision.nativeBoundary.kind !== "exact-source") return 0;
@@ -1851,6 +2018,7 @@ function createPublicationResource(
   const displayFractions: UniformNode<"float", number>[] = [];
   const verticalExaggerations: UniformNode<"float", number>[] = [];
   const publicationGeometries: THREE.BufferGeometry[] = [];
+  const lineGraphs: CaoFoundationLineMaterialGraph[] = [];
   const group = new THREE.Group();
   group.name = `cao-foundation:${revision.identity}`;
   try {
@@ -1906,8 +2074,9 @@ function createPublicationResource(
       // One draw for the whole overlay: every segment's quad, shaded from its
       // own coverage. There is no second contrast pass to compose with.
       const graph = createCaoFoundationCountryLineMaterial(paletteTexture, packed.width,
-        revision.display.fraction);
+        revision.display.fraction, batch.segmentCount);
       materials.push(graph.material);
+      lineGraphs.push(graph);
       displayFractions.push(graph.displayFraction);
       const lines = new THREE.Mesh(batch.geometry, graph.material);
       lines.frustumCulled = false;
@@ -1925,10 +2094,10 @@ function createPublicationResource(
     }
     const topologyOwnership = createTopologyOwnershipState(revision);
     const pickState = createChartPickState(revision);
-    const byteLength = safeAdd(safeAdd(safeAdd(packed.data.byteLength,
+    const byteLength = safeAdd(safeAdd(safeAdd(safeAdd(packed.data.byteLength,
       pickState.chartPoses.byteLength + pickState.chartActive.byteLength, "Cao publication"),
     nativeBoundary.trackedBytes, "Cao publication"), topologyOwnership?.byteLength ?? 0,
-    "Cao publication");
+    "Cao publication"), estimateCountryLineToneTextureBytes(revision), "Cao publication");
     return new CaoFoundationPublicationResource(group, byteLength,
       packed.entryCount, revision.activeSourceBytes,
       revision.materialCorrectionIdentity, revision.materialCorrections,
@@ -1937,10 +2106,12 @@ function createPublicationResource(
       nativeBoundary.object, topologyOwnership,
       paletteTexture, Object.freeze(materials), Object.freeze(displayFractions),
       Object.freeze(verticalExaggerations),
-      Object.freeze(publicationGeometries), retirement, revision.requestedAgeMa);
+      Object.freeze(publicationGeometries), Object.freeze(lineGraphs),
+      retirement, revision.requestedAgeMa);
   } catch (error) {
     materials.forEach((material) => material.dispose());
     publicationGeometries.forEach((geometry_) => geometry_.dispose());
+    lineGraphs.forEach((graph) => graph.toneTexture.dispose());
     paletteTexture.dispose();
     group.clear();
     throw error;
@@ -2267,6 +2438,7 @@ export class CaoFoundationSurfaceRenderer {
   private disposed = false;
   private domainVisible = true;
   private palaeoCoastlineMode = false;
+  private countryLineToneTable: Uint8Array | null = null;
   private armedStaticGeometryChange: string | null = null;
   private readonly allowStaticGeometryReplacement: boolean;
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
@@ -2331,10 +2503,11 @@ export class CaoFoundationSurfaceRenderer {
         uncommittedReplacement = replaced;
       }
       const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
-      const publicationBytes = safeAdd(safeAdd(safeAdd(packed.data.byteLength,
+      const publicationBytes = safeAdd(safeAdd(safeAdd(safeAdd(packed.data.byteLength,
         revision.charts.length * (8 * Float32Array.BYTES_PER_ELEMENT + Uint8Array.BYTES_PER_ELEMENT),
         "Cao publication"), estimateNativeBoundaryBufferBytes(revision), "Cao publication"),
-      estimateTopologyOwnershipBytes(revision), "Cao publication");
+      estimateTopologyOwnershipBytes(revision), "Cao publication"),
+      estimateCountryLineToneTextureBytes(revision), "Cao publication");
       if (!Number.isSafeInteger(this.limits.maxPublicationBytes) || this.limits.maxPublicationBytes < 1
           || publicationBytes > this.limits.maxPublicationBytes - this.publisher.retainedBytes()) {
         throw new Error("Cao foundation palette publication exceeds limit");
@@ -2346,6 +2519,10 @@ export class CaoFoundationSurfaceRenderer {
       }
       resource = createPublicationResource(revision, this.staticGeometry, packed,
         verticalExaggeration, this.retirement, this.palaeoCoastlineMode);
+      // A publication is built with the all-dark table, so the retained one has
+      // to be reapplied before the group is shown: otherwise every scrub sample
+      // would flash the outline back to a single ink for one frame.
+      resource.setCountryLineToneTable(this.countryLineToneTable);
       if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", resource)) {
         throw new Error("Cao foundation publication became stale");
       }
@@ -2412,6 +2589,8 @@ export class CaoFoundationSurfaceRenderer {
         (sum, batch) => sum + batch.vertexCount, 0) ?? 0,
       countryLineSegments: this.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.segmentCount, 0) ?? 0,
+      countryLineToneDarkSegments: current?.resources.outlineToneCounts().darkSegments ?? 0,
+      countryLineToneLightSegments: current?.resources.outlineToneCounts().lightSegments ?? 0,
       nativeBoundarySegments: this.domainVisible ? current?.resources.nativeBoundarySegments ?? 0 : 0,
       nativeBoundarySourceAgeMa: this.domainVisible ? current?.resources.nativeBoundarySourceAgeMa ?? null : null,
       topologyOwnershipRings: this.domainVisible ? current?.resources.topologyOwnership?.rings.length ?? 0 : 0,
@@ -2489,6 +2668,27 @@ export class CaoFoundationSurfaceRenderer {
       if (child.userData.overlayLayer === "tectonics") child.visible = layers.tectonics;
     }
     current.resources.setNativeBoundaryLayerVisibility(layers.tectonics);
+  }
+
+  /**
+   * Loads the outline tone table for the active Cao 2017 map interval, or
+   * clears it with `null`. The table is retained so the next publication — a
+   * scrub sample or a map-interval swap — keeps the same tones.
+   */
+  setCountryLineToneTable(texels: Uint8Array | null): CaoFoundationOutlineToneCounts {
+    this.countryLineToneTable = texels;
+    this.publisher.current()?.resources.setCountryLineToneTable(texels);
+    return this.countryLineToneCounts();
+  }
+
+  /**
+   * Tones the resident table resolves to. Separate from `diagnostics()` because
+   * the frame loop reports these every frame and the full record costs several
+   * reductions over the batch tables to build.
+   */
+  countryLineToneCounts(): CaoFoundationOutlineToneCounts {
+    return this.publisher.current()?.resources.outlineToneCounts()
+      ?? Object.freeze({ darkSegments: 0, lightSegments: 0 });
   }
 
   /**

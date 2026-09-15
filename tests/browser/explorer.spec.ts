@@ -605,6 +605,76 @@ test("keeps layers usable and labels unavailable seafloor data", async ({ page }
   await expect(page.getByText(/no qualified ocean-floor age or depth field/i)).toBeVisible();
 });
 
+test("offers the palaeo-coastline layer control with its unavailable reason", async ({ page }) => {
+  // The charts do not ship yet, so the control is disabled with its reason and
+  // the outline keeps its single dark ink. Both are pinned here so Phase 6
+  // cannot enable the layer without moving this test with it.
+  await page.goto("./");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
+  await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-light-segments", "0");
+  const darkSegments = Number(await globe(page)
+    .getAttribute("data-cao-outline-tone-dark-segments"));
+  expect(darkSegments).toBeGreaterThan(10_000);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  await expect(palaeo).toBeDisabled();
+  await expect(palaeo).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText(/steps between 24 published map intervals/)).toBeVisible();
+  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toBeVisible();
+});
+
+test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
+  await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await openSurfaceInfo(page);
+  await expect(page.getByTestId("palaeo-map-key")).toBeVisible();
+  await expect(page.getByText("Coastline map interval: 94\u201381 Ma (Cao et al. 2017)")).toBeVisible();
+  await expect(page.getByText(/minimum land \/ maximum flooding recorded anywhere in that bin/)).toBeVisible();
+  await expect(page.getByText(/Cao 2024 continental crust, depth unmapped/)).toBeVisible();
+  await expect(page.getByText(/Light grey outline · over shallow or deep sea/)).toBeVisible();
+  await expect(page.getByText(/Outline tone is a legibility device, not evidence/)).toBeVisible();
+  await expect(page.getByTestId("timeline-interval-marks").locator(".interval-mark"))
+    .toHaveCount(24);
+});
+
+test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ page }) => {
+  await page.goto("./#age=0&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await openSurfaceInfo(page);
+  await expect(page.getByTestId("palaeo-fallback-notice"))
+    .toHaveText("No palaeogeography evidence at this age; showing the Cao 2024 coast proxy");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "fallback");
+  await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
+});
+
+test("leaves the palaeo layer off in a link written before it existed", async ({ page }) => {
+  await page.goto("./#age=90&layers=borders,guides");
+  await waitForCao(page);
+  await openSurfaceInfo(page);
+  await expect(page.getByTestId("palaeo-map-key")).toHaveCount(0);
+  await expect(page.getByTestId("timeline-interval-marks")).toHaveCount(0);
+  await expect(page.getByText(/Continental shelf context; ancient water depth unknown/)).toBeVisible();
+});
+
+test("keeps the palaeo map key compact on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await openSurfaceInfo(page);
+  const panel = page.locator(".surface-info-panel");
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  // The key gains three swatches, a legend and three sentences; it must stay
+  // inside the phone viewport rather than running under the timeline.
+  expect(panelBox!.width).toBeLessThanOrEqual(390);
+  expect(panelBox!.y).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(844);
+  await expect(page.getByTestId("palaeo-map-key")).toBeVisible();
+});
+
 test("keeps unlocalized evidence off the globe", async ({ page }) => {
   await page.goto("./");
   await waitForCao(page);
