@@ -6,7 +6,8 @@ import type {
   WorldSnapshot,
 } from "../data";
 import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
-import type { CaoMotionFrame, MaterialAddress, PreparedCaoRevision } from "../reconstruction";
+import type { CaoMotionFrame, CaoPalaeoIntervalFrame, MaterialAddress, PreparedCaoPalaeoInterval,
+  PreparedCaoRevision } from "../reconstruction";
 import { chartPickStateFromMotionFrame } from "../reconstruction";
 
 export interface FocusTarget {
@@ -29,6 +30,14 @@ export interface GlobeViewProps {
   caoRevision?: PreparedCaoRevision | null;
   caoMotionFrame?: CaoMotionFrame | null;
   caoWithheld?: boolean;
+  /** One prepared Cao 2017 map interval, or null while the mode is off or falling back. */
+  palaeoInterval?: PreparedCaoPalaeoInterval | null;
+  /** Re-pose of the published interval at a new age inside the same map. */
+  palaeoFrame?: CaoPalaeoIntervalFrame | null;
+  /** Verified EHPT bytes; the scene decodes them against its own segment count. */
+  palaeoToneBytes?: Uint8Array | null;
+  palaeoToneTableIndex?: number;
+  palaeoToneIntervalId?: string | null;
   snapshot: WorldSnapshot | null;
   layers: LayerVisibility;
   selectedPoiId: string | null;
@@ -47,6 +56,11 @@ export function GlobeView({
   caoRevision = null,
   caoMotionFrame = null,
   caoWithheld = false,
+  palaeoInterval = null,
+  palaeoFrame = null,
+  palaeoToneBytes = null,
+  palaeoToneTableIndex = -1,
+  palaeoToneIntervalId = null,
   snapshot,
   layers,
   selectedPoiId,
@@ -67,6 +81,7 @@ export function GlobeView({
     caoRevision,
     caoMotionFrame,
     caoWithheld,
+    palaeoInterval,
     snapshot,
     layers,
     selectedPoiId,
@@ -84,6 +99,7 @@ export function GlobeView({
     caoRevision,
     caoMotionFrame,
     caoWithheld,
+    palaeoInterval,
     snapshot,
     layers,
     selectedPoiId,
@@ -121,6 +137,7 @@ export function GlobeView({
         scene.setCallbacks(current.onSelectPoi, current.onSelectSurface, current.onStats);
         scene.setVerticalExaggeration(current.verticalExaggeration);
         scene.setPreparedCaoRevision(current.caoRevision);
+        scene.setPreparedPalaeoInterval(current.palaeoInterval);
         scene.setCaoFoundationWithheld(current.caoWithheld);
         scene.setEditorialSnapshot(current.snapshot);
         scene.setLayers(current.layers);
@@ -138,6 +155,7 @@ export function GlobeView({
       .catch((error: unknown) => {
         if (active) {
           latestProps.current.caoRevision?.release();
+          latestProps.current.palaeoInterval?.release();
           mount.dataset.rendererError =
             error instanceof Error ? error.message : "Unable to initialize the globe";
           setRenderError(mount.dataset.rendererError);
@@ -203,6 +221,30 @@ export function GlobeView({
       anchors,
     );
   }, [caoMotionFrame, caoRevision]);
+
+  // The palaeo publication follows the same handoff rule as the native one: a
+  // prepared interval that never reaches a scene still owns a runtime lease and
+  // must release it, and `publish` releases the one that does.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (scene === null) {
+      return () => {
+        if (sceneRef.current === null) palaeoInterval?.release();
+      };
+    }
+    scene.setPreparedPalaeoInterval(palaeoInterval);
+    return undefined;
+  }, [palaeoInterval]);
+
+  useEffect(() => {
+    if (palaeoFrame === null) return;
+    sceneRef.current?.retargetPalaeoMotion(palaeoFrame);
+  }, [palaeoFrame]);
+
+  useEffect(() => {
+    sceneRef.current?.setPalaeoOutlineTones(
+      palaeoToneBytes, palaeoToneTableIndex, palaeoToneIntervalId);
+  }, [palaeoToneBytes, palaeoToneTableIndex, palaeoToneIntervalId]);
 
   useEffect(() => {
     sceneRef.current?.setEditorialSnapshot(snapshot);

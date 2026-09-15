@@ -486,12 +486,26 @@ export function validatePalaeoRingPayloadAgainstCatalog(
   }
 }
 
+/**
+ * The source's own `(TOAGE, FROMAGE]` lifecycle rule, and the single authority
+ * for it: a piece, a shipped interval payload and the transcribed
+ * `CAO_2017_MAP_INTERVALS` table are all half-open the same way, so the catalog
+ * a build ships and the table the UI labels intervals from cannot disagree
+ * about which map covers an age.
+ */
+export function palaeoIntervalCoversAge(
+  ageMa: number,
+  oldestMa: number,
+  youngestExclusiveMa: number,
+): boolean {
+  return Number.isFinite(ageMa) && ageMa > youngestExclusiveMa && ageMa <= oldestMa;
+}
+
 /** The published interval covering an age, using the same `(TOAGE, FROMAGE]` rule as a piece. */
-export function selectPalaeoInterval(
+export function selectPalaeoCatalogInterval(
   catalog: PalaeoCoastlineClassCatalog,
   ageMa: number,
 ): PalaeoCoastlineIntervalRecord | null {
-  if (!Number.isFinite(ageMa)) return null;
   return catalog.intervals.find((interval) =>
-    ageMa > interval.toAgeMa && ageMa <= interval.fromAgeMa) ?? null;
+    palaeoIntervalCoversAge(ageMa, interval.fromAgeMa, interval.toAgeMa)) ?? null;
 }

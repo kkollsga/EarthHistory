@@ -624,6 +624,10 @@ test("offers the palaeo-coastline layer control with its unavailable reason", as
   await expect(palaeo).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText(/steps between 24 published map intervals/)).toBeVisible();
   await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toBeVisible();
+  await expect(palaeo).not.toHaveAttribute("aria-busy", "true");
+  // A manifest without the palaeoCoastlines section fetches nothing palaeo.
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
 });
 
 test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
@@ -648,6 +652,14 @@ test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ p
     .toHaveText("No palaeogeography evidence at this age; showing the Cao 2024 coast proxy");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "fallback");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
+  // The live wiring reports what is drawn, not what the age asks for. In a
+  // fallback nothing is published and nothing was fetched, and both say so.
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-charts", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-triangles", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-fallback-reason",
+    "age-outside-cao-2017-map-intervals");
 });
 
 test("leaves the palaeo layer off in a link written before it existed", async ({ page }) => {

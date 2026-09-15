@@ -5,11 +5,12 @@ import {
   palaeoLifecycleActiveAtAge,
   palaeoPieceLimitationFlags,
   palaeoVertexDirection,
-  selectPalaeoInterval,
+  selectPalaeoCatalogInterval,
   validatePalaeoCoastlineClassCatalog,
   validatePalaeoRingPayloadAgainstCatalog,
   type PalaeoCoastlineClassCatalog,
 } from "./palaeoRings";
+import { CAO_2017_MAP_INTERVALS, selectPalaeoInterval } from "./outlineTones";
 import { encodePalaeoRingPayload, palaeoClassCatalogFixture } from "./fixtures/palaeoRingFixtures";
 
 const square = (west: number, south: number, size: number) => [
@@ -195,10 +196,37 @@ describe("palaeo-coastline class catalog", () => {
       { intervalId: "380-360", intervalIndex: 1, fromAgeMa: 380, toAgeMa: 360,
         url: "b.ehpr", bytes: 1, sha256: "b".repeat(64), pieces: 1, rings: 1, vertices: 3 },
     ] });
-    expect(selectPalaeoInterval(catalog, 402)?.intervalId).toBe("402-380");
-    expect(selectPalaeoInterval(catalog, 380)?.intervalId).toBe("380-360");
-    expect(selectPalaeoInterval(catalog, 360)).toBeNull();
-    expect(selectPalaeoInterval(catalog, 403)).toBeNull();
+    expect(selectPalaeoCatalogInterval(catalog, 402)?.intervalId).toBe("402-380");
+    expect(selectPalaeoCatalogInterval(catalog, 380)?.intervalId).toBe("380-360");
+    expect(selectPalaeoCatalogInterval(catalog, 360)).toBeNull();
+    expect(selectPalaeoCatalogInterval(catalog, 403)).toBeNull();
+    expect(selectPalaeoCatalogInterval(catalog, Number.NaN)).toBeNull();
+  });
+
+  it("agrees with the canonical Cao 2017 interval table at every age", () => {
+    // The catalog a build ships and the table the UI labels intervals from are
+    // two transcriptions of one schedule. They run through the same predicate,
+    // and this is what proves the two answers are the same interval — including
+    // at the shared bounds and in the 10 kyr gaps the source leaves between
+    // two maps, where a lookup that rounded either way would differ.
+    const catalog = palaeoClassCatalogFixture({
+      intervals: CAO_2017_MAP_INTERVALS.map((interval, index) => ({
+        intervalId: interval.id, intervalIndex: index,
+        fromAgeMa: interval.oldestMa, toAgeMa: interval.youngestMa,
+        url: `palaeo-lm-${interval.id}.ehpr`, bytes: 1,
+        sha256: String(index).padStart(64, "0"), pieces: 1, rings: 1, vertices: 3,
+      })),
+    });
+    const ages = [0, 2.01, 2.02, 90, 94, 260, 380, 380.005, 380.02, 402, 402.001, 500];
+    for (const interval of CAO_2017_MAP_INTERVALS) {
+      ages.push(interval.oldestMa, interval.youngestMa, interval.youngestMa + 0.005);
+    }
+    for (let age = 5; age <= 400; age += 5) ages.push(age);
+    for (const ageMa of ages) {
+      const index = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, ageMa);
+      expect(selectPalaeoCatalogInterval(catalog, ageMa)?.intervalId ?? null)
+        .toBe(index < 0 ? null : CAO_2017_MAP_INTERVALS[index]!.id);
+    }
   });
 });
 

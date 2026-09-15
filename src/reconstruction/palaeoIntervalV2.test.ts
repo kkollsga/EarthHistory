@@ -9,7 +9,16 @@ import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { createPalaeoTriangulationRunner } from "./palaeoTriangulate";
-import { evaluateCaoPalaeoIntervalFrame } from "./palaeoIntervalV2";
+import { evaluateCaoPalaeoIntervalFrame, palaeoCoastlineEvidenceSummary,
+  type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
+import {
+  PALAEO_OUTLINE_TONE_LAND,
+  PALAEO_OUTLINE_TONE_SHALLOW,
+  decodePalaeoOutlineToneTables,
+  encodePalaeoOutlineToneTables,
+  palaeoOutlineToneCounts,
+  type PalaeoOutlineToneClass,
+} from "./outlineTones";
 import type { PreparedPaletteEntry } from "./palette";
 import type { PalaeoCoastlineClassCatalog } from "./palaeoRings";
 import { encodePalaeoRingPayload, palaeoClassCatalogFixture,
@@ -56,6 +65,24 @@ function payloadFor(interval: typeof INTERVALS[number]): ArrayBuffer {
     fromAgeMa: interval.fromAgeMa, toAgeMa: interval.toAgeMa, pieces });
 }
 
+/**
+ * Outline segments the fixture's tone tables describe. Small on purpose: the
+ * decoder's own segment-count check is exercised in `outlineTones.test.ts`, and
+ * what matters here is that the manifest's tone asset is a real EHPT payload
+ * one table per compiled interval, so a runtime fetch can be verified end to
+ * end rather than against a four-byte stub.
+ */
+const TONE_SEGMENT_COUNT = 8;
+
+function toneTablesPayload(): Uint8Array {
+  // Table i marks segment i light, so a decode that read the wrong table is
+  // visible in the counts rather than only in the bytes.
+  return encodePalaeoOutlineToneTables(INTERVALS.map((_, table) =>
+    Array.from({ length: TONE_SEGMENT_COUNT }, (_unused, segment) =>
+      (segment === table ? PALAEO_OUTLINE_TONE_SHALLOW
+        : PALAEO_OUTLINE_TONE_LAND) as PalaeoOutlineToneClass)), TONE_SEGMENT_COUNT);
+}
+
 interface PalaeoFixture {
   readonly section: PalaeoCoastlineAssets;
   readonly catalog: PalaeoCoastlineClassCatalog;
@@ -79,7 +106,9 @@ function palaeoFixture(overrides: Partial<PalaeoCoastlineAssets["reservation"]> 
   const catalogBytes = new TextEncoder().encode(JSON.stringify(catalog)).buffer as ArrayBuffer;
   assets.set(CATALOG_URL, catalogBytes);
   const toneCatalog = new TextEncoder().encode("{}").buffer as ArrayBuffer;
-  const toneBinary = new Uint8Array([69, 72, 80, 84]).buffer;
+  const tones = toneTablesPayload();
+  const toneBinary = tones.buffer.slice(tones.byteOffset,
+    tones.byteOffset + tones.byteLength) as ArrayBuffer;
   assets.set("palaeo/outline-tones.json", toneCatalog);
   assets.set("palaeo/outline-tones.ehpt", toneBinary);
   const asset = (url: string) => ({ url, bytes: assets.get(url)!.byteLength,
@@ -489,5 +518,171 @@ describe("palaeo-coastline runtime requests", () => {
     expect(selectPalaeoIntervalForAge(catalogs, 380)?.intervalId).toBe("380-360");
     expect(selectPalaeoIntervalForAge(catalogs, 340)).toBeNull();
     expect(selectPalaeoIntervalForAge([], 380)).toBeNull();
+  });
+});
+
+describe("palaeo-coastline manifest availability and the assets one enablement fetches", () => {
+  it("reports a manifest without the section unavailable and fetches nothing palaeo", async () => {
+    const fixture = palaeoFixture();
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
+      ReconstructionPackageManifestV2;
+    expect(manifest.palaeoCoastlines).toBeUndefined();
+    const runtime = new CaoReconstructionRuntime(manifest, fixture.fetcher);
+    expect(runtime.palaeoCoastlineAssetsAvailable).toBe(false);
+    expect(runtime.palaeoCoastlinesEnabled).toBe(false);
+    // The layer control reads exactly this: unavailable, and disabled rather
+    // than falling back, because there is nothing to fall back from.
+    expect(() => runtime.setPalaeoCoastlinesEnabled(true)).toThrow(/no palaeo-coastline section/);
+    await expect(runtime.loadPalaeoOutlineToneTables()).rejects.toThrow(/no palaeo-coastline section/);
+    await expect(runtime.evaluatePalaeoMotion(390)).resolves.toBeNull();
+    await expect(runtime.prefetchPalaeoInterval(390)).resolves.toBeUndefined();
+    // A full native prepare beside it, to prove the absence is not just idleness.
+    (await runtime.request(12).prepared).release();
+    expect(fixture.requestedUrls.some((url) => url.startsWith("palaeo/"))).toBe(false);
+    expect(runtime.ledger.palaeo.totalSourceBytes).toBe(0);
+    runtime.dispose();
+  });
+
+  it("fetches exactly the catalog, the active interval and the tone table once per enablement",
+    async () => {
+      const fixture = palaeoFixture();
+      const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+        fixture.fetcher);
+      expect(runtime.palaeoCoastlineAssetsAvailable).toBe(true);
+      runtime.setPalaeoCoastlinesEnabled(true);
+      const prepared = await runtime.requestPalaeoInterval(390).prepared;
+      const tones = await runtime.loadPalaeoOutlineToneTables();
+      const palaeoFetches = fixture.requestedUrls.filter((url) => url.startsWith("palaeo/"));
+      expect(palaeoFetches).toEqual([
+        CATALOG_URL,
+        "palaeo/lm/palaeo-lm-402-380.ehpr",
+        "palaeo/outline-tones.ehpt",
+      ]);
+      // The tone catalog JSON is declared but never needed at runtime: tables
+      // are ordered oldest to youngest, so the interval index is the table.
+      expect(palaeoFetches).not.toContain("palaeo/outline-tones.json");
+      const decoded = decodePalaeoOutlineToneTables(tones, TONE_SEGMENT_COUNT);
+      expect(decoded.tableCount).toBe(INTERVALS.length);
+      expect(palaeoOutlineToneCounts(decoded, prepared.intervalIndex).lightSegments).toBe(1);
+      // A second read inside the same enablement is the same bytes, not a second fetch.
+      expect(await runtime.loadPalaeoOutlineToneTables()).toBe(tones);
+      expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(1);
+      prepared.release();
+      // Turning the mode off drops them; turning it back on fetches once more.
+      runtime.setPalaeoCoastlinesEnabled(false);
+      runtime.setPalaeoCoastlinesEnabled(true);
+      await runtime.loadPalaeoOutlineToneTables();
+      expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(2);
+      await expect(runtime.loadPalaeoOutlineToneTables()).resolves.toBeInstanceOf(Uint8Array);
+      runtime.setPalaeoCoastlinesEnabled(false);
+      await expect(runtime.loadPalaeoOutlineToneTables()).rejects.toThrow(/mode is disabled/);
+      runtime.dispose();
+    });
+});
+
+describe("palaeo-coastline scrub retarget", () => {
+  it("re-poses the resident interval and never fetches a payload of its own", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    // Nothing resident yet: a retarget answers null rather than starting a load.
+    expect(await runtime.evaluatePalaeoMotion(390)).toBeNull();
+    expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpr"))).toHaveLength(0);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    const before = fixture.requestedUrls.length;
+    const frame = await runtime.evaluatePalaeoMotion(385);
+    expect(frame?.intervalId).toBe("402-380");
+    expect(frame?.requestedAgeMa).toBe(385);
+    expect(frame?.charts).toHaveLength(prepared.charts.length);
+    expect(fixture.requestedUrls).toHaveLength(before);
+    // An age in a map that is not resident is not this interval's to pose.
+    expect(await runtime.evaluatePalaeoMotion(370)).toBeNull();
+    prepared.release();
+    runtime.dispose();
+  });
+
+  it("leaves no lease held when the mode is toggled during a scrub", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const held = await runtime.requestPalaeoInterval(390).prepared;
+    expect(runtime.palaeoLeaseCount).toBe(1);
+    // A scrub sample and a fresh interval request are both in flight when the
+    // toggle lands: the serial bump aborts them and the disable releases the
+    // lease the published interval still holds.
+    const retarget = runtime.evaluatePalaeoMotion(388);
+    const inFlight = runtime.requestPalaeoInterval(370);
+    runtime.setPalaeoCoastlinesEnabled(false);
+    await expect(inFlight.prepared).rejects.toMatchObject({ name: "AbortError" });
+    // Both chains report the same way a stale native prepare does, so App can
+    // swallow one kind of failure rather than two.
+    await expect(retarget).rejects.toMatchObject({ name: "AbortError" });
+    expect(runtime.palaeoLeaseCount).toBe(0);
+    expect(runtime.ledger.palaeo.preparedLeaseCount).toBe(0);
+    expect(runtime.ledger.palaeo.totalSourceBytes).toBe(0);
+    expect(() => held.batches[0]!.createStaticGeometryCopy()).toThrow(/released/);
+    runtime.dispose();
+  });
+});
+
+describe("palaeo-coastline evidence summary", () => {
+  const summaryFor = (prepared: PreparedCaoPalaeoInterval | null) =>
+    palaeoCoastlineEvidenceSummary(prepared, { loading: false, unavailableReason: null },
+      (sourceId) => sourceId === "cao-2017-paleogeography"
+        ? { citation: "Cao et al. 2017", url: "https://doi.org/10.5194/bg-14-5425-2017", year: 2017 }
+        : sourceId === "north-sea-edit-ref" ? { citation: "Ziegler 1990", year: 1990 } : null);
+
+  it("reads the interval, its active sources and its cited edits off the prepared interval",
+    async () => {
+      const fixture = palaeoFixture();
+      const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+        fixture.fetcher);
+      runtime.setPalaeoCoastlinesEnabled(true);
+      const prepared = await runtime.requestPalaeoInterval(390).prepared;
+      const summary = summaryFor(prepared);
+      expect(summary.intervalId).toBe("402-380");
+      expect(summary.sourceIds).toEqual(["cao-2017-paleogeography"]);
+      expect(summary.references).toHaveLength(1);
+      expect(summary.references[0]).toMatchObject({ sourceId: "cao-2017-paleogeography",
+        claim: "source-states", editorial: false, year: 2017 });
+      // No chart in this fixture carries an editorial line, so nothing is a
+      // synthesis and the badge must not claim one.
+      expect(summary.editedChartIds).toEqual([]);
+      expect(summary.unavailableReason).toBeNull();
+      prepared.release();
+      runtime.dispose();
+    });
+
+  it("marks an edited chart's own reference editorial and an absent build unavailable", () => {
+    const edited = {
+      intervalId: "94-81",
+      activeSourceIds: ["cao-2017-paleogeography", "north-sea-edit-ref"],
+      charts: [
+        { chartId: "palaeo:lm:94-81:0", support: { kind: "supported" }, editorial: null,
+          evidence: { sourceIds: ["cao-2017-paleogeography"] } },
+        { chartId: "palaeo:lm:94-81:1", support: { kind: "supported" },
+          editorial: "EarthHistory modification after Ziegler 1990",
+          evidence: { sourceIds: ["cao-2017-paleogeography", "north-sea-edit-ref"] } },
+        // Inactive charts contribute nothing: they are not on screen.
+        { chartId: "palaeo:lm:94-81:2", support: { kind: "inactive" },
+          editorial: "EarthHistory modification after an unrelated reference",
+          evidence: { sourceIds: ["never-shown"] } },
+      ],
+    } as unknown as PreparedCaoPalaeoInterval;
+    const summary = summaryFor(edited);
+    expect(summary.editedChartIds).toEqual(["palaeo:lm:94-81:1"]);
+    expect(summary.references.map((reference) => [reference.sourceId, reference.editorial]))
+      .toEqual([["cao-2017-paleogeography", false], ["north-sea-edit-ref", true]]);
+    expect(summary.references[1]).toMatchObject({ claim: "earthhistory-infers",
+      constrains: "EarthHistory modification after Ziegler 1990" });
+
+    const absent = palaeoCoastlineEvidenceSummary(null,
+      { loading: false, unavailableReason: "Cao 2017 map charts are not in this build" });
+    expect(absent).toMatchObject({ intervalId: null, sourceIds: [], references: [],
+      editedChartIds: [], loading: false });
+    expect(palaeoCoastlineEvidenceSummary(null, { loading: true, unavailableReason: null }).loading)
+      .toBe(true);
   });
 });

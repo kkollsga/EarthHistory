@@ -16,7 +16,8 @@ import {
 } from "./loaderV2";
 import { createPalaeoTriangulationRunner, type PalaeoTriangulationRunner } from "./palaeoTriangulate";
 import { createPreparedCaoPalaeoInterval, evaluateCaoPalaeoIntervalFrame,
-  type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
+  type CaoPalaeoIntervalFrame, type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
+import { loadVerifiedBytes } from "./assetLoader";
 import type { PalaeoSurfaceClass } from "./palaeoRings";
 import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -104,6 +105,7 @@ export class CaoReconstructionRuntime {
   private palaeoPendingIntervalId: string | null = null;
   private palaeoStore: CaoPalaeoIntervalStore | null = null;
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
+  private palaeoOutlineTones: Promise<Uint8Array> | null = null;
   private readonly palaeoLeases = new Map<string, () => void>();
 
   readonly manifest: ReconstructionPackageManifestV2;
@@ -520,10 +522,72 @@ export class CaoReconstructionRuntime {
     this.palaeoStore = null;
     this.palaeoRunner?.dispose();
     this.palaeoRunner = null;
+    this.palaeoOutlineTones = null;
   }
 
   get palaeoCoastlinesEnabled(): boolean {
     return this.palaeoEnabled;
+  }
+
+  /** Whether this package ships the Cao 2017 charts at all; false disables the control. */
+  get palaeoCoastlineAssetsAvailable(): boolean {
+    return this.manifest.palaeoCoastlines !== undefined;
+  }
+
+  /** Outstanding palaeo interval leases. A toggle must always bring this back to 0. */
+  get palaeoLeaseCount(): number {
+    return this.palaeoLeases.size;
+  }
+
+  /**
+   * The EHPT outline tone tables, fetched and digest-verified once per
+   * enablement. The bytes are the whole 24-table set — about 72 KiB for the
+   * shipped outline — so the interval change that follows a scrub is a decode
+   * and an upload, never a second fetch; turning the mode off drops them with
+   * everything else the mode owns.
+   */
+  async loadPalaeoOutlineToneTables(signal?: AbortSignal): Promise<Uint8Array> {
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo) throw new Error("Cao package has no palaeo-coastline section");
+    if (!this.palaeoEnabled) throw new Error("palaeo-coastline mode is disabled");
+    const pending = this.palaeoOutlineTones ??= loadVerifiedBytes(
+      palaeo.outlineTones.binary, this.fetcher, this.lifetime.signal,
+    ).then((bytes) => new Uint8Array(bytes));
+    pending.catch(() => { if (this.palaeoOutlineTones === pending) this.palaeoOutlineTones = null; });
+    const tones = await pending;
+    if (signal?.aborted || !this.palaeoEnabled) {
+      throw new DOMException("stale palaeo-coastline tone table", "AbortError");
+    }
+    return tones;
+  }
+
+  /**
+   * Re-poses the resident map interval at a new age without replacing its
+   * geometry: the interval is the streaming unit, so every age inside one is a
+   * palette retarget. Answers null wherever the interval is not already
+   * resident, so a scrub sample can never start a fetch of its own — the
+   * foreground `requestPalaeoInterval` owns that, and its publication carries
+   * the pose the retarget would have supplied.
+   */
+  async evaluatePalaeoMotion(requestedAgeMa: number): Promise<CaoPalaeoIntervalFrame | null> {
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return null;
+    const catalogs = this.resolvedPalaeoCatalogs;
+    if (!catalogs) return null;
+    const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
+    if (!record) return null;
+    const store = this.palaeoStore;
+    const interval = store?.residentInterval(record.intervalId) ?? null;
+    if (!interval) return null;
+    const serial = this.palaeoSerial;
+    const paletteEntries = await this.palaeoPaletteEntries(requestedAgeMa, this.lifetime.signal);
+    // Re-checked after the only await: a mode toggle or an interval change
+    // during the palette wait makes this frame a pose for geometry that is no
+    // longer on screen.
+    if (!this.palaeoEnabled || serial !== this.palaeoSerial || this.lifetime.signal.aborted) {
+      throw new DOMException("stale palaeo-coastline motion evaluation", "AbortError");
+    }
+    return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
   }
 
   /**

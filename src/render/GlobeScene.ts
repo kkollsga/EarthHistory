@@ -2,9 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GlobeStats, LayerVisibility, LonLat, SurfaceStage, WorldSnapshot } from "../data";
 import {
+  buildPalaeoOutlineToneTexels,
+  decodePalaeoOutlineToneTables,
   gplatesToRendererDirection,
   numberScalarOps,
+  palaeoOutlineToneCounts,
+  type CaoPalaeoIntervalFrame,
   type MaterialAddress,
+  type PalaeoOutlineToneTables,
+  type PreparedCaoPalaeoInterval,
   type PreparedCaoRevision,
   type UnitDirection,
 } from "../reconstruction";
@@ -38,6 +44,11 @@ import {
   nextCaoPalaeoVisibilityState,
   type CaoPalaeoVisibilityState,
 } from "./reconstruction/palaeoComposite";
+import {
+  NO_PALAEO_MATERIAL_CORRECTIONS,
+  palaeoChartPickState,
+  preparedCaoRevisionForPalaeoInterval,
+} from "./reconstruction/palaeoPublication";
 import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
@@ -498,6 +509,18 @@ export class GlobeScene {
   private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
+  /** The interval whose charts are published, and the one its geometry belongs to. */
+  private publishedPalaeoIntervalId: string | null = null;
+  private palaeoStaticIntervalId: string | null = null;
+  private palaeoIntervalSourceBytes = 0;
+  /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
+  private palaeoTonePayload: Uint8Array | null = null;
+  private palaeoToneTableIndex = -1;
+  private palaeoToneSourceIntervalId: string | null = null;
+  private palaeoToneTables: PalaeoOutlineToneTables | null = null;
+  private palaeoToneDecodedFrom: Uint8Array | null = null;
+  private reportedPalaeoIntervalId: string | null | undefined = undefined;
+  private reportedPalaeoAssetBytes = -1;
   /** `undefined` until the first apply, so the initial all-dark upload happens once. */
   private appliedOutlineToneIntervalId: string | null | undefined = undefined;
   /** Last values written to the canvas dataset, so a still frame writes nothing. */
@@ -805,6 +828,10 @@ export class GlobeScene {
       this.markerGroup.visible = !this.caoFoundationWithheld;
       this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
       this.palaeoRequestedAgeMa = revision.requestedAgeMa;
+      // The country line segment count is only knowable from a publication, so
+      // a tone payload that arrived before the first native publish is decoded
+      // and uploaded here rather than discarded.
+      this.applyPalaeoOutlineTones();
       this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
@@ -867,6 +894,155 @@ export class GlobeScene {
       this.onCaoFoundationState?.({ status: "error", error: message });
       throw error;
     }
+  }
+
+  /**
+   * Publishes one Cao 2017 map interval on the palaeo instance, or clears it.
+   *
+   * A map interval is the streaming unit, so a new interval is a static
+   * geometry replacement: the swap is armed with its reason first, and the arm
+   * is spent by exactly that publication. Scrubbing inside an interval never
+   * reaches here — `retargetPalaeoMotion` re-poses the resident geometry — so a
+   * sample that stays inside one map cannot cost a geometry rebuild.
+   *
+   * `publish` takes over the interval's lease and releases it, exactly as it
+   * does for a native revision, so the interval store is free to evict the
+   * decoded payload once its buffers are the publication's own.
+   */
+  setPreparedPalaeoInterval(interval: PreparedCaoPalaeoInterval | null): CaoFoundationDiagnostics | null {
+    if (interval === null) {
+      this.clearPalaeoPublication();
+      this.updatePalaeoDomainVisibility();
+      return null;
+    }
+    try {
+      if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
+        this.caoPalaeoRenderer.armStaticGeometryChange(
+          `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
+      }
+      const diagnostics = this.caoPalaeoRenderer.publish(
+        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration);
+      this.publishedPalaeoIntervalId = interval.intervalId;
+      this.palaeoStaticIntervalId = interval.intervalId;
+      this.palaeoIntervalSourceBytes = interval.activeSourceBytes;
+      this.palaeoRequestedAgeMa = interval.requestedAgeMa;
+      this.applyLayerVisibility();
+      this.guideLabelTonesStaleSince = performance.now();
+      return diagnostics;
+    } catch (error) {
+      // A failed palaeo publication must never take the native surface with it.
+      // The layer is optional, so the mode falls back to today's composition and
+      // names the reason in the dataset rather than throwing out of a React
+      // effect and blanking the globe. The guards themselves — an unarmed
+      // geometry swap, a reservation miss — are proven red in
+      // `palaeoPublication.test.ts`, where the throw is the assertion.
+      this.clearPalaeoPublication();
+      this.updatePalaeoDomainVisibility();
+      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+        error instanceof Error ? error.message : "palaeo-coastline publication failed";
+      return null;
+    }
+  }
+
+  /**
+   * Re-poses the published interval at a new age inside the same map. The
+   * charts and their order are the interval's own, so a frame for a different
+   * interval is refused rather than retargeting one interval's poses onto
+   * another's geometry.
+   */
+  retargetPalaeoMotion(frame: CaoPalaeoIntervalFrame): CaoFoundationDiagnostics | null {
+    if (this.publishedPalaeoIntervalId === null
+        || this.publishedPalaeoIntervalId !== frame.intervalId) return null;
+    const pick = palaeoChartPickState(frame.charts);
+    const diagnostics = this.caoPalaeoRenderer.retargetMotion(
+      frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
+      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS);
+    this.palaeoRequestedAgeMa = frame.requestedAgeMa;
+    this.applyLayerVisibility();
+    this.guideLabelTonesStaleSince = performance.now();
+    return diagnostics;
+  }
+
+  /**
+   * The verified EHPT payload and the table the active interval reads.
+   *
+   * The bytes are fetched once per enablement and decoded here rather than by
+   * the caller, because only this scene knows the country line batch's own
+   * segment count — and a table compiled against a different outline package
+   * would address the wrong segments with every index still in range.
+   */
+  setPalaeoOutlineTones(
+    payload: Uint8Array | null,
+    tableIndex: number,
+    intervalId: string | null,
+  ): void {
+    this.palaeoTonePayload = payload;
+    this.palaeoToneTableIndex = tableIndex;
+    this.palaeoToneSourceIntervalId = intervalId;
+    if (payload === null) {
+      this.palaeoToneTables = null;
+      this.palaeoToneDecodedFrom = null;
+    }
+    this.applyPalaeoOutlineTones();
+  }
+
+  /**
+   * Decodes and uploads the active table, or falls back to the single dark ink.
+   *
+   * A table this scene cannot trust is not a reason to lose the outline: the
+   * fallback is exactly today's overlay, and the reason is recorded. The
+   * decoder's own rejections are proven red in `outlineTones.test.ts`.
+   */
+  private applyPalaeoOutlineTones(): void {
+    try {
+      this.uploadPalaeoOutlineTones();
+    } catch (error) {
+      this.palaeoToneTables = null;
+      this.palaeoToneDecodedFrom = null;
+      this.setCountryLineToneTable(null, null);
+      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+        error instanceof Error ? error.message : "palaeo outline tone tables could not be decoded";
+    }
+  }
+
+  private uploadPalaeoOutlineTones(): void {
+    const payload = this.palaeoTonePayload;
+    const segmentCount = this.caoFoundationRenderer.diagnostics().countryLineSegments;
+    if (payload === null || this.palaeoToneSourceIntervalId === null
+        || this.palaeoToneTableIndex < 0 || segmentCount < 1) {
+      this.setCountryLineToneTable(null, null);
+      return;
+    }
+    if (this.palaeoToneDecodedFrom !== payload || this.palaeoToneTables === null
+        || this.palaeoToneTables.segmentCount !== segmentCount) {
+      this.palaeoToneTables = decodePalaeoOutlineToneTables(payload, segmentCount);
+      this.palaeoToneDecodedFrom = payload;
+    }
+    if (this.palaeoToneTableIndex >= this.palaeoToneTables.tableCount) {
+      throw new Error("palaeo outline tone table index is outside the published tables");
+    }
+    const counts = palaeoOutlineToneCounts(this.palaeoToneTables, this.palaeoToneTableIndex);
+    if (counts.lightSegments + counts.darkSegments !== segmentCount) {
+      throw new Error("palaeo outline tone counts disagree with the country line batch");
+    }
+    this.setCountryLineToneTable(
+      buildPalaeoOutlineToneTexels(this.palaeoToneTables, this.palaeoToneTableIndex),
+      this.palaeoToneSourceIntervalId);
+  }
+
+  /**
+   * Drops the palaeo publication and everything that depends on it.
+   *
+   * Turning the mode off releases every outstanding interval lease in the
+   * runtime, so a publication left standing here would be drawing geometry
+   * whose payload the interval store is already free to evict.
+   */
+  private clearPalaeoPublication(): void {
+    if (this.publishedPalaeoIntervalId === null) return;
+    this.caoPalaeoRenderer.clear();
+    this.publishedPalaeoIntervalId = null;
+    this.palaeoIntervalSourceBytes = 0;
+    this.guideLabelTonesStaleSince = performance.now();
   }
 
   setEditorialSnapshot(snapshot: WorldSnapshot | null): void {
@@ -1155,6 +1331,10 @@ export class GlobeScene {
       palaeoCoastlines: this.layers.palaeoCoastlines };
     this.caoFoundationRenderer.setLayerVisibility(record);
     this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
+    // Turning the mode off releases every palaeo interval lease in the runtime,
+    // so a publication left standing here would keep drawing geometry whose
+    // payload the interval store is already free to evict.
+    if (!this.layers.palaeoCoastlines) this.clearPalaeoPublication();
     this.updatePalaeoDomainVisibility();
   }
 
@@ -1173,14 +1353,26 @@ export class GlobeScene {
       this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility, requested);
     }
     const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
+    const drawn = this.palaeoVisibility.visible && palaeo.identity !== null;
     const dataset = this.renderer.domElement.dataset;
     dataset.caoPalaeoCoastlineMode = !this.layers.palaeoCoastlines ? "off"
       : !inside ? "fallback"
-      : this.palaeoVisibility.visible && palaeo.identity !== null ? "on" : "loading";
+      : drawn ? "on" : "loading";
     dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
       ? "age-outside-cao-2017-map-intervals" : "";
     dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
     dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
+    // The interval on screen, not the one the age asks for: a load in flight
+    // leaves the previous map drawn, and the diagnostic must say which.
+    const intervalId = drawn ? this.publishedPalaeoIntervalId : null;
+    const assetBytes = (drawn ? this.palaeoIntervalSourceBytes : 0)
+      + (this.layers.palaeoCoastlines ? this.palaeoTonePayload?.byteLength ?? 0 : 0);
+    if (intervalId !== this.reportedPalaeoIntervalId || assetBytes !== this.reportedPalaeoAssetBytes) {
+      this.reportedPalaeoIntervalId = intervalId;
+      this.reportedPalaeoAssetBytes = assetBytes;
+      dataset.caoPalaeoIntervalId = intervalId ?? "";
+      dataset.caoPalaeoAssetBytes = String(assetBytes);
+    }
     this.applyCountryLineToneTable(dataset.caoPalaeoCoastlineMode === "on");
   }
 

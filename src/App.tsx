@@ -52,10 +52,12 @@ import {
   CAO_2017_MAP_INTERVAL_MARKS_MA,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
+  palaeoCoastlineEvidenceSummary,
   palaeoIntervalEvidenceStatus,
   palaeoIntervalLabel,
   selectPalaeoInterval,
-  type CaoMotionFrame, type CaoTimelineLoadingState, type PreparedCaoRevision,
+  type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
+  type PreparedCaoPalaeoInterval, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -89,19 +91,32 @@ const LAYER_META: Array<{
 ];
 
 /**
- * Nothing is drawn from the Cao 2017 maps yet, so the layer starts with an
- * empty summary and the assets are reported unavailable. Phase 3 of the
- * palaeo-coastlines program replaces this with the interval store's own
- * summary; every reader below is written to be null-safe against it.
+ * Why the layer cannot be switched on at all. A manifest without a
+ * `palaeoCoastlines` section is a build that did not ship the Cao 2017 charts:
+ * the control is disabled, and nothing in the mode ever fetches. An age with no
+ * published map is a fallback with a notice, not this.
  */
-const EMPTY_PALAEO_EVIDENCE: PalaeoCoastlineEvidence = Object.freeze({
-  intervalId: null,
-  sourceIds: [],
-  references: [],
-  editedChartIds: [],
-  unavailableReason: "Cao 2017 map charts are not in this build",
-  loading: false,
-});
+const PALAEO_CHARTS_ABSENT = "Cao 2017 map charts are not in this build";
+
+/** Citation metadata for a source id the palaeo catalogs name, where the project records one. */
+function palaeoSourceCitation(sourceId: string) {
+  const source = sources.find((record) => record.id === sourceId);
+  if (source === undefined) return null;
+  const attribution = [source.authors, source.year === undefined ? null : String(source.year)]
+    .filter((part): part is string => typeof part === "string" && part.length > 0).join(" ");
+  return {
+    citation: attribution.length === 0 ? source.title : `${attribution} — ${source.title}`,
+    url: source.url,
+    ...(source.year === undefined ? {} : { year: source.year }),
+  };
+}
+
+/** The neighbouring map interval a scrub in this direction reaches next. */
+function neighbourPalaeoIntervalIndex(index: number, ageDirection: number): number {
+  // Index 0 is the oldest interval, so an age that is increasing moves towards
+  // a lower index. A resting scrub warms the younger neighbour.
+  return ageDirection > 0 ? index - 1 : index + 1;
+}
 
 function parseInitialState() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -222,6 +237,17 @@ export default function App() {
     motionTier: "requested-age", error: null,
   });
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
+  const [palaeoAssetsAvailable, setPalaeoAssetsAvailable] = useState(false);
+  const [palaeoPrepared, setPalaeoPrepared] = useState<PreparedCaoPalaeoInterval | null>(null);
+  const palaeoPreparedRef = useRef<PreparedCaoPalaeoInterval | null>(null);
+  const [palaeoFrame, setPalaeoFrame] = useState<CaoPalaeoIntervalFrame | null>(null);
+  const [palaeoToneBytes, setPalaeoToneBytes] = useState<Uint8Array | null>(null);
+  const [palaeoLoading, setPalaeoLoading] = useState(false);
+  const [palaeoError, setPalaeoError] = useState<string | null>(null);
+  /** Sign of the last age step; +1 is scrubbing towards older ages. */
+  const palaeoAgeDirectionRef = useRef(0);
+  const palaeoLastAgeRef = useRef(initial.age);
+  const palaeoPumpRef = useRef<{ pump(): void } | null>(null);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
@@ -289,6 +315,9 @@ export default function App() {
       caoRuntimeRef.current = runtime;
       unsubscribeTimeline = runtime.subscribeTimelineLoading(setCaoTimelineLoading);
       setCaoSourceAges(Object.freeze(manifest.checkpoints.map((checkpoint) => checkpoint.ageMa)));
+      // The section is optional. Without it the layer control reports its
+      // reason and stays disabled, and no palaeo asset is ever requested.
+      setPalaeoAssetsAvailable(runtime.palaeoCoastlineAssetsAvailable);
       setCaoAgeDomainMa(Object.freeze([manifest.ageDomainMa.youngest, manifest.ageDomainMa.oldest]));
       setCaoRuntimeReady((value) => value + 1);
     }).catch((error: unknown) => {
@@ -304,6 +333,7 @@ export default function App() {
       caoRuntimeRef.current = null;
       setCaoSourceAges([]);
       setCaoAgeDomainMa(null);
+      setPalaeoAssetsAvailable(false);
     };
   }, []);
 
@@ -558,6 +588,181 @@ export default function App() {
     caoPumpRef.current?.pump();
   }, [ageMa, caoRuntimeReady]);
 
+  // The palaeo domain is wider than the Cao 2024 display domain the effect
+  // above returns early from, so the map pump gets its own age watch.
+  useEffect(() => {
+    palaeoAgeDirectionRef.current = Math.sign(ageMa - palaeoLastAgeRef.current);
+    palaeoLastAgeRef.current = ageMa;
+    palaeoPumpRef.current?.pump();
+  }, [ageMa]);
+
+  // Palaeo-coastlines. Enabling loads and validates the class catalogs; the
+  // interval pump below then streams one published map at a time. Nothing here
+  // runs, and nothing is fetched, while the layer is off or the build ships no
+  // charts — that is the "zero palaeo bytes when off" contract.
+  useEffect(() => {
+    if (!caoRuntimeReady) return;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime || !palaeoAssetsAvailable) return;
+    runtime.setPalaeoCoastlinesEnabled(layers.palaeoCoastlines);
+    if (layers.palaeoCoastlines) return;
+    // Disabling released every interval lease inside the runtime, so the
+    // publication and its summary go with them.
+    palaeoPreparedRef.current = null;
+    setPalaeoPrepared(null);
+    setPalaeoFrame(null);
+    setPalaeoToneBytes(null);
+    setPalaeoLoading(false);
+    setPalaeoError(null);
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
+  // One verified EHPT fetch per enablement. The scene decodes it against the
+  // country line batch's own segment count and uploads the active interval's
+  // table; the bytes outlive every interval change inside one enablement.
+  useEffect(() => {
+    if (!caoRuntimeReady || !layers.palaeoCoastlines || !palaeoAssetsAvailable) return undefined;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return undefined;
+    let active = true;
+    void runtime.loadPalaeoOutlineToneTables().then((bytes) => {
+      if (active) setPalaeoToneBytes(bytes);
+    }).catch((error: unknown) => {
+      if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
+      setPalaeoError(error instanceof Error ? error.message
+        : "Cao 2017 outline tone tables could not be loaded");
+    });
+    return () => { active = false; };
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
+  useEffect(() => {
+    if (!caoRuntimeReady || !layers.palaeoCoastlines || !palaeoAssetsAvailable) return undefined;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return undefined;
+
+    const state = {
+      disposed: false,
+      inFlight: false,
+      serial: 0,
+      frameSerial: 0,
+      prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
+    };
+
+    // Scrubbing inside one published map is a pose change, not a new map: the
+    // interval owns the static geometry, so the frame is retargeted onto the
+    // geometry already on screen and no payload is fetched.
+    const retarget = (targetAgeMa: number) => {
+      const serial = ++state.frameSerial;
+      void runtime.evaluatePalaeoMotion(targetAgeMa).then((frame) => {
+        if (frame === null || state.disposed || serial !== state.frameSerial) return;
+        setPalaeoFrame(frame);
+      }).catch((error: unknown) => {
+        // A serial bump aborts exactly as the native motion path does.
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (!state.disposed) {
+          setPalaeoError(error instanceof Error ? error.message
+            : "Cao 2017 palaeo motion could not be evaluated");
+        }
+      });
+    };
+
+    const schedulePrefetch = (index: number) => {
+      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
+      state.prefetchTimer = setTimeout(() => {
+        state.prefetchTimer = 0;
+        if (state.disposed) return;
+        const neighbour = CAO_2017_MAP_INTERVALS[
+          neighbourPalaeoIntervalIndex(index, palaeoAgeDirectionRef.current)];
+        if (neighbour === undefined) return;
+        void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+      }, SCRUB_SETTLE_MS);
+    };
+
+    const pump = () => {
+      if (state.disposed || state.inFlight) return;
+      const targetAgeMa = requestedAgeRef.current;
+      const index = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, targetAgeMa);
+      if (index < 0) {
+        // No published map covers this age: fall back to today's composition
+        // and drop the lease rather than holding a map the age does not reach.
+        const previous = palaeoPreparedRef.current;
+        if (previous !== null) {
+          palaeoPreparedRef.current = null;
+          previous.release();
+          setPalaeoPrepared(null);
+          setPalaeoFrame(null);
+        }
+        setPalaeoLoading(false);
+        return;
+      }
+      const intervalId = CAO_2017_MAP_INTERVALS[index]!.id;
+      if (palaeoPreparedRef.current?.intervalId === intervalId) {
+        setPalaeoLoading(false);
+        retarget(targetAgeMa);
+        schedulePrefetch(index);
+        return;
+      }
+      const serial = ++state.serial;
+      state.inFlight = true;
+      setPalaeoLoading(true);
+      let request: ReturnType<CaoReconstructionRuntime["requestPalaeoInterval"]>;
+      try {
+        request = runtime.requestPalaeoInterval(targetAgeMa);
+      } catch (error) {
+        state.inFlight = false;
+        setPalaeoLoading(false);
+        setPalaeoError(error instanceof Error ? error.message
+          : "Cao 2017 map interval request could not start");
+        return;
+      }
+      void request.prepared.then((prepared) => {
+        if (state.disposed || serial !== state.serial) {
+          prepared.release();
+          return;
+        }
+        state.inFlight = false;
+        const latestIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, requestedAgeRef.current);
+        if (latestIndex < 0 || CAO_2017_MAP_INTERVALS[latestIndex]!.id !== prepared.intervalId) {
+          prepared.release();
+          pump();
+          return;
+        }
+        // Drop the prior lease only once the next interval is ready to publish;
+        // a publication takes the new lease over and releases it in turn.
+        const previous = palaeoPreparedRef.current;
+        if (previous !== null && previous !== prepared) previous.release();
+        palaeoPreparedRef.current = prepared;
+        setPalaeoPrepared(prepared);
+        setPalaeoFrame(null);
+        setPalaeoLoading(false);
+        setPalaeoError(null);
+        schedulePrefetch(latestIndex);
+        if (requestedAgeRef.current !== prepared.requestedAgeMa) pump();
+      }).catch((error: unknown) => {
+        if (state.disposed || serial !== state.serial) return;
+        state.inFlight = false;
+        setPalaeoLoading(false);
+        if (error instanceof DOMException && error.name === "AbortError") {
+          if (requestedAgeRef.current !== targetAgeMa) pump();
+          return;
+        }
+        setPalaeoError(error instanceof Error ? error.message
+          : "Cao 2017 map interval could not be prepared");
+      });
+    };
+
+    palaeoPumpRef.current = { pump };
+    pump();
+    return () => {
+      state.disposed = true;
+      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
+      if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
+      palaeoPreparedRef.current?.release();
+      palaeoPreparedRef.current = null;
+      setPalaeoPrepared(null);
+      setPalaeoFrame(null);
+    };
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
   useEffect(() => {
     const runtime = caoRuntimeRef.current;
     if (!runtime || periodCoordinateState.status !== "ready"
@@ -655,9 +860,15 @@ export default function App() {
   const uncertainMaterialVisible = (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0;
-  // Phase 3 of the palaeo-coastlines program replaces this constant with the
-  // interval store's live summary; everything below reads it null-safely.
-  const palaeoEvidence: PalaeoCoastlineEvidence = EMPTY_PALAEO_EVIDENCE;
+  // Read off the interval actually published, not off the requested age: the
+  // source ids are the ones whose charts are posed on screen, and a load in
+  // flight leaves the previous map — and its evidence — visible.
+  const palaeoEvidence: PalaeoCoastlineEvidence = useMemo(
+    () => palaeoCoastlineEvidenceSummary(palaeoPrepared,
+      { loading: palaeoLoading,
+        unavailableReason: palaeoAssetsAvailable ? null : PALAEO_CHARTS_ABSENT },
+      palaeoSourceCitation),
+    [palaeoAssetsAvailable, palaeoLoading, palaeoPrepared]);
   const palaeoIntervalIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, ageMa);
   const palaeoInterval = palaeoIntervalIndex < 0 ? null : CAO_2017_MAP_INTERVALS[palaeoIntervalIndex]!;
   const palaeoKeyVisible = layers.palaeoCoastlines;
@@ -1106,6 +1317,11 @@ export default function App() {
           caoRevision={caoRevision}
           caoMotionFrame={currentCaoMotionFrame}
           caoWithheld={caoLoadError !== null}
+          palaeoInterval={palaeoPrepared}
+          palaeoFrame={palaeoFrame}
+          palaeoToneBytes={palaeoToneBytes}
+          palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
+          palaeoToneIntervalId={palaeoPrepared?.intervalId ?? null}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
@@ -1208,6 +1424,11 @@ export default function App() {
               <span role="status">Cao reconstruction · {foundationStatus}</span>
               {caoLoadError !== null && (
                 <span role="status">Cao reconstruction unavailable · surface withheld</span>
+              )}
+              {palaeoError !== null && (
+                <span role="status" data-testid="palaeo-error-notice">
+                  Palaeo-coastlines withheld · {palaeoError}
+                </span>
               )}
               {caoTimelineLoading.status === "loading" && (
                 <span role="status">Current age ready · loading timeline data</span>

@@ -6,7 +6,7 @@ import { evaluateLifecycleSupport } from "./motion";
 import { decodeRequestedAgeMotionTile, selectRequestedAgeMotionTile,
   validateRequestedAgeMotionTileIndex, type RequestedAgeMotionTileIndex } from "./motionTiles";
 import {
-  selectPalaeoInterval,
+  selectPalaeoCatalogInterval,
   validatePalaeoCoastlineClassCatalog,
   validatePalaeoRingPayloadAgainstCatalog,
   type PalaeoCoastlineClassCatalog,
@@ -620,7 +620,7 @@ export function selectPalaeoIntervalForAge(
   catalogs: readonly LoadedPalaeoClassCatalog[],
   ageMa: number,
 ): PalaeoCoastlineIntervalRecord | null {
-  return catalogs.length === 0 ? null : selectPalaeoInterval(catalogs[0]!.catalog, ageMa);
+  return catalogs.length === 0 ? null : selectPalaeoCatalogInterval(catalogs[0]!.catalog, ageMa);
 }
 
 export async function loadVerifiedPalaeoIntervalClass(
@@ -708,6 +708,19 @@ export class CaoPalaeoIntervalStore {
       pendingReservedSourceBytes: [...this.pending.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
       maximumResidentCount: 2, maximumPendingCount: 2,
       maximumResidentSourceBytes: this.maximumResidentBytes });
+  }
+
+  /**
+   * The interval already decoded and triangulated, or null. A scrub retarget
+   * inside one map interval reads through here rather than through `load`, so
+   * moving the age can never start a fetch the foreground request did not ask
+   * for.
+   */
+  residentInterval(intervalId: string): LoadedPalaeoInterval | null {
+    const cached = this.resident.get(intervalId);
+    if (!cached) return null;
+    cached.used = ++this.clock;
+    return cached.value;
   }
 
   dispose(): void {

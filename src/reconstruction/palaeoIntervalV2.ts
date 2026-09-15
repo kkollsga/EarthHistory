@@ -28,6 +28,7 @@ import {
 } from "./palaeoRings";
 import type { SpatialBatchSurfaceAppearanceV2 } from "./packageV2";
 import type { SupportState } from "./types";
+import type { PalaeoCoastlineEvidence, PalaeoEvidenceReference } from "../data";
 
 /** Seam ids are unique per palaeo vertex: a cookie-cut piece shares no vertex with any other. */
 const PALAEO_SEAM_ID_BASE = 2_000_000_000;
@@ -303,4 +304,70 @@ export function createPreparedCaoPalaeoInterval(
     activeSourceBytes: interval.sourceBytes,
     release,
   });
+}
+
+/** What a citation lookup must return for a source id the catalog names. */
+export interface PalaeoEvidenceCitation {
+  readonly citation: string;
+  readonly url?: string;
+  readonly year?: number;
+}
+
+/**
+ * The map key's and the layer control's view of what is on screen.
+ *
+ * Everything here is read off the prepared interval rather than declared: the
+ * source ids are the ones whose charts are actually posed at this age, and a
+ * chart counts as edited only where its own evidence record carries the
+ * `editorial` line a cited basin modification writes. A source id that appears
+ * only on edited charts is reported as an editorial reference, because that is
+ * exactly the set the basin contract added; one that also carries an unedited
+ * chart is the published map's own authority.
+ */
+export function palaeoCoastlineEvidenceSummary(
+  prepared: PreparedCaoPalaeoInterval | null,
+  state: Readonly<{ loading: boolean; unavailableReason: string | null }>,
+  citation: (sourceId: string) => PalaeoEvidenceCitation | null = () => null,
+): PalaeoCoastlineEvidence {
+  const editedChartIds: string[] = [];
+  const editorialSourceIds = new Set<string>();
+  const publishedSourceIds = new Set<string>();
+  const editorialLines = new Map<string, string>();
+  for (const chart of prepared?.charts ?? []) {
+    if (chart.support.kind !== "supported") continue;
+    const edited = chart.editorial !== null;
+    if (edited) editedChartIds.push(chart.chartId);
+    for (const sourceId of chart.evidence.sourceIds) {
+      if (!edited) publishedSourceIds.add(sourceId);
+      else {
+        editorialSourceIds.add(sourceId);
+        editorialLines.set(sourceId, chart.editorial!);
+      }
+    }
+  }
+  const sourceIds = [...(prepared?.activeSourceIds ?? [])];
+  const references: PalaeoEvidenceReference[] = [];
+  for (const sourceId of sourceIds) {
+    const record = citation(sourceId);
+    if (record === null) continue;
+    const editorial = editorialSourceIds.has(sourceId) && !publishedSourceIds.has(sourceId);
+    references.push({
+      sourceId,
+      citation: record.citation,
+      ...(record.url === undefined ? {} : { url: record.url }),
+      ...(record.year === undefined ? {} : { year: record.year }),
+      constrains: editorial ? editorialLines.get(sourceId)!
+        : "Cao et al. (2017) published map polygons for this interval",
+      claim: editorial ? "earthhistory-infers" : "source-states",
+      editorial,
+    });
+  }
+  return {
+    intervalId: prepared?.intervalId ?? null,
+    sourceIds,
+    references,
+    editedChartIds,
+    unavailableReason: state.unavailableReason,
+    loading: state.loading,
+  };
 }

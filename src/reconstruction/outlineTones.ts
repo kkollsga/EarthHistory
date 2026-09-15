@@ -9,6 +9,7 @@
  * the result and picks the interval a requested age belongs to.
  */
 
+import { palaeoIntervalCoversAge } from "./palaeoRings";
 import type { EvidenceStatus } from "../data";
 
 /** `EHPT` — EarthHistory palaeo tone tables. */
@@ -279,17 +280,18 @@ export const CAO_2017_MAP_INTERVAL_MARKS_MA: readonly number[] =
  * `youngestMa < ageMa <= oldestMa`. So 380 Ma belongs to `380-359`, not to
  * `402-380` whose youngest bound is 380.01, and the domain's own youngest
  * bound of 2.01 Ma belongs to no interval at all.
+ *
+ * The rule itself is `palaeoIntervalCoversAge` in `palaeoRings.ts`, which is
+ * also what `selectPalaeoCatalogInterval` applies to a shipped class catalog:
+ * one predicate, so a catalog compiled on the canonical schedule and this table
+ * always answer with the same interval.
  */
 export function selectPalaeoInterval(
   intervals: readonly PalaeoMapInterval[],
   ageMa: number,
 ): number {
-  if (!Number.isFinite(ageMa)) return -1;
-  for (let index = 0; index < intervals.length; index += 1) {
-    const interval = intervals[index]!;
-    if (ageMa > interval.youngestMa && ageMa <= interval.oldestMa) return index;
-  }
-  return -1;
+  return intervals.findIndex((interval) =>
+    palaeoIntervalCoversAge(ageMa, interval.oldestMa, interval.youngestMa));
 }
 
 /** The published interval name, e.g. `94–81 Ma`. */
