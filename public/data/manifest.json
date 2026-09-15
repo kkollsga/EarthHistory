@@ -4278,8 +4278,8 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "8db1085a8c412c651850cbd690853cae8a638ad6dffe4c16a7ab8ac4b227b851",
-          "bytes": 41295
+          "sha256": "b88cbf3f02481766f981a0c38cde48d2d41451e823b17e3f523e28d851a92893",
+          "bytes": 41297
         },
         {
           "role": "motion-palette.bin",
@@ -7775,20 +7775,26 @@
         {
           "role": "lm/palaeo-lm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-catalog.json",
-          "bytes": 31416,
-          "sha256": "f10632f3827b02dd1aab276fbd8b3de4ff5cd5f5bc74bcc74eed7aa1c3dd0c70"
+          "bytes": 33402,
+          "sha256": "25ec4880a0441775a2d27b798713e97a007a6e5a0d63b8ddb08bd39fb7841e41"
+        },
+        {
+          "role": "lm/palaeo-lm-lgm.ehpr",
+          "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-lgm.ehpr",
+          "bytes": 40746,
+          "sha256": "d55434da5ff5320b95f45e651ce6174d904d7a8c564e95f1015678b610e501fe"
         },
         {
           "role": "outline-tones.ehpt",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.ehpt",
-          "bytes": 72320,
-          "sha256": "4852a399903e7afa97ae87636ded0f4177ec277be1884e724efce7eeb4ae2342"
+          "bytes": 75332,
+          "sha256": "10b38085e548718d52391a5b6da6680fa3f013b475ec852ee97e0aec654265bf"
         },
         {
           "role": "outline-tones.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.json",
-          "bytes": 24045,
-          "sha256": "9e54333eaead454c1a2ae5283fb987772816e5f5950d6d7115cc531bf14bde04"
+          "bytes": 26218,
+          "sha256": "766de785e62db38dda1026400477da60dca3d0756a73e7d1b9a619f4723d87d9"
         },
         {
           "role": "sm/palaeo-sm-11-2.ehpr",
@@ -7937,8 +7943,14 @@
         {
           "role": "sm/palaeo-sm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-catalog.json",
-          "bytes": 49289,
-          "sha256": "465e0fce8c1b19d69cb81ed7da9877e11808acf94095667efeaeeab7200484f4"
+          "bytes": 49491,
+          "sha256": "b508690406da04b9981615edaba16adf9e4b80cc8ef9f6630c9d0d76bd89fdf6"
+        },
+        {
+          "role": "sm/palaeo-sm-lgm.ehpr",
+          "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-lgm.ehpr",
+          "bytes": 32,
+          "sha256": "8547cf88b309c0a2120a0f5e0093f6eadc8a43cda013eb967657fefade4c038f"
         }
       ]
     }

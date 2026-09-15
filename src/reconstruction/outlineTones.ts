@@ -269,7 +269,43 @@ export const CAO_2017_MAP_INTERVALS: readonly PalaeoMapInterval[] = Object.freez
   { id: "11-2", youngestMa: 2.01, oldestMa: 11 },
 ].map((interval) => Object.freeze(interval)));
 
-/** The oldest bound of every canonical interval: the timeline's snap marks. */
+/**
+ * The Last Glacial Maximum lowstand state: one interval 2 Myr younger than the
+ * whole Cao 2017 band, with nothing in between.
+ *
+ * Its bounds are Clark et al. (2009) — "nearly all ice sheets were at their LGM
+ * positions from 26.5 ka to 19 to 20 ka" — read as the half-open
+ * `(19.5 ka, 26.5 ka]` the rest of the pipeline uses. The geometry is the
+ * ETOPO 2022 present-day surface at or above the -120 m eustatic datum
+ * (Lambeck et al. 2014) inside three footprints, so it is a regional state
+ * drawn *over* today's composition, not a global palaeogeography that replaces
+ * it. `data/corrections/palaeo-coastlines/lgm/lgm-lowstand-v1.manifest.json`
+ * carries the datum, the limitations and the references.
+ */
+export const PALAEO_LGM_INTERVAL_ID = "lgm";
+export const PALAEO_LGM_INTERVAL: PalaeoMapInterval =
+  Object.freeze({ id: PALAEO_LGM_INTERVAL_ID, youngestMa: 0.0195, oldestMa: 0.0265 });
+
+/**
+ * Every interval the mode can draw, oldest first: the Cao 2017 band, then the
+ * detached LGM state. This is the table the tone-table index, the timeline
+ * marks and the map-key label all read, and its order is the order the compiled
+ * tone tables are written in.
+ */
+export const PALAEO_MAP_INTERVALS: readonly PalaeoMapInterval[] =
+  Object.freeze([...CAO_2017_MAP_INTERVALS, PALAEO_LGM_INTERVAL]);
+
+export function palaeoIntervalIsDetached(interval: PalaeoMapInterval | null): boolean {
+  return interval !== null && interval.id === PALAEO_LGM_INTERVAL_ID;
+}
+
+/**
+ * The oldest bound of every Cao 2017 interval: the timeline's snap marks.
+ *
+ * The LGM state's bound is 26.5 ka and the scrubber spans the Phanerozoic, so a
+ * mark for it would sit on top of the 0 Ma end stop and could never be aimed
+ * at. It is reached through the age field, not through a snap mark.
+ */
 export const CAO_2017_MAP_INTERVAL_MARKS_MA: readonly number[] =
   Object.freeze(CAO_2017_MAP_INTERVALS.map((interval) => interval.oldestMa));
 
@@ -294,9 +330,22 @@ export function selectPalaeoInterval(
     palaeoIntervalCoversAge(ageMa, interval.oldestMa, interval.youngestMa));
 }
 
-/** The published interval name, e.g. `94–81 Ma`. */
+/** The published interval name, e.g. `94–81 Ma`, or the LGM state's own name. */
 export function palaeoIntervalLabel(interval: PalaeoMapInterval): string {
-  return `${interval.id.replace("-", "–")} Ma`;
+  return palaeoIntervalIsDetached(interval)
+    ? "LGM lowstand state 26.5–19.5 ka" : `${interval.id.replace("-", "–")} Ma`;
+}
+
+/**
+ * The map key's interval line. The Cao intervals name the published map; the
+ * LGM state names its datum instead, because nothing about it comes from Cao
+ * 2017 and the eustatic contour is the whole claim.
+ */
+export function palaeoIntervalKeyLine(interval: PalaeoMapInterval): string {
+  return palaeoIntervalIsDetached(interval)
+    ? "LGM lowstand state 26.5–19.5 ka (ETOPO 2022 at −120 m eustatic;"
+      + " no glacio-isostatic adjustment)"
+    : `Cao et al. (2017) map interval ${palaeoIntervalLabel(interval)}`;
 }
 
 export interface PalaeoIntervalSelection {
@@ -352,6 +401,10 @@ export function palaeoIntervalEvidenceStatus(
   editedChartsActive: boolean,
 ): EvidenceStatus {
   if (interval === null) return "unknown";
+  // The LGM state is measured present-day bathymetry cut at a published
+  // eustatic number: every one of its charts is a synthesis, and none of them
+  // is a published map at a map age, so the Cao branch below cannot apply.
+  if (palaeoIntervalIsDetached(interval)) return "synthesis";
   if (editedChartsActive) return "synthesis";
   return ageMa === interval.oldestMa ? "model-output" : "interpolation";
 }

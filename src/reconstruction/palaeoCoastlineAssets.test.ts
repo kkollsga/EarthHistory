@@ -6,7 +6,7 @@ import { CaoReconstructionRuntime, chartPickStateFromMotionFrame, packageAssetPa
   type StaticAssetFetcher } from "./index";
 import { numberScalarOps, rotateDirection } from "./arithmetic";
 import { decodePalaeoCoastlineClassCatalog, decodePalaeoRingPayload,
-  validatePalaeoRingPayloadAgainstCatalog } from "./palaeoRings";
+  selectPalaeoCatalogInterval, validatePalaeoRingPayloadAgainstCatalog } from "./palaeoRings";
 import { preparePalaeoRingPayload } from "./palaeoTriangulate";
 import { createCaoFoundationGeometryResource, intersectCaoFoundationSurface }
   from "../render/reconstruction/caoFoundation";
@@ -103,7 +103,9 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     const catalog = await classCatalog("lm");
     expect(catalog.schemaVersion).toBe(2);
     expect(catalog.encoding).toBe("palaeo-class-catalog-columnar-v1");
-    expect(catalog.intervals).toHaveLength(24);
+    // 24 Cao 2017 map intervals plus the detached LGM lowstand state.
+    expect(catalog.intervals).toHaveLength(25);
+    expect(catalog.detachedIntervalIds).toEqual(["lgm"]);
     expect(catalog.entrySelection.rule).toBe("palaeo-binding-entry-v1");
     // The published catalog carries no chart table: `chartCount` alone bounds a
     // piece's source-record ordinal.
@@ -147,7 +149,7 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
         expect(prepared.geometry.maximumEdgeDegrees).toBeLessThanOrEqual(1);
       }
     }
-    expect(measured.size).toBe(24);
+    expect(measured.size).toBe(25);
     for (const [intervalId, row] of measured) {
       expect(row.vertices, `${intervalId} vertices`).toBeLessThanOrEqual(reservation.maxIntervalVertices);
       expect(row.triangles, `${intervalId} triangles`).toBeLessThanOrEqual(reservation.maxIntervalTriangles);
@@ -162,6 +164,61 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     // interval's absolute count, which the per-interval assertions above check.
     expect(Math.max(...ratios)).toBeLessThan(2.2);
     expect(Math.min(...ratios)).toBeGreaterThan(1);
+  }, 120_000);
+
+  it("draws the LGM lowstand shelf at 0.021 Ma and nothing at 0 Ma", async () => {
+    // The published LGM interval as the runtime actually resolves it: the
+    // landmass payload carries the three footprints, the shallow-marine payload
+    // is empty on purpose, and no interval covers the present day.
+    const catalogs = { lm: await classCatalog("lm"), sm: await classCatalog("sm") };
+    for (const catalog of Object.values(catalogs)) {
+      const record = catalog.intervals.find((interval) => interval.intervalId === "lgm")!;
+      expect(record.intervalIndex).toBe(24);
+      expect(record.fromAgeMa).toBe(0.0265);
+      expect(record.toAgeMa).toBe(0.0195);
+      const payload = decodePalaeoRingPayload(
+        await payloadBuffer(catalog.class as "lm" | "sm", record.payload.url));
+      expect(() => validatePalaeoRingPayloadAgainstCatalog(payload, catalog, record)).not.toThrow();
+      // A eustatic contour says where land was, not where a shallow sea was.
+      if (catalog.class === "sm") expect(payload.pieces).toHaveLength(0);
+      else expect(payload.pieces.length).toBeGreaterThan(100);
+    }
+    // Selection against the real published catalog, at the timeline's own
+    // `quaternary-lgm` chapter age and on both bounds of the window.
+    const at = (ageMa: number) =>
+      selectPalaeoCatalogInterval(catalogs.lm, ageMa)?.intervalId ?? null;
+    expect(at(0.021)).toBe("lgm");
+    expect(at(0.0265)).toBe("lgm");
+    expect(at(0.0194)).toBeNull();
+    expect(at(0.0266)).toBeNull();
+    expect(at(0)).toBeNull();
+    expect(at(1)).toBeNull();
+    expect(at(90)).toBe("94-81");
+
+    const record = catalogs.lm.intervals.find((interval) => interval.intervalId === "lgm")!;
+    const prepared = preparePalaeoRingPayload(await payloadBuffer("lm", record.payload.url),
+      { maxEdgeDegrees: 1, maxVertices: 300_000, maxTriangles: 480_000 });
+    const { referenceDirections, indices } = prepared.geometry;
+    const covers = (longitude: number, latitude: number) => {
+      const direction = lonLat(longitude, latitude);
+      for (let triangle = 0; triangle < indices.length; triangle += 3) {
+        const corner = (slot: number) => {
+          const base = indices[triangle + slot]! * 3;
+          return [referenceDirections[base]!, referenceDirections[base + 1]!,
+            referenceDirections[base + 2]!];
+        };
+        if (insideSphericalTriangle(direction, corner(0), corner(1), corner(2))) return true;
+      }
+      return false;
+    };
+    expect(covers(2.5, 54.7), "Dogger Bank").toBe(true);
+    expect(covers(108, 2), "Sunda shelf").toBe(true);
+    expect(covers(-170, 65), "Bering land bridge").toBe(true);
+    expect(covers(-0.1, 51.5), "London, unchanged present-day land").toBe(true);
+    expect(covers(4, 58.5), "Norwegian Trench").toBe(false);
+    // Outside the three footprints the layer draws nothing and the present-day
+    // composition stays on screen.
+    expect(covers(-60, -20), "South Atlantic, outside every footprint").toBe(false);
   }, 120_000);
 
   it("keeps a Lhasa piece with the Cao 2024 Lhasa ground at 220 Ma", async () => {

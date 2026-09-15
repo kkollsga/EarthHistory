@@ -95,8 +95,12 @@ BINDING_FIELDS = ("bindingPlateId", "partitionPlateId", "kind", "gapSet")
 INTERVAL_FIELDS = ("intervalId", "intervalIndex", "fromAgeMa", "toAgeMa", "midAgeMa",
                    "bytes", "sha256", "pieces", "rings", "vertices", "collapsedRings",
                    "baseTriangles", "estimatedTrianglesAtOneDegree")
+# `contractId` names the tracked contract a synthetic source record came from:
+# null for a Cao 2017 shapefile record, `lgm-lowstand-v1` for an LGM lowstand
+# polygon. It is what lets the validator tell a record the archive genuinely
+# does not have from one it should have had.
 CHART_PROVENANCE_FIELDS = ("sourceRecordIndex", "plateId1", "fromAgeMa", "toAgeMa",
-                           "featureIdRef", "offSchedule", "basinOpId")
+                           "featureIdRef", "offSchedule", "basinOpId", "contractId")
 
 CLASS_CODES = {"lm": 1, "sm": 2, "m": 3}
 # What `promote_palaeo_coastlines.py` publishes today. The mountain class stays
@@ -154,6 +158,40 @@ RESTORATION_LIMITATION = (
 OFF_SCHEDULE_LIMITATION = (
     "the source record's FROMAGE/TOAGE pair is not one of the 24 published map intervals; it is "
     "drawn in every canonical interval it overlaps, with its own lifecycle")
+
+# --------------------------------------------------------------------------
+# the LGM lowstand interval (plan Phase 9)
+#
+# One interval younger than the whole Cao 2017 band, compiled from the tracked
+# contract `data/corrections/palaeo-coastlines/lgm/` that
+# `palaeo_coastlines_lgm_derive.py` writes from the pinned ETOPO 2022 crops. It
+# is *detached*: the schedule from 402-380 to 11-2 Ma is contiguous, this one
+# sits 2 Myr younger with nothing in between, and the runtime, the validator and
+# the catalog all have to say so rather than treat the gap as a compiler fault.
+# Only the landmass class carries geometry; the shallow-marine payload for this
+# interval is deliberately empty, because a eustatic contour says where land
+# was, not where a shallow sea was.
+# --------------------------------------------------------------------------
+LGM_CONTRACT_DIRECTORY = CONFIG / "lgm"
+LGM_INTERVAL_ID = "lgm"
+LGM_CLASS = "lm"
+LGM_METHOD = "etopo-2022-eustatic-lowstand-contour-v1"
+LGM_GPGIM_TYPE = "EarthHistoryLgmLowstand"
+LGM_LIMITATIONS = (
+    "a eustatic lowstand state, not a reconstruction: ETOPO 2022 present-day surface elevation "
+    "at or above -120 m (Lambeck et al. 2014) inside three footprints and nowhere else",
+    "no glacio-isostatic adjustment; relative sea level around an ice margin differed from the "
+    "eustatic value by more than 100 m and varied over tens of kilometres",
+    "ice sheets are not drawn: ground under the Fennoscandian, British-Irish and Laurentide ice "
+    "sheets is shown as exposed land, which it was not",
+    "ETOPO 2022 is modern bathymetry; sediment deposited, eroded and reworked since the Last "
+    "Glacial Maximum is not removed, so the present-day sea bed is not the lowstand land surface",
+    "regional: only the southern and central North Sea, the Sunda shelf and Beringia are drawn, "
+    "and every other coastline at this age keeps the present-day composition",
+)
+LGM_INTERVAL_LIMITATION = (
+    "the LGM lowstand interval is not a Cao et al. (2017) map interval; it is 2 Myr younger than "
+    "the whole published band and is drawn over the present-day composition, not instead of it")
 
 
 class CompileError(ValueError):
@@ -420,6 +458,121 @@ def load_basins(interval_ids: set[str]) -> list[dict]:
 # --------------------------------------------------------------------------
 # source records
 # --------------------------------------------------------------------------
+
+def interval_is_detached(interval: dict) -> bool:
+    """Whether an interval sits outside the contiguous Cao 2017 schedule."""
+    return bool(interval.get("detached"))
+
+
+def lgm_evidence_record(source_ids: list[str], editorial: str) -> dict:
+    """The LGM lowstand evidence row: none of the Cao 2017 authority applies to it."""
+    return {
+        "status": "derived-from-published-source",
+        "surfaceClass": CLASS_NAMES[LGM_CLASS],
+        "appearance": SURFACE_APPEARANCE[LGM_CLASS],
+        "method": LGM_METHOD,
+        "sourceIds": list(source_ids),
+        "limitations": [LGM_INTERVAL_LIMITATION, *LGM_LIMITATIONS],
+        "editorial": editorial,
+    }
+
+
+def load_lgm_contract(directory: Path = LGM_CONTRACT_DIRECTORY) -> dict | None:
+    """The tracked LGM lowstand contract, or None where it has not been derived.
+
+    The manifest pins its own GeoJSON by digest and pins the sha256 of every
+    ETOPO crop the polygons came from; both are re-checked here, so a hand-edited
+    payload or a re-downloaded raster fails the compile instead of shipping.
+    """
+    manifest_path = directory / "lgm-lowstand-v1.manifest.json"
+    if not manifest_path.exists():
+        return None
+    manifest = load_json(manifest_path)
+    payload_path = directory / manifest["payload"]["path"]
+    payload = payload_path.read_bytes()
+    if sha256_bytes(payload) != manifest["payload"]["sha256"]:
+        raise CompileError(f"{payload_path} does not match the sha256 its manifest pins")
+    if len(payload) != manifest["payload"]["bytes"]:
+        raise CompileError(f"{payload_path} is {len(payload)} bytes, manifest says "
+                           f"{manifest['payload']['bytes']}")
+    if manifest["intervalId"] != LGM_INTERVAL_ID:
+        raise CompileError("the LGM contract declares a different interval id")
+    if not (manifest["oldestMa"] > manifest["youngestExclusiveMa"] > 0):
+        raise CompileError("the LGM contract lifecycle is empty or reversed")
+    if manifest["evidence"]["status"] != "derived-from-published-source":
+        raise CompileError("the LGM contract must ship as a derived overlay")
+    declared = {reference["sourceId"] for reference in manifest["references"]}
+    missing = [source_id for source_id in manifest["evidence"]["sourceIds"]
+               if source_id not in declared]
+    if missing:
+        raise CompileError(f"the LGM contract cites {missing} with no reference record")
+    editorial = manifest["evidence"]["editorial"]
+    if not editorial.startswith(EDITORIAL_PREFIX):
+        raise CompileError("the LGM contract editorial line does not carry the shipped prefix")
+    named = [part.strip() for part in editorial[len(EDITORIAL_PREFIX):].split(",")]
+    if [source_id for source_id in named if source_id not in declared]:
+        raise CompileError("the LGM contract editorial line names an undeclared reference")
+    for reference in manifest["references"]:
+        if not reference.get("citation") or not reference.get("constrains") \
+                or not reference.get("claimOrInference"):
+            raise CompileError(f"LGM reference {reference['sourceId']} is missing its citation, "
+                               "what it constrains, or its claim/inference tag")
+    collection = json.loads(payload)
+    footprints = {name: entry for name, entry in
+                  ((feature["properties"]["footprintId"], feature) for feature
+                   in collection["features"])}
+    if set(footprints) != set(manifest["regional"]["footprints"]):
+        raise CompileError("the LGM payload and manifest disagree about the footprints")
+    return {"manifest": manifest, "collection": collection, "directory": directory,
+            "payloadSha256": manifest["payload"]["sha256"]}
+
+
+def lgm_interval(contract: dict) -> dict:
+    manifest = contract["manifest"]
+    oldest = float(manifest["oldestMa"])
+    youngest = float(manifest["youngestExclusiveMa"])
+    return {"intervalId": LGM_INTERVAL_ID, "fromAgeMa": oldest, "toAgeMa": youngest,
+            "midAgeMa": round((oldest + youngest) / 2.0, 6), "detached": True,
+            "title": manifest["title"]}
+
+
+def lgm_rows(contract: dict, first_index: int) -> list[dict]:
+    """One source row per polygon part of the contract, in footprint order.
+
+    A row looks like a Cao source record with no ``PLATEID1``: the pieces are
+    bound by the Cao 2024 partition that owns the ground, exactly like every
+    other piece, and a partition owner is the only frame a present-day contour
+    has. ``preSimplified`` tells the node reduction to leave the rings alone —
+    the contract is already reduced at 0.02 degrees against the source grid, and
+    reducing it twice would move a coastline the derivation measured.
+    """
+    manifest = contract["manifest"]
+    oldest = float(manifest["oldestMa"])
+    youngest = float(manifest["youngestExclusiveMa"])
+    source_ids = list(manifest["evidence"]["sourceIds"])
+    editorial = manifest["evidence"]["editorial"]
+    rows: list[dict] = []
+    index = first_index
+    for feature in contract["collection"]["features"]:
+        footprint = feature["properties"]["footprintId"]
+        geometry = shape(feature["geometry"])
+        for part in polygon_parts(geometry):
+            rings = [list(part.exterior.coords)]
+            rings.extend(list(interior.coords) for interior in part.interiors)
+            rows.append({
+                "index": index, "class": LGM_CLASS, "fromAge": oldest, "toAge": youngest,
+                "timeMa": None, "plateId1": None, "gpgimType": LGM_GPGIM_TYPE,
+                "featureId": f"{LGM_INTERVAL_ID}:{footprint}:{index - first_index}",
+                "rings": rings, "lgm": True, "preSimplified": True,
+                "contractId": manifest["contractId"],
+                "lgmFootprintId": footprint, "lgmSourceIds": source_ids,
+                "lgmEditorial": editorial,
+            })
+            index += 1
+    if not rows:
+        raise CompileError("the LGM contract carries no polygon")
+    return rows
+
 
 def record_polygon(row: dict, densify: bool):
     """Planar image of one source record; the audit's antimeridian assertion applies."""
@@ -1405,6 +1558,28 @@ def build_tone_tables(segments: dict, intervals: list[dict],
     rows = []
     for order, interval in enumerate(intervals):
         age = interval["midAgeMa"]
+        # A detached interval draws over the present-day composition instead of
+        # replacing it: native land is still on screen, so the two-tone device -
+        # dark over reconstructed land, light over a mapped sea - has no
+        # composition to read. Its table is therefore the same all-dark ink the
+        # overlay carries with the mode off, and the only thing it still honours
+        # is a country-reference chart that is not active at all.
+        if interval_is_detached(interval):
+            base = 32 + stride * order
+            counters = [0, 0, 0, 0]
+            for index in range(count):
+                tone = (TONE_DARK
+                        if segments["youngestMa"][index] <= age <= segments["oldestMa"][index]
+                        else TONE_INACTIVE)
+                counters[tone] += 1
+                payload[base + (index >> 2)] |= tone << ((index & 3) * 2)
+            rows.append({"intervalId": interval["intervalId"], "detached": True,
+                         "fromAgeMa": interval["fromAgeMa"], "toAgeMa": interval["toAgeMa"],
+                         "darkSegments": counters[TONE_DARK],
+                         "lightShelfSegments": counters[TONE_LIGHT_SHELF],
+                         "lightDeepSegments": counters[TONE_LIGHT_DEEP],
+                         "inactiveSegments": counters[TONE_INACTIVE]})
+            continue
         dark_entries = land_by_interval.get(interval["intervalId"], [])
         shelf_entries = list(shelf_by_interval.get(interval["intervalId"], []))
         shelf_entries.extend((row["plateId"], row["geometry"]) for row in crust
@@ -1431,7 +1606,7 @@ def build_tone_tables(segments: dict, intervals: list[dict],
                 tone = TONE_LIGHT_DEEP
             counters[tone] += 1
             payload[base + (index >> 2)] |= tone << ((index & 3) * 2)
-        rows.append({"intervalId": interval["intervalId"],
+        rows.append({"intervalId": interval["intervalId"], "detached": False,
                      "fromAgeMa": interval["fromAgeMa"], "toAgeMa": interval["toAgeMa"],
                      "darkSegments": counters[TONE_DARK],
                      "lightShelfSegments": counters[TONE_LIGHT_SHELF],
@@ -1460,6 +1635,9 @@ def build_tone_tables(segments: dict, intervals: list[dict],
                    "plate id as the segment's own static fragment; evaluated at the interval mid-age"),
         "limitations": ["a tone is a legibility aid over the palaeo classes, never evidence that the "
                         "modern country existed",
+                        "a detached interval - the LGM lowstand state - draws over the present-day "
+                        "composition rather than replacing it, so its table is the same all-dark ink "
+                        "the overlay carries with the mode off",
                         "the plate match is by plate id, not by static fragment identity",
                         "the tone is evaluated at the interval mid-age, so it does not follow an "
                         "off-schedule record's own lifecycle inside the interval"],
@@ -1480,7 +1658,8 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                   tree: STRtree, rotations, by_plate: dict[int, list[dict]], palette: dict,
                   overrides: dict[str, list[int]], simplification: dict, basins: list[dict],
                   store: Path, staging: Path, estimate_triangles: bool,
-                  canonical_intervals: list[dict] | None = None) -> dict:
+                  canonical_intervals: list[dict] | None = None,
+                  lgm_contract: dict | None = None) -> dict:
     started = time.time()
     kept_rows, quarantined = quarantine(rows)
     geometries = {row["index"]: record_polygon(row, densify=True) for row in kept_rows}
@@ -1490,6 +1669,14 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     # it does compile.
     kept_rows, geometries, basin_report = apply_basin_ops(
         class_name, kept_rows, geometries, basins, canonical_intervals or intervals)
+    # The LGM contract's rows come last, after the basin ops have taken their own
+    # synthetic indices: appending them earlier would renumber every `add-*`
+    # record and change payload bytes in intervals this contract never touches.
+    if lgm_contract is not None and class_name == LGM_CLASS:
+        for row in lgm_rows(lgm_contract,
+                            max((row["index"] for row in kept_rows), default=-1) + 1):
+            kept_rows.append(row)
+            geometries[row["index"]] = record_polygon(row, densify=True)
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
     override_plates = set(overrides.get(class_name, []))
@@ -1517,9 +1704,13 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         if len(pieces) > 1:
             straddling_rings += 1
         entries = []
+        # A contract compiled against its own source grid ships its own node
+        # reduction; running Douglas-Peucker over it a second time would move a
+        # coastline the derivation already measured and reported.
+        pre_simplified = bool(row.get("preSimplified"))
         for index, piece, piece_area in pieces:
             cut_area += piece_area
-            protected = any(piece.intersects(box) for box in protected_boxes)
+            protected = pre_simplified or any(piece.intersects(box) for box in protected_boxes)
             simplified, meta = simplify_piece(piece, piece_area, simplification, protected)
             entries.append({"partitionIndex": index, "original": piece, "simplified": simplified,
                             "areaSquareKilometres": piece_area,
@@ -1576,6 +1767,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "featureId": row.get("featureId"),
             "offSchedule": (row["fromAge"], row["toAge"]) not in canonical_pairs,
             "basinOpId": row.get("basinOpId"),
+            "contractId": row.get("contractId"),
         })
 
     rotation_cache: dict[tuple[float, int], object] = {}
@@ -1628,8 +1820,9 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             interval_below_floor_area += lost_area
             interval_below_floor_pieces += lost_count
             basin_references = row.get("references", [])
-            evidence = intern_evidence(evidence_record(class_name, basin_references,
-                                                       bool(basin_references)))
+            evidence = intern_evidence(
+                lgm_evidence_record(row["lgmSourceIds"], row["lgmEditorial"]) if row.get("lgm")
+                else evidence_record(class_name, basin_references, bool(basin_references)))
             for entry in cuts.get(row["index"], []):
                 partition = partitions[entry["partitionIndex"]]
                 owner = partition["plateId"]
@@ -1727,6 +1920,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "fromAgeMa": interval["fromAgeMa"],
             "toAgeMa": interval["toAgeMa"],
             "midAgeMa": interval["midAgeMa"],
+            "detached": interval_is_detached(interval),
             "sourceRecords": len(selected),
             "sourceAreaSquareKilometres": round(interval_source_area, 3),
             "emittedAreaSquareKilometres": round(interval_cut_area, 3),
@@ -1933,6 +2127,11 @@ def runtime_catalog(class_name: str, palette: dict, provenance: dict, bindings: 
                    "specification": "docs/data/palaeo-coastlines-format.md"},
         "paletteId": palette["id"],
         "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
+        # Intervals that do not abut their neighbour in the published schedule.
+        # The runtime refuses a schedule gap it was not told about, so a compiler
+        # that dropped an interval still fails; this names the one gap the
+        # contract intends, between 11-2 Ma and the LGM lowstand state.
+        "detachedIntervalIds": [row["intervalId"] for row in per_interval if row.get("detached")],
         "payloadNameTemplate": f"palaeo-{class_name}-<intervalId>.ehpr",
         "maximumEdgeDegrees": MAX_REFINEMENT_EDGE_DEGREES,
         # A piece's u16 chartIndex is the source-record ordinal: the sidecar's
@@ -2019,11 +2218,17 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         rows_by_class = {name: audit.read_class(archive, name) for name in ("lm", "sm", "m")}
     intervals = audit.canonical_schedule(rows_by_class)
     audit.checkpoint_report(rows_by_class, intervals)
+    # Basin edit contracts address the published Cao schedule only; the LGM
+    # lowstand state is its own contract with its own geometry and references,
+    # so it is appended after `load_basins` has validated against the 24.
     interval_ids = {interval["intervalId"] for interval in intervals}
     basins = load_basins(interval_ids)
+    lgm = load_lgm_contract()
+    if lgm is not None:
+        intervals.append(lgm_interval(lgm))
     canonical_intervals = list(intervals)
     if interval_filter:
-        unknown = sorted(interval_filter - interval_ids)
+        unknown = sorted(interval_filter - {interval["intervalId"] for interval in intervals})
         if unknown:
             raise CompileError(f"unknown intervals {unknown}")
         intervals = [interval for interval in intervals if interval["intervalId"] in interval_filter]
@@ -2046,7 +2251,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         result = compile_class(class_name, rows_by_class[class_name], intervals, partitions, tree,
                                rotations, by_plate, palette, overrides, simplification, basins,
                                store / "original" / class_name, store / "staging" / class_name,
-                               estimate_triangles, canonical_intervals)
+                               estimate_triangles, canonical_intervals, lgm)
         catalog = result["catalog"]
         provenance = result["provenance"]
         provenance["inputs"] = inputs
@@ -2165,7 +2370,8 @@ def interval_index(intervals: list[dict], catalogs: dict[str, dict]) -> list[dic
     for order, interval in enumerate(intervals):
         entry = {"intervalId": interval["intervalId"], "tableIndex": order,
                  "oldestAgeMa": interval["fromAgeMa"], "youngestAgeMa": interval["toAgeMa"],
-                 "midAgeMa": interval["midAgeMa"], "youngestExclusive": True, "classes": {}}
+                 "midAgeMa": interval["midAgeMa"], "youngestExclusive": True,
+                 "detached": interval_is_detached(interval), "classes": {}}
         for name, rows_by_id in by_class.items():
             row = rows_by_id.get(interval["intervalId"])
             if row is None:

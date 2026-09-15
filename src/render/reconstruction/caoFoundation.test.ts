@@ -1418,7 +1418,8 @@ describe("Cao foundation renderer boundary", () => {
     ] as const;
     for (const probe of cases) {
       const state = caoPalaeoModeState({ layerEnabled: probe.layerOn,
-        insideDomain: probe.insideDomain, domainVisible: probe.domainVisible,
+        band: probe.insideDomain ? "cao-2017" : "none",
+        visibleBand: probe.domainVisible ? "cao-2017" : "none",
         published: probe.published });
       expect(state.mode, JSON.stringify(probe)).toBe(probe.mode);
       const classes = visibleClasses(state.nativeSurfaceMode);

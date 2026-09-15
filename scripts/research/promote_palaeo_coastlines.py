@@ -36,9 +36,14 @@ DEFAULT_STAGING = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastl
 SECTION_ID = "palaeo-coastlines-cao2017-v1"
 SHIPPED_CLASSES = ("lm", "sm")
 
-# The Cao 2017 map schedule, 402-380 ... 11-2 Ma. Outside it - including 0 Ma -
-# the mode falls back to today's composition with a map-key notice.
-AGE_DOMAIN_MA = {"youngest": 2.01, "oldest": 402.0}
+# The outer envelope of every published interval: the Cao 2017 schedule
+# (402-380 ... 11-2 Ma) plus the detached LGM lowstand state at 26.5-19.5 ka.
+# It is an envelope, not a domain: the 2 Myr between 2.01 Ma and 26.5 ka carries
+# no map at all. The class catalogs' own interval table is the authority on
+# which ages are covered - `selectPalaeoIntervalForAge` answers null in the gap
+# and the request fails there by name - and the runtime falls back to today's
+# composition wherever it does.
+AGE_DOMAIN_MA = {"youngest": 0.0195, "oldest": 402.0}
 
 # D1/Phase 4 defaults, identical to CAO_FOUNDATION_DEFAULT_BASE_COLORS in
 # src/render/reconstruction/caoFoundation.ts. Linear base colour per class:

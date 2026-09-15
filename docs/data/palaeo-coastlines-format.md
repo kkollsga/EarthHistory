@@ -20,12 +20,25 @@ and its audit JSON.
 |---|---|---|
 | `<class>/palaeo-<class>-<intervalId>.ehpr` | yes | one class, one interval: pieces, rings, vertices |
 | `<class>/palaeo-<class>-catalog.json` | yes | the class catalog: the tables a piece's indices resolve into |
-| `outline-tones.ehpt` | yes | 24 country-outline tone tables, two bits per segment |
+| `outline-tones.ehpt` | yes | 25 country-outline tone tables, two bits per segment |
 | `outline-tones.json` | yes | tone-table catalog and the per-interval file index across classes |
 | `provenance/palaeo-<class>-provenance.json` | **no** | source-record provenance and every compile measurement |
 
 `<class>` is `lm` (landmass), `sm` (shallow marine) or `m` (mountain).
-`<intervalId>` is the published map interval, `402-380` … `11-2`.
+`<intervalId>` is the published map interval, `402-380` … `11-2`, or `lgm`.
+
+`lgm` is the one **detached** interval: the Last Glacial Maximum lowstand state,
+`(19.5 ka, 26.5 ka]`, two million years younger than the whole Cao 2017 band
+with no map in between. It is not Cao geometry at all. Its landmass payload is
+the ETOPO 2022 60 arc-second surface at or above the −120 m eustatic datum
+inside three footprints, vectorised, cut by the same Cao 2024 static partitions
+and bound by the same rule; its shallow-marine payload is a header-only empty
+file, because a eustatic contour says where land was and nothing about where a
+shallow sea was. The tracked contract is
+`data/corrections/palaeo-coastlines/lgm/` and the record is
+[the LGM lowstand state](../research/palaeo-coastlines-lgm-lowstand.md). A
+catalog has to name every detached interval in `detachedIntervalIds`, so the
+schedule check still rejects an interval that was dropped by accident.
 
 The provenance sidecar stays in the owned offline store
 (`EarthHistory-data/palaeomap-study/palaeo-coastlines/`) and never enters a
@@ -55,7 +68,7 @@ field are unchanged.
 | 12 | u32 | ring count |
 | 16 | u32 | vertex count |
 | 20 | u16 | class code: 1 `lm`, 2 `sm`, 3 `m` |
-| 22 | u16 | interval index, 0 = oldest (`402-380`) … 23 = youngest (`11-2`) |
+| 22 | u16 | interval index, 0 = oldest (`402-380`) … 23 (`11-2`), 24 = `lgm` |
 | 24 | f32 | interval oldest age, Ma (`FROMAGE`) |
 | 28 | f32 | interval youngest age, Ma (`TOAGE`) |
 
@@ -194,6 +207,7 @@ tables are expanded by the palaeo decoder.
 | `paletteId` | the motion palette the binding rows resolve against |
 | `lifecycleRule` | `(TOAGE, FROMAGE]`, stated in the document |
 | `payloadNameTemplate` | `palaeo-<class>-<intervalId>.ehpr`; a payload url is derived, not listed |
+| `detachedIntervalIds` | interval ids that deliberately do not abut their predecessor; `["lgm"]` today |
 | `maximumEdgeDegrees` | the refinement bound the reservations were sized at, `1` |
 | `chartCount` | rows in the sidecar's `charts` table; the bound on a piece's `chartIndex` |
 | `provenance` | `{path, bytes, sha256, records, store}` — the offline sidecar |
@@ -212,7 +226,10 @@ tables are expanded by the palaeo decoder.
 youngest and abut within the source's own 10 kyr step: `402-380` ends at
 380.01 Ma and `380-359` begins at 380, so a row's `toAgeMa` is the next row's
 `fromAgeMa` or exactly 0.01 Ma above it. A wider hole would leave a band of ages
-with no map and is rejected. The payload file name is `payloadNameTemplate` with
+with no map and is rejected — unless the row is named in `detachedIntervalIds`,
+which is how the 2 Myr gap between `11-2` and `lgm` is declared rather than
+tolerated. A detached interval may also ship a header-only payload with zero
+pieces, rings and vertices: the `lgm` shallow-marine file is 32 bytes. The payload file name is `payloadNameTemplate` with
 `<intervalId>` substituted; `bytes` and `sha256` are the digest the loader
 verifies. `vertices`, `baseTriangles` and `estimatedTrianglesAtOneDegree` are
 the renderer's reservation, `maximumEdgeDegrees` its edge bound. The
@@ -226,8 +243,11 @@ edited row carries `status: derived-from-published-source`, the edit's reference
 ids appended to the three published ones, and an `editorial` line
 "EarthHistory modification after &lt;refs&gt;". Rows are interned, so two
 operations that cite the same references share one row and two that do not get
-two. Measured 2026-09-15 with the North Sea contract's eleven operations: lm 6
-rows, sm 7 rows.
+two. Measured 2026-09-15 with the North Sea contract's eleven operations and the
+LGM contract: lm 7 rows, sm 7 rows. The LGM row cites none of the three Cao
+identifiers and carries its own `method`,
+`etopo-2022-eustatic-lowstand-contour-v1`, because nothing in it comes from
+Cao et al. (2017).
 
 ### Binding rows
 
@@ -396,7 +416,8 @@ order as `intervals[]` in `outline-tones.json`. Segment *i* lives in byte
 `outline-tones.json` also carries `intervals[]`, the per-interval file index,
 in the same oldest-to-youngest order as the tone tables. Each entry gives
 `intervalId`, `tableIndex`, `oldestAgeMa`, `youngestAgeMa`, `midAgeMa`,
-`youngestExclusive`, the interval's total `vertices` and `estimatedTriangles`,
+`youngestExclusive`, `detached`, the interval's total `vertices` and
+`estimatedTriangles`,
 and one `classes[<class>]` entry per compiled class with `path` (relative to
 the payload directory), `bytes`, `sha256`, `pieces`, `vertices` and
 `estimatedTriangles`. The tone payload's own `bytes` and `sha256` are recorded
@@ -437,3 +458,9 @@ evidence that the modern country existed at that age.
 - A piece with the frame-conflict flag is drawn where its partition owner puts
   it while its own `PLATEID1` disagrees by more than 250 km. The flag is the
   disclosure, not a repair.
+- The `lgm` interval is a eustatic lowstand state over present-day bathymetry,
+  not a palaeogeography. It applies one flat −120 m contour with no
+  glacio-isostatic adjustment, draws no ice sheets over ground that carried
+  them, does not remove post-glacial sediment from the modern sea bed, and
+  covers three footprints and nothing else — so the renderer keeps today's land
+  visible underneath it rather than replacing it.

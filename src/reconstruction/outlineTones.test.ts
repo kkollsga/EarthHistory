@@ -5,6 +5,8 @@ import {
   CAO_2017_MAP_INTERVALS,
   CAO_2017_MAP_INTERVAL_MARKS_MA,
   PALAEO_INTERVAL_INITIAL_SELECTION,
+  PALAEO_LGM_INTERVAL,
+  PALAEO_MAP_INTERVALS,
   PALAEO_OUTLINE_TONE_DEEP,
   PALAEO_OUTLINE_TONE_HEADER_BYTES,
   PALAEO_OUTLINE_TONE_INACTIVE,
@@ -16,6 +18,8 @@ import {
   encodePalaeoOutlineToneTables,
   nextPalaeoIntervalSelection,
   palaeoIntervalEvidenceStatus,
+  palaeoIntervalIsDetached,
+  palaeoIntervalKeyLine,
   palaeoIntervalLabel,
   palaeoOutlineToneBytesPerTable,
   palaeoOutlineToneClass,
@@ -208,6 +212,49 @@ describe("palaeo outline tone tables (EHPT v1)", () => {
     expect(state.index).toBe(17);
     state = nextPalaeoIntervalSelection(state, -1);
     expect(state.index).toBe(-1);
+  });
+
+  it("appends the detached LGM lowstand interval after the Cao 2017 band", () => {
+    expect(PALAEO_MAP_INTERVALS).toHaveLength(25);
+    expect(PALAEO_MAP_INTERVALS.slice(0, 24)).toEqual(CAO_2017_MAP_INTERVALS);
+    expect(PALAEO_MAP_INTERVALS.at(-1)).toEqual(PALAEO_LGM_INTERVAL);
+    expect(PALAEO_LGM_INTERVAL).toEqual({ id: "lgm", youngestMa: 0.0195, oldestMa: 0.0265 });
+    // The LGM bound is 26.5 ka on a Phanerozoic scrubber, so it is not a mark.
+    expect(CAO_2017_MAP_INTERVAL_MARKS_MA).toHaveLength(24);
+
+    const at = (ageMa: number) => {
+      const index = selectPalaeoInterval(PALAEO_MAP_INTERVALS, ageMa);
+      return index < 0 ? null : PALAEO_MAP_INTERVALS[index]!.id;
+    };
+    // The same half-open rule as every other interval, at the timeline's own
+    // `quaternary-lgm` chapter age and on both of its bounds.
+    expect(at(0.021)).toBe("lgm");
+    expect(at(0.0265)).toBe("lgm");
+    expect(at(0.0195)).toBeNull();
+    expect(at(0.0194)).toBeNull();
+    expect(at(0.0266)).toBeNull();
+    expect(at(0)).toBeNull();
+    // And it changes no answer inside the Cao band.
+    expect(at(90)).toBe("94-81");
+    expect(at(2.02)).toBe("11-2");
+    expect(at(2.01)).toBeNull();
+    expect(at(2)).toBeNull();
+
+    expect(palaeoIntervalIsDetached(PALAEO_LGM_INTERVAL)).toBe(true);
+    expect(palaeoIntervalIsDetached(CAO_2017_MAP_INTERVALS[16]!)).toBe(false);
+    expect(palaeoIntervalIsDetached(null)).toBe(false);
+    expect(palaeoIntervalLabel(PALAEO_LGM_INTERVAL)).toBe("LGM lowstand state 26.5–19.5 ka");
+    // The map key must say what the state is made of, not name a Cao interval.
+    expect(palaeoIntervalKeyLine(PALAEO_LGM_INTERVAL)).toBe(
+      "LGM lowstand state 26.5–19.5 ka (ETOPO 2022 at −120 m eustatic;"
+      + " no glacio-isostatic adjustment)");
+    expect(palaeoIntervalKeyLine(CAO_2017_MAP_INTERVALS[16]!))
+      .toBe("Cao et al. (2017) map interval 94–81 Ma");
+    // A eustatic contour over modern bathymetry is a synthesis at every age in
+    // its window, with or without a basin edit anywhere else on the globe.
+    expect(palaeoIntervalEvidenceStatus(PALAEO_LGM_INTERVAL, 0.021, false)).toBe("synthesis");
+    expect(palaeoIntervalEvidenceStatus(PALAEO_LGM_INTERVAL, 0.0265, false)).toBe("synthesis");
+    expect(palaeoIntervalEvidenceStatus(PALAEO_LGM_INTERVAL, 0.021, true)).toBe("synthesis");
   });
 
   it("reports the epistemic status of the interval on screen", () => {

@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 1,
+  "contractId": "lgm-lowstand-v1",
+  "title": "Last Glacial Maximum lowstand state (eustatic, regional)",
+  "compiledUtc": "2026-09-15T12:08:03.607876+00:00",
+  "intervalId": "lgm",
+  "oldestMa": 0.0265,
+  "youngestExclusiveMa": 0.0195,
+  "window": {
+    "citation": "Clark et al. 2009: ice sheets at LGM positions 26.5 ka to 19-20 ka",
+    "sourceId": "clark-lgm-2009"
+  },
+  "datum": {
+    "metres": -120.0,
+    "verticalDatum": "EGM2008 (ETOPO 2022 surface band)",
+    "citation": "Lambeck et al. 2014: eustatic sea level fell slowly to -134 m between 29 and 21 ka, with a companion model peak fall of ~130 m; -120 m is the conservative round contour drawn here",
+    "sourceId": "lambeck-2014-sea-level"
+  },
+  "frame": "present-day WGS84, like the Cao et al. (2017) source polygons",
+  "method": {
+    "id": "etopo-2022-eustatic-lowstand-contour-v1",
+    "description": "boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the source grid, polygonised on cell boundaries as maximal rectangles, unioned, parts below 25 km2 dropped, simplified at 0.02 degrees with topology preserved, coordinates rounded to 4 decimals",
+    "minimumPieceSquareKilometres": 25.0,
+    "simplifyDegrees": 0.02,
+    "coordinateDecimals": 4
+  },
+  "evidence": {
+    "status": "derived-from-published-source",
+    "editorial": "EarthHistory modification after noaa-etopo-2022, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
+    "sourceIds": [
+      "noaa-etopo-2022",
+      "lambeck-2014-sea-level",
+      "clark-lgm-2009",
+      "coles-1998-doggerland",
+      "gaffney-2009-doggerland",
+      "sturt-2013-inundation",
+      "bradley-2023-palaeo-sea-level",
+      "hall-2009-sundaland"
+    ]
+  },
+  "limitations": [
+    "eustatic only: a single flat -120 m datum, applied globally inside three footprints",
+    "no glacio-isostatic adjustment; relative sea level around an ice margin differed from the eustatic value by more than 100 m and varied over tens of kilometres",
+    "ice sheets are not drawn: ground under the Fennoscandian, British-Irish and Laurentide ice sheets is shown as exposed land, which it was not",
+    "ETOPO 2022 is modern bathymetry: sediment deposited, eroded and reworked since the LGM is not removed, and the present-day sea bed is not the lowstand land surface",
+    "regional: only the southern/central North Sea, the Sunda shelf and Beringia are drawn; every other coastline at this age falls back to the present-day composition",
+    "rivers, lakes, estuaries and the Doggerland landscape mapped by seismic survey are not represented at all"
+  ],
+  "regional": {
+    "statement": "This is a regional state, not a global palaeogeography. Outside the three footprints the LGM interval draws no palaeo land and the present-day composition stays on screen.",
+    "footprints": {
+      "north-sea": {
+        "title": "Southern and central North Sea (Doggerland)",
+        "bounds": [
+          -6.0,
+          49.0,
+          12.0,
+          62.0
+        ]
+      },
+      "sundaland": {
+        "title": "Sunda shelf",
+        "bounds": [
+          95.0,
+          -10.0,
+          120.0,
+          12.0
+        ]
+      },
+      "beringia": {
+        "title": "Beringia and the Bering land bridge",
+        "bounds": [
+          160.0,
+          55.0,
+          -150.0,
+          72.0
+        ]
+      }
+    }
+  },
+  "source": {
+    "record": "https://doi.org/10.25921/fd45-gt74",
+    "product": "ETOPO_2022_v1_60s_surface",
+    "service": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage",
+    "license": "NOAA / US Government work, public domain; attribution requested",
+    "attribution": "NOAA National Centers for Environmental Information (2022). ETOPO 2022 15 Arc-Second Global Relief Model. NOAA NCEI. https://doi.org/10.25921/fd45-gt74",
+    "store": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/geography/etopo-lgm-crops",
+    "crops": [
+      {
+        "id": "north-sea",
+        "bounds": [
+          -6.0,
+          49.0,
+          12.0,
+          62.0
+        ],
+        "width": 1080,
+        "height": 780,
+        "longitudeStepDegrees": 0.016666666666666666,
+        "latitudeStepDegrees": 0.016666666666666666,
+        "sha256": "34053ab92fcd485a179d865abe3401950b4fdc8e957450397b0f7ab84ca2643f",
+        "bytes": 3280847,
+        "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=-6%2C49%2C12%2C62&bboxSR=4326&imageSR=4326&size=1080%2C780&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+        "retrievedUtc": "2026-09-15T11:47:03.011879+00:00"
+      },
+      {
+        "id": "sundaland",
+        "bounds": [
+          95.0,
+          -10.0,
+          120.0,
+          12.0
+        ],
+        "width": 1500,
+        "height": 1320,
+        "longitudeStepDegrees": 0.016666666666666666,
+        "latitudeStepDegrees": 0.016666666666666666,
+        "sha256": "75ac3196f54ad01569c2a1643c312941c1eb677cdfd3a6e7bcff8dbe123e9bd8",
+        "bytes": 6745767,
+        "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=95%2C-10%2C120%2C12&bboxSR=4326&imageSR=4326&size=1500%2C1320&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+        "retrievedUtc": "2026-09-15T11:47:13.092122+00:00"
+      },
+      {
+        "id": "beringia-west",
+        "bounds": [
+          160.0,
+          55.0,
+          180.0,
+          72.0
+        ],
+        "width": 1200,
+        "height": 1020,
+        "longitudeStepDegrees": 0.016666666666666666,
+        "latitudeStepDegrees": 0.016666666666666666,
+        "sha256": "7e3a547e708275caefe5143c58be93a6ba7af961cae5fd02b3f21bbee9a34588",
+        "bytes": 4248056,
+        "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=160%2C55%2C180%2C72&bboxSR=4326&imageSR=4326&size=1200%2C1020&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+        "retrievedUtc": "2026-09-15T11:47:22.625815+00:00"
+      },
+      {
+        "id": "beringia-east",
+        "bounds": [
+          -180.0,
+          55.0,
+          -150.0,
+          72.0
+        ],
+        "width": 1800,
+        "height": 1020,
+        "longitudeStepDegrees": 0.016666666666666666,
+        "latitudeStepDegrees": 0.016666666666666666,
+        "sha256": "01d115f2f132e6461a29ff3fa49de30078b0d6369b6d58b971b3f07abe997b44",
+        "bytes": 5627501,
+        "sourceUrl": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage?bbox=-180%2C55%2C-150%2C72&bboxSR=4326&imageSR=4326&size=1800%2C1020&adjustAspectRatio=false&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&compression=LZ77&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D&mosaicRule=%7B%22where%22%3A%22Name%3D%27ETOPO_2022_v1_60s_surface%27%22%7D&f=image",
+        "retrievedUtc": "2026-09-15T11:47:31.224447+00:00"
+      }
+    ]
+  },
+  "measurements": {
+    "footprints": {
+      "north-sea": {
+        "pieces": 19,
+        "vertices": 1532,
+        "landSquareKilometres": 1398252.4,
+        "modernLandSquareKilometres": 739277.3,
+        "exposedShelfSquareKilometres": 658202.8,
+        "namedSubWindow": {
+          "doggerland-southern-north-sea": {
+            "bounds": [
+              -2.0,
+              51.0,
+              9.0,
+              57.0
+            ],
+            "note": "the southern North Sea plain between England, the Netherlands, north-west Germany and Denmark",
+            "landSquareKilometres": 477875.5,
+            "exposedShelfSquareKilometres": 310949.6
+          }
+        }
+      },
+      "sundaland": {
+        "pieces": 133,
+        "vertices": 3409,
+        "landSquareKilometres": 4085716.8,
+        "modernLandSquareKilometres": 1829334.9,
+        "exposedShelfSquareKilometres": 2256842.2,
+        "namedSubWindow": {
+          "sunda-shelf-core": {
+            "bounds": [
+              99.0,
+              -6.0,
+              118.0,
+              8.0
+            ],
+            "note": "the Sunda shelf between Sumatra, the Malay peninsula, Borneo and Java",
+            "landSquareKilometres": 2832081.8,
+            "exposedShelfSquareKilometres": 1541979.6
+          }
+        }
+      },
+      "beringia": {
+        "pieces": 14,
+        "vertices": 1383,
+        "landSquareKilometres": 3641313.9,
+        "modernLandSquareKilometres": 2002844.4,
+        "exposedShelfSquareKilometres": 1638056.1,
+        "namedSubWindow": {
+          "bering-land-bridge": {
+            "bounds": [
+              -180.0,
+              60.0,
+              -160.0,
+              70.0
+            ],
+            "note": "the eastern half of the Bering land bridge, Chukchi to Norton Sound",
+            "landSquareKilometres": 1002946.1,
+            "exposedShelfSquareKilometres": 646261.3
+          }
+        }
+      }
+    },
+    "crops": [
+      {
+        "crop": "north-sea",
+        "footprint": "north-sea",
+        "rectangles": 2715,
+        "rawLandSquareKilometres": 1397480.1,
+        "modernLandSquareKilometres": 739277.3,
+        "exposedShelfSquareKilometres": 658202.8,
+        "partsIn": 177,
+        "droppedBeforeSimplify": 156,
+        "droppedBeforeSimplifyKm2": 643.78,
+        "droppedAfterSimplify": 2,
+        "droppedAfterSimplifyKm2": 47.09,
+        "holesDropped": 290,
+        "holesDroppedKm2": 1375.556
+      },
+      {
+        "crop": "sundaland",
+        "footprint": "sundaland",
+        "rectangles": 4946,
+        "rawLandSquareKilometres": 4086177.0,
+        "modernLandSquareKilometres": 1829334.9,
+        "exposedShelfSquareKilometres": 2256842.2,
+        "partsIn": 343,
+        "droppedBeforeSimplify": 203,
+        "droppedBeforeSimplifyKm2": 1707.727,
+        "droppedAfterSimplify": 7,
+        "droppedAfterSimplifyKm2": 141.19,
+        "holesDropped": 210,
+        "holesDroppedKm2": 1592.291
+      },
+      {
+        "crop": "beringia-west",
+        "footprint": "beringia",
+        "rectangles": 605,
+        "rawLandSquareKilometres": 1270258.4,
+        "modernLandSquareKilometres": 942677.1,
+        "exposedShelfSquareKilometres": 327581.2,
+        "partsIn": 12,
+        "droppedBeforeSimplify": 9,
+        "droppedBeforeSimplifyKm2": 49.68,
+        "droppedAfterSimplify": 0,
+        "droppedAfterSimplifyKm2": 0.0,
+        "holesDropped": 31,
+        "holesDroppedKm2": 211.163
+      },
+      {
+        "crop": "beringia-east",
+        "footprint": "beringia",
+        "rectangles": 1803,
+        "rawLandSquareKilometres": 2370642.1,
+        "modernLandSquareKilometres": 1060167.3,
+        "exposedShelfSquareKilometres": 1310474.9,
+        "partsIn": 75,
+        "droppedBeforeSimplify": 64,
+        "droppedBeforeSimplifyKm2": 307.109,
+        "droppedAfterSimplify": 0,
+        "droppedAfterSimplifyKm2": 0.0,
+        "holesDropped": 148,
+        "holesDroppedKm2": 669.483
+      }
+    ]
+  },
+  "literatureComparison": {
+    "northSeaFootprintExposedShelfSquareKilometres": 658202.8,
+    "doggerlandSubWindowExposedShelfSquareKilometres": 310949.6,
+    "sturt2013SubmergedNorthSeaZoneSquareKilometres": 127422,
+    "note": "Sturt et al. 2013 model 127,422 km2 of the North Sea zone submerged across the Holocene, a different quantity over a different window and under glacial isostatic adjustment; it is quoted as an order-of-magnitude anchor, not as agreement.",
+    "sourceId": "sturt-2013-inundation"
+  },
+  "witnesses": [
+    {
+      "id": "dogger-bank",
+      "lon": 2.5,
+      "lat": 54.7,
+      "footprint": "north-sea",
+      "expectLand": true,
+      "land": true,
+      "pass": true,
+      "note": "Dogger Bank: subaerial at the lowstand, a shallow bank today"
+    },
+    {
+      "id": "london",
+      "lon": -0.1,
+      "lat": 51.5,
+      "footprint": "north-sea",
+      "expectLand": true,
+      "land": true,
+      "pass": true,
+      "note": "London: present-day land, unchanged by a sea-level lowstand"
+    },
+    {
+      "id": "sunda-shelf",
+      "lon": 108.0,
+      "lat": 2.0,
+      "footprint": "sundaland",
+      "expectLand": true,
+      "land": true,
+      "pass": true,
+      "note": "central Sunda shelf between Sumatra, Borneo and the Malay peninsula"
+    },
+    {
+      "id": "bering-land-bridge",
+      "lon": -170.0,
+      "lat": 65.0,
+      "footprint": "beringia",
+      "expectLand": true,
+      "land": true,
+      "pass": true,
+      "note": "Bering land bridge, north of St Lawrence Island"
+    },
+    {
+      "id": "norwegian-trench",
+      "lon": 4.0,
+      "lat": 58.5,
+      "footprint": "north-sea",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "Norwegian Trench at -254 m: far below the lowstand datum, still sea"
+    },
+    {
+      "id": "makassar-strait",
+      "lon": 118.5,
+      "lat": -2.0,
+      "footprint": "sundaland",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "Makassar Strait: never closed by a lowstand (Hall 2009)"
+    },
+    {
+      "id": "aleutian-basin",
+      "lon": -175.0,
+      "lat": 57.0,
+      "footprint": "beringia",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "deep Aleutian Basin south of the shelf break: open ocean at the lowstand"
+    }
+  ],
+  "references": [
+    {
+      "sourceId": "noaa-etopo-2022",
+      "citation": "NOAA National Centers for Environmental Information 2022. ETOPO 2022 15 Arc-Second Global Relief Model. NOAA NCEI.",
+      "url": "https://doi.org/10.25921/fd45-gt74",
+      "year": 2022,
+      "constrains": "the present-day surface elevation and bathymetry the -120 m contour is taken from",
+      "claimOrInference": "the elevations are the source's own measurement and model; reading them as a palaeo-shoreline is EarthHistory's inference"
+    },
+    {
+      "sourceId": "lambeck-2014-sea-level",
+      "citation": "Lambeck, K., Rouby, H., Purcell, A., Sun, Y. and Sambridge, M. 2014. Sea level and global ice volumes from the Last Glacial Maximum to the Holocene. PNAS 111, 15296-15303.",
+      "url": "https://doi.org/10.1073/pnas.1411762111",
+      "year": 2014,
+      "constrains": "the eustatic datum: a slow fall to -134 m from 29 to 21 ka, with a companion model peak eustatic fall of ~130 m; -120 m is the conservative round figure this layer draws",
+      "claimOrInference": "the eustatic values are claims of the source; the choice of -120 m and its application as a flat contour is EarthHistory's"
+    },
+    {
+      "sourceId": "clark-lgm-2009",
+      "citation": "Clark, P. U., Dyke, A. S., Shakun, J. D., Carlson, A. E., Clark, J., Wohlfarth, B., Mitrovica, J. X., Hostetler, S. W. and McCabe, A. M. 2009. The Last Glacial Maximum. Science 325, 710-714.",
+      "url": "https://doi.org/10.1126/science.1172873",
+      "year": 2009,
+      "constrains": "the time window: 'Nearly all ice sheets were at their LGM positions from 26.5 ka to 19 to 20 ka'",
+      "claimOrInference": "claim of the source"
+    },
+    {
+      "sourceId": "coles-1998-doggerland",
+      "citation": "Coles, B. J. 1998. Doggerland: a speculative survey. Proceedings of the Prehistoric Society 64, 45-81.",
+      "url": "https://doi.org/10.1017/S0079497X00002176",
+      "year": 1998,
+      "constrains": "that the exposed southern North Sea plain was a real, inhabited landscape, and that present-day North Sea relief 'does not provide a sound guide' to its former relief",
+      "claimOrInference": "claim of the source; it is also the source's own warning against the method this layer uses"
+    },
+    {
+      "sourceId": "gaffney-2009-doggerland",
+      "citation": "Gaffney, V., Fitch, S. and Smith, D. 2009. Europe's Lost World: the Rediscovery of Doggerland. CBA Research Report 160, Council for British Archaeology, York.",
+      "year": 2009,
+      "constrains": "the seismic mapping of the Doggerland landscape - rivers, lakes and coast - that this eustatic contour cannot reproduce",
+      "claimOrInference": "claim of the source"
+    },
+    {
+      "sourceId": "sturt-2013-inundation",
+      "citation": "Sturt, F., Garrow, D. and Bradley, S. 2013. New models of North West European Holocene palaeogeography and inundation. Journal of Archaeological Science 40, 3963-3976.",
+      "url": "https://doi.org/10.1016/j.jas.2013.05.023",
+      "year": 2013,
+      "constrains": "the GIA-modelled comparison figure: 127,422 km2 submerged in the North Sea zone, 'an area twice that of all the other three regions added together'",
+      "claimOrInference": "model output of the source; quoted here only as the order-of-magnitude anchor for our own measured area"
+    },
+    {
+      "sourceId": "bradley-2023-palaeo-sea-level",
+      "citation": "Bradley, S. L., Ely, J. C., Clark, C. D., Edwards, R. J. and Shennan, I. 2023. Reconstruction of the palaeo-sea level of Britain and Ireland arising from empirical constraints of ice extent. Journal of Quaternary Science 38, 791-805.",
+      "url": "https://doi.org/10.1002/jqs.3523",
+      "year": 2023,
+      "constrains": "why a flat eustatic contour is wrong in detail here: relative sea-level around Britain and Ireland varies by more than 100 m spatially under glacial isostatic adjustment",
+      "claimOrInference": "the spatial variability is the source's claim; that it invalidates a flat contour in detail is EarthHistory's inference"
+    },
+    {
+      "sourceId": "hall-2009-sundaland",
+      "citation": "Hall, R. 2009. Southeast Asia's changing palaeogeography. Blumea 54, 148-161.",
+      "url": "https://doi.org/10.3767/000651909X475941",
+      "year": 2009,
+      "constrains": "that a bathymetry-plus-eustasy reconstruction of the Sunda shelf is 'valid only for the Pleistocene', and that the Makassar Straits 'were never narrower than about 75 km'",
+      "claimOrInference": "claim of the source"
+    }
+  ],
+  "payload": {
+    "path": "lgm-lowstand-v1.geojson",
+    "bytes": 107752,
+    "sha256": "d0ea558730a5b85157cedcd74967bb698dba3ebfa8642c68cded9ae6d8023aac"
+  }
+}

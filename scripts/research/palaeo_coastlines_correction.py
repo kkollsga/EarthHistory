@@ -462,7 +462,10 @@ def check_lifecycles(store: Store, view: ClassView, rows_by_index: dict[int, dic
             chart = view.charts[piece["chartIndex"]]
             record = rows_by_index.get(chart["sourceRecordIndex"])
             if record is None:
-                if chart.get("basinOpId"):
+                # A synthetic record: a cited basin edit's `add-*` operation, or
+                # a tracked contract such as the LGM lowstand state. Both carry
+                # their own lifecycle and neither exists in the Cao archive.
+                if chart.get("basinOpId") or chart.get("contractId"):
                     continue
                 raise CorrectionError(
                     f"{class_name} {interval['intervalId']}: chart {piece['chartIndex']} "

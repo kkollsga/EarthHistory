@@ -39,7 +39,7 @@ import {
 import {
   caoCompositeCoversDirection,
   caoCompositeReferenceSurfaceClass,
-  caoPalaeoCoastlineAgeInsideDomain,
+  caoPalaeoCoastlineDomainBand,
   caoPalaeoModeState,
   CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   intersectCaoComposite,
@@ -532,6 +532,8 @@ export class GlobeScene {
    * rebuilds the renderer diagnostics, and this is consulted every frame.
    */
   private nativeSurfaceModeIsPalaeo = false;
+  /** Whether the palaeo instance has charts on screen, independent of the native stack. */
+  private palaeoSurfacesDrawn = false;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
@@ -1376,17 +1378,19 @@ export class GlobeScene {
    * follows one frame later, so a scrub resting on 402 Ma cannot strobe.
    */
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
-    const inside = caoPalaeoCoastlineAgeInsideDomain(this.palaeoRequestedAgeMa);
+    const band = caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa);
+    const inside = band !== "none";
     const requested = this.layers.palaeoCoastlines && inside && !this.caoFoundationWithheld;
     // Only the frame loop advances the hysteresis; a layer toggle or a scrub
     // sample that also lands in the same frame must not spend its second frame
     // and flip the domain immediately.
     if (advanceHysteresis) {
-      this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility, requested);
+      this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility,
+        requested ? band : "none");
     }
     const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
     const state = caoPalaeoModeState({ layerEnabled: this.layers.palaeoCoastlines,
-      insideDomain: inside, domainVisible: this.palaeoVisibility.visible,
+      band, visibleBand: this.palaeoVisibility.band,
       published: palaeo.identity !== null });
     // Native land, the composite pick and coverage, and the guide-label ink all
     // follow the effective mode, so a fallback age keeps exactly today's
@@ -1397,6 +1401,7 @@ export class GlobeScene {
     dataset.caoPalaeoCoastlineMode = state.mode;
     dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
       ? "age-outside-cao-2017-map-intervals" : "";
+    dataset.caoPalaeoBand = this.layers.palaeoCoastlines ? state.band : "";
     dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
     dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
     // The interval on screen, not the one the age asks for: a load in flight
@@ -1428,6 +1433,10 @@ export class GlobeScene {
    * the pick still reports it.
    */
   private applyNativeSurfaceMode(state: CaoPalaeoModeState): void {
+    // The palaeo instance can be on screen while the native instance stays in
+    // its own stack: that is exactly the detached LGM band, where the lowstand
+    // shelf is drawn over today's land rather than instead of it.
+    this.palaeoSurfacesDrawn = state.palaeoDrawn;
     const palaeoMode = state.nativeSurfaceMode === "palaeo";
     if (palaeoMode === this.nativeSurfaceModeIsPalaeo) return;
     this.nativeSurfaceModeIsPalaeo = palaeoMode;
@@ -1484,7 +1493,8 @@ export class GlobeScene {
   ): CaoFoundationSurfaceHit | null {
     return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
       this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
-      { mode: this.caoFoundationRenderer.surfaceMode() });
+      { mode: this.caoFoundationRenderer.surfaceMode(),
+        palaeoVisible: this.palaeoSurfacesDrawn });
   }
 
   private rebuildOverlays(): void {
@@ -1553,7 +1563,8 @@ export class GlobeScene {
         // what keeps a palaeo landmass dark once native land is hidden.
         ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
           this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
-          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode() })
+          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode(),
+            palaeoVisible: this.palaeoSurfacesDrawn })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -1812,7 +1823,8 @@ export class GlobeScene {
       this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView(),
       this.caoPalaeoRenderer.surfaceView(),
       [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
-      { mode: this.caoFoundationRenderer.surfaceMode() });
+      { mode: this.caoFoundationRenderer.surfaceMode(),
+        palaeoVisible: this.palaeoSurfacesDrawn });
   };
 
   private publishStats(now: number): void {

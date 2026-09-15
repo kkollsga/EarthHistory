@@ -7,8 +7,8 @@
   "lm"
  ],
  "geometryAsset": {
-  "bytes": 72320,
-  "sha256": "4852a399903e7afa97ae87636ded0f4177ec277be1884e724efce7eeb4ae2342",
+  "bytes": 75332,
+  "sha256": "10b38085e548718d52391a5b6da6680fa3f013b475ec852ee97e0aec654265bf",
   "url": "outline-tones.ehpt"
  },
  "headerBytes": 32,
@@ -32,6 +32,7 @@
      "vertices": 33273
     }
    },
+   "detached": false,
    "estimatedTriangles": 189209,
    "intervalId": "402-380",
    "midAgeMa": 391.005,
@@ -60,6 +61,7 @@
      "vertices": 31634
     }
    },
+   "detached": false,
    "estimatedTriangles": 190612,
    "intervalId": "380-359",
    "midAgeMa": 369.505,
@@ -88,6 +90,7 @@
      "vertices": 25985
     }
    },
+   "detached": false,
    "estimatedTriangles": 155834,
    "intervalId": "359-338",
    "midAgeMa": 348.505,
@@ -116,6 +119,7 @@
      "vertices": 29695
     }
    },
+   "detached": false,
    "estimatedTriangles": 166519,
    "intervalId": "338-323",
    "midAgeMa": 330.505,
@@ -144,6 +148,7 @@
      "vertices": 27358
     }
    },
+   "detached": false,
    "estimatedTriangles": 134787,
    "intervalId": "323-296",
    "midAgeMa": 309.505,
@@ -172,6 +177,7 @@
      "vertices": 20154
     }
    },
+   "detached": false,
    "estimatedTriangles": 136022,
    "intervalId": "296-285",
    "midAgeMa": 290.505,
@@ -200,6 +206,7 @@
      "vertices": 17113
     }
    },
+   "detached": false,
    "estimatedTriangles": 159578,
    "intervalId": "285-269",
    "midAgeMa": 277.005,
@@ -228,6 +235,7 @@
      "vertices": 23099
     }
    },
+   "detached": false,
    "estimatedTriangles": 160083,
    "intervalId": "269-248",
    "midAgeMa": 258.505,
@@ -256,6 +264,7 @@
      "vertices": 22601
     }
    },
+   "detached": false,
    "estimatedTriangles": 173598,
    "intervalId": "248-224",
    "midAgeMa": 236.005,
@@ -284,6 +293,7 @@
      "vertices": 24058
     }
    },
+   "detached": false,
    "estimatedTriangles": 172221,
    "intervalId": "224-203",
    "midAgeMa": 213.505,
@@ -312,6 +322,7 @@
      "vertices": 28654
     }
    },
+   "detached": false,
    "estimatedTriangles": 183975,
    "intervalId": "203-179",
    "midAgeMa": 191.005,
@@ -340,6 +351,7 @@
      "vertices": 25714
     }
    },
+   "detached": false,
    "estimatedTriangles": 178481,
    "intervalId": "179-166",
    "midAgeMa": 172.505,
@@ -368,6 +380,7 @@
      "vertices": 36080
     }
    },
+   "detached": false,
    "estimatedTriangles": 198305,
    "intervalId": "166-146",
    "midAgeMa": 156.005,
@@ -396,6 +409,7 @@
      "vertices": 30863
     }
    },
+   "detached": false,
    "estimatedTriangles": 185006,
    "intervalId": "146-135",
    "midAgeMa": 140.505,
@@ -424,6 +438,7 @@
      "vertices": 28056
     }
    },
+   "detached": false,
    "estimatedTriangles": 178937,
    "intervalId": "135-117",
    "midAgeMa": 126.005,
@@ -452,6 +467,7 @@
      "vertices": 31650
     }
    },
+   "detached": false,
    "estimatedTriangles": 186411,
    "intervalId": "117-94",
    "midAgeMa": 105.505,
@@ -480,6 +496,7 @@
      "vertices": 36314
     }
    },
+   "detached": false,
    "estimatedTriangles": 206094,
    "intervalId": "94-81",
    "midAgeMa": 87.505,
@@ -508,6 +525,7 @@
      "vertices": 39477
     }
    },
+   "detached": false,
    "estimatedTriangles": 204169,
    "intervalId": "81-58",
    "midAgeMa": 69.505,
@@ -536,6 +554,7 @@
      "vertices": 39000
     }
    },
+   "detached": false,
    "estimatedTriangles": 217282,
    "intervalId": "58-49",
    "midAgeMa": 53.505,
@@ -564,6 +583,7 @@
      "vertices": 43421
     }
    },
+   "detached": false,
    "estimatedTriangles": 222531,
    "intervalId": "49-37",
    "midAgeMa": 43.005,
@@ -592,6 +612,7 @@
      "vertices": 42072
     }
    },
+   "detached": false,
    "estimatedTriangles": 215609,
    "intervalId": "37-29",
    "midAgeMa": 33.005,
@@ -620,6 +641,7 @@
      "vertices": 40666
     }
    },
+   "detached": false,
    "estimatedTriangles": 228549,
    "intervalId": "29-20",
    "midAgeMa": 24.505,
@@ -648,6 +670,7 @@
      "vertices": 37891
     }
    },
+   "detached": false,
    "estimatedTriangles": 193011,
    "intervalId": "20-11",
    "midAgeMa": 15.505,
@@ -676,6 +699,7 @@
      "vertices": 37532
     }
    },
+   "detached": false,
    "estimatedTriangles": 194046,
    "intervalId": "11-2",
    "midAgeMa": 6.505,
@@ -684,10 +708,40 @@
    "vertices": 78702,
    "youngestAgeMa": 2.01,
    "youngestExclusive": true
+  },
+  {
+   "classes": {
+    "lm": {
+     "bytes": 40746,
+     "estimatedTriangles": 16343,
+     "path": "lm/palaeo-lm-lgm.ehpr",
+     "pieces": 272,
+     "sha256": "d55434da5ff5320b95f45e651ce6174d904d7a8c564e95f1015678b610e501fe",
+     "vertices": 9168
+    },
+    "sm": {
+     "bytes": 32,
+     "estimatedTriangles": 0,
+     "path": "sm/palaeo-sm-lgm.ehpr",
+     "pieces": 0,
+     "sha256": "8547cf88b309c0a2120a0f5e0093f6eadc8a43cda013eb967657fefade4c038f",
+     "vertices": 0
+    }
+   },
+   "detached": true,
+   "estimatedTriangles": 16343,
+   "intervalId": "lgm",
+   "midAgeMa": 0.023,
+   "oldestAgeMa": 0.0265,
+   "tableIndex": 24,
+   "vertices": 9168,
+   "youngestAgeMa": 0.0195,
+   "youngestExclusive": true
   }
  ],
  "limitations": [
   "a tone is a legibility aid over the palaeo classes, never evidence that the modern country existed",
+  "a detached interval - the LGM lowstand state - draws over the present-day composition rather than replacing it, so its table is the same all-dark ink the overlay carries with the mode off",
   "the plate match is by plate id, not by static fragment identity",
   "the tone is evaluated at the interval mid-age, so it does not follow an off-schedule record's own lifecycle inside the interval"
  ],
@@ -697,6 +751,7 @@
  "perInterval": [
   {
    "darkSegments": 4655,
+   "detached": false,
    "fromAgeMa": 402.0,
    "inactiveSegments": 2835,
    "intervalId": "402-380",
@@ -706,6 +761,7 @@
   },
   {
    "darkSegments": 4654,
+   "detached": false,
    "fromAgeMa": 380.0,
    "inactiveSegments": 2835,
    "intervalId": "380-359",
@@ -715,6 +771,7 @@
   },
   {
    "darkSegments": 4583,
+   "detached": false,
    "fromAgeMa": 359.0,
    "inactiveSegments": 2799,
    "intervalId": "359-338",
@@ -724,6 +781,7 @@
   },
   {
    "darkSegments": 4895,
+   "detached": false,
    "fromAgeMa": 338.0,
    "inactiveSegments": 2733,
    "intervalId": "338-323",
@@ -733,6 +791,7 @@
   },
   {
    "darkSegments": 3926,
+   "detached": false,
    "fromAgeMa": 323.0,
    "inactiveSegments": 2211,
    "intervalId": "323-296",
@@ -742,6 +801,7 @@
   },
   {
    "darkSegments": 5121,
+   "detached": false,
    "fromAgeMa": 296.0,
    "inactiveSegments": 2171,
    "intervalId": "296-285",
@@ -751,6 +811,7 @@
   },
   {
    "darkSegments": 6147,
+   "detached": false,
    "fromAgeMa": 285.0,
    "inactiveSegments": 2112,
    "intervalId": "285-269",
@@ -760,6 +821,7 @@
   },
   {
    "darkSegments": 5463,
+   "detached": false,
    "fromAgeMa": 269.0,
    "inactiveSegments": 2112,
    "intervalId": "269-248",
@@ -769,6 +831,7 @@
   },
   {
    "darkSegments": 6692,
+   "detached": false,
    "fromAgeMa": 248.0,
    "inactiveSegments": 1620,
    "intervalId": "248-224",
@@ -778,6 +841,7 @@
   },
   {
    "darkSegments": 6800,
+   "detached": false,
    "fromAgeMa": 224.0,
    "inactiveSegments": 1585,
    "intervalId": "224-203",
@@ -787,6 +851,7 @@
   },
   {
    "darkSegments": 5957,
+   "detached": false,
    "fromAgeMa": 203.0,
    "inactiveSegments": 1568,
    "intervalId": "203-179",
@@ -796,6 +861,7 @@
   },
   {
    "darkSegments": 6146,
+   "detached": false,
    "fromAgeMa": 179.0,
    "inactiveSegments": 1568,
    "intervalId": "179-166",
@@ -805,6 +871,7 @@
   },
   {
    "darkSegments": 5644,
+   "detached": false,
    "fromAgeMa": 166.0,
    "inactiveSegments": 1485,
    "intervalId": "166-146",
@@ -814,6 +881,7 @@
   },
   {
    "darkSegments": 6121,
+   "detached": false,
    "fromAgeMa": 146.0,
    "inactiveSegments": 1194,
    "intervalId": "146-135",
@@ -823,6 +891,7 @@
   },
   {
    "darkSegments": 6425,
+   "detached": false,
    "fromAgeMa": 135.0,
    "inactiveSegments": 1109,
    "intervalId": "135-117",
@@ -832,6 +901,7 @@
   },
   {
    "darkSegments": 5531,
+   "detached": false,
    "fromAgeMa": 117.0,
    "inactiveSegments": 995,
    "intervalId": "117-94",
@@ -841,6 +911,7 @@
   },
   {
    "darkSegments": 4757,
+   "detached": false,
    "fromAgeMa": 94.0,
    "inactiveSegments": 964,
    "intervalId": "94-81",
@@ -850,6 +921,7 @@
   },
   {
    "darkSegments": 4738,
+   "detached": false,
    "fromAgeMa": 81.0,
    "inactiveSegments": 879,
    "intervalId": "81-58",
@@ -859,6 +931,7 @@
   },
   {
    "darkSegments": 5862,
+   "detached": false,
    "fromAgeMa": 58.0,
    "inactiveSegments": 785,
    "intervalId": "58-49",
@@ -868,6 +941,7 @@
   },
   {
    "darkSegments": 5838,
+   "detached": false,
    "fromAgeMa": 49.0,
    "inactiveSegments": 596,
    "intervalId": "49-37",
@@ -877,6 +951,7 @@
   },
   {
    "darkSegments": 6476,
+   "detached": false,
    "fromAgeMa": 37.0,
    "inactiveSegments": 527,
    "intervalId": "37-29",
@@ -886,6 +961,7 @@
   },
   {
    "darkSegments": 7289,
+   "detached": false,
    "fromAgeMa": 29.0,
    "inactiveSegments": 448,
    "intervalId": "29-20",
@@ -895,6 +971,7 @@
   },
   {
    "darkSegments": 6000,
+   "detached": false,
    "fromAgeMa": 20.0,
    "inactiveSegments": 382,
    "intervalId": "20-11",
@@ -904,12 +981,23 @@
   },
   {
    "darkSegments": 6601,
+   "detached": false,
    "fromAgeMa": 11.0,
    "inactiveSegments": 336,
    "intervalId": "11-2",
    "lightDeepSegments": 577,
    "lightShelfSegments": 4531,
    "toAgeMa": 2.01
+  },
+  {
+   "darkSegments": 11709,
+   "detached": true,
+   "fromAgeMa": 0.0265,
+   "inactiveSegments": 336,
+   "intervalId": "lgm",
+   "lightDeepSegments": 0,
+   "lightShelfSegments": 0,
+   "toAgeMa": 0.0195
   }
  ],
  "schemaVersion": 1,
@@ -923,7 +1011,7 @@
   "sm"
  ],
  "sourceGeometrySha256": "7ad03b8f317e7cae2ec26aacd83e8c1429f2c8709e9f7a9be5da13ef9d053585",
- "tableCount": 24,
+ "tableCount": 25,
  "tableOrder": "oldest to youngest, the canonical interval order",
  "toneTableId": "palaeo-outline-tone-v1",
  "values": {

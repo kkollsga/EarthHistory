@@ -22,8 +22,15 @@ import type { Vec3Tuple } from "./bounds";
  */
 
 export interface CaoCompositeOptions extends CaoFoundationCoverageOptions {
-  /** Defaults to native, which ignores the palaeo instance entirely. */
+  /** What the **native** instance draws; `palaeo` is the stack with land hidden. */
   readonly mode?: CaoFoundationSurfaceMode;
+  /**
+   * Whether the palaeo instance is on screen. It defaults to `mode === "palaeo"`
+   * — the Cao 2017 band, where palaeo land replaces native land — but the two
+   * come apart at the detached LGM interval, which draws its exposed shelf
+   * *over* today's composition and therefore keeps native land visible.
+   */
+  readonly palaeoVisible?: boolean;
 }
 
 export interface CaoCompositePickOptions extends CaoCompositeOptions {
@@ -33,13 +40,22 @@ export interface CaoCompositePickOptions extends CaoCompositeOptions {
 function selectionFor(
   options: CaoCompositeOptions,
   mode: CaoFoundationSurfaceMode,
+  palaeoVisible: boolean,
 ): readonly CaoFoundationSurfaceClass[] {
   const selected = caoFoundationSurfaceClassSelection(options);
   // Mode visibility is the composite's own filter: the native instance still
   // holds `batch-land`, and answering "covered" from a surface the mode hides
-  // would put dark label ink over a sea the viewer can see.
+  // would put dark label ink over a sea the viewer can see. A class the palaeo
+  // instance draws is visible whenever that instance is, whatever the native
+  // instance is doing.
   return CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
-    selected.has(surfaceClass) && caoFoundationSurfaceClassVisible(surfaceClass, mode));
+    selected.has(surfaceClass)
+    && (caoFoundationSurfaceClassVisible(surfaceClass, mode)
+      || (palaeoVisible && caoFoundationSurfaceClassVisible(surfaceClass, "palaeo"))));
+}
+
+function palaeoVisibleFor(options: CaoCompositeOptions, mode: CaoFoundationSurfaceMode): boolean {
+  return options.palaeoVisible ?? mode === "palaeo";
 }
 
 export function caoCompositeCoversDirection(
@@ -49,13 +65,14 @@ export function caoCompositeCoversDirection(
   options: CaoCompositeOptions = {},
 ): boolean {
   const mode = options.mode ?? "native";
-  const surfaceClasses = selectionFor(options, mode);
+  const palaeoVisible = palaeoVisibleFor(options, mode);
+  const surfaceClasses = selectionFor(options, mode, palaeoVisible);
   if (surfaceClasses.length === 0) return false;
   const covers = (view: CaoFoundationSurfaceView | null) => view !== null
     && caoFoundationSurfaceCoversDirection(view.geometry, view.publication,
       rendererDirection, { surfaceClasses });
   if (covers(native)) return true;
-  return mode === "palaeo" && covers(palaeo);
+  return palaeoVisible && covers(palaeo);
 }
 
 /**
@@ -76,12 +93,13 @@ export function caoCompositeReferenceSurfaceClass(
   options: CaoCompositeOptions = {},
 ): CaoFoundationSurfaceClass | null {
   const mode = options.mode ?? "native";
+  const palaeoVisible = palaeoVisibleFor(options, mode);
   // `selectionFor` is ascending precedence; the answer is the class drawn last.
-  for (const surfaceClass of [...selectionFor(options, mode)].reverse()) {
+  for (const surfaceClass of [...selectionFor(options, mode, palaeoVisible)].reverse()) {
     const covered = (view: CaoFoundationSurfaceView | null) => view !== null
       && caoFoundationSurfaceCoversDirection(view.geometry, view.publication, referenceDirection,
         { surfaceClasses: [surfaceClass], directionFrame: "chart-reference" });
-    if (covered(native) || (mode === "palaeo" && covered(palaeo))) return surfaceClass;
+    if (covered(native) || (palaeoVisible && covered(palaeo))) return surfaceClass;
   }
   return null;
 }
@@ -94,13 +112,18 @@ export function intersectCaoComposite(
   options: CaoCompositePickOptions = {},
 ): CaoFoundationSurfaceHit | null {
   const mode = options.mode ?? "native";
+  const palaeoVisible = palaeoVisibleFor(options, mode);
   const maximumTestedTriangles = options.maximumTestedTriangles ?? 65_536;
   const hits: CaoFoundationSurfaceHit[] = [];
-  const views = mode === "palaeo" ? [native, palaeo] : [native];
-  for (const view of views) {
+  // Each instance is tested in the mode whose classes it actually holds: the
+  // palaeo instance carries only palaeo batches, so testing it in the native
+  // mode would hide every one of them.
+  const views: readonly (readonly [CaoFoundationSurfaceView | null, CaoFoundationSurfaceMode])[] =
+    palaeoVisible ? [[native, mode], [palaeo, "palaeo"]] : [[native, mode]];
+  for (const [view, viewMode] of views) {
     if (view === null) continue;
     const hit = intersectCaoFoundationSurface(view.geometry, view.publication,
-      rayOrigin, rayDirection, maximumTestedTriangles, mode);
+      rayOrigin, rayDirection, maximumTestedTriangles, viewMode);
     if (hit !== null) hits.push(hit);
   }
   return caoFoundationHighestPrecedenceHit(hits);
@@ -116,21 +139,54 @@ export const CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA = Object.freeze({
   oldest: 402,
 } as const);
 
+/**
+ * The detached Last Glacial Maximum lowstand band, `(19.5 ka, 26.5 ka]`.
+ * Half-open at the young end like every other interval in the pipeline, so
+ * 19.4 ka and 26.6 ka are outside it and 21 ka is inside.
+ */
+export const CAO_PALAEO_LGM_AGE_BAND_MA = Object.freeze({
+  youngestExclusive: 0.0195,
+  oldest: 0.0265,
+} as const);
+
+/**
+ * Which band of the palaeo domain an age belongs to.
+ *
+ * The two bands are not the same kind of claim and the renderer treats them
+ * differently: `cao-2017` is a whole-Earth palaeogeography that *replaces*
+ * today's land, while `lgm` is a regional eustatic lowstand state drawn *over*
+ * it in three footprints. Anything else falls back.
+ */
+export type CaoPalaeoDomainBand = "none" | "cao-2017" | "lgm";
+
+export function caoPalaeoCoastlineDomainBand(ageMa: number | null): CaoPalaeoDomainBand {
+  if (ageMa === null || !Number.isFinite(ageMa)) return "none";
+  if (ageMa >= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.youngest
+      && ageMa <= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.oldest) return "cao-2017";
+  if (ageMa > CAO_PALAEO_LGM_AGE_BAND_MA.youngestExclusive
+      && ageMa <= CAO_PALAEO_LGM_AGE_BAND_MA.oldest) return "lgm";
+  return "none";
+}
+
 export function caoPalaeoCoastlineAgeInsideDomain(ageMa: number | null): boolean {
-  return ageMa !== null && Number.isFinite(ageMa)
-    && ageMa >= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.youngest
-    && ageMa <= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.oldest;
+  return caoPalaeoCoastlineDomainBand(ageMa) !== "none";
 }
 
 export interface CaoPalaeoVisibilityState {
   /** Whether the palaeo domain is currently shown. */
   readonly visible: boolean;
+  /**
+   * The band on screen, which is not the band the requested age asks for while
+   * the hysteresis is spending its frame. Native land keys off this one: the
+   * frame that still draws Cao 2017 charts must still hide native land.
+   */
+  readonly band: CaoPalaeoDomainBand;
   /** Frames the opposite answer has held without being applied yet. */
   readonly pendingFrames: number;
 }
 
 export const CAO_PALAEO_VISIBILITY_INITIAL_STATE: CaoPalaeoVisibilityState =
-  Object.freeze({ visible: false, pendingFrames: 0 });
+  Object.freeze({ visible: false, band: "none", pendingFrames: 0 });
 
 /**
  * One-frame hysteresis across the 2.01 and 402 Ma boundaries.
@@ -145,16 +201,18 @@ export const CAO_PALAEO_VISIBILITY_INITIAL_STATE: CaoPalaeoVisibilityState =
  */
 export function nextCaoPalaeoVisibilityState(
   previous: CaoPalaeoVisibilityState,
-  insideDomain: boolean,
+  requestedBand: CaoPalaeoDomainBand,
 ): CaoPalaeoVisibilityState {
-  if (insideDomain === previous.visible) {
+  if (requestedBand === previous.band) {
     return previous.pendingFrames === 0 ? previous
-      : Object.freeze({ visible: previous.visible, pendingFrames: 0 });
+      : Object.freeze({ visible: previous.visible, band: previous.band, pendingFrames: 0 });
   }
   if (previous.pendingFrames >= 1) {
-    return Object.freeze({ visible: insideDomain, pendingFrames: 0 });
+    return Object.freeze({ visible: requestedBand !== "none", band: requestedBand,
+      pendingFrames: 0 });
   }
-  return Object.freeze({ visible: previous.visible, pendingFrames: previous.pendingFrames + 1 });
+  return Object.freeze({ visible: previous.visible, band: previous.band,
+    pendingFrames: previous.pendingFrames + 1 });
 }
 
 /**
@@ -170,22 +228,31 @@ export type CaoPalaeoCoastlineMode = "off" | "fallback" | "loading" | "on";
 export interface CaoPalaeoModeInputs {
   /** The `palaeoCoastlines` layer flag; what the viewer asked for. */
   readonly layerEnabled: boolean;
-  readonly insideDomain: boolean;
-  /** Palaeo domain visibility after `nextCaoPalaeoVisibilityState`. */
-  readonly domainVisible: boolean;
+  /** The band the requested age falls in; `none` is the fallback notice. */
+  readonly band: CaoPalaeoDomainBand;
+  /** The band on screen after `nextCaoPalaeoVisibilityState`. */
+  readonly visibleBand: CaoPalaeoDomainBand;
   /** Whether the palaeo instance has a published interval on screen. */
   readonly published: boolean;
 }
 
 export interface CaoPalaeoModeState {
   readonly mode: CaoPalaeoCoastlineMode;
-  /** Whether Cao 2017 charts are actually on screen this frame. */
+  readonly band: CaoPalaeoDomainBand;
+  /** Whether palaeo charts are actually on screen this frame. */
   readonly palaeoDrawn: boolean;
   /**
    * The stack the native instance draws and answers picks from. It is the
    * effective mode, never the layer flag: `batch-land` may only be hidden while
    * palaeo charts are drawn over it, or a fallback age — 0 Ma, 500 Ma — would
    * lose today's land and leave bare shelf behind.
+   *
+   * It stays `native` in the `lgm` band even with palaeo charts drawn. The LGM
+   * state is a regional lowstand over three footprints, not a global
+   * palaeogeography: hiding today's land there would blank every coastline on
+   * Earth to show a little exposed shelf in the North Sea, the Sunda shelf and
+   * Beringia. The LGM land shell sits 500 m above the native land shell, so it
+   * draws on top of the land it adds to.
    */
   readonly nativeSurfaceMode: CaoFoundationSurfaceMode;
 }
@@ -201,10 +268,12 @@ export interface CaoPalaeoModeState {
  * hidden in the same frame they arrive, with no frame showing neither.
  */
 export function caoPalaeoModeState(inputs: CaoPalaeoModeInputs): CaoPalaeoModeState {
-  const palaeoDrawn = inputs.layerEnabled && inputs.domainVisible && inputs.published;
+  const palaeoDrawn = inputs.layerEnabled && inputs.visibleBand !== "none" && inputs.published;
   const mode: CaoPalaeoCoastlineMode = !inputs.layerEnabled ? "off"
-    : !inputs.insideDomain ? "fallback"
+    : inputs.band === "none" ? "fallback"
       : palaeoDrawn ? "on" : "loading";
-  return Object.freeze({ mode, palaeoDrawn,
-    nativeSurfaceMode: palaeoDrawn ? "palaeo" : "native" });
+  // Native land follows the band actually on screen, never the requested one:
+  // the hysteresis frame that still draws Cao 2017 charts must still hide it.
+  return Object.freeze({ mode, band: inputs.band, palaeoDrawn,
+    nativeSurfaceMode: palaeoDrawn && inputs.visibleBand === "cao-2017" ? "palaeo" : "native" });
 }

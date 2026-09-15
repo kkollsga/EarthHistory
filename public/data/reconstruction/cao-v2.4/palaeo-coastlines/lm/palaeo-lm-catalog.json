@@ -596,9 +596,10 @@
    678,
    678,
    274,
-   275
+   275,
+   675
   ],
-  "count": 589,
+  "count": 590,
   "gapSet": [
    0,
    0,
@@ -1002,6 +1003,7 @@
    0,
    0,
    1,
+   0,
    0,
    0,
    0,
@@ -1779,6 +1781,7 @@
    1,
    1,
    0,
+   0,
    0
   ],
   "partitionPlateId": [
@@ -2370,13 +2373,17 @@
    601,
    301,
    274,
-   275
+   275,
+   675
   ]
  },
  "catalogId": "palaeo-coastlines-lm-v2",
- "chartCount": 7159,
+ "chartCount": 7325,
  "class": "lm",
  "className": "landmass",
+ "detachedIntervalIds": [
+  "lgm"
+ ],
  "encoding": "palaeo-class-catalog-columnar-v1",
  "entrySelection": {
   "correctionPreferenceAgeMa": 410.0,
@@ -2514,6 +2521,31 @@
    ],
    "status": "derived-from-published-source",
    "surfaceClass": "landmass"
+  },
+  {
+   "appearance": "palaeo-land",
+   "editorial": "EarthHistory modification after noaa-etopo-2022, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
+   "limitations": [
+    "the LGM lowstand interval is not a Cao et al. (2017) map interval; it is 2 Myr younger than the whole published band and is drawn over the present-day composition, not instead of it",
+    "a eustatic lowstand state, not a reconstruction: ETOPO 2022 present-day surface elevation at or above -120 m (Lambeck et al. 2014) inside three footprints and nowhere else",
+    "no glacio-isostatic adjustment; relative sea level around an ice margin differed from the eustatic value by more than 100 m and varied over tens of kilometres",
+    "ice sheets are not drawn: ground under the Fennoscandian, British-Irish and Laurentide ice sheets is shown as exposed land, which it was not",
+    "ETOPO 2022 is modern bathymetry; sediment deposited, eroded and reworked since the Last Glacial Maximum is not removed, so the present-day sea bed is not the lowstand land surface",
+    "regional: only the southern and central North Sea, the Sunda shelf and Beringia are drawn, and every other coastline at this age keeps the present-day composition"
+   ],
+   "method": "etopo-2022-eustatic-lowstand-contour-v1",
+   "sourceIds": [
+    "noaa-etopo-2022",
+    "lambeck-2014-sea-level",
+    "clark-lgm-2009",
+    "coles-1998-doggerland",
+    "gaffney-2009-doggerland",
+    "sturt-2013-inundation",
+    "bradley-2023-palaeo-sea-level",
+    "hall-2009-sundaland"
+   ],
+   "status": "derived-from-published-source",
+   "surfaceClass": "landmass"
   }
  ],
  "flagLimitations": {
@@ -2567,7 +2599,8 @@
    38112,
    36963,
    34801,
-   37677
+   37677,
+   8763
   ],
   "bytes": [
    103886,
@@ -2593,7 +2626,8 @@
    188492,
    182164,
    172812,
-   185978
+   185978,
+   40746
   ],
   "collapsedRings": [
    5,
@@ -2619,9 +2653,10 @@
    11,
    7,
    7,
-   7
+   7,
+   1
   ],
-  "count": 24,
+  "count": 25,
   "estimatedTrianglesAtOneDegree": [
    90038,
    87822,
@@ -2646,7 +2681,8 @@
    122461,
    141789,
    112826,
-   117425
+   117425,
+   16343
   ],
   "fromAgeMa": [
    402.0,
@@ -2672,7 +2708,8 @@
    37.0,
    29.0,
    20.0,
-   11.0
+   11.0,
+   0.0265
   ],
   "intervalId": [
    "402-380",
@@ -2698,7 +2735,8 @@
    "37-29",
    "29-20",
    "20-11",
-   "11-2"
+   "11-2",
+   "lgm"
   ],
   "intervalIndex": [
    0,
@@ -2724,7 +2762,8 @@
    20,
    21,
    22,
-   23
+   23,
+   24
   ],
   "midAgeMa": [
    391.005,
@@ -2750,7 +2789,8 @@
    33.005,
    24.505,
    15.505,
-   6.505
+   6.505,
+   0.023
   ],
   "pieces": [
    850,
@@ -2776,7 +2816,8 @@
    1510,
    1443,
    1396,
-   1471
+   1471,
+   272
   ],
   "rings": [
    1023,
@@ -2802,7 +2843,8 @@
    1832,
    1730,
    1708,
-   1807
+   1807,
+   389
   ],
   "sha256": [
    "1b09e045e50a542a94609562d78d21448a90178bb734a2f8a6a242f3c2a96169",
@@ -2828,7 +2870,8 @@
    "683326354e4c8c0cee1d34440887c234a9391830b274a4b49ecd134dab1325a9",
    "fb23308755022f10d757d26222d732e48a960753c788c040a31298c51d980f94",
    "174c1b598689bad99e60d50c5e4019139d3709410833052c30f719d974919217",
-   "9bbeb82f19ad82d06f4fd72dea1fc644ae7647bb83f0abf87c92a4dcdc33f6ac"
+   "9bbeb82f19ad82d06f4fd72dea1fc644ae7647bb83f0abf87c92a4dcdc33f6ac",
+   "d55434da5ff5320b95f45e651ce6174d904d7a8c564e95f1015678b610e501fe"
   ],
   "toAgeMa": [
    380.01,
@@ -2854,7 +2897,8 @@
    29.01,
    20.01,
    11.01,
-   2.01
+   2.01,
+   0.0195
   ],
   "vertices": [
    22902,
@@ -2880,12 +2924,13 @@
    41669,
    40339,
    38153,
-   41170
+   41170,
+   9168
   ]
  },
  "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
  "lifecycles": {
-  "count": 64,
+  "count": 65,
   "oldestMa": [
    402.0,
    402.0,
@@ -2950,7 +2995,8 @@
    29.0,
    22.0,
    20.0,
-   11.0
+   11.0,
+   0.0265
   ],
   "youngestExclusiveMa": [
    380.01,
@@ -3016,17 +3062,18 @@
    20.01,
    15.0,
    11.01,
-   2.01
+   2.01,
+   0.0195
   ]
  },
  "maximumEdgeDegrees": 1.0,
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-lm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 557524,
+  "bytes": 644330,
   "path": "provenance/palaeo-lm-provenance.json",
-  "records": 7159,
-  "sha256": "d8688b5e01d63678f25b6ffeaec8ed57e6712be9531dc42273d98b5eb4dcd70e",
+  "records": 7325,
+  "sha256": "9a48de068c2d2fc8a2373afd0cd24e6b44c223bc81f13e47a1f01d0285a42bed",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2

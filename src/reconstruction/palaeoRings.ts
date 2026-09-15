@@ -24,8 +24,16 @@ const SHA256 = /^[a-f0-9]{64}$/;
 export const PALAEO_RING_LONGITUDE_SCALE = 32_767 / 180;
 export const PALAEO_RING_LATITUDE_SCALE = 32_767 / 90;
 
-/** The 24 published Cao 2017 map intervals, `402-380` (index 0) … `11-2` (index 23). */
-export const PALAEO_INTERVAL_COUNT = 24;
+/**
+ * Every interval the palaeo-coastline mode can publish: the 24 Cao 2017 map
+ * intervals `402-380` (index 0) … `11-2` (index 23), plus the detached
+ * `lgm` lowstand state at index 24. A detached interval does not abut its
+ * neighbour and its catalog has to declare it by id (`detachedIntervalIds`), so
+ * a compiler that silently dropped a Cao interval still fails the schedule
+ * check.
+ */
+export const PALAEO_INTERVAL_COUNT = 25;
+export const PALAEO_CAO_2017_INTERVAL_COUNT = 24;
 
 /** The oldest age any Cao 2017 record or interval can carry. */
 const PALAEO_MAX_AGE_MA = 1_800;
@@ -366,6 +374,11 @@ export interface PalaeoCoastlineClassCatalog {
   readonly paletteId: string;
   /** `palaeo-<class>-<intervalId>.ehpr`; a payload url is derived, never listed. */
   readonly payloadNameTemplate: string;
+  /**
+   * Interval ids that deliberately do not abut their predecessor. Empty for a
+   * catalog that only carries the contiguous Cao 2017 schedule.
+   */
+  readonly detachedIntervalIds: readonly string[];
   readonly maximumEdgeDegrees: number;
   /**
    * Rows in the offline sidecar's `charts` table: the only bound on a piece's
@@ -524,6 +537,8 @@ export function decodePalaeoCoastlineClassCatalog(
     format: raw.format as PalaeoCoastlineClassCatalog["format"],
     paletteId: raw.paletteId as string,
     payloadNameTemplate: template,
+    detachedIntervalIds: Object.freeze(Array.isArray(raw.detachedIntervalIds)
+      ? [...raw.detachedIntervalIds as string[]] : []),
     maximumEdgeDegrees,
     chartCount: raw.chartCount as number,
     flagLimitations: raw.flagLimitations as Record<string, string>,
@@ -622,6 +637,11 @@ export function validatePalaeoCoastlineClassCatalog(
       throw new Error("invalid palaeo-coastline evidence record");
     }
   }
+  const detached = new Set(catalog.detachedIntervalIds);
+  if (detached.size !== catalog.detachedIntervalIds.length
+      || catalog.detachedIntervalIds.some((id) => typeof id !== "string" || id.length === 0)) {
+    throw new Error("palaeo-coastline catalog declares an invalid detached interval id");
+  }
   let previousIndex = -1;
   for (const [order, interval] of catalog.intervals.entries()) {
     const reservation = interval.reservation;
@@ -644,11 +664,19 @@ export function validatePalaeoCoastlineClassCatalog(
     // step; a catalog that skips a boundary would leave a band of ages with no
     // map, and one that overlaps would put two maps on the same age.
     const step = previous ? previous.toAgeMa - interval.fromAgeMa : 0;
+    // A declared detached interval is the one gap the contract intends; every
+    // other gap is a dropped interval and still fails here.
     if (previous && previous.intervalIndex + 1 === interval.intervalIndex
+        && !detached.has(interval.intervalId)
         && (step < 0 || step > PALAEO_SCHEDULE_STEP_MA + 1e-6)) {
       throw new Error("palaeo-coastline intervals are not contiguous");
     }
     previousIndex = interval.intervalIndex;
+  }
+  for (const intervalId of detached) {
+    if (!catalog.intervals.some((interval) => interval.intervalId === intervalId)) {
+      throw new Error("palaeo-coastline catalog declares a detached interval it does not publish");
+    }
   }
 }
 

@@ -79,6 +79,66 @@ All notable changes to EarthHistory will be recorded here.
   the browser never receives, and both the tables and their interval index are
   now built from the shipped class list alone, which the promote script refuses
   to publish against a mismatch.
+- One optional **Last Glacial Maximum lowstand state** inside the same layer, at
+  26.5-19.5 ka: the first interval the layer carries that is not Cao et al.
+  (2017) geometry at all. It is the NOAA ETOPO 2022 60 arc-second surface at or
+  above the -120 m eustatic datum, over three footprints and nowhere else - the
+  southern and central North Sea (Doggerland), the Sunda shelf, and Beringia
+  either side of the antimeridian. The datum is Lambeck et al. (2014), who
+  record a slow eustatic fall to -134 m between 29 and 21 ka with a companion
+  model peak of ~130 m; -120 m is the conservative round contour, a deliberate
+  under-claim. The window is Clark et al. (2009), "nearly all ice sheets were at
+  their LGM positions from 26.5 ka to 19 to 20 ka", read as the same half-open
+  `(TOAGE, FROMAGE]` lifecycle as every other interval, so the timeline's
+  existing 0.021 Ma chapter lands inside it and 19.4 ka and 26.6 ka do not.
+  Measured exposed shelf: 658,203 km2 in the North Sea box, of which 310,950
+  km2 in the southern North Sea plain between England, the Netherlands, Germany
+  and Denmark; 2,256,842 km2 on the Sunda shelf; 1,638,056 km2 in Beringia.
+  Sturt et al. (2013) model 127,422 km2 submerged in the North Sea zone across
+  the Holocene - a different quantity over a different window and under
+  glacio-isostatic adjustment, quoted as an order-of-magnitude anchor and not as
+  agreement.
+- What the LGM state does not claim, stated in the map key and enforced by the
+  gate: it is eustatic only, one flat contour with **no glacio-isostatic
+  adjustment**, although relative sea level around Britain and Ireland varies by
+  more than 100 m spatially under GIA; **ice sheets are not drawn**, so ground
+  under the Fennoscandian, British-Irish and Laurentide ice sheets is shown as
+  exposed land, which it was not; ETOPO 2022 is **modern bathymetry** with
+  post-glacial sediment still in place, which is precisely what Coles (1998)
+  warns against ("the present-day relief of the North Sea bed does not provide a
+  sound guide"); the rivers, lakes and estuaries Gaffney et al. (2009) mapped by
+  seismic survey are absent; and it is **regional**, so every other coastline at
+  this age is the present-day one. Its evidence badge is synthesis at every age
+  in the window.
+- Because it is regional, it is drawn *over* today's land rather than instead of
+  it. The palaeo domain is now two bands: in 2.01-402 Ma the Cao 2017 polygons
+  replace native land as before, and in the LGM band native land stays visible
+  with the exposed shelf drawn on the shell 500 m above it. Hiding today's land
+  for a three-footprint state would have blanked every coastline on Earth. The
+  composite pick, the coverage query and the guide-label ink follow the palaeo
+  instance independently of whether native land is hidden, and the band is
+  carried through the existing one-frame hysteresis so the frame that still
+  draws Cao charts still hides native land. Country-outline tone follows the
+  same logic: the LGM tone table is the ordinary dark ink, because there is no
+  palaeo composition under the outlines to read.
+- Format and gates for it. The class catalogs gained
+  `detachedIntervalIds: ["lgm"]`, so the schedule check still rejects an
+  interval dropped by accident while accepting the intended 2 Myr gap; the
+  shallow-marine payload for the interval is a header-only 32-byte file, because
+  a eustatic contour says where land was and nothing about where a shallow sea
+  was, and the validator fails if it is not empty. The published set grows by
+  48,151 bytes to 7,034,975 over 54 files, inside the same 7 MiB budget, and
+  every other interval is byte-identical. `validate_palaeo_coastlines_runtime.py`
+  now pins the four ETOPO crop digests, the contour datum, the window, the
+  footprint bounds, the measured areas, the required limitations and references,
+  and eight witnesses - Dogger Bank, the Sunda shelf and the Bering land bridge
+  are land at 21 ka, London is unchanged, and the Norwegian Trench, the Makassar
+  Strait, the Aleutian Basin and the South Atlantic are not - with 15 proven-red
+  mutations including a datum changed to -130 m, a corrupted crop digest and a
+  payload shifted half a degree east that turns the Norwegian Trench into land
+  while staying inside the area tolerance. No raster enters the repository: the
+  crops stay in the owned offline store and only the derived rings ship. The
+  record is `docs/research/palaeo-coastlines-lgm-lowstand.md`.
 
 ### Changed
 

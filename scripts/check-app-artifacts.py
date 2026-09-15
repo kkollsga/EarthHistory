@@ -17,8 +17,9 @@ PACKAGE_MANIFEST = Path("public/data/reconstruction/cao-v2.4/manifest.json")
 PALAEO_PREFIX = "public/data/reconstruction/cao-v2.4/palaeo-coastlines/"
 # D5 funded the Cao 2017 layer out of the 7.113 MiB the Phase 1 reclaim left
 # under the 50 MiB dist ceiling: landmass, shallow marine, the two class
-# catalogs and the outline tone tables. The mountain class is not funded and
-# stays offline, so this bound is what a recompile has to stay inside.
+# catalogs, the outline tone tables and the detached LGM lowstand interval. The
+# mountain class is not funded and stays offline, so this bound is what a
+# recompile has to stay inside.
 PALAEO_MAX_BYTES = 7 * 1024 * 1024
 # The chord-sag contract: at 1 degree a flat chord sinks 242.6 m into the opaque
 # globe, less than the 400 m the shelf shell stands above it.

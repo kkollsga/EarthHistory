@@ -132,7 +132,13 @@ earlier published versions retain their own asset sets and attribution.
   Information, [DOI 10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74),
   public-domain U.S. government data with attribution requested. EarthHistory
   distributes seven 256² bilinear service subsets of the v1 60 arc-second
-  surface product, rounded to whole metres in the EGM2008 vertical datum.
+  surface product, rounded to whole metres in the EGM2008 vertical datum. It
+  also distributes a derivative of the same product as polygons: the Last
+  Glacial Maximum lowstand layer is the −120 m contour of four 1 arc-minute
+  crops (the southern and central North Sea, the Sunda shelf and Beringia west
+  and east of the antimeridian), vectorised on the source grid, simplified and
+  cut by the Cao 2024 static partitions. No ETOPO raster is redistributed; the
+  crops stay in an offline store and only the derived rings ship.
 - **EMODnet Digital Bathymetry (DTM 2024)** — EMODnet Bathymetry Consortium,
   [DOI 10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1](https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1),
   licensed under CC BY 4.0. EarthHistory distributes one bounded 256² central

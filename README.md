@@ -65,7 +65,12 @@ API credential. The production address is
   with mapped landmass and shallow-marine polygons for the 24 published map
   intervals between 402 and 2 Ma. The map steps at an interval boundary rather
   than morphing, country outlines become light position markers over sea, and
-  ages outside the schedule fall back to today's composition with a notice.
+  ages outside the schedule fall back to today's composition with a notice. The
+  same layer carries one optional Last Glacial Maximum lowstand state at
+  26.5–19.5 ka: the ETOPO 2022 surface at the −120 m eustatic datum over the
+  southern North Sea, the Sunda shelf and Beringia only, drawn *over* today's
+  land rather than instead of it, with no glacio-isostatic adjustment and no ice
+  sheets.
 - Relief controls do not create source elevations. The initial Cao foundation
   uses neutral height placeholders while calibrated relief remains deferred.
 - Open field notes for dated places and events. Location actions require a

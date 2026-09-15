@@ -113,7 +113,10 @@ describe("EHPR v1 ring payload", () => {
     const pieces = [{ rings: [{ lonLat: square(0, 0, 2) }] }];
     expect(() => decodePalaeoRingPayload(encodePalaeoRingPayload({ pieces, classCode: 4 })))
       .toThrow(/unknown EHPR palaeo surface class/);
+    // 24 is the detached LGM interval and is published; 25 is past the schedule.
     expect(() => decodePalaeoRingPayload(encodePalaeoRingPayload({ pieces, intervalIndex: 24 })))
+      .not.toThrow();
+    expect(() => decodePalaeoRingPayload(encodePalaeoRingPayload({ pieces, intervalIndex: 25 })))
       .toThrow(/outside the published schedule/);
     expect(() => decodePalaeoRingPayload(encodePalaeoRingPayload({
       pieces: [{ rings: pieces[0]!.rings, flags: 64 }],

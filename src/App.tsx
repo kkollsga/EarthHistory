@@ -48,12 +48,14 @@ import {
   serializeAge,
 } from "./explorerHash";
 import {
-  CAO_2017_MAP_INTERVALS,
   CAO_2017_MAP_INTERVAL_MARKS_MA,
+  PALAEO_MAP_INTERVALS,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
   palaeoCoastlineEvidenceSummary,
   palaeoIntervalEvidenceStatus,
+  palaeoIntervalIsDetached,
+  palaeoIntervalKeyLine,
   palaeoIntervalLabel,
   selectPalaeoInterval,
   type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
@@ -87,7 +89,7 @@ const LAYER_META: Array<{
   { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
   { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
   { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
-  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only", icon: Waves },
+  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only. Plus one optional Last Glacial Maximum lowstand state at 26.5\u201319.5 ka, ETOPO 2022 at \u2212120 m eustatic over the North Sea, the Sunda shelf and Beringia, drawn over today\u2019s land", icon: Waves },
 ];
 
 /**
@@ -677,7 +679,7 @@ export default function App() {
       state.prefetchTimer = setTimeout(() => {
         state.prefetchTimer = 0;
         if (state.disposed) return;
-        const neighbour = CAO_2017_MAP_INTERVALS[
+        const neighbour = PALAEO_MAP_INTERVALS[
           neighbourPalaeoIntervalIndex(index, palaeoAgeDirectionRef.current)];
         if (neighbour === undefined) return;
         void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
@@ -687,7 +689,7 @@ export default function App() {
     const pump = () => {
       if (state.disposed || state.inFlight) return;
       const targetAgeMa = requestedAgeRef.current;
-      const index = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, targetAgeMa);
+      const index = selectPalaeoInterval(PALAEO_MAP_INTERVALS, targetAgeMa);
       if (index < 0) {
         // No published map covers this age: fall back to today's composition
         // and drop the lease rather than holding a map the age does not reach.
@@ -701,7 +703,7 @@ export default function App() {
         setPalaeoLoading(false);
         return;
       }
-      const intervalId = CAO_2017_MAP_INTERVALS[index]!.id;
+      const intervalId = PALAEO_MAP_INTERVALS[index]!.id;
       if (palaeoPreparedRef.current?.intervalId === intervalId) {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
@@ -727,8 +729,8 @@ export default function App() {
           return;
         }
         state.inFlight = false;
-        const latestIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, requestedAgeRef.current);
-        if (latestIndex < 0 || CAO_2017_MAP_INTERVALS[latestIndex]!.id !== prepared.intervalId) {
+        const latestIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, requestedAgeRef.current);
+        if (latestIndex < 0 || PALAEO_MAP_INTERVALS[latestIndex]!.id !== prepared.intervalId) {
           prepared.release();
           pump();
           return;
@@ -876,8 +878,8 @@ export default function App() {
         unavailableReason: palaeoAssetsAvailable ? null : PALAEO_CHARTS_ABSENT },
       palaeoSourceCitation),
     [palaeoAssetsAvailable, palaeoLoading, palaeoPrepared]);
-  const palaeoIntervalIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, ageMa);
-  const palaeoInterval = palaeoIntervalIndex < 0 ? null : CAO_2017_MAP_INTERVALS[palaeoIntervalIndex]!;
+  const palaeoIntervalIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, ageMa);
+  const palaeoInterval = palaeoIntervalIndex < 0 ? null : PALAEO_MAP_INTERVALS[palaeoIntervalIndex]!;
   const palaeoKeyVisible = layers.palaeoCoastlines;
   // A class the package does not publish gets no swatch: the mountain class is
   // compiled and validated offline but deferred out of the shipped budget, and
@@ -891,6 +893,7 @@ export default function App() {
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
   const palaeoIntervalName = palaeoInterval === null ? null : palaeoIntervalLabel(palaeoInterval);
+  const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
   const renderedEvidence = palaeoModeActive && !palaeoFallback
@@ -1388,23 +1391,34 @@ export default function App() {
             {palaeoKeyVisible && (
               <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
                 <strong>Palaeo-coastlines (Cao 2017)</strong>
-                {palaeoIntervalName !== null && (
-                  <p className="surface-info-note">Coastline map interval: {palaeoIntervalName} (Cao et al. 2017)</p>
+                {palaeoInterval !== null && (
+                  <p className="surface-info-note" data-testid="palaeo-interval-line">{
+                    palaeoIntervalKeyLine(palaeoInterval)}</p>
                 )}
-                {palaeoIntervalName !== null && (
+                {palaeoInterval !== null && !palaeoIntervalDetached && (
                   <p className="surface-info-note">Land and shallow sea are the Cao et al. (2017) map
                     polygons for the {palaeoIntervalName} interval: the minimum land / maximum flooding
                     recorded anywhere in that bin, not a shoreline at one moment.</p>
+                )}
+                {palaeoIntervalDetached && (
+                  <p className="surface-info-note">Exposed shelf is the ETOPO 2022 present-day surface
+                    at or above &minus;120&nbsp;m, inside the southern and central North Sea, the Sunda
+                    shelf and Beringia only. It is drawn over today&rsquo;s land, which stays visible:
+                    every other coastline at this age is the present-day one. No glacio-isostatic
+                    adjustment, no ice sheets, and modern bathymetry with post-glacial sediment still
+                    in place.</p>
                 )}
                 {palaeoFallback && (
                   <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">
                     No palaeogeography evidence at this age; showing the Cao 2024 coast proxy
                   </p>
                 )}
-                <ul className="outline-marker-key">
-                  <li><i className="outline-marker outline-marker-dark" aria-hidden="true" /><span>Dark outline · over reconstructed land</span></li>
-                  <li><i className="outline-marker outline-marker-light" aria-hidden="true" /><span>Light grey outline · over shallow or deep sea</span></li>
-                </ul>
+                {!palaeoIntervalDetached && (
+                  <ul className="outline-marker-key">
+                    <li><i className="outline-marker outline-marker-dark" aria-hidden="true" /><span>Dark outline · over reconstructed land</span></li>
+                    <li><i className="outline-marker outline-marker-light" aria-hidden="true" /><span>Light grey outline · over shallow or deep sea</span></li>
+                  </ul>
+                )}
                 <small>Outline tone is a legibility device, not evidence. Modern-country outlines are
                   position markers at this age, never historical borders or coastlines.</small>
               </div>
