@@ -4,6 +4,32 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Palaeo mountains are a readable light brown on screen, not only in their
+  base colour.** `palaeo-mountain` shipped as `#c8a97e`, a colour that was
+  already light before the renderer touched it. Base colours are *linear
+  albedo*: the scene multiplies them by an inspection light of intensity 3.2 and
+  a hemisphere fill and then runs ACES at exposure 1.02, whose shoulder
+  desaturates everything it lifts toward white. Measured on the production
+  build, the class rendered at **223,213,192 against palaeo-land's 213,212,184**
+  — 6.5/255 of luma-matched separation for a base colour 21 CIE76 away, which is
+  not a class a viewer can name. The base colour is now `#fd7328`,
+  pre-compensated for that wash, and the class renders at **235,198,139** in
+  full light, **225,182,119** at mid lighting and **194,151,99** near the
+  terminator: **37.5 / 37.5 / 36.8** of separation against a 30 floor, hue
+  32.8–36.9° at all three bands, and 5.75–9.44:1 against the dark outline ink.
+  `palaeo-land` and `palaeo-shallow-marine` are unchanged, and the map key's
+  mountain swatch now follows the rendered tone rather than the albedo.
+- New gate: a browser **tone census** measures this rather than asserting it.
+  It takes ground truth from the scene's own composite pick under each canvas
+  pixel — a new test-only `window.__earthHistoryPixelSurfaceProbe` that also
+  reports the incident-light cosine the fragment stage used — buckets the pixels
+  into full-light, mid and terminator-near bands, and reports the per-channel
+  median tone per class per band over five camera aims that carry one mountain
+  belt through all three. Proven red against the old colour (5.8, then 6.5 with
+  the final aims, against the 30 floor) before the colour moved.
+
 ### Added
 
 - **Restored pre-collision margins for the Alps and the Scandinavian

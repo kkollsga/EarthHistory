@@ -1,10 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
-import type { EarthHistorySurfaceProbe } from "../../src/render/GlobeScene";
+import type {
+  EarthHistoryPixelSurfaceProbe,
+  EarthHistorySurfaceProbe,
+} from "../../src/render/GlobeScene";
 
 declare global {
   interface Window {
     /** The scene's CPU coverage path, exposed for these probes only. */
     __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
+    /** Class and lighting under one canvas pixel; the tone census reads it. */
+    __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
   }
 }
 
@@ -1338,4 +1343,288 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
     .toBeGreaterThan(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Present day");
   await expect(page.getByText(/Cao reconstruction unavailable/)).toHaveCount(0);
+});
+
+/**
+ * The three lighting bands the palaeo tone census reports.
+ *
+ * The scene lights the globe with an inspection light on the camera axis, so
+ * `cosLight` runs from 1 at the sub-camera point to 0 at the terminator and one
+ * orbital frame contains the whole range. A class's rendered tone is not its
+ * base colour anywhere, and it is furthest from it in full light, where the ACES
+ * curve's shoulder pulls every bright surface toward white: the contract has to
+ * hold at the hardest band, not on average.
+ */
+const PALAEO_TONE_BANDS = [
+  { id: "full light", min: 0.9, max: 1.01 },
+  { id: "mid", min: 0.55, max: 0.72 },
+  { id: "terminator-near", min: 0.2, max: 0.32 },
+] as const;
+
+/**
+ * Camera aims the census samples from.
+ *
+ * Only ground inside the horizon is drawn and the horizon sits at
+ * `cos = 1 / distance`, so a close view cannot reach the terminator at all. The
+ * aims carry one mountain belt through the three bands by rotating the camera
+ * around it. The belt is the densest palaeo-mountain ground the 94-81 Ma
+ * interval draws, found by sweeping the pixel probe over a whole frame:
+ * renderer-frame direction (32.98, -16.59). At latitude -16.59 a longitude
+ * offset of 52.6 degrees puts that ground at cos 0.64 and 78.8 degrees at
+ * cos 0.26, and each frame's other mountains and landmasses join whichever band
+ * their own ground falls in.
+ */
+const PALAEO_TONE_CENSUS_VIEWS = [
+  { at: "32.98,-16.59", why: "the densest mountain ground at the sub-camera point" },
+  { at: "85.58,-16.59", why: "the same belt at cos 0.64" },
+  { at: "-19.62,-16.59", why: "the same belt at cos 0.64, the other way" },
+  { at: "111.78,-16.59", why: "the same belt at cos 0.26" },
+  { at: "-45.82,-16.59", why: "the same belt at cos 0.26, the other way" },
+] as const;
+
+/**
+ * One camera distance for every view, near the orbit control's own ceiling of
+ * 6.2 Earth radii.
+ *
+ * The distance is part of the measurement, not a convenience. The horizon sits
+ * at `cos = 1 / distance`, so a closer view cannot reach the terminator at all;
+ * and the atmosphere shell darkens ground approaching the limb, which would
+ * otherwise charge a class's *tone* for how close its band happened to sit to
+ * the edge of a particular frame. Holding the distance fixed makes the only
+ * difference between the bands the lighting they were shaded at: measured at
+ * 5.6 the same mid band reads 202,201,169 where a 2.2 view reads 163,164,136.
+ */
+const PALAEO_TONE_CENSUS_CAMERA_DISTANCE = 5.6;
+
+/** Probe grid pitch in CSS pixels; the globe is about 410 px across at 5.6. */
+const PALAEO_TONE_CENSUS_STEP_CSS_PX = 10;
+
+/**
+ * The dark country-outline/label ink, as the sRGB bytes it is authored in.
+ *
+ * The comparison is against the authored ink, which is what
+ * `caoFoundation.test.ts` also measures against, so the two agree. The ink is
+ * drawn by a tone-mapped material and so reaches the screen lighter than this;
+ * the number here is a colour-choice contract, not a measured on-screen ratio.
+ */
+const PALAEO_DARK_INK: readonly [number, number, number] = [31, 38, 46];
+
+type ToneSample = { readonly rgb: [number, number, number]; readonly count: number };
+type ToneCensus = Record<string, Record<string, ToneSample>>;
+
+/**
+ * Median rendered tone per surface class per lighting band over one frame.
+ *
+ * Ground truth is the scene's own composite pick, not the pixel colour, so the
+ * census cannot assume the answer it is measuring. Each probed point is reduced
+ * to the per-channel median of its 3x3 neighbourhood and the band's answer is
+ * the per-channel median over its points, which survives the handful of
+ * coastline-edge and antialiasing pixels a coarse grid lands on.
+ */
+async function palaeoToneCensus(page: Page, stepCssPx: number): Promise<ToneCensus> {
+  const screenshot = (await globe(page).screenshot()).toString("base64");
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to census");
+  const bands = PALAEO_TONE_BANDS.map((band) => ({ ...band }));
+  return page.evaluate(async ([base64, left, top, width, height, step, lighting]) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("tone census canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const scaleX = bitmap.width / width;
+    const scaleY = bitmap.height / height;
+    const median = (values: number[]) =>
+      values.sort((left, right) => left - right)[Math.floor(values.length / 2)]!;
+    const collected = new Map<string, number[][]>();
+    for (let y = step / 2; y < height; y += step) {
+      for (let x = step / 2; x < width; x += step) {
+        // The canvas carries the application's own chrome above it, and an
+        // element screenshot photographs that chrome too. A pixel the pointer
+        // could not reach is a pixel the census must not read: the surface pick
+        // is a scene query and would happily answer for ground behind a panel.
+        const topmost = document.elementFromPoint(left + x, top + y);
+        if (topmost === null || topmost.tagName !== "CANVAS") continue;
+        const px = Math.round(x * scaleX);
+        const py = Math.round(y * scaleY);
+        if (px < 1 || py < 1 || px >= bitmap.width - 1 || py >= bitmap.height - 1) continue;
+        // Space is rejected on the photograph before the scene is asked. The
+        // pick walks charts per ray and is far and away the cost here, and a
+        // pixel showing the 0x010507 background cannot be a surface class.
+        const centre = (py * bitmap.width + px) * 4;
+        if (Math.max(pixels[centre]!, pixels[centre + 1]!, pixels[centre + 2]!) < 14) continue;
+        const hit = window.__earthHistoryPixelSurfaceProbe?.(x, y) ?? null;
+        if (hit === null) continue;
+        const band = lighting.find((entry) =>
+          hit.cosLight >= entry.min && hit.cosLight < entry.max);
+        if (band === undefined) continue;
+        const patch: number[][] = [[], [], []];
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            const offset = ((py + dy) * bitmap.width + (px + dx)) * 4;
+            for (let channel = 0; channel < 3; channel += 1) {
+              patch[channel]!.push(pixels[offset + channel]!);
+            }
+          }
+        }
+        const key = `${hit.surfaceClass}|${band.id}`;
+        if (!collected.has(key)) collected.set(key, [[], [], []]);
+        const target = collected.get(key)!;
+        for (let channel = 0; channel < 3; channel += 1) {
+          target[channel]!.push(median(patch[channel]!));
+        }
+      }
+    }
+    bitmap.close();
+    const census: Record<string, Record<string, { rgb: [number, number, number]; count: number }>> = {};
+    for (const [key, channels] of collected) {
+      const [surfaceClass, band] = key.split("|") as [string, string];
+      census[surfaceClass] ??= {};
+      census[surfaceClass]![band] = {
+        rgb: [median(channels[0]!), median(channels[1]!), median(channels[2]!)],
+        count: channels[0]!.length,
+      };
+    }
+    return census;
+  }, [screenshot, box.x, box.y, box.width, box.height, stepCssPx, bands] as const);
+}
+
+/** Wheel the camera out until it is within 0.05 Earth radii of `distance`. */
+async function zoomToDistance(page: Page, distance: number) {
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to zoom");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let step = 0; step < 60; step += 1) {
+    const current = Number(await globe(page).getAttribute("data-camera-distance") ?? 0);
+    if (Math.abs(current - distance) <= 0.05) return;
+    await page.mouse.wheel(0, current < distance ? 120 : -120);
+    await page.waitForTimeout(90);
+  }
+}
+
+/** Merge censuses taken from several camera aims into one sample set. */
+function mergeToneCensus(censuses: readonly ToneCensus[]): ToneCensus {
+  const merged: ToneCensus = {};
+  for (const census of censuses) {
+    for (const [surfaceClass, bands] of Object.entries(census)) {
+      merged[surfaceClass] ??= {};
+      for (const [band, sample] of Object.entries(bands)) {
+        const held = merged[surfaceClass]![band];
+        // Weighted by sample count: the aims differ only in how much of each
+        // class each one happens to show.
+        merged[surfaceClass]![band] = held === undefined ? sample : {
+          count: held.count + sample.count,
+          rgb: held.rgb.map((value, index) => Math.round(
+            (value * held.count + sample.rgb[index]! * sample.count)
+            / (held.count + sample.count))) as [number, number, number],
+        };
+      }
+    }
+  }
+  return merged;
+}
+
+const relativeLuminance = (rgb: readonly [number, number, number]) =>
+  0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+
+/**
+ * Separation between two rendered tones after the brighter one is scaled to the
+ * other's luma, in 0-255 units.
+ *
+ * Lightness is not the discriminator being asked for: two classes may legibly
+ * differ in lightness alone and still read as "the same colour, lit differently"
+ * on a sphere whose lighting already varies by more than the class difference.
+ * Matching luma first leaves only the chromatic difference, which is the part a
+ * viewer reads as "a different kind of ground".
+ */
+function lumaMatchedSeparation(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+): number {
+  const scale = relativeLuminance(a) / relativeLuminance(b);
+  return Math.max(...a.map((value, index) => Math.abs(value - b[index]! * scale)));
+}
+
+function hueDegrees(rgb: readonly [number, number, number]): number {
+  const [red, green, blue] = rgb;
+  const max = Math.max(red, green, blue);
+  const span = max - Math.min(red, green, blue);
+  if (span === 0) return 0;
+  const hue = 60 * (max === red ? ((green - blue) / span) % 6
+    : max === green ? (blue - red) / span + 2 : (red - green) / span + 4);
+  return hue < 0 ? hue + 360 : hue;
+}
+
+function inkContrastRatio(rgb: readonly [number, number, number],
+  ink: readonly [number, number, number]): number {
+  const channel = (value: number) => {
+    const scaled = value / 255;
+    return scaled <= 0.04045 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = (colour: readonly [number, number, number]) =>
+    0.2126 * channel(colour[0]) + 0.7152 * channel(colour[1]) + 0.0722 * channel(colour[2]);
+  const [high, low] = [luminance(rgb), luminance(ink)].sort((left, right) => right - left);
+  return (high! + 0.05) / (low! + 0.05);
+}
+
+test("draws palaeo mountains as a readable light brown at every lighting band", async ({ page }) => {
+  test.setTimeout(420_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const censuses: ToneCensus[] = [];
+  for (const [index, view] of PALAEO_TONE_CENSUS_VIEWS.entries()) {
+    // No borders and no guides: an outline or a label drawn over the ground
+    // would be the only ink in the frame that is not a surface class. The
+    // per-view query parameter is what makes each aim a real navigation: a URL
+    // that differs only in its fragment does not reload, and the camera would
+    // stay where the first aim put it while the census believed it had moved.
+    await page.goto(`./?census=${index}#age=90&layers=palaeoCoastlines&at=${view.at}`);
+    await waitForCao(page);
+    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+      { timeout: 30_000 }).toBe("on");
+    await zoomToDistance(page, PALAEO_TONE_CENSUS_CAMERA_DISTANCE);
+    await page.waitForTimeout(900);
+    censuses.push(await palaeoToneCensus(page, PALAEO_TONE_CENSUS_STEP_CSS_PX));
+  }
+  const census = mergeToneCensus(censuses);
+  // Every band is measured before any of them is asserted, so one run reports
+  // the whole census whether it passes or fails: a tone change has to be read
+  // from the numbers it produced, not from the first threshold it crossed.
+  const report: Record<string, unknown> = {};
+  const rows = PALAEO_TONE_BANDS.map((band) => {
+    const land = census["palaeo-land"]?.[band.id];
+    const mountain = census["palaeo-mountain"]?.[band.id];
+    if (land === undefined || mountain === undefined) {
+      report[band.id] = { land: land ?? null, mountain: mountain ?? null };
+      return { band, land, mountain, separation: 0, hue: 0, contrast: 0 };
+    }
+    const separation = lumaMatchedSeparation(mountain.rgb, land.rgb);
+    const hue = hueDegrees(mountain.rgb);
+    const contrast = inkContrastRatio(mountain.rgb, PALAEO_DARK_INK);
+    report[band.id] = { land: land.rgb, landSamples: land.count, mountain: mountain.rgb,
+      mountainSamples: mountain.count, separation: Number(separation.toFixed(1)),
+      hueDegrees: Number(hue.toFixed(1)), inkContrast: Number(contrast.toFixed(2)) };
+    return { band, land, mountain, separation, hue, contrast };
+  });
+  console.log(`palaeo tone census: ${JSON.stringify(report)}`);
+  for (const row of rows) {
+    const { band, land, mountain } = row;
+    expect(land, `no palaeo-land pixels in the ${band.id} band`).toBeDefined();
+    expect(mountain, `no palaeo-mountain pixels in the ${band.id} band`).toBeDefined();
+    expect(land!.count, `${band.id}: too few palaeo-land samples`).toBeGreaterThanOrEqual(10);
+    expect(mountain!.count, `${band.id}: too few palaeo-mountain samples`).toBeGreaterThanOrEqual(10);
+    expect(row.separation,
+      `${band.id}: mountain ${mountain!.rgb} vs land ${land!.rgb} luma-matched separation`)
+      .toBeGreaterThanOrEqual(30);
+    expect(row.hue, `${band.id}: mountain hue must stay a brown, not an orange`)
+      .toBeGreaterThanOrEqual(30);
+    expect(row.hue, `${band.id}: mountain hue must stay a brown, not a yellow`)
+      .toBeLessThanOrEqual(40);
+    expect(row.contrast, `${band.id}: mountain against the dark outline ink`)
+      .toBeGreaterThanOrEqual(3);
+  }
 });

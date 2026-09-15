@@ -310,11 +310,23 @@ export function caoFoundationShellOffsetMetres(
  * `palaeo-shallow-marine` is a saturated teal held dark enough that the light
  * outline/label ink `#d0d4d5` keeps a 5.4:1 luminance contrast over it, while
  * reading as a distinctly greener, brighter body of water than the 0.58-dimmed
- * shelf blue it sits on. `palaeo-mountain` is a light brown, chosen so that the
- * dark outline/label ink [0.12, 0.15, 0.18] keeps a 6.86:1 luminance contrast
- * over it (the outline tone table inks mountain ground dark, like land) and so
- * that it separates from `palaeo-land` by hue rather than by lightness:
- * CIE76 dE 21.1 against the olive, 56.7 against the shallow-marine teal.
+ * shelf blue it sits on.
+ *
+ * `palaeo-mountain` is a light brown *on screen*, which is why the value here is
+ * a saturated mid brown rather than a light one. These triples are linear
+ * albedo: the scene multiplies them by an inspection light of intensity 3.2 plus
+ * a hemisphere fill and then runs ACES, whose shoulder desaturates everything it
+ * lifts toward white. The former `#c8a97e` was already a light brown *before*
+ * that and came out of it at 223,213,192 against palaeo-land's 213,212,184 -
+ * 6.5/255 of luma-matched separation for a base colour 21 CIE76 away, which is
+ * not a class a viewer can name. `#fd7328` is pre-compensated for the wash and
+ * renders at 234,198,139 in full light, 224,182,120 at mid lighting and
+ * 186,147,99 near the terminator: 35-39/255 of luma-matched separation from
+ * palaeo-land at every band against a 30 floor, hue 33-37 degrees at all three,
+ * and 5.57:1 against the dark outline/label ink [0.12, 0.15, 0.18] the tone
+ * table puts over mountain ground. palaeo-land is unchanged.
+ * `tests/browser/explorer.spec.ts` owns the rendered contract and its
+ * measurement; changing this constant without re-running it is not supported.
  */
 /**
  * The opaque globe sphere every surface class is drawn over. It is the bottom
@@ -329,7 +341,7 @@ Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>
   shelf: Object.freeze([0.0431, 0.2863, 0.3922] as const),
   "palaeo-land": Object.freeze([0x9a / 255, 0xa8 / 255, 0x6b / 255] as const),
   "palaeo-shallow-marine": Object.freeze([0x14 / 255, 0x60 / 255, 0x6b / 255] as const),
-  "palaeo-mountain": Object.freeze([0xc8 / 255, 0xa9 / 255, 0x7e / 255] as const),
+  "palaeo-mountain": Object.freeze([0xfd / 255, 0x73 / 255, 0x28 / 255] as const),
 });
 
 /**

@@ -1305,9 +1305,17 @@ describe("Cao foundation renderer boundary", () => {
     expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-land"].map((value) =>
       Math.round(value * 255))).toEqual([0x9a, 0xa8, 0x6b]);
     expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"].map((value) =>
-      Math.round(value * 255))).toEqual([0xc8, 0xa9, 0x7e]);
+      Math.round(value * 255))).toEqual([0xfd, 0x73, 0x28]);
+    // A linear albedo, not a swatch: the lighting and the ACES curve carry it to
+    // a light brown on screen, so it is more saturated here than the tone it
+    // draws. The rendered contract lives in the browser tone census, which is
+    // the only place it can be measured; what this file pins is that the class
+    // is a brown at all - red ahead of green ahead of blue.
+    const mountain = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"];
+    expect(mountain[0]).toBeGreaterThan(mountain[1]);
+    expect(mountain[1]).toBeGreaterThan(mountain[2]);
     // The mountain class is inked dark by the outline tone table, like land, so
-    // the dark ink is what has to stay legible over it: measured 6.86:1.
+    // the dark ink is what has to stay legible over it: measured 5.57:1.
     expect(contrastRatio(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"],
       CAO_FOUNDATION_COUNTRY_LINE_DARK_INK)).toBeGreaterThan(3);
     const shallow = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-shallow-marine"];

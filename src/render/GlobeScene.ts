@@ -142,10 +142,35 @@ export interface EarthHistoryDiagnostics {
 export type EarthHistorySurfaceProbe =
   (longitudeDegrees: number, latitudeDegrees: number) => string | null;
 
+/**
+ * Surface class and incident-light cosine under one canvas pixel, or null where
+ * no surface chart is drawn there.
+ *
+ * The rendered tone of a surface class is not its base colour: the inspection
+ * light, the hemisphere fill and the ACES curve carry a base colour a long way,
+ * and they carry it further the closer the ground is to the sub-camera point.
+ * A tone contract can therefore only be asserted against what the frame
+ * actually contains, which needs the class *under a pixel* and the lighting
+ * that pixel was shaded at. `cosLight` is the same `dot(normal, lightDirection)`
+ * the fragment stage uses, so a census can bucket pixels by lighting rather
+ * than assuming a uniform frame. The browser suite reads it; nothing in the
+ * application calls it.
+ */
+export type EarthHistoryPixelSurfaceProbe = (
+  cssX: number,
+  cssY: number,
+) => {
+  readonly surfaceClass: string;
+  readonly cosLight: number;
+  /** Renderer-frame longitude/latitude of the hit, the frame `at=` names. */
+  readonly direction: readonly [number, number];
+} | null;
+
 declare global {
   interface Window {
     __earthHistoryDiagnostics?: EarthHistoryDiagnostics;
     __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
+    __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
   }
 }
 
@@ -1246,6 +1271,9 @@ export class GlobeScene {
     if (window.__earthHistorySurfaceProbe === this.surfaceProbe) {
       delete window.__earthHistorySurfaceProbe;
     }
+    if (window.__earthHistoryPixelSurfaceProbe === this.pixelSurfaceProbe) {
+      delete window.__earthHistoryPixelSurfaceProbe;
+    }
   }
 
   private makeGlobeGeometry(): THREE.BufferGeometry {
@@ -1845,6 +1873,38 @@ export class GlobeScene {
         palaeoVisible: this.palaeoSurfacesDrawn });
   };
 
+  /**
+   * Surface class and lighting under one canvas pixel, in CSS pixels measured
+   * from the canvas's top-left corner. It walks the same composite ray the
+   * pointer pick walks, so it answers with the class the viewer sees.
+   */
+  private readonly pixelSurfaceProbe: EarthHistoryPixelSurfaceProbe = (cssX, cssY) => {
+    const canvas = this.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    this.pointer.set((cssX / rect.width) * 2 - 1, -(cssY / rect.height) * 2 + 1);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    this.globeGroup.updateWorldMatrix(true, false);
+    const worldToGlobe = this.globeGroup.matrixWorld.clone().invert();
+    const localOrigin = this.raycaster.ray.origin.clone().applyMatrix4(worldToGlobe);
+    const localRay = this.raycaster.ray.direction.clone().transformDirection(worldToGlobe);
+    const hit = this.intersectCompositeRay(
+      [localOrigin.x, localOrigin.y, localOrigin.z], [localRay.x, localRay.y, localRay.z]);
+    if (hit === null) return null;
+    // The reconstructed radial direction is the shaded normal (`normalNode`
+    // transforms exactly this vector), and the inspection light is a point on
+    // the camera axis, so the cosine is the light vector at the hit itself
+    // rather than at the globe centre.
+    const localNormal = new THREE.Vector3(...hit.position).normalize();
+    const worldNormal = localNormal.clone().transformDirection(this.globeGroup.matrixWorld);
+    const worldPoint = this.globeGroup.localToWorld(
+      new THREE.Vector3(...hit.position));
+    const lightDirection = this.sunLight.position.clone().sub(worldPoint).normalize();
+    return { surfaceClass: hit.surfaceClass,
+      cosLight: Number(worldNormal.dot(lightDirection).toFixed(6)),
+      direction: vector3ToLonLat(localNormal) };
+  };
+
   private publishStats(now: number): void {
     this.lastStatsAt = now;
     const recent = this.frameTimes.slice(-180);
@@ -1878,6 +1938,7 @@ export class GlobeScene {
     // constructor: a scene that replaces another must own the hook, and the
     // replaced scene's dispose() must not take the live one's with it.
     window.__earthHistorySurfaceProbe = this.surfaceProbe;
+    window.__earthHistoryPixelSurfaceProbe = this.pixelSurfaceProbe;
     const dataset = this.renderer.domElement.dataset;
     dataset.detail = diagnostics.detail;
     dataset.quality = diagnostics.effectiveQuality;

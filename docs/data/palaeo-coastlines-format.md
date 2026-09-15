@@ -494,6 +494,48 @@ mid-age, so it does not follow an off-schedule record's own lifecycle inside the
 interval. A tone is a legibility aid over the palaeo classes and is never
 evidence that the modern country existed at that age.
 
+## Class base colours and their rendered tones
+
+`palaeoCoastlines.classes[].baseColorRgb` in the package manifest carries one
+base colour per shipped class, and the renderer's
+`CAO_FOUNDATION_DEFAULT_BASE_COLORS` holds the same triples. They are **linear
+albedo**, not screen colours. The scene multiplies them by an inspection light
+of intensity 3.2 plus a hemisphere fill and then runs ACES tone mapping at
+exposure 1.02, whose shoulder desaturates everything it lifts toward white, so a
+class's rendered tone is always lighter and less saturated than its base colour
+— and the gap grows with how strongly the ground is lit.
+
+A class contract is therefore stated in rendered tones, measured on the
+production build by the browser tone census in `tests/browser/explorer.spec.ts`
+("draws palaeo mountains as a readable light brown at every lighting band"). The
+census takes ground truth from the scene's own composite pick per canvas pixel,
+buckets the pixels by the incident-light cosine the fragment stage used, and
+reports the per-channel median tone per class per band.
+
+Measured 2026-09-15 at 90 Ma, 1440x900, camera 5.6 Earth
+radii, five aims that carry one mountain belt through the three bands:
+
+| lighting band | `palaeo-land` | `palaeo-mountain` | luma-matched separation | mountain hue |
+|---|---|---|---|---|
+| full light (cos >= 0.90) | 213,212,184 | 235,198,139 | 37.5 | 36.9 deg |
+| mid (cos 0.55-0.72) | 200,199,165 | 225,182,119 | 37.5 | 35.7 deg |
+| terminator-near (cos 0.20-0.32) | 156,158,125 | 194,151,99 | 36.8 | 32.8 deg |
+
+Separation is the maximum per-channel difference in 0-255 units after the two
+tones are matched in Rec. 709 luma, so it measures the chromatic difference
+alone: on a sphere whose own lighting varies by far more than any class
+difference, a lightness difference is not what a viewer reads as "a different
+kind of ground". The contract is >= 30 at every band, hue 30-40 degrees (a light
+brown, neither orange nor yellow), and >= 3:1 against the dark outline ink.
+
+Before 2026-09-15 `palaeo-mountain` shipped as `#c8a97e`, a colour already light
+before the wash. It measured 223,213,192 against palaeo-land's 213,212,184 —
+**6.5/255 of separation** for a base colour 21 CIE76 away — and was not a class
+a viewer could name on screen. It is now `#fd7328`, pre-compensated for the
+wash; `palaeo-land` (`#9aa86b`) and `palaeo-shallow-marine` (`#14606b`) are
+unchanged. The map key's mountain swatch follows the *rendered* full-light tone
+rather than the albedo, or the key would show a brown the map never draws.
+
 ## What the format does not claim
 
 - A map interval records the minimum land and maximum flooding mapped anywhere
