@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PHANEROZOIC_MAX_MA, pointerClientXToSlider, selectVisibleChapters,
-  sliderToAge, sliderToPointerClientX, ageToSlider } from "./Timeline";
+import { PHANEROZOIC_MAX_MA, pointerClientXToSlider, selectIntervalMarks,
+  selectVisibleChapters, sliderToAge, sliderToPointerClientX, ageToSlider,
+  timelineSliderPosition } from "./Timeline";
+import { CAO_2017_MAP_INTERVAL_MARKS_MA } from "../reconstruction/outlineTones";
 import type { TimeSlice } from "../data";
 
 const slices: TimeSlice[] = [
@@ -10,6 +12,33 @@ const slices: TimeSlice[] = [
   { id: "d", label: "D", ageMa: 720, period: "Cryogenian", eon: "Proterozoic", description: "", evidence: "synthesis", sourceIds: [] },
   { id: "e", label: "E", ageMa: 2500, period: "Archean", eon: "Archean", description: "", evidence: "unknown", sourceIds: [] },
 ];
+
+describe("Timeline map-interval marks", () => {
+  it("places the 24 Cao 2017 bounds on the Phanerozoic scrubber", () => {
+    const marks = selectIntervalMarks(CAO_2017_MAP_INTERVAL_MARKS_MA, 0, PHANEROZOIC_MAX_MA);
+    // Every published bound is inside the Phanerozoic range, ascending.
+    expect(marks).toHaveLength(24);
+    expect(marks[0]).toBe(11);
+    expect(marks.at(-1)).toBe(402);
+    expect([...marks]).toEqual([...marks].sort((left, right) => left - right));
+    // Marks sit where the thumb sits for the same age, on the same mapping.
+    const linear = timelineSliderPosition(402, 0, PHANEROZOIC_MAX_MA, true);
+    expect(linear).toBeCloseTo((402 / PHANEROZOIC_MAX_MA) * 1000, 9);
+    expect(timelineSliderPosition(0, 0, PHANEROZOIC_MAX_MA, true)).toBe(0);
+    const nonlinear = timelineSliderPosition(402, 0, 2500, false);
+    expect(sliderToAge(nonlinear, 2500)).toBeCloseTo(402, 6);
+  });
+
+  it("drops marks outside the visible range instead of clamping them", () => {
+    // A clamped mark would pile up on the scrubber's end and read as a map
+    // boundary at an age the source publishes no map for.
+    expect(selectIntervalMarks(CAO_2017_MAP_INTERVAL_MARKS_MA, 0, 100))
+      .toEqual([11, 20, 29, 37, 49, 58, 81, 94]);
+    expect(selectIntervalMarks([], 0, PHANEROZOIC_MAX_MA)).toEqual([]);
+    // Duplicates and non-finite ages never become marks.
+    expect(selectIntervalMarks([94, 94, Number.NaN, 81], 0, 100)).toEqual([81, 94]);
+  });
+});
 
 describe("Timeline ranges", () => {
   it("exports the ICS Phanerozoic bound used for Precambrian switching", () => {

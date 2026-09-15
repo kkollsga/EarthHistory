@@ -28,6 +28,7 @@ import {
   type GlobeStats,
   type LayerVisibility,
   type LonLat,
+  type PalaeoCoastlineEvidence,
   type PointOfInterest,
   type WorldSnapshot,
 } from "./data";
@@ -43,11 +44,17 @@ import {
 import {
   buildExplorerHash,
   createThrottledHistoryWriter,
+  parseLayerVisibility,
   serializeAge,
 } from "./explorerHash";
 import {
+  CAO_2017_MAP_INTERVALS,
+  CAO_2017_MAP_INTERVAL_MARKS_MA,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
+  palaeoIntervalEvidenceStatus,
+  palaeoIntervalLabel,
+  selectPalaeoInterval,
   type CaoMotionFrame, type CaoTimelineLoadingState, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
@@ -78,19 +85,30 @@ const LAYER_META: Array<{
   { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
   { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
   { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
+  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only", icon: Waves },
 ];
+
+/**
+ * Nothing is drawn from the Cao 2017 maps yet, so the layer starts with an
+ * empty summary and the assets are reported unavailable. Phase 3 of the
+ * palaeo-coastlines program replaces this with the interval store's own
+ * summary; every reader below is written to be null-safe against it.
+ */
+const EMPTY_PALAEO_EVIDENCE: PalaeoCoastlineEvidence = Object.freeze({
+  intervalId: null,
+  sourceIds: [],
+  references: [],
+  editedChartIds: [],
+  unavailableReason: "Cao 2017 map charts are not in this build",
+  loading: false,
+});
 
 function parseInitialState() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const parsedAge = Number(params.get("age"));
-  const layerParam = params.get("layers")?.split(",") ?? [];
   const reliefParam = params.get("relief");
   const parsedRelief = reliefParam === null ? Number.NaN : Number(reliefParam);
-  const layers = layerParam.length
-    ? (Object.fromEntries(
-        Object.keys(DEFAULT_LAYERS).map((key) => [key, layerParam.includes(key)]),
-      ) as unknown as LayerVisibility)
-    : DEFAULT_LAYERS;
+  const layers = parseLayerVisibility(params.get("layers"), DEFAULT_LAYERS);
   return {
     age: Number.isFinite(parsedAge) ? Math.min(4567, Math.max(0, parsedAge)) : 0,
     layers,
@@ -637,9 +655,26 @@ export default function App() {
   const uncertainMaterialVisible = (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0;
-  const renderedEvidence = displayedCao === null ? "unknown" as const
-    : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
-      : "interpolation" as const;
+  // Phase 3 of the palaeo-coastlines program replaces this constant with the
+  // interval store's live summary; everything below reads it null-safely.
+  const palaeoEvidence: PalaeoCoastlineEvidence = EMPTY_PALAEO_EVIDENCE;
+  const palaeoIntervalIndex = selectPalaeoInterval(CAO_2017_MAP_INTERVALS, ageMa);
+  const palaeoInterval = palaeoIntervalIndex < 0 ? null : CAO_2017_MAP_INTERVALS[palaeoIntervalIndex]!;
+  const palaeoKeyVisible = layers.palaeoCoastlines;
+  // The layer can be switched on while the age has no published map; it can
+  // only be switched on at all while the charts exist to draw.
+  const palaeoModeActive = layers.palaeoCoastlines && palaeoEvidence.unavailableReason === null;
+  const palaeoFallback = layers.palaeoCoastlines
+    && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
+  const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
+  const palaeoIntervalName = palaeoInterval === null ? null : palaeoIntervalLabel(palaeoInterval);
+  // The mapped polygons are the dominant claim once the mode is on, so the
+  // rendered-view badge follows the map interval rather than the Cao 2024 pose.
+  const renderedEvidence = palaeoModeActive && !palaeoFallback
+    ? palaeoIntervalEvidenceStatus(palaeoInterval, ageMa, palaeoEdited)
+    : displayedCao === null ? "unknown" as const
+      : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
+        : "interpolation" as const;
   const selectedPoiCoordinate = selectedPoi
     ? temporalPoiCoordinates?.[selectedPoi.id]
     : undefined;
@@ -1109,10 +1144,56 @@ export default function App() {
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
               <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
-              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>Continental shelf context; ancient water depth unknown</span></li>
+              {palaeoKeyVisible && (
+                <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
+              )}
+              {palaeoKeyVisible && (
+                <li><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Palaeo shallow sea</strong>Cao et al. 2017 shallow-marine polygons; an environment class, not a water depth</span></li>
+              )}
+              {palaeoKeyVisible && (
+                <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
+              )}
+              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
+                ? "Cao 2024 continental crust, depth unmapped"
+                : "Continental shelf context; ancient water depth unknown"}</span></li>
             </ul>
+            {palaeoKeyVisible && (
+              <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
+                <strong>Palaeo-coastlines (Cao 2017)</strong>
+                {palaeoIntervalName !== null && (
+                  <p className="surface-info-note">Coastline map interval: {palaeoIntervalName} (Cao et al. 2017)</p>
+                )}
+                {palaeoIntervalName !== null && (
+                  <p className="surface-info-note">Land and shallow sea are the Cao et al. (2017) map
+                    polygons for the {palaeoIntervalName} interval: the minimum land / maximum flooding
+                    recorded anywhere in that bin, not a shoreline at one moment.</p>
+                )}
+                {palaeoFallback && (
+                  <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">
+                    No palaeogeography evidence at this age; showing the Cao 2024 coast proxy
+                  </p>
+                )}
+                <ul className="outline-marker-key">
+                  <li><i className="outline-marker outline-marker-dark" aria-hidden="true" /><span>Dark outline · over reconstructed land</span></li>
+                  <li><i className="outline-marker outline-marker-light" aria-hidden="true" /><span>Light grey outline · over shallow or deep sea</span></li>
+                </ul>
+                <small>Outline tone is a legibility device, not evidence. Modern-country outlines are
+                  position markers at this age, never historical borders or coastlines.</small>
+              </div>
+            )}
             <div className="surface-evidence-key">
               <strong>Evidence in this view</strong>
+              {palaeoKeyVisible && palaeoEvidence.references.map((reference) => (
+                <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
+                  {reference.editorial ? " · EarthHistory modification after this reference" : ""}
+                  {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
+              ))}
+              {palaeoKeyVisible && palaeoEvidence.references.length === 0
+                && palaeoEvidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}
+              {palaeoKeyVisible && palaeoEvidence.references.length === 0
+                && palaeoEvidence.sourceIds.length === 0
+                && <span>No palaeo-coastline charts on screen{palaeoEvidence.unavailableReason === null
+                  ? "" : ` · ${palaeoEvidence.unavailableReason}`}</span>}
               {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}
               {classifiedShallowMarineVisible && <span>Modern Iceland shelf · generalized 0–200 m class</span>}
               {qualifiedMaterialVisible && <span>Source-qualified material · cited reconstruction pose; exposure unknown</span>}
@@ -1290,6 +1371,7 @@ export default function App() {
           ? displayedCao.display.youngerAgeMa : undefined}
         geographicSourceAgeBracketMa={displayedCao === null ? undefined
           : [displayedCao.display.youngerAgeMa, displayedCao.display.olderAgeMa]}
+        intervalMarksMa={layers.palaeoCoastlines ? CAO_2017_MAP_INTERVAL_MARKS_MA : undefined}
         slices={timeSlices}
         playing={playing}
         onPlayingChange={handlePlayingChange}
@@ -1300,13 +1382,32 @@ export default function App() {
 
       <Modal open={panel === "layers"} title="Visible layers" eyebrow="Map controls" onClose={closePanel}>
         <div className="layer-list">
-          {LAYER_META.map(({ key, label, detail, icon: LayerIcon }) => (
-            <button type="button" key={key} aria-pressed={layers[key]} onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}>
-              <span className="layer-icon"><LayerIcon size={18} /></span>
-              <span><strong>{label}</strong><small>{detail}</small></span>
-              <span className={`switch ${layers[key] ? "is-on" : ""}`} aria-label={`${label} ${layers[key] ? "on" : "off"}`}><i /></span>
-            </button>
-          ))}
+          {LAYER_META.map(({ key, label, detail, icon: LayerIcon }) => {
+            // Only the palaeo-coastline layer can be unavailable, and only
+            // because its charts are missing from the build. An age with no
+            // published map is a fallback, not a reason to disable the control.
+            const unavailableReason = key === "palaeoCoastlines"
+              ? palaeoEvidence.unavailableReason : null;
+            const busy = key === "palaeoCoastlines" && palaeoEvidence.loading;
+            return (
+              <button
+                type="button"
+                key={key}
+                aria-pressed={layers[key]}
+                aria-busy={busy || undefined}
+                disabled={unavailableReason !== null}
+                onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}
+              >
+                <span className="layer-icon"><LayerIcon size={18} /></span>
+                <span><strong>{label}</strong><small>{detail}</small>
+                  {unavailableReason !== null && <small className="layer-unavailable">Unavailable · {unavailableReason}</small>}
+                  {key === "palaeoCoastlines" && unavailableReason === null && layers[key] && palaeoFallback
+                    && <small className="layer-unavailable">No Cao 2017 map at this age · showing the Cao 2024 coast proxy</small>}
+                </span>
+                <span className={`switch ${layers[key] ? "is-on" : ""}`} aria-label={`${label} ${layers[key] ? "on" : "off"}`}><i /></span>
+              </button>
+            );
+          })}
           <button type="button" aria-disabled="true" disabled>
             <span className="layer-icon"><Waves size={18} /></span>
             <span>

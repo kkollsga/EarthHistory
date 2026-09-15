@@ -18,3 +18,4 @@ export * from "./caoDomain";
 export * from "./palaeoRings";
 export * from "./palaeoTriangulate";
 export * from "./palaeoIntervalV2";
+export * from "./outlineTones";

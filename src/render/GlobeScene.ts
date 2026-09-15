@@ -496,6 +496,14 @@ export class GlobeScene {
     tectonics: false, rivers: false, palaeoCoastlines: false };
   private palaeoRequestedAgeMa: number | null = null;
   private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
+  private palaeoOutlineToneTable: Uint8Array | null = null;
+  private palaeoOutlineToneIntervalId: string | null = null;
+  /** `undefined` until the first apply, so the initial all-dark upload happens once. */
+  private appliedOutlineToneIntervalId: string | null | undefined = undefined;
+  /** Last values written to the canvas dataset, so a still frame writes nothing. */
+  private reportedOutlineToneIntervalId: string | null | undefined = undefined;
+  private reportedOutlineToneDarkSegments = -1;
+  private reportedOutlineToneLightSegments = -1;
   private requestedQuality: RequestedQuality;
   private effectiveQuality: "high" | "low";
   private detail: SurfaceDetail = "coarse";
@@ -1173,6 +1181,50 @@ export class GlobeScene {
       ? "age-outside-cao-2017-map-intervals" : "";
     dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
     dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
+    this.applyCountryLineToneTable(dataset.caoPalaeoCoastlineMode === "on");
+  }
+
+  /**
+   * The outline tone table for one Cao 2017 map interval, or `null` to put the
+   * whole overlay back to its single dark ink. Held rather than applied
+   * directly: the tones belong to the palaeo mode, so a fallback age, a
+   * withheld surface or a layer toggle clears them without the caller having to
+   * notice.
+   */
+  setCountryLineToneTable(texels: Uint8Array | null, intervalId: string | null): void {
+    this.palaeoOutlineToneTable = texels;
+    this.palaeoOutlineToneIntervalId = texels === null ? null : intervalId;
+    // Force the next apply, even onto the interval id that is already resident:
+    // the bytes behind it may be different ones.
+    this.appliedOutlineToneIntervalId = undefined;
+    this.updatePalaeoDomainVisibility();
+  }
+
+  /**
+   * Uploads a tone table at most once per interval change. The frame loop runs
+   * through here, and the material's own byte comparison would otherwise walk
+   * the whole table every frame for an answer that only changes at an interval
+   * boundary.
+   */
+  private applyCountryLineToneTable(modeIsOn: boolean): void {
+    const intervalId = modeIsOn ? this.palaeoOutlineToneIntervalId : null;
+    // The counts are still read every frame: a publication built after the last
+    // table change carries its own tone state.
+    const counts = intervalId === this.appliedOutlineToneIntervalId
+      ? this.caoFoundationRenderer.countryLineToneCounts()
+      : this.caoFoundationRenderer.setCountryLineToneTable(
+        intervalId === null ? null : this.palaeoOutlineToneTable);
+    this.appliedOutlineToneIntervalId = intervalId;
+    if (intervalId === this.reportedOutlineToneIntervalId
+        && counts.darkSegments === this.reportedOutlineToneDarkSegments
+        && counts.lightSegments === this.reportedOutlineToneLightSegments) return;
+    this.reportedOutlineToneIntervalId = intervalId;
+    this.reportedOutlineToneDarkSegments = counts.darkSegments;
+    this.reportedOutlineToneLightSegments = counts.lightSegments;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoOutlineToneIntervalId = intervalId ?? "";
+    dataset.caoOutlineToneDarkSegments = String(counts.darkSegments);
+    dataset.caoOutlineToneLightSegments = String(counts.lightSegments);
   }
 
   /** Nearest hit across both instances, ranked by one precedence table. */
