@@ -1,0 +1,130 @@
+import {
+  CAO_FOUNDATION_SURFACE_PRECEDENCE,
+  caoFoundationHighestPrecedenceHit,
+  caoFoundationSurfaceClassSelection,
+  caoFoundationSurfaceClassVisible,
+  caoFoundationSurfaceCoversDirection,
+  intersectCaoFoundationSurface,
+  type CaoFoundationCoverageOptions,
+  type CaoFoundationSurfaceClass,
+  type CaoFoundationSurfaceHit,
+  type CaoFoundationSurfaceMode,
+  type CaoFoundationSurfaceView,
+} from "./caoFoundation";
+import type { Vec3Tuple } from "./bounds";
+
+/**
+ * Composite coverage and picking over the two surface instances the palaeo
+ * mode runs: the native Cao 2024 stack (shelf, corrections and — mode off —
+ * native land) and the palaeo stack (Cao 2017 land, shallow marine and
+ * mountain charts). Both answer against one precedence table, so a correction
+ * outranks a shallow sea no matter which instance drew it.
+ */
+
+export interface CaoCompositeOptions extends CaoFoundationCoverageOptions {
+  /** Defaults to native, which ignores the palaeo instance entirely. */
+  readonly mode?: CaoFoundationSurfaceMode;
+}
+
+export interface CaoCompositePickOptions extends CaoCompositeOptions {
+  readonly maximumTestedTriangles?: number;
+}
+
+function selectionFor(
+  options: CaoCompositeOptions,
+  mode: CaoFoundationSurfaceMode,
+): readonly CaoFoundationSurfaceClass[] {
+  const selected = caoFoundationSurfaceClassSelection(options);
+  // Mode visibility is the composite's own filter: the native instance still
+  // holds `batch-land`, and answering "covered" from a surface the mode hides
+  // would put dark label ink over a sea the viewer can see.
+  return CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
+    selected.has(surfaceClass) && caoFoundationSurfaceClassVisible(surfaceClass, mode));
+}
+
+export function caoCompositeCoversDirection(
+  native: CaoFoundationSurfaceView | null,
+  palaeo: CaoFoundationSurfaceView | null,
+  rendererDirection: Vec3Tuple,
+  options: CaoCompositeOptions = {},
+): boolean {
+  const mode = options.mode ?? "native";
+  const surfaceClasses = selectionFor(options, mode);
+  if (surfaceClasses.length === 0) return false;
+  const covers = (view: CaoFoundationSurfaceView | null) => view !== null
+    && caoFoundationSurfaceCoversDirection(view.geometry, view.publication,
+      rendererDirection, { surfaceClasses });
+  if (covers(native)) return true;
+  return mode === "palaeo" && covers(palaeo);
+}
+
+export function intersectCaoComposite(
+  native: CaoFoundationSurfaceView | null,
+  palaeo: CaoFoundationSurfaceView | null,
+  rayOrigin: Vec3Tuple,
+  rayDirection: Vec3Tuple,
+  options: CaoCompositePickOptions = {},
+): CaoFoundationSurfaceHit | null {
+  const mode = options.mode ?? "native";
+  const maximumTestedTriangles = options.maximumTestedTriangles ?? 65_536;
+  const hits: CaoFoundationSurfaceHit[] = [];
+  const views = mode === "palaeo" ? [native, palaeo] : [native];
+  for (const view of views) {
+    if (view === null) continue;
+    const hit = intersectCaoFoundationSurface(view.geometry, view.publication,
+      rayOrigin, rayDirection, maximumTestedTriangles, mode);
+    if (hit !== null) hits.push(hit);
+  }
+  return caoFoundationHighestPrecedenceHit(hits);
+}
+
+/**
+ * Ages the Cao 2017 palaeogeography maps cover: the 24 published intervals run
+ * from 402 Ma to 2.01 Ma. Outside it — including the present day — the mode
+ * falls back to today's composition with a map-key notice.
+ */
+export const CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA = Object.freeze({
+  youngest: 2.01,
+  oldest: 402,
+} as const);
+
+export function caoPalaeoCoastlineAgeInsideDomain(ageMa: number | null): boolean {
+  return ageMa !== null && Number.isFinite(ageMa)
+    && ageMa >= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.youngest
+    && ageMa <= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.oldest;
+}
+
+export interface CaoPalaeoVisibilityState {
+  /** Whether the palaeo domain is currently shown. */
+  readonly visible: boolean;
+  /** Frames the opposite answer has held without being applied yet. */
+  readonly pendingFrames: number;
+}
+
+export const CAO_PALAEO_VISIBILITY_INITIAL_STATE: CaoPalaeoVisibilityState =
+  Object.freeze({ visible: false, pendingFrames: 0 });
+
+/**
+ * One-frame hysteresis across the 2.01 and 402 Ma boundaries.
+ *
+ * A scrub that lands exactly on a boundary, or a continuous age that crosses it
+ * and comes back within a frame, would otherwise blank and restore the palaeo
+ * surface on consecutive frames and read as a rendering fault. Requiring the
+ * new answer to hold for a second consecutive frame costs at most one frame of
+ * latency at a real crossing and removes the flicker at a boundary the user is
+ * hovering on. The counter resets whenever the requested answer agrees with
+ * what is on screen, so the delay never accumulates.
+ */
+export function nextCaoPalaeoVisibilityState(
+  previous: CaoPalaeoVisibilityState,
+  insideDomain: boolean,
+): CaoPalaeoVisibilityState {
+  if (insideDomain === previous.visible) {
+    return previous.pendingFrames === 0 ? previous
+      : Object.freeze({ visible: previous.visible, pendingFrames: 0 });
+  }
+  if (previous.pendingFrames >= 1) {
+    return Object.freeze({ visible: insideDomain, pendingFrames: 0 });
+  }
+  return Object.freeze({ visible: previous.visible, pendingFrames: previous.pendingFrames + 1 });
+}

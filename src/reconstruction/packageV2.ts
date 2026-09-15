@@ -83,17 +83,45 @@ export interface RigidMaterialChartV2 {
   readonly surfaceEvidence: SurfaceEvidenceState;
 }
 
+/**
+ * How a batch is drawn, and therefore what a viewer reads it as. Omitted means
+ * the renderer decides from the batch id (`batch-shelf` reads as shelf water,
+ * every other native or correction batch as land). A palaeogeography batch
+ * declares its class instead of encoding it in a name the renderer must parse.
+ */
+export type SpatialBatchSurfaceAppearanceV2 =
+  | "land" | "shelf" | "palaeo-land" | "palaeo-shallow-marine" | "palaeo-mountain";
+
+export const SPATIAL_BATCH_SURFACE_APPEARANCES: readonly SpatialBatchSurfaceAppearanceV2[] =
+  Object.freeze(["land", "shelf", "palaeo-land", "palaeo-shallow-marine", "palaeo-mountain"]);
+
 export interface ReconstructionSpatialBatchV2 {
   readonly batchId: string;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly geometryAsset: PackageAsset;
   readonly encoding: "ehgb-v2-f32xyz-u32";
+  /** Declared drawing class; an unknown value is rejected, never defaulted. */
+  readonly surfaceAppearance?: SpatialBatchSurfaceAppearanceV2;
   readonly staticDisplayControl?: {
     readonly displayHeightMetres: number;
     readonly baseColorRgb: readonly [number, number, number];
   };
   readonly overlapPolicy?: "native-visual-and-picking-precedence";
+}
+
+/**
+ * A declared appearance must name a class the renderer knows. Defaulting an
+ * unknown value to land would draw a shallow sea as a continent without any
+ * signal, so the package is rejected instead.
+ */
+export function validateSpatialBatchSurfaceAppearanceV2(
+  batch: Pick<ReconstructionSpatialBatchV2, "surfaceAppearance">,
+): void {
+  if (batch.surfaceAppearance !== undefined
+      && !SPATIAL_BATCH_SURFACE_APPEARANCES.includes(batch.surfaceAppearance)) {
+    throw new Error("unknown Cao spatial batch surface appearance");
+  }
 }
 
 export interface MaterialCorrectionCatalogV1 {
@@ -506,6 +534,7 @@ export function validateMaterialCorrectionCatalogV1(
     }
   }
   for (const batch of catalog.spatialBatches) {
+    validateSpatialBatchSurfaceAppearanceV2(batch);
     const control = batch.staticDisplayControl;
     if (!control || control.displayHeightMetres !== 0
         || control.baseColorRgb.length !== 3 || control.baseColorRgb.some((value) => !Number.isFinite(value)
@@ -570,6 +599,7 @@ export function validateReconstructionCoreV2(
   }
   const batchIds = new Set<string>();
   for (const batch of core.spatialBatches) {
+    validateSpatialBatchSurfaceAppearanceV2(batch);
     const expectedBytes = 32 + batch.vertexCount * 20 + batch.triangleCount * 12;
     if (!batch.batchId || batchIds.has(batch.batchId) || !Number.isSafeInteger(batch.vertexCount)
         || batch.vertexCount < 3 || !Number.isSafeInteger(batch.triangleCount) || batch.triangleCount < 1

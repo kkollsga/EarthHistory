@@ -58,9 +58,33 @@ import type { Vec3Tuple } from "./bounds";
 
 /** Display separation only; source physical height remains zero/unknown. */
 export const CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES = 400;
+export const CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES = 700;
 export const CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES = 800;
+export const CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES = 1_300;
+export const CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES = 1_600;
 export const CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES = 1_800;
 export const CAO_FOUNDATION_BOUNDARY_LINE_OFFSET_METRES = 2_200;
+
+/**
+ * Longest triangle edge any surface batch may carry, in degrees of arc. The
+ * palaeo ring compiler refines to this; the shipped Cao batches are already
+ * under it.
+ */
+export const CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES = 1;
+
+/**
+ * How far a flat triangle edge of `edgeDegrees` falls inside the sphere it
+ * approximates, in metres. A chord subtending an angle sits `R(1 - cos(a/2))`
+ * below the arc at its midpoint, so a shell drawn at offset `h` actually
+ * occupies `[h - sag, h]`: the vertices reach `h` and the middle of every
+ * triangle dips.
+ */
+export function caoFoundationChordSagMetres(edgeDegrees: number): number {
+  if (!Number.isFinite(edgeDegrees) || edgeDegrees < 0 || edgeDegrees > 180) {
+    throw new Error("Cao chord sag edge must be a finite angle within [0, 180] degrees");
+  }
+  return EARTH_RADIUS_METRES * (1 - Math.cos(edgeDegrees * Math.PI / 360));
+}
 
 /**
  * Widest chord in the shipped country-line geometry, measured over all 12 045
@@ -99,19 +123,182 @@ export function caoFoundationMaxDisplayedShellMetres(
 /**
  * How a batch is drawn, and therefore what a viewer reads it as. Shelf batches
  * get the shallow-water appearance; native land and every material-correction
- * batch get the land appearance. Callers that need "is this land" must use this
- * rather than re-testing the batch id, so the two never drift apart.
+ * batch get the land appearance; a palaeogeography batch declares its own class
+ * in the package rather than encoding it in a name. Callers that need "is this
+ * land" must use this rather than re-testing the batch id, so the two never
+ * drift apart.
  */
-export type CaoFoundationBatchAppearance = "land" | "shelf";
+export type CaoFoundationBatchAppearance =
+  | "land" | "shelf" | "palaeo-land" | "palaeo-shallow-marine" | "palaeo-mountain";
 
-export function caoFoundationBatchAppearance(batchId: string): CaoFoundationBatchAppearance {
+const CAO_FOUNDATION_BATCH_APPEARANCES: readonly CaoFoundationBatchAppearance[] =
+  Object.freeze(["land", "shelf", "palaeo-land", "palaeo-shallow-marine", "palaeo-mountain"]);
+
+/**
+ * The single decision point for a batch's appearance. A declared class from the
+ * package wins; an unknown declared value throws rather than falling back to
+ * land, because silently drawing a shallow sea as a continent is exactly the
+ * misreading this class exists to prevent.
+ */
+export function caoFoundationBatchAppearance(
+  batchId: string,
+  declared?: string,
+): CaoFoundationBatchAppearance {
+  if (declared !== undefined) {
+    if (!CAO_FOUNDATION_BATCH_APPEARANCES.includes(declared as CaoFoundationBatchAppearance)) {
+      throw new Error("unknown Cao foundation batch surface appearance");
+    }
+    return declared as CaoFoundationBatchAppearance;
+  }
   return batchId === "batch-shelf" ? "shelf" : "land";
 }
 
-export function caoFoundationShellOffsetMetres(batchId: string): number {
-  if (batchId === "batch-shelf") return CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES;
-  if (batchId === "batch-land" || batchId === "batch-0") return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
-  return CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES;
+/**
+ * Drawing class: the appearance, except that a material-correction batch is its
+ * own class. Corrections are drawn with the land appearance but sit on their own
+ * shell slot and own precedence rank, so the two must not be conflated.
+ */
+export type CaoFoundationSurfaceClass = CaoFoundationBatchAppearance | "corrections";
+
+export function caoFoundationSurfaceClass(
+  appearance: CaoFoundationBatchAppearance,
+  nativePrecedence: boolean,
+): CaoFoundationSurfaceClass {
+  return nativePrecedence ? "corrections" : appearance;
+}
+
+export interface CaoFoundationSurfaceShell {
+  readonly surfaceClass: CaoFoundationSurfaceClass;
+  readonly shellOffsetMetres: number;
+  /** Draw slot; a larger value draws later and therefore wins where they overlap. */
+  readonly renderOrder: number;
+  /** Whether the class writes depth, which is what forces shell separation below it. */
+  readonly writesDepth: boolean;
+  readonly visibleInNativeMode: boolean;
+  readonly visibleInPalaeoMode: boolean;
+}
+
+/**
+ * Every surface class, in ascending precedence — which is also ascending draw
+ * order and, for the classes that must not interpenetrate, ascending shell.
+ *
+ * Shell arithmetic at the mandated 1 degree maximum edge, where the sag is
+ * `6 371 000 * (1 - cos(0.5 degrees)) = 242.59 m`. A shell at `h` occupies
+ * `[h - sag, h]`, so an upper class is guaranteed in front of a *depth-writing*
+ * lower class only while `h(upper) - 242.59 > h(lower)`:
+ *
+ *   shelf 400 -> palaeo-shallow-marine 700:   700 - 242.59 = 457.41 > 400
+ *   shelf 400 -> corrections 800:             800 - 242.59 = 557.41 > 400
+ *   shelf 400 -> palaeo-land 1 300:         1 300 - 242.59 = 1 057.41 > 400
+ *   land 800  -> palaeo-land 1 300:         1 300 - 242.59 = 1 057.41 > 800
+ *   palaeo-land 1 300 -> palaeo-mountain 1 600: 1 600 - 242.59 = 1 357.41 > 1 300
+ *
+ * and every shell stays below the 1 800 m country-line shell, which the
+ * publication guard also enforces against the display-height ceiling.
+ *
+ * Only a *depth-writing* lower class forces that clearance. Where the lower
+ * class does not write depth, the class above it simply paints over it in draw
+ * order and no depth test can interleave the two — which is how corrections and
+ * native land have always shared the 800 m shell.
+ *
+ * That exemption is what makes the plan's candidate shells work. Shallow 700
+ * between shelf 400 and corrections 800 leaves only 400 m for two sag
+ * clearances, and 400 + 2 * 242.59 = 885.18 > 800: the pair cannot be separated
+ * geometrically at all. It is separated by policy instead — palaeo-shallow-
+ * marine does not write depth, exactly as corrections do not — and the one
+ * depth-writing class below it, the shelf, is still cleared by 457.41 m.
+ * Raising the correction shell or lowering the shelf shell instead would move a
+ * native constant that the present-day globe, its picking bounds and its
+ * goldens are already built on.
+ */
+export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[] = Object.freeze([
+  Object.freeze({ surfaceClass: "shelf" as const,
+    shellOffsetMetres: CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
+    renderOrder: 1, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: true }),
+  Object.freeze({ surfaceClass: "palaeo-shallow-marine" as const,
+    shellOffsetMetres: CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
+    renderOrder: 1.2, writesDepth: false, visibleInNativeMode: false, visibleInPalaeoMode: true }),
+  Object.freeze({ surfaceClass: "corrections" as const,
+    shellOffsetMetres: CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+    renderOrder: 1.5, writesDepth: false, visibleInNativeMode: true, visibleInPalaeoMode: true }),
+  Object.freeze({ surfaceClass: "palaeo-land" as const,
+    shellOffsetMetres: CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES,
+    renderOrder: 1.7, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
+  Object.freeze({ surfaceClass: "palaeo-mountain" as const,
+    shellOffsetMetres: CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES,
+    renderOrder: 1.8, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
+  // Native land keeps the top rank it has always had, and is hidden outright
+  // while the palaeo-coastline mode is on; nothing else would keep a Cao 2024
+  // coast fill over the Cao 2017 map polygons that replace it.
+  Object.freeze({ surfaceClass: "land" as const,
+    shellOffsetMetres: CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+    renderOrder: 2, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: false }),
+]);
+
+/** Ascending precedence for drawing and for picking. */
+export const CAO_FOUNDATION_SURFACE_PRECEDENCE: readonly CaoFoundationSurfaceClass[] =
+  Object.freeze(CAO_FOUNDATION_SURFACE_SHELLS.map((shell) => shell.surfaceClass));
+
+/** Classes a "is this land, rather than water of any depth" question accepts. */
+export const CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES: readonly CaoFoundationSurfaceClass[] =
+  Object.freeze(["land", "corrections", "palaeo-land", "palaeo-mountain"]);
+
+export function caoFoundationSurfaceShell(
+  surfaceClass: CaoFoundationSurfaceClass,
+): CaoFoundationSurfaceShell {
+  const shell = CAO_FOUNDATION_SURFACE_SHELLS.find((candidate) =>
+    candidate.surfaceClass === surfaceClass);
+  if (!shell) throw new Error("unknown Cao foundation surface class");
+  return shell;
+}
+
+export function caoFoundationShellOffsetMetres(batchId: string, declared?: string): number {
+  const appearance = caoFoundationBatchAppearance(batchId, declared);
+  // The batch id alone cannot say whether a land-appearance batch is a
+  // correction, and it does not need to: corrections share the land shell.
+  return caoFoundationSurfaceShell(appearance).shellOffsetMetres;
+}
+
+/**
+ * Default base colours per appearance. Batch colours are package data; these are
+ * the values the palaeo compiler emits and the ones the unit test pins.
+ *
+ * `palaeo-land` is the muted olive of a Cao 2017 landmass polygon.
+ * `palaeo-shallow-marine` is a saturated teal held dark enough that the light
+ * outline/label ink `#d0d4d5` keeps a 5.4:1 luminance contrast over it, while
+ * reading as a distinctly greener, brighter body of water than the 0.58-dimmed
+ * shelf blue it sits on. `palaeo-mountain` is a warm pale stone.
+ */
+export const CAO_FOUNDATION_DEFAULT_BASE_COLORS:
+Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>> = Object.freeze({
+  land: Object.freeze([0.45, 0.55, 0.3] as const),
+  shelf: Object.freeze([0.0431, 0.2863, 0.3922] as const),
+  "palaeo-land": Object.freeze([0x9a / 255, 0xa8 / 255, 0x6b / 255] as const),
+  "palaeo-shallow-marine": Object.freeze([0x14 / 255, 0x60 / 255, 0x6b / 255] as const),
+  "palaeo-mountain": Object.freeze([0xc9 / 255, 0xbd / 255, 0xa6 / 255] as const),
+});
+
+/**
+ * The 0.58 dim exists because the shelf's own blue lit up brighter than the
+ * MeshPhysical globe ocean under it. A palaeo shallow-marine polygon is a
+ * mapped environment, not the same "depth unmapped" wash, and carries its own
+ * measured colour, so it is drawn undimmed.
+ */
+export function caoFoundationAppearanceDim(appearance: CaoFoundationBatchAppearance): number {
+  return appearance === "shelf" ? 0.58 : 1;
+}
+
+/** Water classes are single-sided; land-like classes keep both faces. */
+export function caoFoundationAppearanceFrontSideOnly(
+  appearance: CaoFoundationBatchAppearance,
+): boolean {
+  return appearance === "shelf" || appearance === "palaeo-shallow-marine";
+}
+
+export function caoFoundationAppearanceRoughness(
+  appearance: CaoFoundationBatchAppearance,
+): number {
+  return caoFoundationAppearanceFrontSideOnly(appearance) ? 0.94 : 0.82;
 }
 export const CAO_FOUNDATION_PALETTE_TEXEL_WIDTH = 256;
 
@@ -143,6 +330,10 @@ export interface CaoFoundationBatchResource {
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly nativePrecedence: boolean;
+  /** Resolved once through `caoFoundationBatchAppearance`, never re-derived. */
+  readonly appearance: CaoFoundationBatchAppearance;
+  readonly surfaceClass: CaoFoundationSurfaceClass;
+  readonly shellOffsetMetres: number;
   /** chartIndex, firstTriangle, triangleCount, preparedEntryIndex. */
   readonly chartRanges: Uint32Array;
   /** Reference-space shell AABB, six floats per chart range. */
@@ -244,7 +435,11 @@ export interface CaoFoundationDiagnostics {
   readonly batches: number;
   readonly vertices: number;
   readonly triangles: number;
+  /** Material charts carried by the resident static geometry, across all batches. */
+  readonly chartRanges: number;
   readonly drawCount: number;
+  /** Whether native land is suppressed in favour of palaeo-coastline charts. */
+  readonly palaeoCoastlineMode: boolean;
   readonly countryLineBatches: number;
   readonly countryLineVertices: number;
   readonly countryLineSegments: number;
@@ -260,8 +455,15 @@ export interface CaoFoundationDiagnostics {
   readonly shellOffsetMetres: number;
 }
 
+/** The per-chart pose/activation pair a coverage or pick query reads. */
+export interface CaoFoundationPickState {
+  readonly chartPoses: Float32Array;
+  readonly chartActive: Uint8Array;
+}
+
 export interface CaoFoundationSurfaceHit {
   readonly batchId: string;
+  readonly surfaceClass: CaoFoundationSurfaceClass;
   readonly chartIndex: number;
   readonly triangleIndex: number;
   readonly distance: number;
@@ -581,7 +783,7 @@ export function createCaoFoundationMaterial(
   displayFractionValue: number,
   verticalExaggerationValue: number,
   shellOffsetMetres: number = CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
-  appearance: "land" | "shelf" = "land",
+  appearance: CaoFoundationBatchAppearance = "land",
 ): CaoFoundationMaterialGraph {
   const displayHeightStart = display.displayHeightStart.kind === "uniform"
     ? float(display.displayHeightStart.value) : attribute<"float">("displayHeightStartMetres", "float");
@@ -590,11 +792,12 @@ export function createCaoFoundationMaterial(
   const pose = createPreparedCaoPoseNodes(paletteTexture, paletteWidth,
     displayFractionValue, verticalExaggerationValue, displayHeightStart,
     displayHeightEnd, shellOffsetMetres);
-  // Shelf plates light up brighter than the MeshPhysical globe ocean; keep them
-  // front-faced, rougher, and slightly dimmed so they sit near deep-sea tone.
+  // Shelf plates light up brighter than the MeshPhysical globe ocean; keep the
+  // water classes front-faced and rougher, and dim the shelf alone so it sits
+  // near deep-sea tone. A mapped shallow sea carries its own colour instead.
   const material = new MeshStandardNodeMaterial({
-    side: appearance === "shelf" ? FrontSide : DoubleSide,
-    roughness: appearance === "shelf" ? 0.94 : 0.82,
+    side: caoFoundationAppearanceFrontSideOnly(appearance) ? FrontSide : DoubleSide,
+    roughness: caoFoundationAppearanceRoughness(appearance),
     metalness: 0,
   });
   material.positionNode = pose.position;
@@ -603,7 +806,7 @@ export function createCaoFoundationMaterial(
   material.normalNode = transformNormalToView(pose.direction);
   if (display.baseColor.kind === "uniform") {
     const [r, g, b] = display.baseColor.value;
-    const dim = appearance === "shelf" ? 0.58 : 1;
+    const dim = caoFoundationAppearanceDim(appearance);
     material.colorNode = vec3(r * dim, g * dim, b * dim);
   } else {
     material.colorNode = attribute<"vec3">("color", "vec3");
@@ -1147,14 +1350,16 @@ export function createCaoFoundationGeometryResource(
       const gpuBytes = source.referenceDirections.byteLength + source.preparedEntryIndices.byteLength
         + source.indices.byteLength;
       trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, gpuBytes, "Cao tracked GPU");
+      const appearance = caoFoundationBatchAppearance(prepared.batchId, prepared.surfaceAppearance);
+      const surfaceClass = caoFoundationSurfaceClass(appearance, prepared.nativePrecedence);
+      const shellOffsetMetres = caoFoundationSurfaceShell(surfaceClass).shellOffsetMetres;
       const spatial = createChartSpatialIndex(source, prepared.chartTriangleRanges,
-        prepared.triangleCount, revision.charts.length,
-        caoFoundationShellOffsetMetres(prepared.batchId));
+        prepared.triangleCount, revision.charts.length, shellOffsetMetres);
       retainedCpuBytes = safeAdd(retainedCpuBytes,
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
       resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
-        nativePrecedence: prepared.nativePrecedence,
+        nativePrecedence: prepared.nativePrecedence, appearance, surfaceClass, shellOffsetMetres,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
     }
     for (const prepared of revision.lineBatches) {
@@ -1274,6 +1479,20 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
 
   setVerticalExaggeration(value: number): void {
     for (const exaggeration of this.verticalExaggerations) exaggeration.value = value;
+  }
+
+  /**
+   * Suppresses native land where palaeo-coastline charts replace it. Every other
+   * class keeps its mode-independent visibility, so a hidden overlay layer is
+   * not resurrected by a mode change.
+   */
+  setPalaeoCoastlineMode(on: boolean): void {
+    for (const child of this.group.children) {
+      const surfaceClass = child.userData.surfaceClass as CaoFoundationSurfaceClass | undefined;
+      if (surfaceClass === undefined) continue;
+      const shell = caoFoundationSurfaceShell(surfaceClass);
+      child.visible = on ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
+    }
   }
 
   setNativeBoundaryLayerVisibility(visible: boolean): void {
@@ -1625,6 +1844,7 @@ function createPublicationResource(
   packed: PackedCaoPalette,
   verticalExaggeration: number,
   retirement: GpuRetirementOwner,
+  palaeoCoastlineMode: boolean,
 ): CaoFoundationPublicationResource {
   const paletteTexture = createCaoFoundationPaletteTexture(packed);
   const materials: THREE.Material[] = [];
@@ -1643,7 +1863,8 @@ function createPublicationResource(
           || display.baseColor.kind !== "uniform") {
         throw new Error("Cao foundation v1 requires uniform placeholder height/color controls");
       }
-      const shellOffset = caoFoundationShellOffsetMetres(batch.batchId);
+      const shell = caoFoundationSurfaceShell(batch.surfaceClass);
+      const shellOffset = shell.shellOffsetMetres;
       // The country outlines no longer depth test, so nothing stops a lifted
       // surface shell from drawing over them. This guard is what replaces the
       // depth buffer: the tallest shell the display controls can reach at the
@@ -1655,9 +1876,8 @@ function createPublicationResource(
           >= CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES) {
         throw new Error("Cao display height would lift the surface through the country-line shell");
       }
-      const appearance = caoFoundationBatchAppearance(batch.batchId);
       const graph = createCaoFoundationMaterial(paletteTexture, packed.width, display,
-        revision.display.fraction, verticalExaggeration, shellOffset, appearance);
+        revision.display.fraction, verticalExaggeration, shellOffset, batch.appearance);
       materials.push(graph.material);
       displayFractions.push(graph.displayFraction);
       verticalExaggerations.push(graph.verticalExaggeration);
@@ -1665,13 +1885,16 @@ function createPublicationResource(
       // Source batches do not yet carry qualified moving interval bounds.
       // Drawing all foundation batches preserves coverage until those arrive.
       mesh.frustumCulled = false;
-      if (batch.nativePrecedence) {
-        graph.material.depthTest = true;
-        graph.material.depthWrite = false;
-      }
-      // Shelf under corrections, with source land last so native land keeps
-      // visual precedence where it overlaps a corrected material footprint.
-      mesh.renderOrder = batch.nativePrecedence ? 1.5 : batch.batchId === "batch-shelf" ? 1 : 2;
+      graph.material.depthTest = true;
+      // Two classes deliberately do not write depth: corrections, and palaeo
+      // shallow marine, whose shells are 100 m apart and cannot clear a 242.59 m
+      // chord sag. Render order alone separates them.
+      graph.material.depthWrite = shell.writesDepth;
+      // Ascending precedence: shelf, palaeo shallow marine, corrections, palaeo
+      // land, palaeo mountain, native land.
+      mesh.renderOrder = shell.renderOrder;
+      mesh.userData.surfaceClass = batch.surfaceClass;
+      mesh.visible = palaeoCoastlineMode ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
@@ -1776,8 +1999,29 @@ function firstOpaqueGlobeIntersectionDistance(origin: Vec3Tuple, direction: Vec3
 const CAO_FOUNDATION_COVERAGE_BOUNDS_EPSILON = 1e-4;
 
 export interface CaoFoundationCoverageOptions {
-  /** Count batch-shelf charts as coverage. Default true, matching picking. */
+  /**
+   * Narrow the question to these drawing classes. Takes precedence over
+   * `includeShelf`; an unknown class is rejected rather than ignored.
+   */
+  readonly surfaceClasses?: readonly CaoFoundationSurfaceClass[];
+  /**
+   * Working alias kept for callers that only ask "is this land, rather than
+   * water of any depth". `false` selects the land-like classes, which is what
+   * the guide-label ink and the lake-void probes have always meant by it;
+   * omitted or `true` accepts every class, matching picking.
+   */
   readonly includeShelf?: boolean;
+}
+
+export function caoFoundationSurfaceClassSelection(
+  options: CaoFoundationCoverageOptions,
+): ReadonlySet<CaoFoundationSurfaceClass> {
+  if (options.surfaceClasses !== undefined) {
+    for (const surfaceClass of options.surfaceClasses) caoFoundationSurfaceShell(surfaceClass);
+    return new Set(options.surfaceClasses);
+  }
+  return new Set(options.includeShelf === false
+    ? CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES : CAO_FOUNDATION_SURFACE_PRECEDENCE);
 }
 /** Radial start height and accepted hit range for the exact coverage test. */
 const CAO_FOUNDATION_COVERAGE_RAY_MARGIN = 0.05;
@@ -1813,11 +2057,11 @@ function pointInsideBounds(
  */
 export function caoFoundationSurfaceCoversDirection(
   geometry: CaoFoundationGeometryResource,
-  publication: Pick<CaoFoundationPublicationResource, "chartPoses" | "chartActive">,
+  publication: CaoFoundationPickState,
   rendererDirection: Vec3Tuple,
   options: CaoFoundationCoverageOptions = {},
 ): boolean {
-  const includeShelf = options.includeShelf ?? true;
+  const selected = caoFoundationSurfaceClassSelection(options);
   const length = Math.hypot(...rendererDirection);
   if (!rendererDirection.every(Number.isFinite) || !(length > 1e-12)) {
     throw new Error("Cao coverage direction must be finite and non-zero");
@@ -1827,8 +2071,8 @@ export function caoFoundationSurfaceCoversDirection(
   const [gx, gy, gz] = gplatesDirection;
   const poses = publication.chartPoses;
   for (const batch of geometry.batches) {
-    if (!includeShelf && caoFoundationBatchAppearance(batch.batchId) === "shelf") continue;
-    const shellRadius = 1 + caoFoundationShellOffsetMetres(batch.batchId) / EARTH_RADIUS_METRES;
+    if (!selected.has(batch.surfaceClass)) continue;
+    const shellRadius = 1 + batch.shellOffsetMetres / EARTH_RADIUS_METRES;
     for (let rangeOffset = 0, boundsOffset = 0;
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
       const chartIndex = batch.chartRanges[rangeOffset]!;
@@ -1872,12 +2116,28 @@ export function caoFoundationSurfaceCoversDirection(
   return false;
 }
 
+/**
+ * Which stack a pick walks. `native` is the Cao 2024 composition; `palaeo`
+ * hides native land, because the palaeo-coastline mode replaces it, and ranks
+ * the palaeo classes into the precedence table.
+ */
+export type CaoFoundationSurfaceMode = "native" | "palaeo";
+
+export function caoFoundationSurfaceClassVisible(
+  surfaceClass: CaoFoundationSurfaceClass,
+  mode: CaoFoundationSurfaceMode,
+): boolean {
+  const shell = caoFoundationSurfaceShell(surfaceClass);
+  return mode === "palaeo" ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
+}
+
 export function intersectCaoFoundationSurface(
   geometry: CaoFoundationGeometryResource,
-  publication: Pick<CaoFoundationPublicationResource, "chartPoses" | "chartActive">,
+  publication: CaoFoundationPickState,
   rayOrigin: Vec3Tuple,
   rawRayDirection: Vec3Tuple,
   maximumTestedTriangles = 65_536,
+  mode: CaoFoundationSurfaceMode = "native",
 ): CaoFoundationSurfaceHit | null {
   if (![...rayOrigin, ...rawRayDirection].every(Number.isFinite)) {
     throw new Error("Cao sparse picking ray must be finite");
@@ -1891,11 +2151,12 @@ export function intersectCaoFoundationSurface(
   const gplatesOrigin = rendererToGplatesDirection(numberScalarOps, rayOrigin);
   const gplatesDirection = rendererToGplatesDirection(numberScalarOps, rayDirection);
   let testedTriangles = 0;
-  let nearestNativeLand: CaoFoundationSurfaceHit | null = null;
-  let nearestShelf: CaoFoundationSurfaceHit | null = null;
-  let nearestCorrection: CaoFoundationSurfaceHit | null = null;
+  // Nearest hit per drawing class; the precedence table, not the walk order,
+  // decides which one the caller sees.
+  const nearestByClass = new Map<CaoFoundationSurfaceClass, CaoFoundationSurfaceHit>();
   for (const batch of geometry.batches) {
-    const shellRadius = 1 + caoFoundationShellOffsetMetres(batch.batchId) / EARTH_RADIUS_METRES;
+    if (!caoFoundationSurfaceClassVisible(batch.surfaceClass, mode)) continue;
+    const shellRadius = 1 + batch.shellOffsetMetres / EARTH_RADIUS_METRES;
     for (let rangeOffset = 0, boundsOffset = 0;
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
       const chartIndex = batch.chartRanges[rangeOffset]!;
@@ -1921,8 +2182,7 @@ export function intersectCaoFoundationSurface(
           vertices[0], vertices[1], vertices[2]);
         const visibleBeforeOpaqueGlobe = hit && (opaqueGlobeDistance === null
           || hit.distance <= opaqueGlobeDistance + 1e-7);
-        const nearest = batch.nativePrecedence ? nearestCorrection
-          : batch.batchId === "batch-shelf" ? nearestShelf : nearestNativeLand;
+        const nearest = nearestByClass.get(batch.surfaceClass) ?? null;
         if (!hit || !visibleBeforeOpaqueGlobe || (nearest !== null && hit.distance >= nearest.distance)) continue;
         const posed = rotateDirection(numberScalarOps, pose, hit.position);
         const rendererPosition = gplatesToRendererDirection(numberScalarOps, posed);
@@ -1933,35 +2193,108 @@ export function intersectCaoFoundationSurface(
           hit.position[1] / length,
           hit.position[2] / length,
         ];
-        const candidate = { batchId: batch.batchId, chartIndex, triangleIndex: triangle,
+        const candidate = { batchId: batch.batchId, surfaceClass: batch.surfaceClass,
+          chartIndex, triangleIndex: triangle,
           distance: hit.distance, position: rendererPosition,
           materialAddress: Object.freeze({ ...chart, cellOrTriangleId: 0,
             localCoordinate: Object.freeze({ kind: "chart-direction" as const,
               directionAtReference: Object.freeze([...referenceDirection]) as UnitDirection }) }) };
-        if (batch.nativePrecedence) nearestCorrection = candidate;
-        else if (batch.batchId === "batch-shelf") nearestShelf = candidate;
-        else nearestNativeLand = candidate;
+        nearestByClass.set(batch.surfaceClass, candidate);
       }
     }
   }
-  return nearestNativeLand ?? nearestCorrection ?? nearestShelf;
+  return caoFoundationHighestPrecedenceHit([...nearestByClass.values()]);
 }
 
 /**
- * Owns the single Cao land surface. Static source geometry is copied once;
- * requested ages replace only a bounded palette/material publication.
+ * The winner among per-class candidates: the highest precedence rank, and the
+ * nearer hit only where two candidates share a rank.
+ */
+export function caoFoundationHighestPrecedenceHit(
+  candidates: readonly CaoFoundationSurfaceHit[],
+): CaoFoundationSurfaceHit | null {
+  let best: CaoFoundationSurfaceHit | null = null;
+  let bestRank = -1;
+  for (const candidate of candidates) {
+    const rank = CAO_FOUNDATION_SURFACE_PRECEDENCE.indexOf(candidate.surfaceClass);
+    if (rank < 0) throw new Error("unknown Cao foundation surface class");
+    if (rank > bestRank || (rank === bestRank && best !== null && candidate.distance < best.distance)) {
+      best = candidate;
+      bestRank = rank;
+    }
+  }
+  return best;
+}
+
+export interface CaoFoundationLayerVisibility {
+  readonly borders: boolean;
+  readonly tectonics: boolean;
+  readonly palaeoCoastlines: boolean;
+}
+
+export interface CaoFoundationRendererOptions {
+  /**
+   * Whether this instance may swap its static geometry. The native instance
+   * must not: one Cao package ships one geometry for the whole session, and a
+   * key change there is a compile or loader defect. The palaeo instance streams
+   * one map interval at a time, so replacement is its normal path — but only
+   * after `armStaticGeometryChange` has named the reason, so an unexpected key
+   * change still fails loudly.
+   */
+  readonly allowStaticGeometryReplacement?: boolean;
+  /**
+   * Owner that retires a replaced static geometry after the renderer's
+   * submitted work. Required whenever replacement is allowed: disposing the
+   * buffers inline can destroy a buffer the last submission still references.
+   */
+  readonly staticGeometryRetirement?: GpuRetirementOwner;
+}
+
+/** The read-only surface view a composite coverage or pick query consumes. */
+export interface CaoFoundationSurfaceView {
+  readonly geometry: CaoFoundationGeometryResource;
+  readonly publication: CaoFoundationPickState;
+}
+
+/**
+ * Owns one Cao surface stack. Static source geometry is copied once per
+ * geometry key; requested ages replace only a bounded palette/material
+ * publication.
  */
 export class CaoFoundationSurfaceRenderer {
   private readonly publisher = new AtomicPrototypePublisher<CaoFoundationPublicationResource>();
   private staticGeometry: CaoFoundationGeometryResource | null = null;
   private disposed = false;
   private domainVisible = true;
+  private palaeoCoastlineMode = false;
+  private armedStaticGeometryChange: string | null = null;
+  private readonly allowStaticGeometryReplacement: boolean;
+  private readonly staticGeometryRetirement: GpuRetirementOwner | null;
 
   constructor(
     private readonly parent: THREE.Group,
     private readonly retirement: GpuRetirementOwner,
     private readonly limits: CaoFoundationLimits,
-  ) {}
+    options: CaoFoundationRendererOptions = {},
+  ) {
+    this.allowStaticGeometryReplacement = options.allowStaticGeometryReplacement === true;
+    this.staticGeometryRetirement = options.staticGeometryRetirement ?? null;
+    if (this.allowStaticGeometryReplacement && this.staticGeometryRetirement === null) {
+      throw new Error("Cao static geometry replacement requires a retirement owner");
+    }
+  }
+
+  /**
+   * Declares that the next publication is expected to carry a different static
+   * geometry, and why. Consumed by exactly one replacement.
+   */
+  armStaticGeometryChange(reason: string): void {
+    if (!this.allowStaticGeometryReplacement) {
+      throw new Error("Cao foundation renderer does not allow static geometry replacement");
+    }
+    if (!reason) throw new Error("Cao static geometry change requires a reason");
+    this.armedStaticGeometryChange = reason;
+  }
 
   publish(revision: PreparedCaoRevision, verticalExaggeration: number): CaoFoundationDiagnostics {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
@@ -1971,16 +2304,31 @@ export class CaoFoundationSurfaceRenderer {
     }
     const token = this.publisher.begin(revision.identity);
     let resource: CaoFoundationPublicationResource | null = null;
+    // Set while a replacement geometry is built but not yet committed, so a
+    // failure between the two can put the previous geometry back instead of
+    // stranding it: the still-visible publication's meshes reference it.
+    let uncommittedReplacement: CaoFoundationGeometryResource | null = null;
     try {
       const reservation = estimateCaoFoundationGeometryReservation(revision, this.limits);
       const expectedStaticKey = `${revision.packageId}@${revision.packageRevision}:${[
         ...revision.batches.map((batch) => batch.staticGeometryIdentity),
         ...revision.lineBatches.map((batch) => batch.staticGeometryIdentity),
       ].join("|")}`;
+      let retiredStaticGeometry: CaoFoundationGeometryResource | null = null;
       if (!this.staticGeometry || this.staticGeometry.key !== expectedStaticKey) {
-        if (this.staticGeometry) throw new Error("Cao foundation static geometry changed within renderer lifetime");
-        this.staticGeometry = createCaoFoundationGeometryResource(revision, this.limits);
-        if (this.staticGeometry.byteLength > reservation) throw new Error("Cao static geometry reservation mismatch");
+        if (this.staticGeometry && !(this.allowStaticGeometryReplacement
+            && this.armedStaticGeometryChange !== null)) {
+          throw new Error("Cao foundation static geometry changed within renderer lifetime");
+        }
+        const replaced = this.staticGeometry;
+        const next = createCaoFoundationGeometryResource(revision, this.limits);
+        if (next.byteLength > reservation) {
+          next.dispose();
+          throw new Error("Cao static geometry reservation mismatch");
+        }
+        this.staticGeometry = next;
+        retiredStaticGeometry = replaced;
+        uncommittedReplacement = replaced;
       }
       const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
       const publicationBytes = safeAdd(safeAdd(safeAdd(packed.data.byteLength,
@@ -1997,7 +2345,7 @@ export class CaoFoundationSurfaceRenderer {
         throw new Error("Cao foundation GPU retirement backpressure bound exceeded");
       }
       resource = createPublicationResource(revision, this.staticGeometry, packed,
-        verticalExaggeration, this.retirement);
+        verticalExaggeration, this.retirement, this.palaeoCoastlineMode);
       if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", resource)) {
         throw new Error("Cao foundation publication became stale");
       }
@@ -2010,10 +2358,24 @@ export class CaoFoundationSurfaceRenderer {
       if (previous) this.parent.remove(previous.resources.group);
       this.domainVisible = true;
       resource = null;
+      // Exactly one retirement per replacement, and only once the new geometry
+      // is the committed publication's own.
+      if (retiredStaticGeometry !== null) {
+        uncommittedReplacement = null;
+        this.armedStaticGeometryChange = null;
+        void this.staticGeometryRetirement!.retire({
+          byteLength: retiredStaticGeometry.byteLength,
+          dispose: () => retiredStaticGeometry!.dispose(),
+        });
+      }
       revision.release();
       return this.diagnostics();
     } catch (error) {
       resource?.disposeUnsubmitted();
+      if (uncommittedReplacement !== null) {
+        this.staticGeometry?.dispose();
+        this.staticGeometry = uncommittedReplacement;
+      }
       revision.release();
       throw error;
     }
@@ -2041,6 +2403,8 @@ export class CaoFoundationSurfaceRenderer {
       batches: batches.length,
       vertices: batches.reduce((sum, batch) => sum + batch.vertexCount, 0),
       triangles: batches.reduce((sum, batch) => sum + batch.triangleCount, 0),
+      chartRanges: batches.reduce((sum, batch) => sum + batch.chartRanges.length / 4, 0),
+      palaeoCoastlineMode: this.palaeoCoastlineMode,
       drawCount: this.domainVisible
         ? current?.resources.group.children.filter((child) => child.visible).length ?? 0 : 0,
       countryLineBatches: this.staticGeometry?.lineBatches.length ?? 0,
@@ -2067,10 +2431,26 @@ export class CaoFoundationSurfaceRenderer {
     rayDirection: Vec3Tuple,
     maximumTestedTriangles = 65_536,
   ): CaoFoundationSurfaceHit | null {
+    const view = this.surfaceView();
+    if (view === null) return null;
+    return intersectCaoFoundationSurface(view.geometry, view.publication,
+      rayOrigin, rayDirection, maximumTestedTriangles, this.surfaceMode());
+  }
+
+  surfaceMode(): CaoFoundationSurfaceMode {
+    return this.palaeoCoastlineMode ? "palaeo" : "native";
+  }
+
+  /**
+   * The surface currently on screen, or null when the domain is hidden or
+   * nothing is published — the same condition `intersectRay` answers null on.
+   * Exposed so the composite can rank two instances against one precedence
+   * table instead of each answering in isolation.
+   */
+  surfaceView(): CaoFoundationSurfaceView | null {
     const current = this.publisher.current();
     if (!this.domainVisible || !this.staticGeometry || !current) return null;
-    return intersectCaoFoundationSurface(this.staticGeometry, current.resources,
-      rayOrigin, rayDirection, maximumTestedTriangles);
+    return { geometry: this.staticGeometry, publication: current.resources };
   }
 
   /**
@@ -2082,9 +2462,9 @@ export class CaoFoundationSurfaceRenderer {
     rendererDirection: UnitDirection,
     options: CaoFoundationCoverageOptions = {},
   ): boolean {
-    const current = this.publisher.current();
-    if (!this.domainVisible || !this.staticGeometry || !current) return false;
-    return caoFoundationSurfaceCoversDirection(this.staticGeometry, current.resources,
+    const view = this.surfaceView();
+    if (view === null) return false;
+    return caoFoundationSurfaceCoversDirection(view.geometry, view.publication,
       [...rendererDirection] as unknown as Vec3Tuple, options);
   }
 
@@ -2100,14 +2480,25 @@ export class CaoFoundationSurfaceRenderer {
     return this.diagnostics();
   }
 
-  setLayerVisibility(borders: boolean, tectonics: boolean): void {
+  setLayerVisibility(layers: CaoFoundationLayerVisibility): void {
+    this.setPalaeoCoastlineMode(layers.palaeoCoastlines);
     const current = this.publisher.current();
     if (!current) return;
     for (const child of current.resources.group.children) {
-      if (child.userData.overlayLayer === "borders") child.visible = borders;
-      if (child.userData.overlayLayer === "tectonics") child.visible = tectonics;
+      if (child.userData.overlayLayer === "borders") child.visible = layers.borders;
+      if (child.userData.overlayLayer === "tectonics") child.visible = layers.tectonics;
     }
-    current.resources.setNativeBoundaryLayerVisibility(tectonics);
+    current.resources.setNativeBoundaryLayerVisibility(layers.tectonics);
+  }
+
+  /**
+   * Suppresses native land in favour of palaeo-coastline charts, and switches
+   * this instance's pick and coverage answers to the palaeo precedence stack.
+   */
+  setPalaeoCoastlineMode(on: boolean): CaoFoundationDiagnostics {
+    this.palaeoCoastlineMode = on;
+    this.publisher.current()?.resources.setPalaeoCoastlineMode(on);
+    return this.diagnostics();
   }
 
   /**
