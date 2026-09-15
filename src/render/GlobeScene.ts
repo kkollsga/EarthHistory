@@ -28,7 +28,16 @@ import { setInspectionLightPosition } from "./inspectionLight";
 import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
+  type CaoFoundationSurfaceHit,
 } from "./reconstruction/caoFoundation";
+import {
+  caoCompositeCoversDirection,
+  caoPalaeoCoastlineAgeInsideDomain,
+  CAO_PALAEO_VISIBILITY_INITIAL_STATE,
+  intersectCaoComposite,
+  nextCaoPalaeoVisibilityState,
+  type CaoPalaeoVisibilityState,
+} from "./reconstruction/palaeoComposite";
 import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
@@ -387,18 +396,41 @@ function editorialGlobeColor(environment: WorldSnapshot["environment"]): number 
 function createCaoGpuRetirementOwner(
   renderer: RendererLike,
   backend: EarthHistoryDiagnostics["backend"],
+  maxPendingResources = 2,
+  maxPendingBytes = 4 * 1024 * 1024,
 ): GpuRetirementOwner {
   if (backend === "webgpu") {
     const queue = renderer.backend?.device?.queue;
     if (!queue) throw new Error("Cao renderer requires the active WebGPU submission queue");
-    return new GpuRetirementOwner(new WebGpuSubmissionFence(queue), 2, 4 * 1024 * 1024);
+    return new GpuRetirementOwner(new WebGpuSubmissionFence(queue),
+      maxPendingResources, maxPendingBytes);
   }
   const context = renderer.backend?.gl ?? renderer.getContext?.();
   if (!(context instanceof WebGL2RenderingContext)) {
     throw new Error("Cao renderer requires the active WebGL2 context");
   }
-  return new GpuRetirementOwner(new WebGl2SubmissionFence(context), 2, 4 * 1024 * 1024);
+  return new GpuRetirementOwner(new WebGl2SubmissionFence(context),
+    maxPendingResources, maxPendingBytes);
 }
+
+/**
+ * Bounds for the palaeo-coastline instance. It streams one Cao 2017 map
+ * interval at a time, so it replaces static geometry where the native instance
+ * never may, and its worst measured interval (37-29 Ma: about 78k vertices and
+ * 136k triangles at the 1 degree refinement) sits well inside these ceilings.
+ * One resource and 8 MiB of retirement cover a single interval swap; the
+ * publication ledger is a palette and per-chart pose table only.
+ */
+const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
+  maxBatches: 64,
+  maxVertices: 170_000,
+  maxTriangles: 300_000,
+  maxRetainedSourceBytes: 16 * 1024 * 1024,
+  maxPublicationBytes: 512 * 1024,
+  maxSpatialIndexBytes: 512 * 1024,
+});
+const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
+const CAO_PALAEO_RETIREMENT_MAX_BYTES = 8 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -456,11 +488,14 @@ export class GlobeScene {
   private readonly focusMarkerProjectedPosition = new THREE.Vector3();
   private readonly controls: OrbitControls;
   private readonly caoFoundationRenderer: CaoFoundationSurfaceRenderer;
+  private readonly caoPalaeoRenderer: CaoFoundationSurfaceRenderer;
   private readonly globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
   private readonly cloudMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   private resizeObserver: ResizeObserver;
   private layers: LayerVisibility = { clouds: true, borders: true, guides: true,
-    tectonics: false, rivers: false };
+    tectonics: false, rivers: false, palaeoCoastlines: false };
+  private palaeoRequestedAgeMa: number | null = null;
+  private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
   private requestedQuality: RequestedQuality;
   private effectiveQuality: "high" | "low";
   private detail: SurfaceDetail = "coarse";
@@ -521,6 +556,21 @@ export class GlobeScene {
         maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );
+    // A second instance owns the palaeo-coastline charts. It keeps its own
+    // retirement owners — one for publications, one for the static geometry a
+    // map-interval change replaces — because a single owner bounded at one
+    // pending resource cannot hold both retirements of the same swap.
+    this.caoPalaeoRenderer = new CaoFoundationSurfaceRenderer(
+      this.globeGroup,
+      createCaoGpuRetirementOwner(renderer, backend,
+        CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES),
+      { ...CAO_PALAEO_RENDERER_LIMITS, maxTextureSize: maximumTextureSize },
+      { allowStaticGeometryReplacement: true,
+        staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
+          CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES) },
+    );
+    this.caoPalaeoRenderer.setPalaeoCoastlineMode(true);
+    this.caoPalaeoRenderer.setDomainVisibility(false);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -604,6 +654,7 @@ export class GlobeScene {
 
   private applyCaoFoundationWithheldState(): CaoFoundationDiagnostics {
     const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
+    this.updatePalaeoDomainVisibility();
     this.pendingCaoDiagnostics = null;
     this.markerGroup.visible = false;
     const dataset = this.renderer.domElement.dataset;
@@ -658,7 +709,8 @@ export class GlobeScene {
         paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa,
         materialCorrections);
       this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
-      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.palaeoRequestedAgeMa = requestedAgeMa;
+      this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.markerGroup.visible = true;
@@ -744,7 +796,8 @@ export class GlobeScene {
       this.rebuildMarkers();
       this.markerGroup.visible = !this.caoFoundationWithheld;
       this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
-      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.palaeoRequestedAgeMa = revision.requestedAgeMa;
+      this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.pendingCaoDiagnostics = diagnostics;
@@ -825,6 +878,8 @@ export class GlobeScene {
         0.12 + (environment.cloudCover ?? 0.5) * 0.34, 0.12, 0.42,
       );
       const age = snapshot.requestedAgeMa ?? snapshot.ageMa;
+      this.palaeoRequestedAgeMa = age;
+      this.updatePalaeoDomainVisibility();
       if (age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
         const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
         this.renderer.domElement.dataset.caoFoundationStatus = "unsupported";
@@ -854,7 +909,7 @@ export class GlobeScene {
     const guidesChanged = this.layers.guides !== layers.guides;
     this.layers = layers;
     this.cloudMesh.visible = layers.clouds;
-    this.caoFoundationRenderer.setLayerVisibility(layers.borders, layers.tectonics);
+    this.applyLayerVisibility();
     this.renderer.domElement.dataset.countryRibbonVisible = String(layers.borders);
     this.renderer.domElement.dataset.nativeBoundaryVisible = String(layers.tectonics);
     if (guidesChanged) this.rebuildOverlays();
@@ -943,6 +998,7 @@ export class GlobeScene {
     this.controls.removeEventListener("end", this.handleControlsEnd);
     this.controls.dispose();
     this.caoFoundationRenderer.disposeForRendererTeardown();
+    this.caoPalaeoRenderer.disposeForRendererTeardown();
     this.markerTexture.dispose();
     this.focusLockMarkerTexture.dispose();
     this.focusLockMarker = null;
@@ -1081,6 +1137,54 @@ export class GlobeScene {
     this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(requestedAgeMa);
   }
 
+  /**
+   * One layer record reaches both surface instances. The palaeo instance is
+   * always in palaeo mode — its charts are the mode — while the native instance
+   * enters it only when the layer is on, which is what hides `batch-land`.
+   */
+  private applyLayerVisibility(): void {
+    const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
+      palaeoCoastlines: this.layers.palaeoCoastlines };
+    this.caoFoundationRenderer.setLayerVisibility(record);
+    this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
+    this.updatePalaeoDomainVisibility();
+  }
+
+  /**
+   * Applies the one-frame hysteresis at the Cao 2017 map boundaries and reports
+   * the mode. The notice follows the requested age immediately; the geometry
+   * follows one frame later, so a scrub resting on 402 Ma cannot strobe.
+   */
+  private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
+    const inside = caoPalaeoCoastlineAgeInsideDomain(this.palaeoRequestedAgeMa);
+    const requested = this.layers.palaeoCoastlines && inside && !this.caoFoundationWithheld;
+    // Only the frame loop advances the hysteresis; a layer toggle or a scrub
+    // sample that also lands in the same frame must not spend its second frame
+    // and flip the domain immediately.
+    if (advanceHysteresis) {
+      this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility, requested);
+    }
+    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoPalaeoCoastlineMode = !this.layers.palaeoCoastlines ? "off"
+      : !inside ? "fallback"
+      : this.palaeoVisibility.visible && palaeo.identity !== null ? "on" : "loading";
+    dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
+      ? "age-outside-cao-2017-map-intervals" : "";
+    dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
+    dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
+  }
+
+  /** Nearest hit across both instances, ranked by one precedence table. */
+  private intersectCompositeRay(
+    rayOrigin: [number, number, number],
+    rayDirection: [number, number, number],
+  ): CaoFoundationSurfaceHit | null {
+    return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
+      this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
+      { mode: this.caoFoundationRenderer.surfaceMode() });
+  }
+
   private rebuildOverlays(): void {
     clearGroup(this.overlayGroup);
     if (!this.layers.guides) {
@@ -1142,10 +1246,12 @@ export class GlobeScene {
     const started = performance.now();
     const step = advanceGuideLabelToneScan(this.guideLabelToneScan,
       GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME, (direction) => native
-        // Land only: shelf water is a dark background like the open ocean, so
-        // it takes the light ink too.
-        ? this.caoFoundationRenderer.coversDirection(
-          [direction.x, direction.y, direction.z], { includeShelf: false })
+        // Land only: shelf water and mapped shallow sea are dark backgrounds
+        // like the open ocean, so they take the light ink too. The composite is
+        // what keeps a palaeo landmass dark once native land is hidden.
+        ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
+          this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
+          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode() })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -1260,7 +1366,7 @@ export class GlobeScene {
     const worldToGlobe = this.globeGroup.matrixWorld.clone().invert();
     const localOrigin = this.raycaster.ray.origin.clone().applyMatrix4(worldToGlobe);
     const localRay = this.raycaster.ray.direction.clone().transformDirection(worldToGlobe);
-    const caoHit = this.caoFoundationRenderer.intersectRay(
+    const caoHit = this.intersectCompositeRay(
       [localOrigin.x, localOrigin.y, localOrigin.z], [localRay.x, localRay.y, localRay.z]);
     const sphereHit = this.raycaster.intersectObject(this.globeMesh, false)[0];
     const localDirection = caoHit === null
@@ -1353,6 +1459,7 @@ export class GlobeScene {
     this.updatePoiMarkerScale();
     this.reportFocusMarkerOffset();
     this.updateInspectionLight();
+    this.updatePalaeoDomainVisibility(true);
     this.updateGuideLabelTones(now);
     this.updateGuideLabelVisibility();
     if (this.impactGroup.visible && this.autoRotate && !this.reducedMotion.matches) {

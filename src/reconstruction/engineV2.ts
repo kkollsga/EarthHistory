@@ -498,6 +498,7 @@ export class CaoReconstructionRuntime {
         staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
         vertexCount: descriptor.vertexCount, triangleCount: descriptor.triangleCount,
         nativePrecedence: descriptor.overlapPolicy === "native-visual-and-picking-precedence",
+        surfaceAppearance: descriptor.surfaceAppearance,
         // Renderer copy excludes the EHGB header. Two narrowed chart-index
         // arrays together equal the source u32 chart-index storage.
         staticGeometryBytes: geometry.byteLength - 32

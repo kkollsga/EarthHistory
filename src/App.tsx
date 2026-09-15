@@ -64,6 +64,7 @@ const DEFAULT_LAYERS: LayerVisibility = {
   guides: true,
   tectonics: false,
   rivers: false,
+  palaeoCoastlines: false,
 };
 
 const LAYER_META: Array<{

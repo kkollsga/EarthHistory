@@ -1,5 +1,6 @@
 import type { MaterialAddress, MaterialPose, SupportState, SurfaceEvidenceState } from "./types";
-import type { MaterialChartEvidence, MaterialChartRole } from "./packageV2";
+import type { MaterialChartEvidence, MaterialChartRole,
+  SpatialBatchSurfaceAppearanceV2 } from "./packageV2";
 import type { QuaternionWxyz } from "./arithmetic";
 import type { NativeBoundarySegmentV2, PreparedNativeLayer, TopologyOwnershipRingV2 } from "./nativeLayersV2";
 
@@ -43,6 +44,8 @@ export interface PreparedCaoSpatialBatch {
   readonly triangleCount: number;
   readonly staticGeometryBytes: number;
   readonly nativePrecedence: boolean;
+  /** Declared drawing class from the package; undefined leaves the batch-id default. */
+  readonly surfaceAppearance?: SpatialBatchSurfaceAppearanceV2;
   /** Contiguous source-index ranges used to build one reference-space BVH per material chart. */
   readonly chartTriangleRanges: readonly Readonly<{
     chartIndex: number;

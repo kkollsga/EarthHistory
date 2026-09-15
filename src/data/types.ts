@@ -70,6 +70,8 @@ export interface LayerVisibility {
   guides: boolean;
   tectonics: boolean;
   rivers: boolean;
+  /** Cao 2017 palaeogeography polygons replacing the Cao 2024 coast fill. */
+  palaeoCoastlines: boolean;
 }
 
 export interface GlobeStats {
