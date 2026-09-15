@@ -10,6 +10,7 @@ import math
 import re
 from copy import deepcopy
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -272,7 +273,7 @@ def validate_generated_catalog(manifest: dict, catalog: dict, package_dir: Path 
         if by_id[batch_id].get("staticDisplayControl", {}).get("baseColorRgb") != color:
             fail(batch_id, "uniform land color changed")
     if package_dir is not None:
-        core = json.loads((package_dir / "core.json").read_text())
+        core = package_intern.read_package_json(package_dir / "core.json")
         native_count = len(core["charts"])
         chart_indices = {chart["chartId"]: native_count + index
                          for index, chart in enumerate(catalog["charts"])}
@@ -300,7 +301,7 @@ def validate(runtime: bool, package_dir: Path = PUBLIC, external_sources: bool =
         package = json.loads((package_dir / "manifest.json").read_text())
         catalog_path = package_dir / package["materialCorrections"]["catalog"]["url"]
         result["generated"] = validate_generated_catalog(
-            manifest, json.loads(catalog_path.read_text()), package_dir)
+            manifest, package_intern.read_package_json(catalog_path), package_dir)
         motion = json.loads(MOTION_REPORT.read_text())
         assets = motion.get("packageAssets", {})
         if (motion.get("correctionId") != CORRECTION_ID
@@ -345,7 +346,7 @@ def self_test(runtime: bool = False, package_dir: Path = PUBLIC) -> None:
     if runtime:
         package = json.loads((package_dir / "manifest.json").read_text())
         catalog_path = package_dir / package["materialCorrections"]["catalog"]["url"]
-        catalog = json.loads(catalog_path.read_text())
+        catalog = package_intern.read_package_json(catalog_path)
         cases = {
             "inferred pose relabel": lambda value: next(chart for chart in value["charts"]
                 if chart["chartId"].startswith(f"correction:{CORRECTION_ID}:")

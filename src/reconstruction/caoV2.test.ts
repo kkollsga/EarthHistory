@@ -10,6 +10,7 @@ import { decodeCaoSpatialBatch } from "./spatialV2";
 import { EARTH_RADIUS_METRES } from "./arithmetic";
 import { CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
   createCaoFoundationGeometryResource } from "../render/reconstruction/caoFoundation";
+import { expandInternedPackageDocument } from "./packageIntern";
 
 // Independent strict pyGPlates totals are tracked in
 // docs/research/reconstruction-cao-complete-rotation-witnesses.json.
@@ -146,6 +147,9 @@ function assertWitnessChartCoverage(
 }
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
+/** Package JSON is read raw here, so the interning decoder runs explicitly. */
+const readJson = async (url: string): Promise<unknown> =>
+  JSON.parse(await readFile(resolve(root, url), "utf8")) as unknown;
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
   const bytes = await readFile(resolve(root, packageAssetPath(url)));
@@ -184,7 +188,7 @@ describe("native Cao package v2", () => {
 
   it("activates derived material strictly beyond native and qualified evidence boundaries", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
+    const catalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as
       MaterialCorrectionCatalogV1;
     const runtime = new CaoReconstructionRuntime(manifest, fetcher);
     for (const ageMa of [0, 0.001, 1, 50, 100, 165, 410, 410 + 1e-7, 410 + 1e-6,
@@ -331,8 +335,8 @@ describe("native Cao package v2", () => {
 
   it("rejects a correction binary whose vertex names a nonexistent material chart", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as { charts: unknown[] };
-    const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as { charts: unknown[] };
+    const catalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as
       MaterialCorrectionCatalogV1;
     const batch = catalog.spatialBatches[0]!;
     const bytes = await readFile(resolve(root, batch.geometryAsset.url));
@@ -345,8 +349,8 @@ describe("native Cao package v2", () => {
 
   it("keeps every correction triangle above the opaque globe after float32 encoding", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as { charts: unknown[] };
-    const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as { charts: unknown[] };
+    const catalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as
       MaterialCorrectionCatalogV1;
     for (const batch of catalog.spatialBatches) {
       const bytes = await readFile(resolve(root, batch.geometryAsset.url));
@@ -367,7 +371,7 @@ describe("native Cao package v2", () => {
 
   it("rejects a hash-consistent correction batch that binds to a native Cao chart", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
+    const catalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as
       MaterialCorrectionCatalogV1;
     const batch = catalog.spatialBatches[0]!;
     const bytes = await readFile(resolve(root, batch.geometryAsset.url));
@@ -402,9 +406,7 @@ describe("native Cao package v2", () => {
 
   it("changes the prepared identity when the additive correction catalog revision changes", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const rawCatalog = JSON.parse(await readFile(
-      resolve(root, manifest.materialCorrections!.catalog.url), "utf8",
-    )) as MaterialCorrectionCatalogV1;
+    const rawCatalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as MaterialCorrectionCatalogV1;
     const manifestWithoutTiles = { ...manifest,
       motionPalette: { ...manifest.motionPalette, requestedAgeTiles: undefined } };
     const baseRuntime = new CaoReconstructionRuntime(manifestWithoutTiles, fetcher);
@@ -722,7 +724,7 @@ describe("native Cao package v2", () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
     expect(manifest.frame.rotationSha256)
       .toBe("80736cef2b1c48e61242eb85838e3da859526c4f75bcb001e08076902e21224f");
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as {
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as {
       charts: Array<{ chartId: string; motionBindings: Array<{ entryId: string }> }>;
     };
     const palette = JSON.parse(await readFile(resolve(root, manifest.motionPalette.catalog.url), "utf8")) as {

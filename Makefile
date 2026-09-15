@@ -65,6 +65,8 @@ check-dev-docs:
 	@python3 scripts/check_dev_docs.py --max-mb "$(DEV_DOCS_MAX_MB)"
 
 check-corrections:
+	@python3 scripts/research/cao_package_intern.py --self-test
+	@python3 scripts/research/apply_cao_package_interning.py
 	@python3 scripts/research/cao_material_corrections.py --self-test
 	@python3 scripts/research/cao_material_corrections.py
 	@python3 scripts/research/validate_regional_barents_shelf.py --self-test

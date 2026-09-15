@@ -6,6 +6,7 @@ import hashlib, json, math, struct
 from pathlib import Path
 from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA, display_checkpoint_ages_ma
 import pygplates
+import cao_package_intern as package_intern
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = ROOT.parent / "EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
@@ -120,7 +121,8 @@ def emit_boundaries(age_result):
     catalog = {"schemaVersion": 2, "packageId": PACKAGE, "revision": REVISION, "frame": frame(),
                "sourceAgeMa": age, "pointEncoding": "ehnb-v2-f32xyz", "pointRecordBytes": 12, "binary": asset(binary),
                "segments": segments}
-    path = OUT / f"boundary-{age:g}ma.json"; path.write_text(json.dumps(catalog, separators=(",", ":")) + "\n")
+    path = OUT / f"boundary-{age:g}ma.json"
+    path.write_text(json.dumps(package_intern.intern_boundary(catalog), separators=(",", ":")) + "\n")
     return {"sourceAgeMa": age, "catalog": asset(path), "binary": asset(binary)}
 
 
@@ -150,7 +152,8 @@ def emit_ownership(age, features, rotations):
     catalog = {"schemaVersion": 2, "packageId": PACKAGE, "revision": REVISION, "frame": frame(),
                "sourceAgeMa": age, "pointEncoding": "ehto-v2-f32xyz", "pointRecordBytes": 12,
                "binary": asset(binary), "rings": rings}
-    path = OUT / f"ownership-{age:g}ma.json"; path.write_text(json.dumps(catalog, separators=(",", ":")) + "\n")
+    path = OUT / f"ownership-{age:g}ma.json"
+    path.write_text(json.dumps(package_intern.intern_ownership(catalog), separators=(",", ":")) + "\n")
     return {"sourceAgeMa": age, "catalog": asset(path), "binary": asset(binary)}
 
 

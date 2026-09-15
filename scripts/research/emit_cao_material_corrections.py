@@ -18,6 +18,7 @@ import cao_material_corrections as contract
 import regional_iceland_correction as iceland_contract
 import regional_observed_land_omission_correction as omission_contract
 import regional_lake_void_correction as lake_contract
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -1016,7 +1017,7 @@ def main():
     rows = [*rows, *((lake_manifest, lake_contract.MANIFEST, feature)
                      for feature in lake_manifest["features"])]
     package, palette, records = palette_data()
-    core = json.loads((PUBLIC / package["core"]["url"]).read_text())
+    core = package_intern.read_package_json(PUBLIC / package["core"]["url"])
     native_overrides, replacement_rows = native_override_rows(core)
     rows = [*rows, *replacement_rows]
     OUT.mkdir(parents=True, exist_ok=True)
@@ -1070,7 +1071,8 @@ def main():
         "spatialBatches": batches,
     }
     catalog_path = OUT / "catalog.json"
-    catalog_path.write_bytes(canonical_json(catalog))
+    catalog_path.write_bytes(canonical_json(
+        package_intern.intern_charts(catalog, package_intern.CORRECTION_CHART_FIELDS)))
     update_public_manifest(catalog_path, geometry_paths,
                            update_root_manifest=not args.skip_root_manifest)
     print(json.dumps({"corrections": len(catalog["correctionIds"]), "charts": len(charts),

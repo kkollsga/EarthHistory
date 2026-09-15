@@ -1,4 +1,5 @@
 import { loadVerifiedBytes, type StaticAssetFetchOptions, type StaticAssetFetcher } from "./assetLoader";
+import { expandInternedPackageDocument } from "./packageIntern";
 import { decodeMotionPalette, selectPaletteMotionSubsegment, type MotionPaletteCatalog,
   type PreparedPaletteEntry } from "./palette";
 import { evaluateLifecycleSupport } from "./motion";
@@ -36,7 +37,10 @@ async function verifiedJson<T>(
   options?: StaticAssetFetchOptions,
 ): Promise<T> {
   const bytes = await loadVerifiedBytes(asset, fetcher, signal, options);
-  return JSON.parse(new TextDecoder().decode(bytes)) as T;
+  // Interned package documents are expanded here, before any validator or
+  // consumer sees them, so every check downstream reads the same chart, segment
+  // and ring shape the package shipped before interning.
+  return expandInternedPackageDocument(JSON.parse(new TextDecoder().decode(bytes))) as T;
 }
 
 export interface LoadedCaoFoundationMetadata {

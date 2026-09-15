@@ -9,6 +9,7 @@ import struct
 from pathlib import Path
 
 from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA, display_checkpoint_ages_ma
+import cao_package_intern as package_intern
 
 ROOT = Path(__file__).resolve().parents[2]
 STAGE = (
@@ -128,8 +129,8 @@ def main(shelf_pkg: Path, land_pkg: Path, out: Path):
         if path.is_file():
             path.unlink()
 
-    shelf_core = json.loads((shelf_pkg / "core.json").read_text())
-    land_core = json.loads((land_pkg / "core.json").read_text())
+    shelf_core = package_intern.read_package_json(shelf_pkg / "core.json")
+    land_core = package_intern.read_package_json(land_pkg / "core.json")
     shelf_manifest = json.loads((shelf_pkg / "manifest.json").read_text())
     land_manifest = json.loads((land_pkg / "manifest.json").read_text())
     assert shelf_manifest["frame"] == land_manifest["frame"]
@@ -175,7 +176,8 @@ def main(shelf_pkg: Path, land_pkg: Path, out: Path):
         ],
     }
     core_path = out / "core.json"
-    core_path.write_text(json.dumps(core, separators=(",", ":")) + "\n")
+    core_path.write_text(json.dumps(package_intern.intern_charts(core),
+                                    separators=(",", ":")) + "\n")
 
     ages = display_checkpoint_ages_ma(CAO_SOURCE_OLDEST_MA)
     # Prefer ages from shelf manifest if present and matching schedule.

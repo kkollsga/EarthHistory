@@ -7,6 +7,7 @@ import { CaoReconstructionRuntime, chartPickStateFromMotionFrame, packageAssetPa
   validateMaterialCorrectionCatalogV1 } from "./index";
 import { createCaoFoundationGeometryResource, caoFoundationSurfaceCoversDirection,
   intersectCaoFoundationSurface } from "../render/reconstruction/caoFoundation";
+import { expandInternedPackageDocument } from "./packageIntern";
 
 /**
  * The Cao v2.4 coast layer leaves the large modern lakes as voids inside the
@@ -17,6 +18,9 @@ import { createCaoFoundationGeometryResource, caoFoundationSurfaceCoversDirectio
  */
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
+/** Package JSON is read raw here, so the interning decoder runs explicitly. */
+const readJson = async (url: string): Promise<unknown> =>
+  JSON.parse(await readFile(resolve(root, url), "utf8")) as unknown;
 const fetcher: StaticAssetFetcher = async (url) => {
   const bytes = await readFile(resolve(root, packageAssetPath(url)));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
@@ -100,9 +104,9 @@ describe("lake-void infill", () => {
   it("rejects a lake infill that is active at present or outlives the package", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
-    const catalog = JSON.parse(await readFile(resolve(root, manifest.materialCorrections!.catalog.url), "utf8")) as
+    const catalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as
       MaterialCorrectionCatalogV1;
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as ReconstructionCoreV2;
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as ReconstructionCoreV2;
     const lakeCharts = catalog.charts.filter((chart) => chart.sourceFeatureTypes[0] === LAKE_VOID_INFILL_SOURCE_TYPE);
     expect(lakeCharts.length).toBe(101);
     expect(lakeCharts.every((chart) => chart.lifecycle.youngestExclusive === true

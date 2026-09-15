@@ -22,9 +22,9 @@
       "topologySha256": "3a3021b8d60bbcff64ce4018198a5693ddc018de7a5a8b3c30c33a48d51c044c"
     },
     "core": {
-      "bytes": 6314414,
-      "sha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
-      "url": "core.json"
+      "url": "core.json",
+      "bytes": 3216469,
+      "sha256": "becefc348cd0aa6e02d5fced4ecc89d92889aae054ab3ea035171ac4f7a99417"
     },
     "motionPalette": {
       "id": "cao-v2.4-shared-motion-v1",
@@ -41,9 +41,9 @@
     },
     "materialCorrections": {
       "catalog": {
-        "bytes": 397090,
-        "sha256": "ab48dcd5311f5276219530ef1153a60dde34878aa5c391ee2e4c584a6a70f6c1",
-        "url": "corrections/material-v1/catalog.json"
+        "url": "corrections/material-v1/catalog.json",
+        "bytes": 284232,
+        "sha256": "8b9b7e3fe97b0c4efb54817e0e6b4bb8c81d6a9d974de6eabee5cf9d39ac9ff9"
       },
       "id": "earthhistory-cao-v2.4-material-corrections-v1"
     }
@@ -57,7 +57,7 @@
     "expectedRecordCount": 281219,
     "expectedEntryDescriptorCount": 11043,
     "expectedIndexBytes": 28068,
-    "expectedIndexSha256": "6949c599e83fde61def7eb5e83069cc200e940454f1707958d51787256c64e09",
+    "expectedIndexSha256": "d13949e4e8ca37a16d8fd6b9b6f3dde67da60ae0d36913c2fbfae4054051e882",
     "outputLimitBytes": 6610000,
     "cleanupOwner": "root",
     "scratchRoot": "/tmp/earthhistory-requested-age/data"

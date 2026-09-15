@@ -17,6 +17,7 @@ import struct
 from pathlib import Path
 
 import pygplates
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -220,7 +221,7 @@ def triangle_minimum_radius(a: tuple[float, ...], b: tuple[float, ...], c: tuple
 
 
 def clearance_audit(package: Path) -> dict[str, object]:
-    core = json.loads((package / "core.json").read_text())
+    core = package_intern.read_package_json(package / "core.json")
     batch = next(row for row in core["spatialBatches"] if row["batchId"] == "batch-shelf")
     raw = (package / batch["geometryAsset"]["url"]).read_bytes()
     vertex_count, triangle_count = struct.unpack_from("<II", raw, 8)

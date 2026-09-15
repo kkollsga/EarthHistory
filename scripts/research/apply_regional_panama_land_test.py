@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cao_package_intern as package_intern
 import apply_regional_panama_land as appender
 
 
@@ -41,7 +42,7 @@ class PanamaApplyTest(unittest.TestCase):
         manifest_path = self.package / "manifest.json"
         palette_path = self.package / "motion-palette.json"
         palette_binary_path = self.package / "motion-palette.bin"
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         manifest = json.loads(manifest_path.read_text())
         palette = json.loads(palette_path.read_text())
 
@@ -118,7 +119,7 @@ class PanamaApplyTest(unittest.TestCase):
         palette["binary"] = appender.asset(palette_binary_path)
         palette_path.write_bytes(appender.canonical(palette))
 
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest["core"] = appender.asset(core_path)
         manifest["motionPalette"]["catalog"] = appender.asset(palette_path)
         manifest["motionPalette"]["binary"] = appender.asset(palette_binary_path)
@@ -142,10 +143,10 @@ class PanamaApplyTest(unittest.TestCase):
         self.assertEqual(validated["charts"], 5)
 
         core_path = self.package / "core.json"
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         chart = next(row for row in core["charts"] if row["chartId"].startswith(appender.CHART_PREFIX))
         chart["lifecycle"]["validTimeMa"]["oldest"] = 0.000001
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest_path = self.package / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
         manifest["core"] = appender.asset(core_path)
@@ -180,12 +181,12 @@ class PanamaApplyTest(unittest.TestCase):
         appender.apply(self.package)
         core_path = self.package / "core.json"
         manifest_path = self.package / "manifest.json"
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         targets = [row for row in core["charts"] if row["chartId"].startswith(appender.CHART_PREFIX)]
         targets[0]["sourceFeatureIds"], targets[1]["sourceFeatureIds"] = (
             targets[1]["sourceFeatureIds"], targets[0]["sourceFeatureIds"]
         )
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest = json.loads(manifest_path.read_text())
         manifest["core"] = appender.asset(core_path)
         manifest_path.write_bytes(appender.canonical(manifest))
@@ -203,7 +204,7 @@ class PanamaApplyTest(unittest.TestCase):
         decoded["charts"][first_target] = core["charts"].index(targets[1])
         land_path.write_bytes(appender.encode_ehgb(**decoded))
         land_batch["geometryAsset"] = appender.asset(land_path)
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest["core"] = appender.asset(core_path)
         manifest_path.write_bytes(appender.canonical(manifest))
         with self.assertRaisesRegex(appender.BuildError, "mesh payload or per-chart ownership"):

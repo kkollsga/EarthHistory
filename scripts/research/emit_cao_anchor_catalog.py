@@ -6,6 +6,7 @@ import hashlib, json, math
 from pathlib import Path
 from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
+import cao_package_intern as package_intern
 
 ROOT=Path(__file__).resolve().parents[2]
 MODEL=ROOT.parent/"EarthHistory-data/palaeomap-study/plates/extracted/cao2024-v2.4/1.8Ga_model_GSF"
@@ -30,7 +31,7 @@ def xyz(lon,lat):
 def main(out=None):
  global OUT
  OUT=Path(out) if out else DEFAULT_OUT
- core_path=OUT/"core.json";core=json.loads(core_path.read_text());palette=json.loads((OUT/"motion-palette.json").read_text())
+ core_path=OUT/"core.json";core=package_intern.read_package_json(core_path);palette=json.loads((OUT/"motion-palette.json").read_text())
  core["charts"]=[chart for chart in core["charts"] if chart["role"] not in ("poi-anchor","focus-anchor")]
  entries={}
  for entry in palette["entries"]:entries.setdefault(entry["plateId"],[]).append(entry)

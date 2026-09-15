@@ -18,6 +18,7 @@ import re
 import tempfile
 from copy import deepcopy
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -413,7 +414,7 @@ def validate_generated_catalog(manifest: dict, catalog: dict, package_dir: Path 
     if CORRECTION_ID not in catalog.get("correctionIds", []):
         fail("generated catalog", "correction identity is absent from the catalog")
     if package_dir is not None:
-        core = json.loads((package_dir / "core.json").read_text())
+        core = package_intern.read_package_json(package_dir / "core.json")
         indices = {row["chartId"]: len(core["charts"]) + index
                    for index, row in enumerate(catalog["charts"])}
         by_id = {batch["batchId"]: batch for batch in catalog["spatialBatches"]}
@@ -440,7 +441,7 @@ def validate(runtime: bool, package_dir: Path = PUBLIC) -> dict:
         package = json.loads((package_dir / "manifest.json").read_text())
         catalog_path = package_dir / package["materialCorrections"]["catalog"]["url"]
         result["generated"] = validate_generated_catalog(
-            manifest, json.loads(catalog_path.read_text()), package_dir)
+            manifest, package_intern.read_package_json(catalog_path), package_dir)
     return result
 
 
@@ -530,7 +531,8 @@ def self_test(runtime: bool = False, package_dir: Path = PUBLIC) -> dict:
 
     if runtime:
         package = json.loads((package_dir / "manifest.json").read_text())
-        catalog = json.loads((package_dir / package["materialCorrections"]["catalog"]["url"]).read_text())
+        catalog = package_intern.read_package_json(
+            package_dir / package["materialCorrections"]["catalog"]["url"])
         runtime_cases = {
             "generated backdating": lambda value: next(
                 row for row in value["charts"] if row["chartId"].startswith(f"correction:{CORRECTION_ID}:")

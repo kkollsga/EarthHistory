@@ -99,6 +99,46 @@ Loaders verify declared identity, length, digest and packed headers before
 acceptance. Frame-incompatible assets cannot be combined. Invalid support must
 remain unavailable rather than reviving an older reconstruction engine.
 
+### Interned package JSON
+
+The package JSON is shipped in a lossless interned form. Nothing scientific is
+removed: every chart, source identifier, citation, limitation string, lifecycle
+bound, motion binding, epistemic status and digest survives with the same value.
+The runtime decoder is `src/reconstruction/packageIntern.ts`, which runs on every
+verified JSON load before any validator sees the document; the offline encoder
+and its round-trip self-test are `scripts/research/cao_package_intern.py`, and
+`scripts/research/apply_cao_package_interning.py` owns the applied form and every
+digest that follows from it. A document without an encoding marker below is
+passed through untouched.
+
+| Marker | Files | Encoding |
+| --- | --- | --- |
+| `chartDictionaries` (+ `chartIdCollapse: "v1"`) | `core.json`, `corrections/material-v1/catalog.json` | Repeated chart fields are stored once per distinct value |
+| `segmentIdEncoding: "age-sourceFeatureId-part-v1"` | `boundary-*.json` | `segmentId` is derived, not shipped; UUIDs and enums are interned per file |
+| `ringIdEncoding: "age-topologyId-ordinal-v1"` | `ownership-*.json` | `polygonId` and `ringId` are derived, not shipped |
+
+`chartDictionaries` maps a chart field name to the distinct values of that field
+in first-appearance order; a chart carries `<field>Ref: <index>` in place of the
+field. A dotted name (`evidence.limitations`) addresses a field of the chart's
+`evidence` object. `core.json` interns `lifecycle`, `surfaceEvidence`,
+`motionBindings` and `evidence.limitations`; the correction catalog interns
+`lifecycle`, `surfaceEvidence`, `motionBindings` and the whole `evidence` object.
+Under `chartIdCollapse: "v1"` a chart whose `fragmentOrCohortId` or `materialId`
+equals its `chartId` ships `fragmentOrCohortIdIsChartId`/`materialIdIsChartId`
+instead of the repeated string.
+
+`boundary-*.json` rebuilds `segmentId` as
+`<sourceAgeMa>:<sourceFeatureId>:part:<sourcePart>`; its three GPlates UUID
+fields index a per-file `strings` table and its low-cardinality fields index
+per-file `dictionaries`. `ownership-*.json` rebuilds `polygonId` as
+`<sourceAgeMa>:<topologyId>` and appends the ring's ordinal within its polygon
+for `ringId`, which requires each polygon's rings to stay contiguous in the file.
+
+A reference outside its table, a ring shipped outside its polygon group, and a
+derived identifier that collides with another are all rejected at decode or
+validation time rather than decoded into a different value
+(`src/reconstruction/packageIntern.test.ts`).
+
 The runtime loading contract permits two resident and two unsettled checkpoint
 payloads, including their native assets. Canceled work continues to count until
 it settles. Static geometry and motion data have one owning foundation lifetime;

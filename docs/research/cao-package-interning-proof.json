@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "earthhistory-cao-package-interning-v1",
+  "encoding": "scripts/research/cao_package_intern.py",
+  "runtimeDecoder": "src/reconstruction/packageIntern.ts",
+  "losslessProof": "every rewritten file expands to a canonically identical document",
+  "classes": [
+    {
+      "files": "core.json",
+      "count": 1,
+      "internedBytes": 3216469
+    },
+    {
+      "files": "corrections/material-v1/catalog.json",
+      "count": 1,
+      "internedBytes": 284232
+    },
+    {
+      "files": "boundary-*.json",
+      "count": 235,
+      "internedBytes": 6365752
+    },
+    {
+      "files": "ownership-*.json",
+      "count": 235,
+      "internedBytes": 887669
+    }
+  ],
+  "internedBytes": 10754122,
+  "rebasedIdentityReports": [
+    "docs/research/regional-iceland-motion-validation.json",
+    "docs/research/north-sea-restoration-validation.json"
+  ],
+  "motionTiles": {
+    "tileCount": 72,
+    "tileBytes": 5715028,
+    "indexSha256": "d13949e4e8ca37a16d8fd6b9b6f3dde67da60ae0d36913c2fbfae4054051e882",
+    "packageManifestSha256": "4a4ebf925da767f3071e3a5e0ea3f2fd29d08f982da260f8cfcaaf1509b8660b"
+  }
+}

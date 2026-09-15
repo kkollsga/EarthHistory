@@ -16,6 +16,7 @@ import pygplates
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import emit_cao_foundation_package as foundation
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -156,7 +157,7 @@ def load_and_validate(package: Path):
     palette_path = package / "motion-palette.json"
     binary_path = package / "motion-palette.bin"
     manifest_path = package / "manifest.json"
-    core = json.loads(core_path.read_text())
+    core = package_intern.read_package_json(core_path)
     palette = json.loads(palette_path.read_text())
     manifest = json.loads(manifest_path.read_text())
     for descriptor, path in (
@@ -467,7 +468,7 @@ def apply(package: Path) -> dict:
     palette_path = package / "motion-palette.json"
     palette_path.write_bytes(canonical(palette))
     core_path = package / "core.json"
-    core_path.write_bytes(canonical(core))
+    core_path.write_bytes(canonical(package_intern.intern_charts(core)))
     old_core_sha = correction_catalog["baseline"]["coreSha256"]
     new_core_sha = sha(core_path)
     correction_catalog["baseline"]["coreSha256"] = new_core_sha

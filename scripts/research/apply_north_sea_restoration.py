@@ -27,6 +27,7 @@ import pygplates
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import apply_cao_shelf_lifecycle_422 as shelf422  # noqa: E402
 import emit_cao_foundation_package as foundation  # noqa: E402
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -146,7 +147,7 @@ def load_package(package: Path):
     palette_path = package / "motion-palette.json"
     binary_path = package / "motion-palette.bin"
     manifest_path = package / "manifest.json"
-    core = json.loads(core_path.read_text())
+    core = package_intern.read_package_json(core_path)
     palette = json.loads(palette_path.read_text())
     manifest = json.loads(manifest_path.read_text())
     for descriptor, path in ((manifest["core"], core_path), (manifest["motionPalette"]["catalog"], palette_path),

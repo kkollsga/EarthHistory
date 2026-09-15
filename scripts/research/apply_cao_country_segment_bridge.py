@@ -25,6 +25,7 @@ import struct
 import tempfile
 from copy import deepcopy
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -207,7 +208,7 @@ def apply(package: Path) -> dict:
     package = package.resolve()
     contract = load_contract()
     core_path, manifest_path = package / "core.json", package / "manifest.json"
-    core = json.loads(core_path.read_text())
+    core = package_intern.read_package_json(core_path)
     manifest = json.loads(manifest_path.read_text())
     if manifest["core"] != asset(core_path):
         raise BuildError("package core identity is stale")
@@ -238,7 +239,7 @@ def apply(package: Path) -> dict:
 
     write_atomic(line_path, encode_ehgl(geometry["directions"], geometry["charts"], geometry["indices"]))
     line_batch["geometryAsset"] = asset(line_path)
-    write_atomic(core_path, canonical(core))
+    write_atomic(core_path, canonical(package_intern.intern_charts(core)))
     manifest["core"] = asset(core_path)
     if SCOPE_CLAUSE.strip() not in manifest["scope"]:
         manifest["scope"] += SCOPE_CLAUSE
@@ -324,7 +325,7 @@ def validate_applied(package: Path, *, original_geometry=None, original_charts=N
     package = package.resolve()
     contract = load_contract()
     core_path, manifest_path = package / "core.json", package / "manifest.json"
-    core = json.loads(core_path.read_text())
+    core = package_intern.read_package_json(core_path)
     manifest = json.loads(manifest_path.read_text())
     if manifest["core"] != asset(core_path):
         raise BuildError("package core identity is stale")
@@ -473,7 +474,7 @@ def main() -> None:
             return
     if args.print_contract:
         package = args.package.resolve()
-        core = json.loads((package / "core.json").read_text())
+        core = package_intern.read_package_json(package / "core.json")
         line_batch = next(row for row in core["lineBatches"] if row["batchId"] == "country-reference")
         geometry = decode_ehgl((package / line_batch["geometryAsset"]["url"]).read_bytes())
         contract = load_contract()

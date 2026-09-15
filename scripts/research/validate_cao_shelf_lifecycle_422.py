@@ -10,6 +10,7 @@ import json
 import math
 import struct
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -160,10 +161,11 @@ def validate_state(manifest: dict, core: dict, palette: dict, binary: bytes,
 
 def load(package: Path = PACKAGE) -> tuple[dict, dict, dict, bytes, dict, bytes, dict]:
     manifest = json.loads((package / "manifest.json").read_text())
-    core = json.loads(read_asset(package, manifest["core"]))
+    core = package_intern.expand_package_document(json.loads(read_asset(package, manifest["core"])))
     palette = json.loads(read_asset(package, manifest["motionPalette"]["catalog"]))
     binary = read_asset(package, manifest["motionPalette"]["binary"])
-    correction_catalog = json.loads(read_asset(package, manifest["materialCorrections"]["catalog"]))
+    correction_catalog = package_intern.expand_package_document(
+        json.loads(read_asset(package, manifest["materialCorrections"]["catalog"])))
     shelf = next(batch for batch in core["spatialBatches"] if batch["batchId"] == "batch-shelf")
     shelf_binary = read_asset(package, shelf["geometryAsset"])
     return manifest, core, palette, binary, correction_catalog, shelf_binary, json.loads(CONTRACT.read_text())

@@ -14,6 +14,7 @@ import tempfile
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import urlparse
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -555,7 +556,7 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     if (not core_path.is_file() or core_path.stat().st_size != package["core"].get("bytes")
             or sha256(core_path) != package["core"].get("sha256")):
         fail("public Cao manifest.core", "core asset identity mismatch")
-    validate_native_layer_evidence(json.loads(core_path.read_text()))
+    validate_native_layer_evidence(package_intern.read_package_json(core_path))
     descriptor = require_dict(package.get("materialCorrections"), "public Cao manifest.materialCorrections")
     catalog_path = package_path.parent / require_string(descriptor.get("catalog", {}).get("url"),
                                                         "materialCorrections.catalog.url")
@@ -563,7 +564,7 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     if (not catalog_path.is_file() or catalog_path.stat().st_size != catalog_asset.get("bytes")
             or sha256(catalog_path) != catalog_asset.get("sha256")):
         fail("public Cao manifest.materialCorrections", "catalog asset identity mismatch")
-    catalog = json.loads(catalog_path.read_text())
+    catalog = package_intern.read_package_json(catalog_path)
     raw_overrides = []
     for override_path in sorted(CORRECTIONS.glob("*/native-overrides.json")):
         document = json.loads(override_path.read_text())
@@ -747,7 +748,7 @@ def self_test() -> None:
             fail("self-test", f"{label} mutation was accepted")
     package_path = ROOT / "public/data/reconstruction/cao-v2.4/manifest.json"
     package = json.loads(package_path.read_text())
-    core = json.loads((package_path.parent / package["core"]["url"]).read_text())
+    core = package_intern.read_package_json(package_path.parent / package["core"]["url"])
     validate_native_layer_evidence(core)
     mutated = deepcopy(core)
     coast = next(chart for chart in mutated["charts"] if chart["chartId"].startswith("cao-coast:"))
@@ -761,7 +762,7 @@ def self_test() -> None:
     else:
         fail("self-test", "source-collection evidence-label mutation was accepted")
     catalog_path = package_path.parent / package["materialCorrections"]["catalog"]["url"]
-    catalog = json.loads(catalog_path.read_text())
+    catalog = package_intern.read_package_json(catalog_path)
     partitioned = next(chart for chart in catalog["charts"] if len(chart["motionBindings"]) > 1)
     validate_chart_binding_partition(partitioned)
     mutated = deepcopy(partitioned)

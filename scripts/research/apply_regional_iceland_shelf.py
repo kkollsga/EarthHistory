@@ -17,6 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import emit_cao_material_corrections as material
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -324,7 +325,7 @@ def apply(package: Path) -> dict:
     package = package.resolve()
     contract = json.loads(CONTRACT.read_text())
     core_path, manifest_path = package / "core.json", package / "manifest.json"
-    core, manifest = json.loads(core_path.read_text()), json.loads(manifest_path.read_text())
+    core, manifest = package_intern.read_package_json(core_path), json.loads(manifest_path.read_text())
     palette_hashes = {name: sha(package / name) for name in ("motion-palette.json", "motion-palette.bin")}
     before_catalog, before_correction_geometry = correction_invariance_snapshot(package, manifest)
     if any(chart["chartId"].startswith(CHART_PREFIX) for chart in core["charts"]):
@@ -362,7 +363,7 @@ def apply(package: Path) -> dict:
     shelf_batch["vertexCount"] = len(combined["directions"])
     shelf_batch["triangleCount"] = len(combined["indices"]) // 3
     shelf_batch["geometryAsset"] = asset(shelf_path)
-    write_atomic(core_path, canonical(core))
+    write_atomic(core_path, canonical(package_intern.intern_charts(core)))
     manifest["core"] = asset(core_path)
     if SCOPE_CLAUSE.strip() not in manifest["scope"]:
         manifest["scope"] += SCOPE_CLAUSE
@@ -397,7 +398,7 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
     package = package.resolve()
     contract = json.loads(CONTRACT.read_text())
     core_path, manifest_path = package / "core.json", package / "manifest.json"
-    core, manifest = json.loads(core_path.read_text()), json.loads(manifest_path.read_text())
+    core, manifest = package_intern.read_package_json(core_path), json.loads(manifest_path.read_text())
     if manifest["core"] != asset(core_path):
         raise BuildError("applied core identity mismatch")
     shelf_batch = next(row for row in core["spatialBatches"] if row["batchId"] == "batch-shelf")

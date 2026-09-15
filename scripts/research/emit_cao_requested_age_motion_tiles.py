@@ -16,6 +16,7 @@ import math
 import os
 import struct
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -133,9 +134,9 @@ def load_source(package: Path, contract: dict) -> dict:
     correction = manifest.get("materialCorrections")
     correction_path = verify_asset(package, correction["catalog"], "material corrections") if correction else None
 
-    core = json.loads(core_path.read_text())
+    core = package_intern.read_package_json(core_path)
     catalog = json.loads(catalog_path.read_text())
-    corrections = json.loads(correction_path.read_text()) if correction_path else None
+    corrections = package_intern.read_package_json(correction_path) if correction_path else None
     charts = list(core["charts"]) + (list(corrections["charts"]) if corrections else [])
     binary = binary_path.read_bytes()
     if len(binary) < HEADER_BYTES or binary[:4] != b"EHMP":

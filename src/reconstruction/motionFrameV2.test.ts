@@ -9,8 +9,12 @@ import { validateReconstructionCoreV2, type ReconstructionCoreV2,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { loadVerifiedCaoFoundation } from "./loaderV2";
 import type { MotionPaletteCatalog } from "./palette";
+import { expandInternedPackageDocument } from "./packageIntern";
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
+/** Package JSON is read raw here, so the interning decoder runs explicitly. */
+const readJson = async (url: string): Promise<unknown> =>
+  JSON.parse(await readFile(resolve(root, url), "utf8")) as unknown;
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
   const bytes = await readFile(resolve(root, packageAssetPath(url)));
@@ -44,7 +48,7 @@ describe("continuous Cao motion frames", () => {
   it("rejects an unauthored motion interval instead of holding a nearest pose", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as
       ReconstructionCoreV2;
     const palette = JSON.parse(await readFile(resolve(root, manifest.motionPalette.catalog.url), "utf8")) as
       MotionPaletteCatalog;

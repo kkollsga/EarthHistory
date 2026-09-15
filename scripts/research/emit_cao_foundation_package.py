@@ -10,6 +10,7 @@ from cao_domain import (
     display_checkpoint_ages_ma,
 )
 import pygplates
+import cao_package_intern as package_intern
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = (
@@ -489,7 +490,8 @@ def main(out: Path | None = None, stage: Path | None = None):
         ],
     }
     core_path = OUT / "core.json"
-    core_path.write_text(json.dumps(core, separators=(",", ":")) + "\n")
+    core_path.write_text(json.dumps(package_intern.intern_charts(core),
+                                    separators=(",", ":")) + "\n")
     checkpoints = []
     for age in AGES:
         checkpoint = {

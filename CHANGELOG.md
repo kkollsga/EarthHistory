@@ -4,6 +4,50 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- Ship the Cao v2.4 package JSON in a lossless interned form and reclaim
+  7,379,140 bytes (7.04 MiB) of the static build without changing anything the
+  application renders or any evidence it can surface. The shipped documents
+  repeated a handful of distinct values across thousands of records, so
+  repetition is now stored once and the identifiers that were already implied by
+  neighbouring fields are derived instead of shipped: `core.json` 6,314,414 to
+  3,216,469 bytes (4,995 charts sharing 13 `evidence.limitations` arrays, 7
+  `surfaceEvidence` objects, 183 `lifecycle` objects and 938 `motionBindings`
+  arrays, with 3,799 identical `chartId`/`fragmentOrCohortId`/`materialId`
+  triples collapsed); the 235 `boundary-*.json` catalogs 10,064,808 to 6,365,752
+  bytes (19,805 derived `segmentId`s plus per-file GPlates UUID and enum
+  tables); the 235 `ownership-*.json` catalogs 1,356,950 to 887,669 bytes (3,838
+  derived `polygonId`/`ringId` pairs); and `corrections/material-v1/catalog.json`
+  397,090 to 284,232 bytes. `dist` falls from 52,349,889 bytes (49.92 MiB) to
+  44,973,799 bytes (42.89 MiB) against the unchanged 50 MiB ceiling, a net
+  7,376,090 bytes after the 3,050-byte decoder in the bundle. The wire format is
+  described in `docs/data/README.md`.
+- Nothing scientific changed: every chart, source identifier, citation,
+  limitation string, lifecycle bound, motion binding, epistemic status, boundary
+  segment, ownership ring and digest keeps its exact value, and each rewritten
+  file was proved to expand to a canonically identical document before it was
+  written. No geometry, motion palette, checkpoint state, correction, anchor or
+  country asset was touched, and `make check-corrections` reports the same
+  numbers as before apart from the recorded byte counts and digests. The runtime
+  expands each document inside the verified-JSON load, before every existing
+  validator, so no consumer downstream of the loader changed.
+- Re-derive the seven `core.json` digest declarations and the catalog, checkpoint
+  and tile ledgers that follow them through their owning scripts rather than by
+  hand: the package and root data manifests, the 235 checkpoint native-layer
+  pins and their `transitiveBytes`, the correction catalog's `baseline.coreSha256`,
+  the requested-age tile index (re-emitted and re-promoted through its own
+  emitter, validator and promoter, with all 72 tile payloads proved byte
+  identical), the tracked tile source contract, and the two pyGPlates oracle
+  records whose package identity is rebased only after every measured field is
+  shown to be unchanged. `scripts/research/cao_package_intern.py --self-test`
+  round-trips all 472 shipped catalogs and rejects five deliberate corruptions,
+  `scripts/research/apply_cao_package_interning.py` re-verifies the applied form
+  and its ledgers, and both join `make check-corrections`;
+  `src/reconstruction/packageIntern.test.ts` proves the runtime decoder rejects
+  an out-of-range dictionary reference, a colliding derived `segmentId` and a
+  ring shipped outside its polygon group.
+
 ## [0.1.11] - 2026-09-14
 
 ### Fixed
