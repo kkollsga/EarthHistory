@@ -9,7 +9,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const harnessPath = fileURLToPath(import.meta.url);
-const root = resolve(dirname(harnessPath), "../../..");
+const root = resolve(dirname(harnessPath), "../..");
 const releaseTemporaryRoot = "/tmp/earthhistory-release-0.1.4";
 const defaultOutputDirectory = resolve(releaseTemporaryRoot, "benchmark");
 const defaultResultPath = resolve(root, "dev-docs/bench/results/regional-material-release.json");

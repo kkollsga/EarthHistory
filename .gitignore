@@ -1,9 +1,5 @@
-# Local doctrine working state. Keep the hand-authored benchmark harnesses.
-/dev-docs/*
-!/dev-docs/bench/
-/dev-docs/bench/*
-!/dev-docs/bench/scripts/
-!/dev-docs/bench/scripts/**
+# Local doctrine working state; tracked harnesses live in scripts/bench/.
+/dev-docs/
 
 # Local cross-project coordination; messages are not project source.
 /inbox/

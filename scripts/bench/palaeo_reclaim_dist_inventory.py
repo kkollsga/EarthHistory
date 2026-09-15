@@ -12,7 +12,7 @@ with redundant structure: ``boundary-*.json`` / ``ownership-*.json`` pairs,
 ``checkpoint-*.json`` and the material-correction ``catalog.json``.
 
 Usage:
-    python3 dev-docs/bench/scripts/palaeo_reclaim_dist_inventory.py [--json OUT]
+    python3 scripts/bench/palaeo_reclaim_dist_inventory.py [--json OUT]
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
 PKG = ROOT / "public" / "data" / "reconstruction" / "cao-v2.4"
 MIB = 1024 * 1024

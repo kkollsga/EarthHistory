@@ -94,7 +94,7 @@ try {
   const indexBytes = await readFile(path.join(root, "dist/index.html"));
   const result = {
     recordedAt: new Date().toISOString(),
-    command: `node dev-docs/bench/scripts/capture-modern-landscapes.mjs ${process.argv.slice(2).join(" ")}`.trim(),
+    command: `node scripts/bench/capture-modern-landscapes.mjs ${process.argv.slice(2).join(" ")}`.trim(),
     baseUrl,
     buildIndexSha256: createHash("sha256").update(indexBytes).digest("hex"),
     browser: browser.version(),

@@ -393,7 +393,7 @@ try {
   const result = {
     schemaVersion: 1,
     recordedAt: new Date().toISOString(),
-    command: `node dev-docs/bench/scripts/browser-render-benchmark.mjs${headed ? " --headed" : ""}`,
+    command: `node scripts/bench/browser-render-benchmark.mjs${headed ? " --headed" : ""}`,
     baseUrl,
     stopRule,
     stopRuleOutcome: {

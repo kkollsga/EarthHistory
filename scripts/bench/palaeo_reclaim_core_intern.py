@@ -12,7 +12,7 @@ decoder recovers deep-equal chart objects for every chart. A deliberate
 corrupt-index mutation must be rejected by the decoder (R1).
 
 Usage:
-    python3 dev-docs/bench/scripts/palaeo_reclaim_core_intern.py [--json OUT]
+    python3 scripts/bench/palaeo_reclaim_core_intern.py [--json OUT]
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import json
 import struct
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "public" / "data" / "reconstruction" / "cao-v2.4" / "core.json"
 TEMP = ROOT / "dev-docs" / "temp" / "palaeo-coastlines"
 

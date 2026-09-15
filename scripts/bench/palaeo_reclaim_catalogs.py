@@ -24,7 +24,7 @@ Reclaims measured
       - the same chart interning as core.json.
 
 Usage:
-    python3 dev-docs/bench/scripts/palaeo_reclaim_catalogs.py [--json OUT]
+    python3 scripts/bench/palaeo_reclaim_catalogs.py [--json OUT]
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ import copy
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 PKG = ROOT / "public" / "data" / "reconstruction" / "cao-v2.4"
 MIB = 1024 * 1024
 

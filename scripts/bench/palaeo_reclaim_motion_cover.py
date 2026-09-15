@@ -14,7 +14,7 @@ and ``src/reconstruction/motionTiles.ts`` do, then answers:
   * how many records are duplicated across tile windows (transport overhead)?
 
 Usage:
-    python3 dev-docs/bench/scripts/palaeo_reclaim_motion_cover.py [--json OUT]
+    python3 scripts/bench/palaeo_reclaim_motion_cover.py [--json OUT]
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import json
 import struct
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 PKG = ROOT / "public" / "data" / "reconstruction" / "cao-v2.4"
 HEADER_BYTES = 32
 RECORD_BYTES = 20
