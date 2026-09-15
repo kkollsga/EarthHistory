@@ -1628,3 +1628,99 @@ test("draws palaeo mountains as a readable light brown at every lighting band", 
       .toBeGreaterThanOrEqual(3);
   }
 });
+
+// `at=<lon>,<lat>` is a present-day coordinate. A link that framed it as a
+// direction in the rendered frame would show whatever ground the plate model
+// had rotated under that direction, silently, and the viewer could not tell.
+test("poses an at= deep link onto the ground it names", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=90&at=-100,45&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const stage = page.locator(".globe-stage");
+  await expect(stage).toHaveAttribute("data-focus-resolution", "posed");
+  // The ground this link names, at this age: the Western Interior Seaway.
+  expect(await probeClass(page, -100, 45)).toBe("palaeo-shallow-marine");
+
+  const centre = async () => page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>(
+      "canvas[aria-label='Interactive three-dimensional Earth']");
+    return [Number(canvas?.dataset.cameraLongitude), Number(canvas?.dataset.cameraLatitude)] as const;
+  });
+  // The camera blend and the once-a-second diagnostics publication both settle
+  // before the aim can be read as a result.
+  await expect.poll(async () => {
+    const first = await centre();
+    await page.waitForTimeout(1200);
+    const second = await centre();
+    return Math.abs(first[0] - second[0]) + Math.abs(first[1] - second[1]) < 0.05;
+  }, { timeout: 30_000 }).toBe(true);
+  const aimed = await centre();
+  // North America at 90 Ma is nowhere near its present-day longitude, so an
+  // unposed aim would differ from this one by degrees.
+  expect(Math.abs(aimed[0] + 100), `camera longitude ${aimed[0]}`).toBeGreaterThan(3);
+
+  // The hash keeps naming the ground, not the place the ground had rotated to.
+  expect(decodeURIComponent(await page.evaluate(() => window.location.hash)))
+    .toContain("at=-100,45");
+
+  // The pick path is the independent answer: it reports the picked ground's
+  // own present-day direction, so a centre pick must return the coordinate the
+  // link asked for. The first click releases the held focus; the second picks.
+  // Playwright clicks the element's own centre, which is the pixel the camera
+  // aim projects to; a viewport-centre offset would sample neighbouring ground.
+  await globe(page).click();
+  await globe(page).click();
+  await expect.poll(() => page.evaluate(() => window.location.hash), { timeout: 15_000 })
+    .toContain("material=");
+  const picked = await page.evaluate(() => {
+    const material = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("material");
+    const address = JSON.parse(material ?? "{}") as
+      { localCoordinate?: { directionAtReference?: [number, number, number] } };
+    const direction = address.localCoordinate?.directionAtReference;
+    if (!direction) return null;
+    return [Math.atan2(direction[1], direction[0]) * 180 / Math.PI,
+      Math.asin(Math.max(-1, Math.min(1, direction[2]))) * 180 / Math.PI] as const;
+  });
+  expect(picked, "centre pick carries a present-day direction").not.toBeNull();
+  const [pickedLongitude, pickedLatitude] = picked!;
+  // Compared as an angle on the sphere: a degree of longitude is not a degree
+  // of ground at 45 degrees north.
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const separationDegrees = Math.acos(Math.min(1,
+    Math.sin(radians(pickedLatitude)) * Math.sin(radians(45))
+    + Math.cos(radians(pickedLatitude)) * Math.cos(radians(45))
+      * Math.cos(radians(pickedLongitude + 100)))) * 180 / Math.PI;
+  expect(separationDegrees,
+    `centre pick present-day (${pickedLongitude}, ${pickedLatitude})`).toBeLessThan(5);
+});
+
+test("anchors the North Sea rift point of interest from the hash", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // The resting pose at the same age, so the comparison isolates the focus and
+  // not the age. 255 Ma lies inside the POI's declared 270-130 Ma interval and
+  // inside the Cao fragment validity its anchor chart was cut to.
+  await page.goto("./#age=255");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-focus-kind", "none");
+  const restingLongitude = Number(await globe(page).getAttribute("data-camera-longitude"));
+  const restingLatitude = Number(await globe(page).getAttribute("data-camera-latitude"));
+  expect(Number.isFinite(restingLongitude) && Number.isFinite(restingLatitude)).toBe(true);
+
+  await page.goto("./#age=255&focus=north-sea-rift");
+  // A fragment-only navigation is a same-document navigation: the document is
+  // not reloaded and the app reads its deep link exactly once, at load. Reload
+  // so the link is parsed the way a pasted link is, as a fresh visit.
+  await page.reload();
+  await waitForCao(page);
+  await expect.poll(async () => globe(page).getAttribute("data-focus-kind"), { timeout: 20_000 })
+    .not.toBe("none");
+  await expect.poll(async () => {
+    const longitude = Number(await globe(page).getAttribute("data-camera-longitude"));
+    const latitude = Number(await globe(page).getAttribute("data-camera-latitude"));
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return 0;
+    return Math.hypot(longitude - restingLongitude, latitude - restingLatitude);
+  }, { timeout: 20_000 }).toBeGreaterThan(2);
+});

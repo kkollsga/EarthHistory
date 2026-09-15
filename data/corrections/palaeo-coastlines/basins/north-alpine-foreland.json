@@ -1,0 +1,254 @@
+{
+ "schemaVersion": 1,
+ "basinId": "north-alpine-foreland",
+ "title": "North Alpine Foreland Basin (Molasse)",
+ "status": "edited",
+ "pinnedAt": "2026-09-15",
+ "description": "Basin edit contract for the North Alpine Foreland Basin. Two cited operations in one Cao et al. (2017) map interval: the Rupelian Untere Meeresmolasse seaway at 37-29 Ma, removed from the land class and added to the shallow-marine class on the same footprint. The add-shallow is the contract-mandated companion - no shallow-marine polygon lies beneath the land being removed, and a bare removal would leave the belt unclassified, rendered as crust of unmapped depth. Nothing else in the Paratethys province is edited; the six findings the research memo left open are recorded in notes.leftAlone with their reasons.",
+ "window": {
+  "bbox": [
+   8.0,
+   46.8,
+   14.0,
+   49.6
+  ],
+  "reason": "the Swabian and Bavarian Molasse belt from the Swiss border to the Bohemian Massif, plus the Alpine front to the south; wide enough to hold the operation and its witnesses, narrow enough that no edit can reach the Pannonian Basin or the Rhine Graben"
+ },
+ "intervals": [
+  "37-29"
+ ],
+ "classes": [
+  "lm",
+  "sm"
+ ],
+ "editorial": "EarthHistory modification after the references listed in this contract",
+ "notes": {
+  "leftAlone": [
+   {
+    "intervalIds": [
+     "29-20"
+    ],
+    "subject": "Dacian foreland and Getic Depression shoreline",
+    "reason": "Both points render as land at 29-20 Ma while the Focsani depression about 100 km north-east renders as shallow marine. The Oligocene-Aquitanian shoreline across the Moesian platform edge cannot be placed better than about 100 km without digitising the Popov et al. (2004) Paratethys map series, which has no DOI, was not consulted, and could not be traced in any case. A footprint drawn now would be false precision.",
+    "references": [
+     "rogl-1999-palaeogeography"
+    ]
+   },
+   {
+    "intervalIds": [
+     "20-11"
+    ],
+    "subject": "Aral and Turan marine incursions",
+    "reason": "The Aral/Turan point renders as land at 20-11 Ma with shallow marine 114 km away. Whether the Karaganian and Konkian incursions reached the south-eastern Ustyurt is exactly the question the unconsulted Popov map series answers. Unresolved, so unedited.",
+    "references": [
+     "palcu-krijgsman-2022"
+    ]
+   },
+   {
+    "intervalIds": [
+     "29-20"
+    ],
+    "subject": "Transylvanian Basin flooding",
+    "reason": "Land at 29-20 Ma with shallow marine 50 km away. The Egerian regression in the basin centre is defensible and Eggenburgian flooding starts at 20.4 Ma, on the bin edge. This reads as a phase-in-bin effect, not a defect.",
+    "references": [
+     "rogl-1999-palaeogeography"
+    ]
+   },
+   {
+    "intervalIds": [
+     "11-2"
+    ],
+    "subject": "the sub-class-floor gap at (11.0, 48.0)",
+    "reason": "That single coordinate returns neither land nor shallow marine at 11-2 Ma with land 3 km away, while all four transect points are land. This is the roughly 30 km class floor of the source, not a hole in the world. The witness point moves; the data does not.",
+    "references": [
+     "kuhlemann-kempf-2002"
+    ]
+   },
+   {
+    "intervalIds": [
+     "49-37"
+    ],
+    "subject": "the mountain polygon over the Western Black Sea",
+    "reason": "At (34 E, 43 N) the 49-37 Ma payload returns the mountain class with no land and no shallow marine, over what was an abyssal back-arc basin. The edit contract has no mountain operation, the interval is outside this contract's declared interval, and the global audit in docs/research/palaeo-coastlines-mountain-over-ocean.md shows a continental-block screen cannot remove it. Limitation for the map key, not an edit.",
+    "references": [
+     "palcu-krijgsman-2022"
+    ]
+   },
+   {
+    "intervalIds": [
+     "37-29",
+     "29-20",
+     "20-11"
+    ],
+    "subject": "mountain polygons over the Pannonian and Vienna basins",
+    "reason": "Cao mountain polygons cover the Pannonian Basin interior at 37-29 and 29-20 Ma and the Vienna Basin at 20-11 Ma, drawing above the shallow-marine class that is correct there. No basin operation targets the mountain class, so this is stated in the map key and left alone.",
+    "references": [
+     "rogl-1999-palaeogeography",
+     "palcu-krijgsman-2022"
+    ]
+   }
+  ],
+  "rights": "Every publication named here is citation-only. No figure, map plate, polygon, coordinate list or table from any of them is traced, digitised, copied or redistributed. Every footprint below is a coarse rectangle or few-vertex belt built from bounds the cited text states in words, not an outline read off a published map. The only redistributed palaeogeographic geometry in this program remains Cao et al. (2017), CC BY 3.0.",
+  "frame": "Every geometry above is present-day WGS84, like the Cao 2017 source. Pieces inside this window ride their native Cao 2024 binding; no restoration plate applies here, so an edit drawn in present-day coordinates is posed exactly as the native charts are.",
+  "residualLimitations": [
+   "Residual limitation this operation does not fix and must not be widened to chase: the Untere Meeresmolasse south of about 48.2 N at 11 E lies under the Cao mountain shell, which draws above both the land and the shallow-marine class, so that part of the Rupelian seaway cannot be shown at all. The edit contract has no mountain operation."
+  ]
+ },
+ "ops": [
+  {
+   "opId": "north-alpine-foreland-37-29-untere-meeresmolasse-remove-land",
+   "kind": "remove-land",
+   "intervalIds": [
+    "37-29"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       9.0,
+       47.9
+      ],
+      [
+       11.0,
+       48.2
+      ],
+      [
+       13.2,
+       48.3
+      ],
+      [
+       13.2,
+       48.8
+      ],
+      [
+       11.0,
+       48.8
+      ],
+      [
+       9.0,
+       48.6
+      ],
+      [
+       9.0,
+       47.9
+      ]
+     ]
+    ]
+   },
+   "rationale": "The Untere Meeresmolasse records a fully marine Rupelian seaway across the whole North Alpine Foreland Basin - the western arm of the Paratethys gateway system - through roughly 34-30 Ma, which lies inside this bin. Cao 2017 renders the basin as continuous land through 37-29 Ma, and a probe of the shipped payload returns the land class along the whole Swabian-Bavarian transect, which contradicts the layer's own minimum-land / maximum-flooding reading of a bin. The footprint is the Molasse belt as the sources describe it in words: about 9.0 E to 13.2 E, bounded south by the northern edge of the Cao 37-29 mountain polygon (about 48.2 N at 11 E, stepping south westward) and north by the erosional and onlap limit of the Untere Meeresmolasse, about 48.8 N in Bavaria and 48.6 N in Swabia. It is a six-vertex belt drawn from those stated bounds, not an outline traced from any published map. Residual limitation this operation does not fix and must not be widened to chase: the Untere Meeresmolasse south of about 48.2 N at 11 E lies under the Cao mountain shell, which draws above both the land and the shallow-marine class, so that part of the Rupelian seaway cannot be shown at all. The edit contract has no mountain operation.",
+   "spatialUncertaintyKilometres": 30.0,
+   "editorial": "EarthHistory modification after kuhlemann-kempf-2002, rogl-1999-palaeogeography, palcu-krijgsman-2022",
+   "references": [
+    "kuhlemann-kempf-2002",
+    "rogl-1999-palaeogeography",
+    "palcu-krijgsman-2022"
+   ],
+   "claimOrInference": "the fully marine Rupelian character, age and basin-wide extent of the Untere Meeresmolasse and the marine western arm of the Paratethys are claims of the sources; that Cao's continuous land over this belt is therefore wrong for 37-29 Ma, and the choice of belt outline, are EarthHistory inferences"
+  },
+  {
+   "opId": "north-alpine-foreland-37-29-untere-meeresmolasse-add-shallow",
+   "kind": "add-shallow",
+   "intervalIds": [
+    "37-29"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       9.0,
+       47.9
+      ],
+      [
+       11.0,
+       48.2
+      ],
+      [
+       13.2,
+       48.3
+      ],
+      [
+       13.2,
+       48.8
+      ],
+      [
+       11.0,
+       48.8
+      ],
+      [
+       9.0,
+       48.6
+      ],
+      [
+       9.0,
+       47.9
+      ]
+     ]
+    ]
+   },
+   "rationale": "The contract-mandated companion to the land removal. No Cao shallow-marine polygon lies beneath the land removed here, so the removal alone would leave the Molasse belt unclassified - rendered as crust of unmapped depth - which is a worse statement than the land it replaces. The Untere Meeresmolasse is explicitly marine, and shallow marine is the only marine class this layer carries. Same outline, same uncertainty as the removal.",
+   "spatialUncertaintyKilometres": 30.0,
+   "editorial": "EarthHistory modification after kuhlemann-kempf-2002, rogl-1999-palaeogeography",
+   "references": [
+    "kuhlemann-kempf-2002",
+    "rogl-1999-palaeogeography"
+   ],
+   "claimOrInference": "the marine character of the Untere Meeresmolasse is a claim of the sources; rendering it in the shallow-marine class, which carries no depth, is an EarthHistory inference forced by the class vocabulary"
+  }
+ ],
+ "references": [
+  {
+   "sourceId": "kuhlemann-kempf-2002",
+   "citation": "Kuhlemann, J. and Kempf, O. 2002. Post-Eocene evolution of the North Alpine Foreland Basin and its response to Alpine tectonics. Sedimentary Geology 152, 45-78.",
+   "url": "https://doi.org/10.1016/S0037-0738(01)00285-8",
+   "year": 2002,
+   "constrains": "Untere Meeresmolasse, Untere Suesswassermolasse, Obere Meeresmolasse and Obere Suesswassermolasse stratigraphy and the extent of the North Alpine Foreland Basin",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  },
+  {
+   "sourceId": "rogl-1999-palaeogeography",
+   "citation": "Roegl, F. 1999. Mediterranean and Paratethys Palaeogeography during the Oligocene and Miocene. In: Agusti, J., Rook, L. and Andrews, P. (eds) Hominoid Evolution and Climatic Change in Europe, Cambridge University Press, 8-22.",
+   "url": "https://doi.org/10.1017/cbo9780511542329.002",
+   "year": 1999,
+   "constrains": "the Oligocene Paratethys map series, including the marine western arm through the North Alpine Foreland Basin",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15. Read as a palaeogeographic description; no map plate is traced or redistributed."
+  },
+  {
+   "sourceId": "palcu-krijgsman-2022",
+   "citation": "Palcu, D. V. and Krijgsman, W. 2022. The dire straits of Paratethys: gateways to the anoxic giant of Eurasia. Geological Society, London, Special Publications 523, 111-139.",
+   "url": "https://doi.org/10.1144/sp523-2021-73",
+   "year": 2022,
+   "constrains": "Oligocene-Miocene Paratethys gateway configuration, including the western connection through the Alpine foreland",
+   "claimOrInference": "EarthHistory inference where it is used to argue that the western arm was open in this bin; the gateway inventory itself is the source's claim",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  }
+ ],
+ "opSchema": {
+  "kinds": [
+   "add-land",
+   "remove-land",
+   "add-shallow",
+   "remove-shallow",
+   "replace-ring"
+  ],
+  "requiredFields": [
+   "opId",
+   "kind",
+   "intervalIds",
+   "geometry",
+   "rationale",
+   "spatialUncertaintyKilometres",
+   "editorial",
+   "references"
+  ],
+  "geometry": "GeoJSON Polygon or MultiPolygon in present-day WGS84 coordinates, entirely inside the basin window, longitude span below 180 degrees",
+  "references": "at least one entry of this contract's references[], named by sourceId; the compiler rejects an operation without one",
+  "intervals": "every intervalId an operation names must be a canonical Cao interval AND appear in this contract's intervals[]; the operation's intervals must be contiguous in the canonical schedule, and a source record the operation edits may not stay active outside them",
+  "editorial": "must start with 'EarthHistory modification after '; the same prefix is what the emitted evidence record carries",
+  "replaceRing": "replace-ring additionally names targetRecordIndex: the Cao 2017 record whose ring the geometry replaces",
+  "reporting": "the compiler records the area added and removed per operation, per class and per interval, in the emitted catalog"
+ }
+}

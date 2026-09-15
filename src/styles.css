@@ -199,6 +199,13 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-palaeo-key .surface-info-note { margin: 6px 0 0; font-size: 10px; }
 .surface-palaeo-key[data-fallback="true"] .surface-info-note[role="status"] { color: var(--copper-bright); }
 .surface-palaeo-key > small { margin-top: 7px; color: var(--dim); font-size: 9px; line-height: 1.4; }
+/* The epistemic limitations of the rendered classes: what the Cao 2017 charts
+   cannot say, stated where the classes are named rather than in a document. */
+.palaeo-limitation-key { margin-top: 9px; }
+.palaeo-limitation-key > strong { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .1em; }
+.palaeo-limitation-key ul { display: grid; gap: 4px; margin: 5px 0 0; padding: 0; list-style: none; }
+.palaeo-limitation-key li { position: relative; padding-left: 9px; color: var(--dim); font-size: 9px; line-height: 1.4; }
+.palaeo-limitation-key li::before { content: ""; position: absolute; left: 0; top: 5px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
 .outline-marker-key { display: grid; gap: 5px; margin: 9px 0 0; padding: 0; list-style: none; }
 .outline-marker-key li { display: grid; grid-template-columns: 13px 1fr; align-items: center; gap: 9px; color: var(--muted); font-size: 9px; line-height: 1.35; }
 .outline-marker { width: 12px; height: 2px; border-radius: 1px; }
@@ -483,12 +490,14 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
      half a card is less readable than one that covers none of it, and the card
      comes straight back when the key closes. */
   .atlas-shell[data-map-key-open="true"] .context-panel { display: none; }
-  /* The palaeo block adds its swatches, a legend and three sentences to a key
-     that already fills a phone panel, so the phone tightens the spacing first
-     and only then scrolls. */
+  /* The palaeo block adds its swatches, a legend, a limitations list and two
+     sentences to a key that already fills a phone panel, so the phone tightens
+     the spacing first and only then scrolls. */
   .surface-color-key { gap: 6px; padding-bottom: 9px; }
   .surface-palaeo-key { padding-top: 9px; }
   .surface-palaeo-key .surface-info-note { margin-top: 5px; font-size: 9px; line-height: 1.4; }
+  .palaeo-limitation-key { margin-top: 7px; }
+  .palaeo-limitation-key ul { gap: 3px; }
   .outline-marker-key { gap: 4px; margin-top: 7px; }
   .location-lock { left: max(8px, env(safe-area-inset-left)); bottom: calc(58px + env(safe-area-inset-bottom)); max-width: calc(100% - 16px); }
   .stage-vignette { background: linear-gradient(180deg, rgba(2, 6, 8, .32), transparent 32%, rgba(2, 6, 8, .35)); }

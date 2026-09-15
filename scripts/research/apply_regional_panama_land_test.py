@@ -49,8 +49,12 @@ class PanamaApplyTest(unittest.TestCase):
         first_panama = next(index for index, row in enumerate(core["charts"])
                             if row["chartId"].startswith(appender.CHART_PREFIX))
         self.assertEqual(first_panama, 4841)
+        # Everything after the Panama block is a later append: the present-day
+        # country reference, and the POI anchors that no longer fit the original
+        # anchor block. Truncating here therefore recovers the pre-Panama state.
         self.assertTrue(all(row["chartId"].startswith(appender.CHART_PREFIX)
                             or row["chartId"].startswith("country-present-reference:")
+                            or row["chartId"].startswith("poi:")
                             for row in core["charts"][first_panama:]))
         target_indices = set(range(first_panama, first_panama + 5))
         core["charts"] = core["charts"][:first_panama]

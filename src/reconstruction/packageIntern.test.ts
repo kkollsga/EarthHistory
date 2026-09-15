@@ -48,7 +48,7 @@ describe("interned Cao package documents", () => {
     expect(interned.chartIdCollapse).toBe("v1");
     const core = expandInternedPackageDocument(interned) as ReconstructionCoreV2;
     const palette = await raw(packageManifest.motionPalette.catalog.url) as MotionPaletteCatalog;
-    expect(core.charts).toHaveLength(4_995);
+    expect(core.charts).toHaveLength(4_996);
     expect((core as unknown as Record<string, unknown>).chartDictionaries).toBeUndefined();
     for (const chart of core.charts) {
       expect(chart.lifecycle.validTimeMa.oldest).toBeGreaterThanOrEqual(0);
@@ -57,7 +57,7 @@ describe("interned Cao package documents", () => {
       expect(typeof chart.fragmentOrCohortId).toBe("string");
       expect(typeof chart.materialId).toBe("string");
     }
-    // 3,799 of the 4,995 charts collapse an identical identifier triple.
+    // 3,799 of the 4,996 charts collapse an identical identifier triple.
     expect(core.charts.filter((chart) => chart.chartId === chart.fragmentOrCohortId
       && chart.chartId === chart.materialId)).toHaveLength(3_799);
     expect(() => validateReconstructionCoreV2(core, packageManifest, palette)).not.toThrow();

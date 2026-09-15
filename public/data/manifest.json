@@ -12,14 +12,14 @@
       "record": "https://doi.org/10.5281/zenodo.13628813",
       "license": "CC BY 4.0 (Cao v2.4); public domain (Natural Earth)",
       "retrievalDate": "2026-09-10",
-      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Forty-eight large modern lakes that Cao leaves as coast voids inside the continental outline are filled with land-appearance infill at ages older than each lake's cited or present-only onset.",
+      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Forty-eight large modern lakes that Cao leaves as coast voids inside the continental outline are filled with land-appearance infill at ages older than each lake's cited or present-only onset. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
       "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts, thirteen observed land-omission charts, and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama and observed-land-omission geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure. Lake-void infill is land inference older than each lake's onset; the present-day lake voids keep the model's own shelf class.",
       "outputs": [
         {
           "role": "anchors.json",
           "path": "public/data/reconstruction/cao-v2.4/anchors.json",
-          "sha256": "94a68079c1c82c2b615ebcb0f73d526bd10cc7e1fdfe5fa907602b0fa0a135fa",
-          "bytes": 4341
+          "sha256": "ebd6a8cb1ed9f9e1edde765fb20d6beef24826dd6939a1acaa932d1a46e73ff6",
+          "bytes": 4826
         },
         {
           "role": "batch-land.ehgb",
@@ -4266,8 +4266,8 @@
         {
           "role": "core.json",
           "path": "public/data/reconstruction/cao-v2.4/core.json",
-          "sha256": "236c968c7db3d6b7fb11d8dec37438319bd07f0b516e1f098c2dac8ddc5f5734",
-          "bytes": 1426795
+          "sha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502",
+          "bytes": 1427415
         },
         {
           "role": "country-reference.ehgl",
@@ -4278,7 +4278,7 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "c012970ff0b94ad7b2ef8f37ad4e5840793c0bcd67c478a0f7336f13cd2e4928",
+          "sha256": "57922a410be525cf7ad1ef5d96154991b7f83b8d99e51f61dc939b859d51873d",
           "bytes": 41545
         },
         {
@@ -4296,7 +4296,7 @@
         {
           "role": "index.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/index.json",
-          "sha256": "fef2a278deb896e6bab86d718444206e65019aa378ba69731682bc17c46f49c5",
+          "sha256": "c83ccb285fa26892c4234eac9f196c069a50b0902bfaa7c0d9364ea9d48c9434",
           "bytes": 28068
         },
         {
@@ -7562,31 +7562,31 @@
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
           "bytes": 243939,
-          "sha256": "b4f8b892a5f403dcd8a0b3ab6d8cd221c0090dc4580c3ca3721d0353bb8f3ee7"
+          "sha256": "d78e016257ae1215aa1327205947a56d5bb1c1dfbf1909c927d9b30dcfe42710"
         },
         {
           "role": "observed.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/observed.ehgb",
           "bytes": 40056,
-          "sha256": "555f529506181cb56d22ca83822f6d3309d8b5c5a07796796b291d6fdc16fec7"
+          "sha256": "704859096ca62a3a172700939bceaa89a7e232a478878fd06c60d90790b329cc"
         },
         {
           "role": "qualified.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
           "bytes": 490052,
-          "sha256": "eab6a30873159e1c5685b98029caee7a8eaed4d7c023a40f245f560af45d8ee4"
+          "sha256": "34957f19289ff35d88f8b7f1309b0f5da22b5103e201b1185674e863a1051d78"
         },
         {
           "role": "uncertain.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
           "bytes": 1494968,
-          "sha256": "6b57175bad3912c5fea866d694de14b9e972d6b5c717728395ce2d1c1c25e0df"
+          "sha256": "4c6dfa173730e847afbbbc0acc92e5f0227f3f6124654eda74077db1f9d7fa63"
         },
         {
           "role": "restored-margin.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/restored-margin.ehgb",
           "bytes": 60380,
-          "sha256": "a4fb1ca22819cf205e835a676941b64350cdd2966cef10ab3358994fa9e307d9"
+          "sha256": "699e32796751eab82917b8026132a759ce260ebb750b4086d241acbeb9249dae"
         }
       ]
     },
@@ -7638,7 +7638,7 @@
           "role": "lm/palaeo-lm-11-2.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-11-2.ehpr",
           "bytes": 200966,
-          "sha256": "19e453237230fd8439512aa68718ab1cbb795aa9c310ee886bf8b79567e618c2"
+          "sha256": "baa596d31e1d5bc238ec377dee53b3029317afe99d5914090965d5d4e1a53799"
         },
         {
           "role": "lm/palaeo-lm-117-94.ehpr",
@@ -7674,7 +7674,7 @@
           "role": "lm/palaeo-lm-20-11.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-20-11.ehpr",
           "bytes": 181812,
-          "sha256": "3a22d3af9f951cdf6ae42b0e796820f39735cc447a215c0ff5269f284afbc352"
+          "sha256": "13276dfb887822f49a6826c71b2b94ee20c5e38584385999d629470ff0bb99d7"
         },
         {
           "role": "lm/palaeo-lm-203-179.ehpr",
@@ -7739,8 +7739,8 @@
         {
           "role": "lm/palaeo-lm-37-29.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-37-29.ehpr",
-          "bytes": 193600,
-          "sha256": "bd32467cf40ad15308b7041e9bb9d9de93b79ec31c5da51ecc339f20f94e5b95"
+          "bytes": 193592,
+          "sha256": "b0d0a167217cef6c49d758220132ce0c46b8ea5cd68871eef8e614b0f4a898de"
         },
         {
           "role": "lm/palaeo-lm-380-359.ehpr",
@@ -7757,20 +7757,20 @@
         {
           "role": "lm/palaeo-lm-49-37.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-49-37.ehpr",
-          "bytes": 169410,
-          "sha256": "a1b5d909d87445f7ac93b5f9bffd6fc122394b6f61cc4e1f14dd4b8de1888b22"
+          "bytes": 169370,
+          "sha256": "8ed5bbf329fc9e4e946210a3be2364867e1271fc0230b0663cff86d177b50a45"
         },
         {
           "role": "lm/palaeo-lm-58-49.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-58-49.ehpr",
           "bytes": 161522,
-          "sha256": "d59f538a2258d1af3adbfc47282d09cf1fa9cac82ed182c921bf9aa198ba5282"
+          "sha256": "c318759a35208366606052cdff48c74511c87c47a2609b8b70a509575e38a12d"
         },
         {
           "role": "lm/palaeo-lm-81-58.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-81-58.ehpr",
-          "bytes": 139526,
-          "sha256": "e51bf4a5ddf57d7cbbb5467e852d47acda5ce60ece5b6e2423b51a918b8a4ba3"
+          "bytes": 139556,
+          "sha256": "cf9d5f427ea9d7049d7d863defc867afe8f69c2edd9eb5fae396a10b1177832d"
         },
         {
           "role": "lm/palaeo-lm-94-81.ehpr",
@@ -7781,14 +7781,14 @@
         {
           "role": "lm/palaeo-lm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-catalog.json",
-          "bytes": 53026,
-          "sha256": "4002ab226c3deb70f32f3256e2acaf2d70f685a9e7c4d3cb1fe176c343cbc719"
+          "bytes": 55810,
+          "sha256": "ae0f45b31cb7fb95beb5a955fad19e6a6b74b47eb0a29639c8352926c300a9bb"
         },
         {
           "role": "lm/palaeo-lm-lgm.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-lgm.ehpr",
           "bytes": 50648,
-          "sha256": "b946c1a4c5cd9d69330a3fc386fb95ae13922aef8552d9fde3c2d6e56b453854"
+          "sha256": "1cd0038a16bcbe914a3519829f858ba1d460fc0eece26572fa80a95cc58cc10a"
         },
         {
           "role": "m/palaeo-m-11-2.ehpr",
@@ -7938,7 +7938,7 @@
           "role": "m/palaeo-m-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/m/palaeo-m-catalog.json",
           "bytes": 29907,
-          "sha256": "9fbda74f87faf25cad841e91ab5cde68296b709b83a2758b30c2535f044ed7b7"
+          "sha256": "779c29652c860765fa6fd5799bc8e6e9ddbf6b2651b7161744019578789c0177"
         },
         {
           "role": "m/palaeo-m-lgm.ehpr",
@@ -7950,19 +7950,19 @@
           "role": "outline-tones.ehpt",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.ehpt",
           "bytes": 75332,
-          "sha256": "5f0e79d9b477d85de73836c541290f7c47849c81047a9cc2d77da44e427eda8c"
+          "sha256": "456c857167b06160d315dd0c774079bb15aa60cf57de7df3916c998bc2d5af45"
         },
         {
           "role": "outline-tones.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.json",
           "bytes": 32170,
-          "sha256": "319f040a06a33946d9ae9ae2be5d303a60c675ae189a342ed13dd681127307fe"
+          "sha256": "eb743619d6e618e34552cd179cdbb1aca8e54fb6f776f9a03134d3baa0d4f73f"
         },
         {
           "role": "sm/palaeo-sm-11-2.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-11-2.ehpr",
           "bytes": 184310,
-          "sha256": "f5e4420f2c500009d97fa53c2d9375e749157b30342cf851c6803a834a9f82d6"
+          "sha256": "3b0615877f854e4024e62773d47e3828f1fa18e897ab4769952764bc2b18ee06"
         },
         {
           "role": "sm/palaeo-sm-117-94.ehpr",
@@ -7974,13 +7974,13 @@
           "role": "sm/palaeo-sm-135-117.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-135-117.ehpr",
           "bytes": 125050,
-          "sha256": "ddaaf49071e46e7b1559ba14ea075984e2b703e138e0a93d3a408602499a479e"
+          "sha256": "645527f7dbe669709ff0bf241e8d8cabded574fb109064cdea94e362ee53e917"
         },
         {
           "role": "sm/palaeo-sm-146-135.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-146-135.ehpr",
           "bytes": 129458,
-          "sha256": "0ad4a70a4942fe7dd8ee16a04f5238ebdd3bb53664086ec9f94dd1a8f649ba18"
+          "sha256": "85b960f2428caa03fdfe46f7ff83240929422e75f805c7bf974397bcb49c9b6d"
         },
         {
           "role": "sm/palaeo-sm-166-146.ehpr",
@@ -7998,7 +7998,7 @@
           "role": "sm/palaeo-sm-20-11.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-20-11.ehpr",
           "bytes": 172774,
-          "sha256": "5d8dab9df0a1d50fdcfe29df2c3e4b9fd4cc1a0a7e3d23c6bbd35276d9c84b56"
+          "sha256": "276da17616a6ed02aa3bd6d8629d694d3a3a3b7a5ed9cdb005e3acdece388f93"
         },
         {
           "role": "sm/palaeo-sm-203-179.ehpr",
@@ -8034,7 +8034,7 @@
           "role": "sm/palaeo-sm-29-20.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-29-20.ehpr",
           "bytes": 183232,
-          "sha256": "dbf9f2b601cef54f15c5234488abe37d0a51bdaf0d90cec0d9ced10276997b5e"
+          "sha256": "4e4b31be48c6a4b6f8044e40dd5a6b659863a2b6777fa580d9c771654e8c2a8c"
         },
         {
           "role": "sm/palaeo-sm-296-285.ehpr",
@@ -8063,8 +8063,8 @@
         {
           "role": "sm/palaeo-sm-37-29.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-37-29.ehpr",
-          "bytes": 186626,
-          "sha256": "bc4d0e52d3516202522e10d2668391c2c9bdcd7e060c3ed0fb8630a6cee3b98e"
+          "bytes": 186698,
+          "sha256": "0dacd618f43a9cf7436c51f98feebf94a653509a175caef0e4de5c765a814e1f"
         },
         {
           "role": "sm/palaeo-sm-380-359.ehpr",
@@ -8081,20 +8081,20 @@
         {
           "role": "sm/palaeo-sm-49-37.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-49-37.ehpr",
-          "bytes": 190462,
-          "sha256": "fe23598070ecbdfdceefc5ffd95831f0a57a5c88f175c5feda8980709d3bf553"
+          "bytes": 190554,
+          "sha256": "663ddcf47c9c79509b2487bf45b7d19864155669c9f943b7ece2533c610d96a0"
         },
         {
           "role": "sm/palaeo-sm-58-49.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-58-49.ehpr",
           "bytes": 179582,
-          "sha256": "41ac31de101dccdfd19256da5de9c7ee6dd87493103d985fd4d7d5dbb68c73a4"
+          "sha256": "460d4852d47d053cb801fecefc8575223b6d1067c10924105c6064d3fa8799a9"
         },
         {
           "role": "sm/palaeo-sm-81-58.ehpr",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-81-58.ehpr",
-          "bytes": 175420,
-          "sha256": "d58158c268b909842470f115a18762c85f0afe61d05379310f318a4ab923189a"
+          "bytes": 175462,
+          "sha256": "bca8af3edc6c39eda365781f6c4dbe4d1f9897d6de9e875784e55408a66697f5"
         },
         {
           "role": "sm/palaeo-sm-94-81.ehpr",
@@ -8105,8 +8105,8 @@
         {
           "role": "sm/palaeo-sm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-catalog.json",
-          "bytes": 52530,
-          "sha256": "7232eea4537805e1078dac92c1c3a2228a44c8a1704056899d29f2de1bdebdd5"
+          "bytes": 55460,
+          "sha256": "4bbb5ce75b8fc5c9e2331548f8505f549713d3b802761c4b616ea2481157b67b"
         },
         {
           "role": "sm/palaeo-sm-lgm.ehpr",

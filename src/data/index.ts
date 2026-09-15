@@ -10,6 +10,10 @@ export {
 
 export { pointOfInterestIncludesAge, pointsOfInterest, sources, timeSlices } from "./catalog";
 export { modernLandscapePresets } from "./landscape-presets";
+export {
+  PALAEO_DETACHED_LIMITATIONS,
+  PALAEO_MAP_INTERVAL_LIMITATIONS,
+} from "./palaeoKeyText";
 export { environmentForAge } from "./environment";
 
 export type {

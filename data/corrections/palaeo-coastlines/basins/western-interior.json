@@ -1,0 +1,235 @@
+{
+ "schemaVersion": 1,
+ "basinId": "western-interior",
+ "title": "Western Interior Seaway - San Juan Basin",
+ "status": "edited",
+ "pinnedAt": "2026-09-15",
+ "description": "Basin edit contract for the southern end of the Western Interior Seaway. Two cited operations in one Cao et al. (2017) map interval: the San Juan Basin of north-western New Mexico and south-western Colorado at 81-58 Ma, removed from the land class and added to the shallow-marine class on the same footprint. The add-shallow is the contract-mandated companion, and it is also required by the stacking order - the land class draws at 1,300 m over shallow marine at 700 m, so an add-shallow alone would still render as land. Nothing north of the basin is touched: the seaway's axis, its eastern shore, the Boreal corridor and the Sevier belt are all recorded in notes.leftAlone or as witnesses, not edited.",
+ "window": {
+  "bbox": [
+   -110.0,
+   34.5,
+   -105.5,
+   38.5
+  ],
+  "reason": "the San Juan Basin and its four bounding uplifts; deliberately small, so no operation in this contract can reach the seaway axis, the Sevier front or the Gulf coast, each of which is witnessed but not edited"
+ },
+ "intervals": [
+  "81-58"
+ ],
+ "classes": [
+  "lm",
+  "sm"
+ ],
+ "editorial": "EarthHistory modification after the references listed in this contract",
+ "notes": {
+  "leftAlone": [
+   {
+    "intervalIds": [
+     "81-58"
+    ],
+    "subject": "the southern half of the Sevier highland",
+    "reason": "The Campanian is the Sevier belt's structural climax by Professional Paper 1561's own account, yet the mountain class in southern Utah at 38-40 N collapses to a two-cell strip at 81-58 Ma while the same belt is still drawn as highland at 46-50 N. It is a measured mismatch and it is unfixable here: the edit contract has add-land, remove-land, add-shallow, remove-shallow and replace-ring, and no operation targets the mountain class at all.",
+    "references": [
+     "roberts-kirschbaum-pp1561-1995"
+    ]
+   },
+   {
+    "intervalIds": [
+     "81-58"
+    ],
+    "subject": "the eastern Campanian shoreline",
+    "reason": "Professional Paper 1561 queries its own eastern shoreline on three of its six maps. Anything drawn there would be EarthHistory invention, so the eastern shore is witnessed where it is measured and never moved.",
+    "references": [
+     "roberts-kirschbaum-pp1561-1995"
+    ]
+   },
+   {
+    "intervalIds": [
+     "81-58"
+    ],
+    "subject": "the Maastrichtian retreat of the seaway",
+    "reason": "The bin spans 23 Myr and holds the late Campanian seaway, the Bearpaw retreat, the Fox Hills and Lance shoreline and the whole Palaeocene. The seaway's death - the defining Maastrichtian event of this basin - is a bin-resolution limit, not a geometry error, and no operation can express it.",
+    "references": [
+     "roberts-kirschbaum-pp1561-1995",
+     "cobban-ofr-2006-1250"
+    ]
+   },
+   {
+    "intervalIds": [
+     "117-94",
+     "94-81"
+    ],
+    "subject": "the 45 N width inversion between the two Cretaceous bins",
+    "reason": "Cao's bins are single published maps per interval, not computed unions of their stages, so the map drawn for 117-94 can be wetter at one latitude than the map drawn for 94-81 even though the Greenhorn maximum lies in the later bin. The maximum-transgression promise is a statement about intent, not an arithmetic guarantee. Stated in the key; not edited.",
+    "references": [
+     "roberts-kirschbaum-pp1561-1995"
+    ]
+   },
+   {
+    "intervalIds": [
+     "94-81",
+     "81-58"
+    ],
+    "subject": "the neither-class cell in the northern Gulf at (-94, 30)",
+    "reason": "A source hole, not a barrier. Any continuity test that uses it as the Gulf endpoint reports a false break; the test that holds asks whether the sea body containing (-100, 40) reaches both the Arctic and 25 N. No geometry is added to close a source hole.",
+    "references": [
+     "roberts-kirschbaum-pp1561-1995"
+    ]
+   }
+  ],
+  "rights": "Every publication named here is citation-only. No figure, map plate, polygon, coordinate list or table from any of them is traced, digitised, copied or redistributed. Every footprint below is a coarse rectangle or few-vertex belt built from bounds the cited text states in words, not an outline read off a published map. The only redistributed palaeogeographic geometry in this program remains Cao et al. (2017), CC BY 3.0.",
+  "frame": "Every geometry above is present-day WGS84, like the Cao 2017 source. Pieces inside this window ride their native Cao 2024 North American binding; no restoration plate applies here.",
+  "residualLimitations": [
+   "Residual limitation this operation does not fix and must not be widened to chase: 81-58 is a 23 Myr bin holding the late Campanian seaway, the Bearpaw retreat, the Fox Hills and Lance shoreline and the whole Palaeocene, so the seaway's Maastrichtian death cannot be shown at this resolution. The operation asserts the bin's maximum in one basin, not a shoreline history.",
+   "The footprint is the structural outline of the San Juan Basin, not a palaeo-shoreline. The 60 km uncertainty is what carries the difference: Professional Paper 1561 figure 19's maximum landward extent of seaway has not been digitised, and this operation must not be read as a shoreline position."
+  ]
+ },
+ "ops": [
+  {
+   "opId": "western-interior-81-58-san-juan-lewis-sea-remove-land",
+   "kind": "remove-land",
+   "intervalIds": [
+    "81-58"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -108.9,
+       36.3
+      ],
+      [
+       -108.4,
+       37.4
+      ],
+      [
+       -106.9,
+       37.4
+      ],
+      [
+       -106.6,
+       36.6
+      ],
+      [
+       -107.3,
+       35.9
+      ],
+      [
+       -108.6,
+       35.9
+      ],
+      [
+       -108.9,
+       36.3
+      ]
+     ]
+    ]
+   },
+   "rationale": "At the 81-58 bin's own maximum the San Juan Basin was marine: the Lewis Shale, with the Pictured Cliffs Sandstone shoreface and the Fruitland Formation recording the later progradation, and the Baculites scotti zone inside it dated 75.56 +/- 0.11 Ma. The shipped map renders the post-regression state for the southern seaway while rendering the transgressive state at 40-49 N in the same bin, so the bin is internally inconsistent by about 280 km of shoreline at 36.5 N, and a maximum-transgression bin must render its wettest stage. The footprint is the San Juan Basin as its bounding structures are described in words - west the Defiance-Chuska uplift, east the Nacimiento uplift, south the Zuni uplift, north the San Juan Mountains front, about 108.9 W to 106.6 W and 35.9 N to 37.4 N - drawn as a six-vertex polygon. It is deliberately the basin outline and not a shoreline: Professional Paper 1561 figure 19's maximum landward extent of seaway was read as text and is not digitised here, which is what the 60 km uncertainty carries. Residual limitation this operation does not fix and must not be widened to chase: 81-58 is a 23 Myr bin holding the late Campanian seaway, the Bearpaw retreat, the Fox Hills and Lance shoreline and the whole Palaeocene, so the seaway's Maastrichtian death cannot be shown at this resolution. The operation asserts the bin's maximum in one basin, not a shoreline history.",
+   "spatialUncertaintyKilometres": 60.0,
+   "editorial": "EarthHistory modification after roberts-kirschbaum-pp1561-1995, cobban-ofr-2006-1250",
+   "references": [
+    "roberts-kirschbaum-pp1561-1995",
+    "cobban-ofr-2006-1250"
+   ],
+   "claimOrInference": "the Campanian II shoreline position, the marine Lewis Shale and Pictured Cliffs succession of the San Juan Basin and the 75.56 +/- 0.11 Ma age of the Baculites scotti zone are claims of the sources; that a maximum-transgression bin must therefore render this basin as sea at 81-58 Ma, and the choice of footprint, are EarthHistory inferences"
+  },
+  {
+   "opId": "western-interior-81-58-san-juan-lewis-sea-add-shallow",
+   "kind": "add-shallow",
+   "intervalIds": [
+    "81-58"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -108.9,
+       36.3
+      ],
+      [
+       -108.4,
+       37.4
+      ],
+      [
+       -106.9,
+       37.4
+      ],
+      [
+       -106.6,
+       36.6
+      ],
+      [
+       -107.3,
+       35.9
+      ],
+      [
+       -108.6,
+       35.9
+      ],
+      [
+       -108.9,
+       36.3
+      ]
+     ]
+    ]
+   },
+   "rationale": "The contract-mandated companion to the land removal, and the stacking order makes it compulsory rather than merely required: the land class draws at 1,300 m above the shallow-marine class at 700 m, so an add-shallow without the removal would render as land, and the removal without the add-shallow would leave the basin unclassified - crust of unmapped depth. Same outline, same uncertainty.",
+   "spatialUncertaintyKilometres": 60.0,
+   "editorial": "EarthHistory modification after roberts-kirschbaum-pp1561-1995, cobban-ofr-2006-1250",
+   "references": [
+    "roberts-kirschbaum-pp1561-1995",
+    "cobban-ofr-2006-1250"
+   ],
+   "claimOrInference": "the marine Lewis Shale interval of the San Juan Basin is a claim of the sources; rendering it in the shallow-marine class over the whole structural basin is an EarthHistory inference"
+  }
+ ],
+ "references": [
+  {
+   "sourceId": "roberts-kirschbaum-pp1561-1995",
+   "citation": "Roberts, L. N. R. and Kirschbaum, M. A. 1995. Paleogeography of the Late Cretaceous of the Western Interior of middle North America - coal distribution and sediment accumulation. U.S. Geological Survey Professional Paper 1561, 115 pp.",
+   "url": "https://doi.org/10.3133/pp1561",
+   "year": 1995,
+   "constrains": "the six Late Cretaceous palaeogeographic time slices of the Western Interior, their ammonite zones and ages, and the Campanian II shoreline that brackets this operation",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15; the report PDF was read in full. Figure 19's shoreline was read as text and is not digitised, traced or redistributed."
+  },
+  {
+   "sourceId": "cobban-ofr-2006-1250",
+   "citation": "Cobban, W. A., Walaszczyk, I., Obradovich, J. D. and McKinney, K. C. 2006. A USGS zonal table for the Upper Cretaceous Middle Cenomanian-Maastrichtian of the Western Interior of the United States based on ammonites, inoceramids, and radiometric ages. U.S. Geological Survey Open-File Report 2006-1250, 46 pp.",
+   "url": "https://doi.org/10.3133/ofr20061250",
+   "year": 2006,
+   "constrains": "the numeric age of the Baculites scotti zone (75.56 +/- 0.11 Ma) and the Upper Cretaceous stage boundaries this operation's bin reasoning uses",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15; the report PDF was read in full."
+  }
+ ],
+ "opSchema": {
+  "kinds": [
+   "add-land",
+   "remove-land",
+   "add-shallow",
+   "remove-shallow",
+   "replace-ring"
+  ],
+  "requiredFields": [
+   "opId",
+   "kind",
+   "intervalIds",
+   "geometry",
+   "rationale",
+   "spatialUncertaintyKilometres",
+   "editorial",
+   "references"
+  ],
+  "geometry": "GeoJSON Polygon or MultiPolygon in present-day WGS84 coordinates, entirely inside the basin window, longitude span below 180 degrees",
+  "references": "at least one entry of this contract's references[], named by sourceId; the compiler rejects an operation without one",
+  "intervals": "every intervalId an operation names must be a canonical Cao interval AND appear in this contract's intervals[]; the operation's intervals must be contiguous in the canonical schedule, and a source record the operation edits may not stay active outside them",
+  "editorial": "must start with 'EarthHistory modification after '; the same prefix is what the emitted evidence record carries",
+  "replaceRing": "replace-ring additionally names targetRecordIndex: the Cao 2017 record whose ring the geometry replaces",
+  "reporting": "the compiler records the area added and removed per operation, per class and per interval, in the emitted catalog"
+ }
+}

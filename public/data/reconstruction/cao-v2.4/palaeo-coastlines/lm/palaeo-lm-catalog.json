@@ -3391,6 +3391,24 @@
   },
   {
    "appearance": "palaeo-land",
+   "editorial": "EarthHistory modification after cobban-ofr-2006-1250, roberts-kirschbaum-pp1561-1995",
+   "limitations": [
+    "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
+    "the present-day polygon is cut by the present-day Cao et al. (2024) v2.4 static partitions and each piece rides one plate; it is not the authors' own reconstruction with the Matthews et al. (2016) rotations"
+   ],
+   "method": "present-day-class-reattached-to-cao2024-partition-v1",
+   "sourceIds": [
+    "cao-2017-paleogeography",
+    "matthews-2016-plate-boundaries",
+    "cao-v2.4-static-partitions",
+    "cobban-ofr-2006-1250",
+    "roberts-kirschbaum-pp1561-1995"
+   ],
+   "status": "derived-from-published-source",
+   "surfaceClass": "landmass"
+  },
+  {
+   "appearance": "palaeo-land",
    "editorial": "EarthHistory modification after ahmadi-2003-paleocene, anell-2012-cenozoic-north-sea, jones-2001-transient-uplift, kjennerud-gillmore-2003-palaeobathymetry, mudge-2015-lower-tertiary-sandstones, platt-cartwright-1998-esp-structure",
    "limitations": [
     "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
@@ -3407,6 +3425,26 @@
     "kjennerud-gillmore-2003-palaeobathymetry",
     "mudge-2015-lower-tertiary-sandstones",
     "platt-cartwright-1998-esp-structure"
+   ],
+   "status": "derived-from-published-source",
+   "surfaceClass": "landmass"
+  },
+  {
+   "appearance": "palaeo-land",
+   "editorial": "EarthHistory modification after hall-2009-north-makassar, hall-2009-sundaland, hall-2012-indonesia-reconstructions, hall-2013-sundaland-palaeogeography",
+   "limitations": [
+    "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
+    "the present-day polygon is cut by the present-day Cao et al. (2024) v2.4 static partitions and each piece rides one plate; it is not the authors' own reconstruction with the Matthews et al. (2016) rotations"
+   ],
+   "method": "present-day-class-reattached-to-cao2024-partition-v1",
+   "sourceIds": [
+    "cao-2017-paleogeography",
+    "matthews-2016-plate-boundaries",
+    "cao-v2.4-static-partitions",
+    "hall-2009-north-makassar",
+    "hall-2009-sundaland",
+    "hall-2012-indonesia-reconstructions",
+    "hall-2013-sundaland-palaeogeography"
    ],
    "status": "derived-from-published-source",
    "surfaceClass": "landmass"
@@ -3432,6 +3470,25 @@
     "platt-cartwright-1998-esp-structure",
     "sodir-frigg-formation",
     "sodir-grid-formation"
+   ],
+   "status": "derived-from-published-source",
+   "surfaceClass": "landmass"
+  },
+  {
+   "appearance": "palaeo-land",
+   "editorial": "EarthHistory modification after kuhlemann-kempf-2002, palcu-krijgsman-2022, rogl-1999-palaeogeography",
+   "limitations": [
+    "a Cao et al. (2017) map interval records the minimum land and maximum flooding mapped anywhere in that bin, not a shoreline at one moment",
+    "the present-day polygon is cut by the present-day Cao et al. (2024) v2.4 static partitions and each piece rides one plate; it is not the authors' own reconstruction with the Matthews et al. (2016) rotations"
+   ],
+   "method": "present-day-class-reattached-to-cao2024-partition-v1",
+   "sourceIds": [
+    "cao-2017-paleogeography",
+    "matthews-2016-plate-boundaries",
+    "cao-v2.4-static-partitions",
+    "kuhlemann-kempf-2002",
+    "palcu-krijgsman-2022",
+    "rogl-1999-palaeogeography"
    ],
    "status": "derived-from-published-source",
    "surfaceClass": "landmass"
@@ -3553,10 +3610,10 @@
    32555,
    31175,
    27683,
-   28255,
+   28264,
    33213,
-   35030,
-   39542,
+   35010,
+   39533,
    40445,
    37546,
    42182,
@@ -3580,10 +3637,10 @@
    160838,
    152958,
    136966,
-   139526,
+   139556,
    161522,
-   169410,
-   193600,
+   169370,
+   193592,
    194846,
    181812,
    200966,
@@ -3635,10 +3692,10 @@
    119911,
    110675,
    99670,
-   103656,
+   103587,
    123047,
-   124859,
-   127772,
+   124824,
+   127702,
    182546,
    117174,
    125047,
@@ -3797,9 +3854,9 @@
    1535,
    1449,
    1317,
-   1357,
+   1358,
    1455,
-   1503,
+   1507,
    1802,
    1697,
    1920,
@@ -3824,14 +3881,14 @@
    "14102f4d135048e28aa701e98a2e98abacf85cbc6cbb913beb51db8f13378a91",
    "57919731064197fb341520529b1576fc6e7972481737c91e549c8a1e1c268d9d",
    "07297fd166496095e4c625a45f724ac8d160d13e2e21b80945b11a08fc1756f9",
-   "e51bf4a5ddf57d7cbbb5467e852d47acda5ce60ece5b6e2423b51a918b8a4ba3",
-   "d59f538a2258d1af3adbfc47282d09cf1fa9cac82ed182c921bf9aa198ba5282",
-   "a1b5d909d87445f7ac93b5f9bffd6fc122394b6f61cc4e1f14dd4b8de1888b22",
-   "bd32467cf40ad15308b7041e9bb9d9de93b79ec31c5da51ecc339f20f94e5b95",
+   "cf9d5f427ea9d7049d7d863defc867afe8f69c2edd9eb5fae396a10b1177832d",
+   "c318759a35208366606052cdff48c74511c87c47a2609b8b70a509575e38a12d",
+   "8ed5bbf329fc9e4e946210a3be2364867e1271fc0230b0663cff86d177b50a45",
+   "b0d0a167217cef6c49d758220132ce0c46b8ea5cd68871eef8e614b0f4a898de",
    "1adce26ea8ec7fe09397c2ac7b2ffae7609d62c1ed5e629156d9d4a177238e62",
-   "3a22d3af9f951cdf6ae42b0e796820f39735cc447a215c0ff5269f284afbc352",
-   "19e453237230fd8439512aa68718ab1cbb795aa9c310ee886bf8b79567e618c2",
-   "b946c1a4c5cd9d69330a3fc386fb95ae13922aef8552d9fde3c2d6e56b453854"
+   "13276dfb887822f49a6826c71b2b94ee20c5e38584385999d629470ff0bb99d7",
+   "baa596d31e1d5bc238ec377dee53b3029317afe99d5914090965d5d4e1a53799",
+   "1cd0038a16bcbe914a3519829f858ba1d460fc0eece26572fa80a95cc58cc10a"
   ],
   "toAgeMa": [
    380.01,
@@ -3878,10 +3935,10 @@
    35492,
    33871,
    30206,
-   30829,
+   30836,
    35955,
-   37858,
-   42973,
+   37846,
+   42971,
    43571,
    40279,
    44677,
@@ -4034,10 +4091,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-lm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 693866,
+  "bytes": 699934,
   "path": "provenance/palaeo-lm-provenance.json",
   "records": 7363,
-  "sha256": "ca4e29c9772d450496cd872c7fb1f015ad376a995d34a7fbc5330cc62a33d1ed",
+  "sha256": "802aab5b122ccb89159927a5e4f6d3fcea642a40e34fcbe420720abd81b970a9",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2

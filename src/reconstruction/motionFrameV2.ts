@@ -96,6 +96,9 @@ export interface CaoMotionFrame {
   readonly anchorIds: readonly string[];
   addressForChartDirection(chartIndex: number, directionAtReference: readonly [number, number, number]): MaterialAddress;
   resolveAddress(address: MaterialAddress): MaterialPose;
+  resolvePresentDayDirection(
+    directionAtReference: readonly [number, number, number],
+  ): PresentDayDirectionResolution;
   resolveAnchor(anchorId: string): Readonly<{
     pose: MaterialPose;
     role: "poi-anchor" | "focus-anchor";
@@ -103,6 +106,30 @@ export interface CaoMotionFrame {
     sourceIds: readonly string[];
     limitations: readonly string[];
   }> | null;
+}
+
+
+/**
+ * A present-day direction posed at a requested age, and how that answer was
+ * reached.
+ *
+ * `at=<lon>,<lat>` in a deep link names a piece of present-day ground, not a
+ * direction in the rendered frame. Every chart stores its geometry in the
+ * present-day reference frame, so the ground is found by testing those
+ * reference triangles directly and the answer is the owning chart's pose
+ * applied to the same direction — the question `resolveAnchor` already answers
+ * for a compiled point of interest, asked of an arbitrary coordinate.
+ *
+ * Ground no active chart covers at this age has no reconstructed position. The
+ * raw direction comes back with `present-day-unposed` so the caller can say
+ * so rather than presenting a bare direction as reconstructed ground.
+ */
+export interface PresentDayDirectionResolution {
+  /** Posed into the age's rendered frame, or the requested direction unchanged. */
+  readonly direction: UnitDirection;
+  readonly resolution: "posed" | "present-day-unposed";
+  /** The chart whose pose was applied, or null when nothing covered the ground. */
+  readonly chartId: string | null;
 }
 
 export function resolveCaoDisplayBracket(
@@ -313,6 +340,77 @@ export function evaluateCaoMotionFrame(
         ? rotateDirection(numberScalarOps, chart.poseQuaternion, direction) : null,
       support: chart.support });
   };
+  /**
+   * The lowest-indexed active chart whose reference geometry contains a
+   * present-day direction, or null.
+   *
+   * The triangles are tested in the frame they are stored in, so no pose is
+   * undone here — the mirror of the coverage path, which takes a rendered
+   * direction and applies each chart's inverse pose first. Charts are tested in
+   * core order and the search stops short of any chart that could no longer
+   * win, so overlapping shelf and land charts of one plate resolve to one
+   * stable answer instead of whichever batch happened to be walked first.
+   */
+  const chartCoveringReferenceDirection = (direction: UnitDirection): number | null => {
+    const [dx, dy, dz] = direction;
+    let best: number | null = null;
+    for (const batch of spatialBatches.values()) {
+      for (const range of batch.chartTriangleRanges) {
+        const chartIndex = range.chartIndex;
+        if (best !== null && chartIndex >= best) continue;
+        if (charts[chartIndex]?.support.kind !== "supported") continue;
+        const points = batch.referenceDirections;
+        const indices = batch.indices;
+        const end = (range.firstTriangle + range.triangleCount) * 3;
+        for (let corner = range.firstTriangle * 3; corner < end; corner += 3) {
+          const a = indices[corner]! * 3;
+          const b = indices[corner + 1]! * 3;
+          const c = indices[corner + 2]! * 3;
+          const ax = points[a]!, ay = points[a + 1]!, az = points[a + 2]!;
+          const dotA = dx * ax + dy * ay + dz * az;
+          if (dotA <= 0) continue;
+          const bx = points[b]!, by = points[b + 1]!, bz = points[b + 2]!;
+          const cx = points[c]!, cy = points[c + 1]!, cz = points[c + 2]!;
+          // A spherical triangle is convex, so its farthest point from one
+          // vertex is another vertex: a direction closer to neither of them
+          // than they are to each other cannot be inside. Derived from the
+          // triangle itself, so it assumes no tessellation edge length.
+          const reach = Math.min(ax * bx + ay * by + az * bz, ax * cx + ay * cy + az * cz);
+          if (dotA < reach - 1e-9) continue;
+          // Sign of the three edge normals: equal signs put the direction
+          // inside, and the positive dot with a rules out the antipode.
+          const s1 = dx * (ay * bz - az * by) + dy * (az * bx - ax * bz) + dz * (ax * by - ay * bx);
+          const s2 = dx * (by * cz - bz * cy) + dy * (bz * cx - bx * cz) + dz * (bx * cy - by * cx);
+          const s3 = dx * (cy * az - cz * ay) + dy * (cz * ax - cx * az) + dz * (cx * ay - cy * ax);
+          if ((s1 >= -1e-12 && s2 >= -1e-12 && s3 >= -1e-12)
+              || (s1 <= 1e-12 && s2 <= 1e-12 && s3 <= 1e-12)) {
+            best = chartIndex;
+            break;
+          }
+        }
+      }
+    }
+    return best;
+  };
+  const resolvePresentDayDirection = (
+    directionAtReference: readonly [number, number, number],
+  ): PresentDayDirectionResolution => {
+    if (!directionAtReference.every(Number.isFinite)
+        || Math.abs(Math.hypot(...directionAtReference) - 1) > 2e-6) {
+      throw new Error("present-day focus direction must be a unit vector");
+    }
+    const direction = Object.freeze([...directionAtReference]) as UnitDirection;
+    const chartIndex = chartCoveringReferenceDirection(direction);
+    const chart = chartIndex === null ? null : charts[chartIndex]!;
+    if (chart === null) {
+      return Object.freeze({ direction, resolution: "present-day-unposed" as const, chartId: null });
+    }
+    return Object.freeze({
+      direction: rotateDirection(numberScalarOps, chart.poseQuaternion, direction),
+      resolution: "posed" as const,
+      chartId: chart.chartId,
+    });
+  };
   const anchorIds = Object.freeze(anchorCatalog?.anchors.map((anchor) => anchor.anchorId) ?? []);
   const anchorRecords = Object.freeze((anchorCatalog?.anchors ?? []).map((anchor) => Object.freeze({
     ...anchor,
@@ -366,6 +464,7 @@ export function evaluateCaoMotionFrame(
     anchorIds,
     addressForChartDirection,
     resolveAddress,
+    resolvePresentDayDirection,
     resolveAnchor,
   });
 }

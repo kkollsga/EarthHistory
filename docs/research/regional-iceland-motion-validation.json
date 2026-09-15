@@ -13,9 +13,9 @@
   },
   "packageAssets": {
     "core": {
-      "bytes": 1426795,
-      "sha256": "236c968c7db3d6b7fb11d8dec37438319bd07f0b516e1f098c2dac8ddc5f5734",
-      "url": "core.json"
+      "url": "core.json",
+      "bytes": 1427415,
+      "sha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502"
     },
     "motionPaletteCatalog": {
       "bytes": 802764,
@@ -28,9 +28,9 @@
       "url": "motion-palette.bin"
     },
     "materialCorrectionCatalog": {
+      "url": "corrections/material-v1/catalog.json",
       "bytes": 243939,
-      "sha256": "b4f8b892a5f403dcd8a0b3ab6d8cd221c0090dc4580c3ca3721d0353bb8f3ee7",
-      "url": "corrections/material-v1/catalog.json"
+      "sha256": "d78e016257ae1215aa1327205947a56d5bb1c1dfbf1909c927d9b30dcfe42710"
     }
   },
   "testedPlateIds": [
@@ -267,5 +267,8 @@
       ],
       "angularResidualRadians": 3.4755181639464544e-07
     }
+  ],
+  "packageAssetsRebasedBy": [
+    "earthhistory-cao-package-interning-v1"
   ]
 }

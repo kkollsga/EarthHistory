@@ -21,6 +21,8 @@ import { GlobeView, type PeriodCoordinateRenderState } from "./render";
 import {
   environmentForAge,
   modernLandscapePresets,
+  PALAEO_DETACHED_LIMITATIONS,
+  PALAEO_MAP_INTERVAL_LIMITATIONS,
   pointOfInterestIncludesAge,
   pointsOfInterest,
   sources,
@@ -59,7 +61,6 @@ import {
   palaeoIntervalEvidenceStatus,
   palaeoIntervalIsDetached,
   palaeoIntervalKeyLine,
-  palaeoIntervalLabel,
   selectPalaeoInterval,
   type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
   type PreparedCaoPalaeoInterval, type PreparedCaoRevision,
@@ -149,6 +150,13 @@ function closestChapter(ageMa: number) {
   );
 }
 
+function lonLatToGplatesDirection([longitude, latitude]: LonLat): [number, number, number] {
+  const lon = longitude * Math.PI / 180;
+  const lat = latitude * Math.PI / 180;
+  const cosLat = Math.cos(lat);
+  return [cosLat * Math.cos(lon), cosLat * Math.sin(lon), Math.sin(lat)];
+}
+
 function gplatesDirectionToLonLat(direction: readonly [number, number, number]): LonLat {
   return [Math.atan2(direction[1], direction[0]) * 180 / Math.PI,
     Math.asin(Math.max(-1, Math.min(1, direction[2]))) * 180 / Math.PI];
@@ -235,6 +243,18 @@ export default function App() {
   const [caoMotionFrame, setCaoMotionFrame] = useState<CaoMotionFrame | null>(null);
   const caoMotionFrameRef = useRef<CaoMotionFrame | null>(null);
   const caoScrubPumpRef = useRef<{ disposed: boolean; inFlight: boolean; serial: number; pump: () => void } | null>(null);
+  // `at=` names present-day ground, not a rendered direction: the requested
+  // coordinate is kept so every age can re-pose it, and so the shared link
+  // keeps saying which ground it meant rather than where that ground had
+  // rotated to when the link was copied.
+  const [presentDayFocus, setPresentDayFocus] = useState<
+    { coordinates: LonLat; nonce: number } | null
+  >(initialArea ? { coordinates: initialArea, nonce: 0 } : null);
+  const presentDayFocusRef = useRef<{ coordinates: LonLat; nonce: number } | null>(null);
+  presentDayFocusRef.current = presentDayFocus;
+  const [focusResolution, setFocusResolution] = useState<
+    "posed" | "present-day-unposed" | null
+  >(initialArea ? "present-day-unposed" : null);
   const [materialFocusAddress, setMaterialFocusAddress] = useState<MaterialAddress | null>(initial.nativeMaterialFocus);
   const materialFocusAddressRef = useRef<MaterialAddress | null>(null);
   materialFocusAddressRef.current = materialFocusAddress;
@@ -393,6 +413,29 @@ export default function App() {
         setAreaFocusStatus("unresolved");
         setSpatialFocus((current) => current?.kind === "area" ? null : current);
       }
+    }
+    const presentDay = presentDayFocusRef.current;
+    if (presentDay !== null && focusAddress === null) {
+      // The chart that owns this ground carries it to where the age draws it.
+      // Ground no chart covers has no reconstructed position at this age, so
+      // the raw direction is aimed at and the fallback is declared.
+      const posed = frame.resolvePresentDayDirection(
+        lonLatToGplatesDirection(presentDay.coordinates));
+      const coordinates = gplatesDirectionToLonLat(posed.direction);
+      setFocusResolution(posed.resolution);
+      setAutoRotateEnabled(false);
+      setSpatialFocus((current) => {
+        if (current !== null && (current.kind !== "area" || current.nonce !== presentDay.nonce)) {
+          return current;
+        }
+        if (current?.kind === "area" && current.coordinates[0] === coordinates[0]
+            && current.coordinates[1] === coordinates[1]) {
+          return current;
+        }
+        // Distance is left to the camera: the link's first aim already chose
+        // the regional zoom, and a scrub must not undo the viewer's own.
+        return { kind: "area", coordinates, nonce: presentDay.nonce, distance: undefined };
+      });
     }
     const runtime = caoRuntimeRef.current;
     const exactCheckpoint = runtime?.manifest.checkpoints.some(
@@ -962,7 +1005,6 @@ export default function App() {
   const palaeoFallback = layers.palaeoCoastlines
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
-  const palaeoIntervalName = palaeoInterval === null ? null : palaeoIntervalLabel(palaeoInterval);
   const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
@@ -1015,7 +1057,9 @@ export default function App() {
   // scrub sample. Material/place/POI identities already capture shareable focus.
   const focusPlaceId = spatialFocus?.kind === "place" ? spatialFocus.placeId : null;
   const focusAt = materialFocusAddress === null && spatialFocus?.kind === "area"
-    ? serializeFocusCoordinates(spatialFocus.coordinates) : null;
+    ? serializeFocusCoordinates(presentDayFocus !== null
+        && presentDayFocus.nonce === spatialFocus.nonce
+      ? presentDayFocus.coordinates : spatialFocus.coordinates) : null;
   useEffect(() => {
     const params = new URLSearchParams();
     params.set("age", serializeAge(ageMa));
@@ -1107,6 +1151,13 @@ export default function App() {
       };
     });
   }, [selectedPoi, selectedPoiCoordinate]);
+
+  useEffect(() => {
+    if (presentDayFocus === null) return;
+    if (spatialFocus?.kind === "area" && spatialFocus.nonce === presentDayFocus.nonce) return;
+    setPresentDayFocus(null);
+    setFocusResolution(null);
+  }, [presentDayFocus, spatialFocus]);
 
   useEffect(() => {
     if (ageMa <= 0.0001) return;
@@ -1395,6 +1446,7 @@ export default function App() {
         data-cao-motion-tier={caoTimelineLoading.motionTier}
         data-cao-motion-foreground-status={caoTimelineLoading.foregroundStatus}
         data-cao-timeline-loading-status={caoTimelineLoading.status}
+        data-focus-resolution={focusResolution ?? undefined}
         data-cao-requested-age-ma={ageMa}
         data-cao-displayed-age-ma={periodCoordinateState.displayedAgeMa}
       >
@@ -1454,7 +1506,7 @@ export default function App() {
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
               )}
               {palaeoClassInKey("sm") && (
-                <li><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Palaeo shallow sea</strong>Cao et al. 2017 shallow-marine polygons; an environment class, not a water depth</span></li>
+                <li><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Palaeo shallow sea</strong>Cao et al. 2017 shallow-marine polygons for the active map interval</span></li>
               )}
               {palaeoClassInKey("m") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
@@ -1470,23 +1522,29 @@ export default function App() {
                   <p className="surface-info-note" data-testid="palaeo-interval-line">{
                     palaeoIntervalKeyLine(palaeoInterval)}</p>
                 )}
-                {palaeoInterval !== null && !palaeoIntervalDetached && (
-                  <p className="surface-info-note">Land and shallow sea are the Cao et al. (2017) map
-                    polygons for the {palaeoIntervalName} interval: the minimum land / maximum flooding
-                    recorded anywhere in that bin, not a shoreline at one moment.</p>
-                )}
                 {palaeoIntervalDetached && (
                   <p className="surface-info-note">Exposed shelf is the ETOPO 2022 present-day surface
                     at or above &minus;120&nbsp;m with today&rsquo;s land subtracted, inside the southern
                     and central North Sea, the Sunda shelf and Beringia only. It is drawn beside
                     today&rsquo;s land, which stays visible: every other coastline at this age is the
-                    present-day one. No glacio-isostatic adjustment, no ice sheets, and modern
-                    bathymetry with post-glacial sediment still in place.</p>
+                    present-day one.</p>
                 )}
                 {palaeoFallback && (
                   <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">
                     No palaeogeography evidence at this age; showing the Cao 2024 coast proxy
                   </p>
+                )}
+                {palaeoInterval !== null && (
+                  <div className="palaeo-limitation-key" data-testid="palaeo-limitations">
+                    <strong>Limitations</strong>
+                    <ul>
+                      {(palaeoIntervalDetached
+                        ? PALAEO_DETACHED_LIMITATIONS
+                        : PALAEO_MAP_INTERVAL_LIMITATIONS).map((limitation) => (
+                        <li key={limitation}>{limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {!palaeoIntervalDetached && (
                   <ul className="outline-marker-key">

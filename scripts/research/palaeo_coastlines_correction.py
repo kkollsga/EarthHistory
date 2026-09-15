@@ -152,8 +152,12 @@ UNCOVERED_PLATE_ID = 999999
 # interval. The compiled payloads must reproduce it after cookie-cutting,
 # simplification and int16 quantisation.
 WITNESS_CLASSES = {
+    # The Cretaceous half of this row is the western-interior memo's (2026-09-15):
+    # the seaway is open on the axis through 117-94, 94-81 and 81-58 and gone by
+    # 58-49, which is the transgressive-regressive history the memo pins.
     "western-interior-seaway": ((-100.0, 45.0), {
-        "402-380": ["lm", "sm"], "269-248": ["lm"], "248-224": ["lm"], "94-81": ["sm"]}),
+        "402-380": ["lm", "sm"], "269-248": ["lm"], "248-224": ["lm"],
+        "117-94": ["sm"], "94-81": ["sm"], "81-58": ["sm"], "58-49": ["lm"]}),
     "west-siberian-sea": ((75.0, 60.0), {
         "402-380": ["sm"], "269-248": ["lm"], "248-224": ["lm"], "94-81": ["sm"]}),
     "zechstein": ((4.0, 54.0), {
@@ -259,6 +263,103 @@ WITNESS_CLASSES = {
     # rather than an accident.
     "tampen-spur-synrift": ((2.492, 61.542), {"166-146": ["sm"]}),
     "sogn-graben-synrift": ((3.487, 61.769), {"166-146": ["sm"]}),
+    # ------------------------------------------------ 2026-09-15 memo witnesses
+    # Ingested from `data/corrections/palaeo-coastlines/witnesses-pending.json`:
+    # the six research memos of 2026-09-15 measured these points against the
+    # shipped payloads. Rows a basin edit moves, and the unedited controls beside
+    # them, are in BASIN_EDIT_WITNESSES instead, where the Cao source class set is
+    # re-measured beside the compiled one.
+    "black-sea-maikop": ((34.0, 43.0), {"37-29": ["sm"]}),
+    "black-sea-upper-maikop": ((34.0, 43.0), {"29-20": ["sm"]}),
+    "middle-caspian-maikop": ((51.0, 42.0), {"29-20": ["sm"]}),
+    "north-caucasus-foredeep-maikop": ((44.0, 45.0), {"37-29": ["sm"]}),
+    # 11-2: Mandatory epistemic note where this row surfaces: a brackish lake-sea
+    # rendered in the only class available, not a marine shelf.
+    "caspian-isolated-basin": ((51.0, 42.0), {"11-2": ["sm"]}),
+    # 20-11: Mandatory epistemic note: Paratethys brackish to marine basin; Cao mountain
+    # polygons cover the basin interior at the adjacent intervals.
+    "pannonian-basin-badenian": ((19.0, 47.0), {"20-11": ["sm"]}),
+    # 20-11: Mandatory epistemic note: Paratethys basin, brackish to marine.
+    "transylvanian-basin-badenian": ((24.5, 46.5), {"20-11": ["sm"]}),
+    # 11-2: Mandatory epistemic note: the basin's post-Pannonian emergence, not an
+    # open-ocean shoreline.
+    "transylvanian-basin-post-pannonian": ((24.5, 46.5), {"11-2": ["lm"]}),
+    "aral-turan-continental": ((60.0, 44.0), {"11-2": ["lm"]}),
+    "dacian-basin-sarmatian": ((26.0, 44.5), {"20-11": ["sm"]}),
+    "molasse-obere-meeresmolasse": ((11.0, 48.0), {"20-11": ["sm"]}),
+    "molasse-late-miocene-continental": ((11.0, 48.5), {"11-2": ["lm"]}),
+    "sundaland-emergent-core-eocene": ((105.0, 2.0), {"49-37": ["lm"]}),
+    "sundaland-emergent-core-late-miocene": ((105.0, 2.0), {"11-2": ["lm"]}),
+    # 29-20: Mandatory epistemic note: lacustrine syn-rift section rendered in the only
+    # non-marine class available, not a claim of dry emergent land.
+    "malay-basin-syn-rift-non-marine": ((104.0, 6.0), {"29-20": ["lm"]}),
+    "malay-basin-pliocene-marine": ((104.0, 6.0), {"11-2": ["sm"]}),
+    "nam-con-son-pliocene-marine": ((109.0, 8.0), {"11-2": ["sm"]}),
+    "rajang-trough-deep-marine": ((114.0, 1.0), {"58-49": []}),
+    # 29-20: Mandatory epistemic note: post-orogenic emergent Borneo, the state the
+    # Sarawak Orogeny leaves behind.
+    "borneo-interior-post-sarawak-orogeny-land": ((114.0, 1.0), {"29-20": ["lm"]}),
+    "borneo-central-range": ((114.0, 1.0), {"11-2": ["lm", "m"]}),
+    "sarawak-shelf-oligocene": ((113.0, 4.5), {"29-20": ["sm"]}),
+    "kutei-marine-eocene-transgression": ((117.5, -0.5), {"49-37": ["sm"]}),
+    "mahakam-delta-plain": ((117.5, -0.5), {"11-2": ["lm"]}),
+    "wis-sevier-foredeep-utah": ((-111.0, 40.0), {"94-81": ["sm"], "81-58": ["lm"]}),
+    # 94-81: The one Sevier reading the mountain class gets right; the southern-half
+    # collapse at 81-58 is a stated limitation, not an edit.
+    "wis-sevier-highland-utah": ((-114.0, 40.0), {"94-81": ["m"]}),
+    "wis-east-shore-40n": ((-97.0, 40.0), {"117-94": ["sm"], "94-81": ["sm"], "58-49": ["lm"]}),
+    "wis-east-craton-40n": ((-93.0, 40.0), {"117-94": ["lm"], "94-81": ["lm"], "81-58": ["lm"]}),
+    "wis-east-shore-45n": ((-95.0, 45.0), {"94-81": ["sm"], "58-49": ["lm"]}),
+    "wis-boreal-corridor-115w": ((-115.0, 60.0), {"117-94": ["sm"], "94-81": ["sm"], "81-58": ["lm"]}),
+    # 117-94: Negative control: the Boreal link is not through Hudson Bay.
+    # 94-81: Negative control: the Boreal link is not through Hudson Bay.
+    # 81-58: Negative control: the Boreal link is not through Hudson Bay.
+    "wis-hudson-bay-land": ((-90.0, 55.0), {"117-94": ["lm"], "94-81": ["lm"], "81-58": ["lm"]}),
+    "wis-gulf-coast-texas": ((-95.0, 32.0), {"94-81": ["sm"], "81-58": ["sm"], "58-49": ["sm"]}),
+    "paranense-corrientes-tep": ((-57.0, -31.0), {"20-11": ["sm"]}),
+    # 11-2: The only point recording the late-Miocene withdrawal, on the correct side of
+    # del Rio's Santa Fe limit.
+    "paranense-corrientes-retreat": ((-57.0, -31.0), {"11-2": ["lm"]}),
+    "paranense-chaco-parana": ((-60.0, -30.0), {"20-11": ["sm"]}),
+    # 29-20: The pre-transgression control at the Laguna Paiva type latitude; the cited
+    # reading, not a defect.
+    "paranense-chaco-parana-pre": ((-60.0, -30.0), {"29-20": ["lm"]}),
+    "paranense-chaco-north-dry": ((-60.0, -25.0), {"20-11": ["lm"]}),
+    # 20-11: The western limit Ruskin et al. 2011 explicitly discourage mapping past.
+    "paranense-chaco-west-dry": ((-64.0, -30.0), {"20-11": ["lm"]}),
+    # 11-2: Unconstrained by literature; records the payload, not a claim.
+    "paranense-pampas-dry": ((-62.0, -36.0), {"11-2": ["lm"]}),
+    # 20-11: Mandatory epistemic note: lm is the conservative class here, not a settled
+    # one - Parra et al. 2026 contest it.
+    "pebas-maranon-land": ((-75.0, -6.0), {"20-11": ["lm"]}),
+    "pebas-solimoes-land": ((-66.0, -4.0), {"11-2": ["lm"]}),
+    # 20-11: Records the payload, not a claim: SA10 is unconstrained and tidal influence
+    # is not sm.
+    "pebas-beni-land": ((-67.0, -10.0), {"20-11": ["lm"]}),
+    # 37-29: Recorded so the unexplained pre-Neogene marine belt is visible if it moves;
+    # not an endorsement.
+    "andean-foreland-eocene-sea": ((-75.0, -4.0), {"37-29": ["sm"]}),
+    # 29-20: The negative control for the row above.
+    "andean-foreland-oligocene-dry": ((-75.0, -4.0), {"29-20": ["lm"]}),
+    # 135-117: The held Loppa op's own target; no op is proposed, and the crest-exposure
+    # source A.4 names has not been read.
+    "loppa-high-early-cretaceous-marine": ((20.546, 72.057), {"135-117": ["sm"]}),
+    "loppa-crest-late-jurassic-island": ((21.0, 72.0), {"166-146": ["lm", "sm"]}),
+    "loppa-crest-early-cretaceous-marine": ((21.0, 72.0), {"135-117": ["sm"]}),
+    # 135-117: Eastern negative control: a Loppa op must change the high, not the
+    # platform.
+    "bjarmeland-platform-early-cretaceous": ((30.0, 73.0), {"135-117": ["sm"]}),
+    # 117-94: Recorded so the neighbouring basin's land in the later bin is not read as
+    # support for the held Loppa op.
+    "hammerfest-basin-albian-land": ((22.0, 71.5), {"117-94": ["lm"]}),
+    # 359-338: The contested state itself; witnessing it keeps the B.3 limitation
+    # visible instead of quietly changing.
+    "tunguska-mississippian-sea": ((100.0, 62.0), {"359-338": ["sm"]}),
+    "tunguska-mississippian-sea-south": ((105.0, 60.0), {"359-338": ["sm"]}),
+    # 359-338: Any future removal must spare the northern point; this row is what would
+    # catch a blanket removal.
+    "tunguska-mississippian-north": ((95.0, 65.0), {"359-338": ["sm"]}),
+    "tunguska-mississippian-east": ((110.0, 58.0), {"359-338": ["lm", "sm"]}),
 }
 # Every interval the audit table, the narrow-feature transects and the tone
 # index are checked at. A witness that does not name an interval is simply not
@@ -269,7 +370,7 @@ WITNESS_CLASSES = {
 # memos added the eight that carry their rows. The Palaeogene entries are the
 # reason the "Turgai is land in every interval" premise survived as long as it
 # did: the strait is dry in all four of the original intervals.
-WITNESS_INTERVALS = ("402-380", "380-359", "285-269", "269-248", "248-224",
+WITNESS_INTERVALS = ("402-380", "380-359", "359-338", "285-269", "269-248", "248-224",
                      "203-179", "179-166", "166-146", "146-135", "135-117", "117-94",
                      "94-81", "81-58", "58-49", "49-37", "37-29", "29-20", "20-11", "11-2")
 
@@ -503,6 +604,47 @@ BASIN_EDIT_WITNESSES = (
     # And no Iceland land at all in the interval before the contract starts.
     {"witnessId": "iceland-absent-before-20-ma", "position": (-19.6, 63.6), "intervalId": "29-20",
      "opIds": [], "classes": []},
+    # ------------------------------------------------ 2026-09-15 memo edits
+    # The three basin contracts authored on 2026-09-15 (North Alpine foreland,
+    # Makassar Strait, San Juan) and their unedited controls, from
+    # `witnesses-pending.json`. A row naming operations flips only because the
+    # remove-land + add-shallow pair landed; a control row is the same basin
+    # window in an adjacent interval or outside the footprint, and turns red if
+    # an operation leaks past its declared interval or bbox.
+    # BASIN_EDIT_WITNESSES control for the North Alpine foreland op: same point, the
+    # adjacent interval outside the op's declared interval, so a footprint that leaks
+    # into 29-20 turns this row red.
+    {"witnessId": "molasse-chattian-freshwater-control", "position": (11.0, 48.5), "intervalId": "29-20",
+     "opIds": [], "classes": ["lm"]},
+    # Flips only when the North Alpine foreland remove-land + add-shallow pair lands; at
+    # 49ccb43 this point is lm.
+    {"witnessId": "north-alpine-foreland-umm", "position": (11.0, 48.5), "intervalId": "37-29",
+     "opIds": ["north-alpine-foreland-37-29-untere-meeresmolasse-add-shallow",
+               "north-alpine-foreland-37-29-untere-meeresmolasse-remove-land"], "classes": ["sm"]},
+    # BASIN_EDIT_WITNESSES control for the Makassar op: the same point one bin younger,
+    # so a footprint that leaks into 37-29 or beyond is caught by the interval check.
+    {"witnessId": "makassar-strait-open-neogene-control", "position": (118.5, -2.0), "intervalId": "20-11",
+     "opIds": [], "classes": ["sm"]},
+    # BASIN_EDIT_WITNESSES control for the Makassar op: inside the basin window's
+    # western margin but outside the op footprint, so a footprint that leaks west turns
+    # this row red.
+    {"witnessId": "paternoster-platform-eocene-land-control", "position": (116.5, -4.0), "intervalId": "49-37",
+     "opIds": [], "classes": ["lm"]},
+    # Flips only when the Makassar remove-land + add-shallow pair lands; at 49ccb43 this
+    # point is lm. The memo's row 16 (Central Luconia, with OP-2) is deliberately
+    # omitted: OP-2 is not built.
+    {"witnessId": "south-makassar-basin-eocene", "position": (118.5, -2.0), "intervalId": "49-37",
+     "opIds": ["makassar-strait-49-37-south-makassar-add-shallow",
+               "makassar-strait-49-37-south-makassar-remove-land"], "classes": ["sm"]},
+    # BASIN_EDIT_WITNESSES control for the San Juan op: the same point one bin older,
+    # outside the op's declared interval.
+    {"witnessId": "wis-san-juan-basin-control", "position": (-108.0, 36.5), "intervalId": "94-81",
+     "opIds": [], "classes": ["sm"]},
+    # Flips only when the San Juan remove-land + add-shallow pair lands; at 49ccb43 this
+    # point is lm, which is the before-state the memo pins.
+    {"witnessId": "wis-san-juan-basin", "position": (-108.0, 36.5), "intervalId": "81-58",
+     "opIds": ["western-interior-81-58-san-juan-lewis-sea-add-shallow",
+               "western-interior-81-58-san-juan-lewis-sea-remove-land"], "classes": ["sm"]},
 )
 
 
@@ -2290,6 +2432,22 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         lambda: check_frame_conflict_oracle(store, view.mutated(catalog=displaced),
                                             rotations, WITNESS_INTERVALS)))
     check_frame_conflict_oracle(store, view, rotations, WITNESS_INTERVALS)
+
+    # 16. one operation of a two-operation basin edit deleted. The Makassar
+    # remove-land and its add-shallow companion are a pair: the land has to go
+    # before the shallow sea can be drawn on the same footprint. Deleting the
+    # removal while its witness still names it must turn that witness red rather
+    # than let the contract quietly ship half an edit.
+    half_makassar = [deepcopy(basin) for basin in basins]
+    for basin in half_makassar:
+        if basin["basinId"] == "makassar-strait":
+            basin["ops"] = [op for op in basin["ops"]
+                            if op["opId"] != "makassar-strait-49-37-south-makassar-remove-land"]
+    results.append(expect_failure(
+        "the Makassar remove-land deleted while its basin-edit witness names it",
+        lambda: check_basin_edit_witnesses(store, [class_name], half_makassar,
+                                           rows_by_class, view.intervals)))
+    check_basin_edit_witnesses(store, [class_name], basins, rows_by_class, view.intervals)
 
     return {"mutationsRejected": len(results), "mutations": results,
             "restoredChecks": {"inputs": "pass", "config": "pass", "provenance": "pass",
