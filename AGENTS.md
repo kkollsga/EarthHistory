@@ -80,7 +80,10 @@ in every generated copy (R7/R14).
   defensible. It is not evidence that present states, borders, or peoples
   existed in deep time. Historical political borders, if added, are a separate
   dated dataset. Unsupported fragments fade or disappear instead of being
-  placed with false precision.
+  placed with false precision. Where a palaeogeographic layer is on, the overlay
+  is drawn in two tones — dark ink over mapped land, light over mapped sea — so
+  it reads as a position marker rather than a boundary. The tone is a legibility
+  aid and is never evidence that the modern country existed at that age.
 - Every point of interest has a time interval, coordinate uncertainty,
   description, event/category tags, sources, and confidence. Popups separate
   sourced facts from editorial explanation and link to their references.

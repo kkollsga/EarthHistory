@@ -101,10 +101,23 @@ earlier published versions retain their own asset sets and attribution.
 - **Improving global paleogeography since the late Paleozoic using paleobiology** —
   Cao et al. (2017), [Biogeosciences 14 (2017)](https://doi.org/10.5194/bg-14-5425-2017),
   official EarthByte GPlates 2.3 Paleogeography package, licensed under
-  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). EarthHistory derives
-  a qualitative chronology constraint from the absence of mapped permanent-ice
-  polygons between 81 and 285.01 Ma. Polygon geometry is not transferred across
-  reconstruction frames; this absence is not proof of an ice-free Earth.
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); the package README
+  also requires citing Matthews et al. (2016),
+  [doi:10.1016/j.gloplacha.2016.10.002](https://doi.org/10.1016/j.gloplacha.2016.10.002).
+  EarthHistory derives a qualitative chronology constraint from the absence of
+  mapped permanent-ice polygons between 81 and 285.01 Ma, and, for the
+  palaeo-coastline layer, redistributes the landmass, shallow-marine and
+  mountain polygons of the 24 published map intervals as a modified derivative. The
+  modifications are EarthHistory's: the present-day polygons are cut by the
+  present-day Cao et al. (2024) v2.4 static partitions, each piece is given one
+  partition owner and rides that plate, node counts are reduced by
+  Douglas–Peucker, and the published `FROMAGE`/`TOAGE` map interval becomes a
+  half-open lifecycle. The polygons are not reconstructed with the Matthews
+  et al. (2016) rotations the authors used. A map interval records the minimum
+  land and maximum flooding recorded anywhere in that bin, not a shoreline at
+  one moment; the absence of ice polygons is not proof of an ice-free Earth.
+  The research-only GitHub snapshot (commit `e92592aa`, no repository licence)
+  and the supplement raster maps are not inputs to any build.
 - **GDH1 ocean lithosphere age–depth model** — Stein and Stein (1992),
   [Nature 359, 123–129](https://doi.org/10.1038/359123a0). Citation and numerical
   model only; no paper text, figures or third-party implementation is bundled.
@@ -119,7 +132,13 @@ earlier published versions retain their own asset sets and attribution.
   Information, [DOI 10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74),
   public-domain U.S. government data with attribution requested. EarthHistory
   distributes seven 256² bilinear service subsets of the v1 60 arc-second
-  surface product, rounded to whole metres in the EGM2008 vertical datum.
+  surface product, rounded to whole metres in the EGM2008 vertical datum. It
+  also distributes a derivative of the same product as polygons: the Last
+  Glacial Maximum lowstand layer is the −120 m contour of four 1 arc-minute
+  crops (the southern and central North Sea, the Sunda shelf and Beringia west
+  and east of the antimeridian), vectorised on the source grid, simplified and
+  cut by the Cao 2024 static partitions. No ETOPO raster is redistributed; the
+  crops stay in an offline store and only the derived rings ship.
 - **EMODnet Digital Bathymetry (DTM 2024)** — EMODnet Bathymetry Consortium,
   [DOI 10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1](https://doi.org/10.12770/cf51df64-56f9-4a99-b1aa-36b8d7b743a1),
   licensed under CC BY 4.0. EarthHistory distributes one bounded 256² central

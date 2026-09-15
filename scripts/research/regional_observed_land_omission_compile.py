@@ -39,6 +39,7 @@ from shapely.geometry import GeometryCollection, MultiPolygon, Point, Polygon, m
 from shapely.ops import transform, unary_union
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -311,7 +312,7 @@ def build() -> tuple[dict, dict, dict]:
     for path in (NE_ARCHIVE, COASTS, CONTINENTS, STATIC, ROTATIONS):
         verify(path)
     rotation_model = pygplates.RotationModel(str(ROTATIONS), default_anchor_plate_id=0)
-    core = json.loads((PUBLIC / "core.json").read_text())
+    core = package_intern.read_package_json(PUBLIC / "core.json")
     emitted = {row.get("chartId") for row in core.get("charts", [])}
 
     coasts, coast_ids = load_collection(COASTS, "cao-coast", emitted)

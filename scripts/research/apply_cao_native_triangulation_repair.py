@@ -13,6 +13,7 @@ import os
 import struct
 import sys
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -488,7 +489,8 @@ def apply(package: Path, stage: Path) -> dict:
     targets = expected_targets(stage, contract)
     core_path, manifest_path = package / "core.json", package / "manifest.json"
     palette_path, palette_binary_path = package / "motion-palette.json", package / "motion-palette.bin"
-    core, manifest, palette = json.loads(core_path.read_text()), json.loads(manifest_path.read_text()), json.loads(palette_path.read_text())
+    core, manifest, palette = (package_intern.read_package_json(core_path),
+                               json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     target_ids = {row["chartId"] for row in contract["charts"]}
     if target_ids & {row["chartId"] for row in core["charts"]}:
         raise BuildError("native triangulation repair already applied")
@@ -524,7 +526,7 @@ def apply(package: Path, stage: Path) -> dict:
     write_atomic(palette_binary_path, palette_binary)
     palette["binary"] = asset(palette_binary_path)
     write_atomic(palette_path, canonical(palette))
-    write_atomic(core_path, canonical(core))
+    write_atomic(core_path, canonical(package_intern.intern_charts(core)))
     manifest["core"] = asset(core_path)
     manifest["motionPalette"]["catalog"] = asset(palette_path)
     manifest["motionPalette"]["binary"] = asset(palette_binary_path)
@@ -543,7 +545,8 @@ def validate_applied(package: Path, *, stage: Path | None = None, original_geome
     contract = load_contract()
     core_path, manifest_path = package / "core.json", package / "manifest.json"
     palette_path, palette_binary_path = package / "motion-palette.json", package / "motion-palette.bin"
-    core, manifest, palette = json.loads(core_path.read_text()), json.loads(manifest_path.read_text()), json.loads(palette_path.read_text())
+    core, manifest, palette = (package_intern.read_package_json(core_path),
+                               json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     if (manifest["core"] != asset(core_path) or manifest["motionPalette"]["catalog"] != asset(palette_path)
             or manifest["motionPalette"]["binary"] != asset(palette_binary_path)):
         raise BuildError("applied native package identities are stale")

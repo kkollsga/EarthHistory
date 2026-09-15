@@ -21,6 +21,8 @@ import { GlobeView, type PeriodCoordinateRenderState } from "./render";
 import {
   environmentForAge,
   modernLandscapePresets,
+  PALAEO_DETACHED_LIMITATIONS,
+  PALAEO_MAP_INTERVAL_LIMITATIONS,
   pointOfInterestIncludesAge,
   pointsOfInterest,
   sources,
@@ -28,6 +30,7 @@ import {
   type GlobeStats,
   type LayerVisibility,
   type LonLat,
+  type PalaeoCoastlineEvidence,
   type PointOfInterest,
   type WorldSnapshot,
 } from "./data";
@@ -43,12 +46,24 @@ import {
 import {
   buildExplorerHash,
   createThrottledHistoryWriter,
+  parseLayerVisibility,
   serializeAge,
 } from "./explorerHash";
 import {
+  CAO_2017_MAP_INTERVAL_MARKS_MA,
+  GREATER_INDIA_CHART_ID,
+  GREATER_INDIA_EVIDENCE_LINE,
+  RESTORED_COLLISION_MARGIN_EVIDENCE_LINE,
+  PALAEO_MAP_INTERVALS,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
-  type CaoMotionFrame, type CaoTimelineLoadingState, type PreparedCaoRevision,
+  palaeoCoastlineEvidenceSummary,
+  palaeoIntervalEvidenceStatus,
+  palaeoIntervalIsDetached,
+  palaeoIntervalKeyLine,
+  selectPalaeoInterval,
+  type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
+  type PreparedCaoPalaeoInterval, type PreparedCaoRevision,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -64,6 +79,7 @@ const DEFAULT_LAYERS: LayerVisibility = {
   guides: true,
   tectonics: false,
   rivers: false,
+  palaeoCoastlines: false,
 };
 
 const LAYER_META: Array<{
@@ -77,19 +93,46 @@ const LAYER_META: Array<{
   { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
   { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
   { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
+  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only. Plus one optional Last Glacial Maximum lowstand state at 26.5\u201319.5 ka, ETOPO 2022 at \u2212120 m eustatic over the North Sea, the Sunda shelf and Beringia, drawn over today\u2019s land", icon: Waves },
 ];
+
+/**
+ * Why the layer cannot be switched on at all. A manifest without a
+ * `palaeoCoastlines` section is a build that did not ship the Cao 2017 charts:
+ * the control is disabled, and nothing in the mode ever fetches. An age with no
+ * published map is a fallback with a notice, not this.
+ */
+const PALAEO_CHARTS_ABSENT = "Cao 2017 map charts are not in this build";
+
+/** Stable empty identity, so a reset does not re-render the key with a new array. */
+const EMPTY_PALAEO_CLASSES: readonly string[] = Object.freeze([]);
+
+/** Citation metadata for a source id the palaeo catalogs name, where the project records one. */
+function palaeoSourceCitation(sourceId: string) {
+  const source = sources.find((record) => record.id === sourceId);
+  if (source === undefined) return null;
+  const attribution = [source.authors, source.year === undefined ? null : String(source.year)]
+    .filter((part): part is string => typeof part === "string" && part.length > 0).join(" ");
+  return {
+    citation: attribution.length === 0 ? source.title : `${attribution} — ${source.title}`,
+    url: source.url,
+    ...(source.year === undefined ? {} : { year: source.year }),
+  };
+}
+
+/** The neighbouring map interval a scrub in this direction reaches next. */
+function neighbourPalaeoIntervalIndex(index: number, ageDirection: number): number {
+  // Index 0 is the oldest interval, so an age that is increasing moves towards
+  // a lower index. A resting scrub warms the younger neighbour.
+  return ageDirection > 0 ? index - 1 : index + 1;
+}
 
 function parseInitialState() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const parsedAge = Number(params.get("age"));
-  const layerParam = params.get("layers")?.split(",") ?? [];
   const reliefParam = params.get("relief");
   const parsedRelief = reliefParam === null ? Number.NaN : Number(reliefParam);
-  const layers = layerParam.length
-    ? (Object.fromEntries(
-        Object.keys(DEFAULT_LAYERS).map((key) => [key, layerParam.includes(key)]),
-      ) as unknown as LayerVisibility)
-    : DEFAULT_LAYERS;
+  const layers = parseLayerVisibility(params.get("layers"), DEFAULT_LAYERS);
   return {
     age: Number.isFinite(parsedAge) ? Math.min(4567, Math.max(0, parsedAge)) : 0,
     layers,
@@ -105,6 +148,13 @@ function closestChapter(ageMa: number) {
   return timeSlices.reduce((closest, slice) =>
     Math.abs(slice.ageMa - ageMa) < Math.abs(closest.ageMa - ageMa) ? slice : closest,
   );
+}
+
+function lonLatToGplatesDirection([longitude, latitude]: LonLat): [number, number, number] {
+  const lon = longitude * Math.PI / 180;
+  const lat = latitude * Math.PI / 180;
+  const cosLat = Math.cos(lat);
+  return [cosLat * Math.cos(lon), cosLat * Math.sin(lon), Math.sin(lat)];
 }
 
 function gplatesDirectionToLonLat(direction: readonly [number, number, number]): LonLat {
@@ -193,6 +243,18 @@ export default function App() {
   const [caoMotionFrame, setCaoMotionFrame] = useState<CaoMotionFrame | null>(null);
   const caoMotionFrameRef = useRef<CaoMotionFrame | null>(null);
   const caoScrubPumpRef = useRef<{ disposed: boolean; inFlight: boolean; serial: number; pump: () => void } | null>(null);
+  // `at=` names present-day ground, not a rendered direction: the requested
+  // coordinate is kept so every age can re-pose it, and so the shared link
+  // keeps saying which ground it meant rather than where that ground had
+  // rotated to when the link was copied.
+  const [presentDayFocus, setPresentDayFocus] = useState<
+    { coordinates: LonLat; nonce: number } | null
+  >(initialArea ? { coordinates: initialArea, nonce: 0 } : null);
+  const presentDayFocusRef = useRef<{ coordinates: LonLat; nonce: number } | null>(null);
+  presentDayFocusRef.current = presentDayFocus;
+  const [focusResolution, setFocusResolution] = useState<
+    "posed" | "present-day-unposed" | null
+  >(initialArea ? "present-day-unposed" : null);
   const [materialFocusAddress, setMaterialFocusAddress] = useState<MaterialAddress | null>(initial.nativeMaterialFocus);
   const materialFocusAddressRef = useRef<MaterialAddress | null>(null);
   materialFocusAddressRef.current = materialFocusAddress;
@@ -203,6 +265,32 @@ export default function App() {
     motionTier: "requested-age", error: null,
   });
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
+  const [palaeoAssetsAvailable, setPalaeoAssetsAvailable] = useState(false);
+  /** The Cao 2017 classes this build publishes; the map key lists no other swatch. */
+  const [palaeoShippedClasses, setPalaeoShippedClasses] = useState<readonly string[]>(EMPTY_PALAEO_CLASSES);
+  const [palaeoPrepared, setPalaeoPrepared] = useState<PreparedCaoPalaeoInterval | null>(null);
+  const palaeoPreparedRef = useRef<PreparedCaoPalaeoInterval | null>(null);
+  const [palaeoFrame, setPalaeoFrame] = useState<CaoPalaeoIntervalFrame | null>(null);
+  const [palaeoToneBytes, setPalaeoToneBytes] = useState<Uint8Array | null>(null);
+  const [palaeoLoading, setPalaeoLoading] = useState(false);
+  const [palaeoError, setPalaeoError] = useState<string | null>(null);
+  // The open map key is the width of a phone screen. The chapter card floats over
+  // the same pixels there, and no z-index reaches it: the key lives inside the
+  // globe stage, which is its own stacking context. The card is taken out of the
+  // layout instead, which is also the only answer that keeps both readable at
+  // 390 px.
+  const [mapKeyOpen, setMapKeyOpen] = useState(false);
+  /** Sign of the last age step; +1 is scrubbing towards older ages. */
+  const palaeoAgeDirectionRef = useRef(0);
+  const palaeoLastAgeRef = useRef(initial.age);
+  const palaeoPumpRef = useRef<{ pump(): void } | null>(null);
+  // The scene reports a publication it refused. Until it did, the pump believed
+  // its own bookkeeping, short-circuited on an interval that was never on
+  // screen, and left the layer latched at "loading" for the rest of the session.
+  const palaeoPublishFailedRef = useRef<((reason: string) => void) | null>(null);
+  const handlePalaeoPublicationFailed = useCallback((reason: string) => {
+    palaeoPublishFailedRef.current?.(reason);
+  }, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
@@ -270,6 +358,10 @@ export default function App() {
       caoRuntimeRef.current = runtime;
       unsubscribeTimeline = runtime.subscribeTimelineLoading(setCaoTimelineLoading);
       setCaoSourceAges(Object.freeze(manifest.checkpoints.map((checkpoint) => checkpoint.ageMa)));
+      // The section is optional. Without it the layer control reports its
+      // reason and stays disabled, and no palaeo asset is ever requested.
+      setPalaeoAssetsAvailable(runtime.palaeoCoastlineAssetsAvailable);
+      setPalaeoShippedClasses(runtime.palaeoCoastlineSurfaceClasses);
       setCaoAgeDomainMa(Object.freeze([manifest.ageDomainMa.youngest, manifest.ageDomainMa.oldest]));
       setCaoRuntimeReady((value) => value + 1);
     }).catch((error: unknown) => {
@@ -285,6 +377,8 @@ export default function App() {
       caoRuntimeRef.current = null;
       setCaoSourceAges([]);
       setCaoAgeDomainMa(null);
+      setPalaeoAssetsAvailable(false);
+      setPalaeoShippedClasses(EMPTY_PALAEO_CLASSES);
     };
   }, []);
 
@@ -319,6 +413,29 @@ export default function App() {
         setAreaFocusStatus("unresolved");
         setSpatialFocus((current) => current?.kind === "area" ? null : current);
       }
+    }
+    const presentDay = presentDayFocusRef.current;
+    if (presentDay !== null && focusAddress === null) {
+      // The chart that owns this ground carries it to where the age draws it.
+      // Ground no chart covers has no reconstructed position at this age, so
+      // the raw direction is aimed at and the fallback is declared.
+      const posed = frame.resolvePresentDayDirection(
+        lonLatToGplatesDirection(presentDay.coordinates));
+      const coordinates = gplatesDirectionToLonLat(posed.direction);
+      setFocusResolution(posed.resolution);
+      setAutoRotateEnabled(false);
+      setSpatialFocus((current) => {
+        if (current !== null && (current.kind !== "area" || current.nonce !== presentDay.nonce)) {
+          return current;
+        }
+        if (current?.kind === "area" && current.coordinates[0] === coordinates[0]
+            && current.coordinates[1] === coordinates[1]) {
+          return current;
+        }
+        // Distance is left to the camera: the link's first aim already chose
+        // the regional zoom, and a scrub must not undo the viewer's own.
+        return { kind: "area", coordinates, nonce: presentDay.nonce, distance: undefined };
+      });
     }
     const runtime = caoRuntimeRef.current;
     const exactCheckpoint = runtime?.manifest.checkpoints.some(
@@ -539,6 +656,224 @@ export default function App() {
     caoPumpRef.current?.pump();
   }, [ageMa, caoRuntimeReady]);
 
+  // The palaeo domain is wider than the Cao 2024 display domain the effect
+  // above returns early from, so the map pump gets its own age watch.
+  useEffect(() => {
+    palaeoAgeDirectionRef.current = Math.sign(ageMa - palaeoLastAgeRef.current);
+    palaeoLastAgeRef.current = ageMa;
+    palaeoPumpRef.current?.pump();
+  }, [ageMa]);
+
+  // Palaeo-coastlines. Enabling loads and validates the class catalogs; the
+  // interval pump below then streams one published map at a time. Nothing here
+  // runs, and nothing is fetched, while the layer is off or the build ships no
+  // charts — that is the "zero palaeo bytes when off" contract.
+  useEffect(() => {
+    if (!caoRuntimeReady) return;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime || !palaeoAssetsAvailable) return;
+    runtime.setPalaeoCoastlinesEnabled(layers.palaeoCoastlines);
+    if (layers.palaeoCoastlines) return;
+    // Disabling released every interval lease inside the runtime, so the
+    // publication and its summary go with them.
+    palaeoPreparedRef.current = null;
+    setPalaeoPrepared(null);
+    setPalaeoFrame(null);
+    setPalaeoToneBytes(null);
+    setPalaeoLoading(false);
+    setPalaeoError(null);
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
+  // One verified EHPT fetch per enablement. The scene decodes it against the
+  // country line batch's own segment count and uploads the active interval's
+  // table; the bytes outlive every interval change inside one enablement.
+  useEffect(() => {
+    if (!caoRuntimeReady || !layers.palaeoCoastlines || !palaeoAssetsAvailable) return undefined;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return undefined;
+    let active = true;
+    void runtime.loadPalaeoOutlineToneTables().then((bytes) => {
+      if (active) setPalaeoToneBytes(bytes);
+    }).catch((error: unknown) => {
+      if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
+      setPalaeoError(error instanceof Error ? error.message
+        : "Cao 2017 outline tone tables could not be loaded");
+    });
+    return () => { active = false; };
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
+  useEffect(() => {
+    if (!caoRuntimeReady || !layers.palaeoCoastlines || !palaeoAssetsAvailable) return undefined;
+    const runtime = caoRuntimeRef.current;
+    if (!runtime) return undefined;
+
+    const state = {
+      disposed: false,
+      inFlight: false,
+      serial: 0,
+      frameSerial: 0,
+      prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
+      // Consecutive recoveries attempted for one interval. A publication that
+      // keeps failing is a real defect and must end in a visible error, not in
+      // a request loop.
+      recoveries: 0,
+      recoveringIntervalId: "",
+    };
+    const MAXIMUM_PALAEO_RECOVERIES = 2;
+
+    // Scrubbing inside one published map is a pose change, not a new map: the
+    // interval owns the static geometry, so the frame is retargeted onto the
+    // geometry already on screen and no payload is fetched.
+    const retarget = (targetAgeMa: number) => {
+      const serial = ++state.frameSerial;
+      void runtime.evaluatePalaeoMotion(targetAgeMa).then((frame) => {
+        if (frame === null || state.disposed || serial !== state.frameSerial) return;
+        setPalaeoFrame(frame);
+      }).catch((error: unknown) => {
+        // A serial bump aborts exactly as the native motion path does.
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (!state.disposed) {
+          setPalaeoError(error instanceof Error ? error.message
+            : "Cao 2017 palaeo motion could not be evaluated");
+        }
+      });
+    };
+
+    const schedulePrefetch = (index: number) => {
+      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
+      state.prefetchTimer = setTimeout(() => {
+        state.prefetchTimer = 0;
+        if (state.disposed) return;
+        const neighbour = PALAEO_MAP_INTERVALS[
+          neighbourPalaeoIntervalIndex(index, palaeoAgeDirectionRef.current)];
+        if (neighbour === undefined) return;
+        void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+      }, SCRUB_SETTLE_MS);
+    };
+
+    const pump = () => {
+      if (state.disposed || state.inFlight) return;
+      const targetAgeMa = requestedAgeRef.current;
+      const index = selectPalaeoInterval(PALAEO_MAP_INTERVALS, targetAgeMa);
+      if (index < 0) {
+        // No published map covers this age: fall back to today's composition
+        // and drop the lease rather than holding a map the age does not reach.
+        const previous = palaeoPreparedRef.current;
+        if (previous !== null) {
+          palaeoPreparedRef.current = null;
+          previous.release();
+          setPalaeoPrepared(null);
+          setPalaeoFrame(null);
+        }
+        setPalaeoLoading(false);
+        return;
+      }
+      const intervalId = PALAEO_MAP_INTERVALS[index]!.id;
+      if (intervalId !== state.recoveringIntervalId) {
+        state.recoveringIntervalId = intervalId;
+        state.recoveries = 0;
+      }
+      if (palaeoPreparedRef.current?.intervalId === intervalId) {
+        setPalaeoLoading(false);
+        retarget(targetAgeMa);
+        schedulePrefetch(index);
+        return;
+      }
+      const serial = ++state.serial;
+      state.inFlight = true;
+      setPalaeoLoading(true);
+      let request: ReturnType<CaoReconstructionRuntime["requestPalaeoInterval"]>;
+      try {
+        request = runtime.requestPalaeoInterval(targetAgeMa);
+      } catch (error) {
+        state.inFlight = false;
+        setPalaeoLoading(false);
+        setPalaeoError(error instanceof Error ? error.message
+          : "Cao 2017 map interval request could not start");
+        return;
+      }
+      void request.prepared.then((prepared) => {
+        if (state.disposed || serial !== state.serial) {
+          prepared.release();
+          return;
+        }
+        state.inFlight = false;
+        const latestIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, requestedAgeRef.current);
+        if (latestIndex < 0 || PALAEO_MAP_INTERVALS[latestIndex]!.id !== prepared.intervalId) {
+          prepared.release();
+          pump();
+          return;
+        }
+        // Drop the prior lease only once the next interval is ready to publish;
+        // a publication takes the new lease over and releases it in turn.
+        const previous = palaeoPreparedRef.current;
+        if (previous !== null && previous !== prepared) previous.release();
+        palaeoPreparedRef.current = prepared;
+        setPalaeoPrepared(prepared);
+        setPalaeoFrame(null);
+        setPalaeoLoading(false);
+        setPalaeoError(null);
+        schedulePrefetch(latestIndex);
+        if (requestedAgeRef.current !== prepared.requestedAgeMa) pump();
+      }).catch((error: unknown) => {
+        if (state.disposed || serial !== state.serial) return;
+        state.inFlight = false;
+        setPalaeoLoading(false);
+        if (error instanceof DOMException && error.name === "AbortError") {
+          // An abort at an age that has not moved still leaves the layer with
+          // nothing on screen, and nothing else will wake the pump: the age
+          // effect is the only trigger. Re-arm, bounded, so a genuinely dead
+          // interval ends in a visible error rather than an invisible latch.
+          if (requestedAgeRef.current !== targetAgeMa) {
+            pump();
+          } else if (state.recoveries < MAXIMUM_PALAEO_RECOVERIES) {
+            state.recoveries += 1;
+            pump();
+          } else {
+            setPalaeoError("Cao 2017 map interval request was aborted repeatedly");
+          }
+          return;
+        }
+        setPalaeoError(error instanceof Error ? error.message
+          : "Cao 2017 map interval could not be prepared");
+      });
+    };
+
+    // The scene refused to publish. The prepared interval the pump is holding is
+    // not on screen, so the pump must stop believing it is: dropping it turns
+    // the next pump back into a real request instead of the short-circuit that
+    // latched the layer at "loading".
+    const publishFailed = (reason: string) => {
+      if (state.disposed) return;
+      const previous = palaeoPreparedRef.current;
+      palaeoPreparedRef.current = null;
+      if (previous !== null) previous.release();
+      setPalaeoPrepared(null);
+      setPalaeoFrame(null);
+      if (state.recoveries >= MAXIMUM_PALAEO_RECOVERIES) {
+        setPalaeoLoading(false);
+        setPalaeoError(reason);
+        return;
+      }
+      state.recoveries += 1;
+      pump();
+    };
+
+    palaeoPumpRef.current = { pump };
+    palaeoPublishFailedRef.current = publishFailed;
+    pump();
+    return () => {
+      state.disposed = true;
+      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
+      if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
+      if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
+      palaeoPreparedRef.current?.release();
+      palaeoPreparedRef.current = null;
+      setPalaeoPrepared(null);
+      setPalaeoFrame(null);
+    };
+  }, [caoRuntimeReady, layers.palaeoCoastlines, palaeoAssetsAvailable]);
+
   useEffect(() => {
     const runtime = caoRuntimeRef.current;
     if (!runtime || periodCoordinateState.status !== "ready"
@@ -636,9 +971,48 @@ export default function App() {
   const uncertainMaterialVisible = (displayedCao?.materialCorrections.modelInferredPoseActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.uncertainActiveCharts ?? 0) > 0
     || (displayedCao?.materialCorrections.formationUncertainActiveCharts ?? 0) > 0;
-  const renderedEvidence = displayedCao === null ? "unknown" as const
-    : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
-      : "interpolation" as const;
+  // The only pre-collision crust the Cao 2024 model carries. It is posed like any
+  // other continent chart and disappears at 10 Ma, so the key line follows the
+  // chart rather than the age; the Alps and the Caledonides have no equivalent
+  // (docs/research/palaeo-coastlines-collision-shortening.md).
+  const greaterIndiaVisible = (displayedCao?.charts ?? []).some(
+    (chart) => chart.chartId === GREATER_INDIA_CHART_ID && chart.support.kind === "supported");
+  // The same statement for the two collisions the model leaves short, gated on
+  // the charts being posed rather than on the age: every strip has its own
+  // retirement, so the line follows whichever ones are still on screen.
+  const restoredMarginsVisible =
+    (displayedCao?.materialCorrections.restoredCollisionMarginActiveCharts ?? 0) > 0;
+  // Read off the interval actually published, not off the requested age: the
+  // source ids are the ones whose charts are posed on screen, and a load in
+  // flight leaves the previous map — and its evidence — visible.
+  const palaeoEvidence: PalaeoCoastlineEvidence = useMemo(
+    () => palaeoCoastlineEvidenceSummary(palaeoPrepared,
+      { loading: palaeoLoading,
+        unavailableReason: palaeoAssetsAvailable ? null : PALAEO_CHARTS_ABSENT },
+      palaeoSourceCitation),
+    [palaeoAssetsAvailable, palaeoLoading, palaeoPrepared]);
+  const palaeoIntervalIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, ageMa);
+  const palaeoInterval = palaeoIntervalIndex < 0 ? null : PALAEO_MAP_INTERVALS[palaeoIntervalIndex]!;
+  const palaeoKeyVisible = layers.palaeoCoastlines;
+  // A class the package does not publish gets no swatch: the mountain class is
+  // compiled and validated offline but deferred out of the shipped budget, and
+  // a key row for it would promise evidence no interval carries.
+  const palaeoClassInKey = (surfaceClass: string) =>
+    palaeoKeyVisible && palaeoShippedClasses.includes(surfaceClass);
+  // The layer can be switched on while the age has no published map; it can
+  // only be switched on at all while the charts exist to draw.
+  const palaeoModeActive = layers.palaeoCoastlines && palaeoEvidence.unavailableReason === null;
+  const palaeoFallback = layers.palaeoCoastlines
+    && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
+  const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
+  const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
+  // The mapped polygons are the dominant claim once the mode is on, so the
+  // rendered-view badge follows the map interval rather than the Cao 2024 pose.
+  const renderedEvidence = palaeoModeActive && !palaeoFallback
+    ? palaeoIntervalEvidenceStatus(palaeoInterval, ageMa, palaeoEdited)
+    : displayedCao === null ? "unknown" as const
+      : displayedCao.display.fraction === 0 || displayedCao.display.fraction === 1 ? "model-output" as const
+        : "interpolation" as const;
   const selectedPoiCoordinate = selectedPoi
     ? temporalPoiCoordinates?.[selectedPoi.id]
     : undefined;
@@ -683,7 +1057,9 @@ export default function App() {
   // scrub sample. Material/place/POI identities already capture shareable focus.
   const focusPlaceId = spatialFocus?.kind === "place" ? spatialFocus.placeId : null;
   const focusAt = materialFocusAddress === null && spatialFocus?.kind === "area"
-    ? serializeFocusCoordinates(spatialFocus.coordinates) : null;
+    ? serializeFocusCoordinates(presentDayFocus !== null
+        && presentDayFocus.nonce === spatialFocus.nonce
+      ? presentDayFocus.coordinates : spatialFocus.coordinates) : null;
   useEffect(() => {
     const params = new URLSearchParams();
     params.set("age", serializeAge(ageMa));
@@ -775,6 +1151,13 @@ export default function App() {
       };
     });
   }, [selectedPoi, selectedPoiCoordinate]);
+
+  useEffect(() => {
+    if (presentDayFocus === null) return;
+    if (spatialFocus?.kind === "area" && spatialFocus.nonce === presentDayFocus.nonce) return;
+    setPresentDayFocus(null);
+    setFocusResolution(null);
+  }, [presentDayFocus, spatialFocus]);
 
   useEffect(() => {
     if (ageMa <= 0.0001) return;
@@ -996,7 +1379,7 @@ export default function App() {
   const scenarioLike = caoAgeDomainMa ? chapter.ageMa > caoAgeDomainMa[1] : chapter.ageMa > PHANEROZOIC_MAX_MA;
 
   return (
-    <main className="atlas-shell">
+    <main className="atlas-shell" data-map-key-open={mapKeyOpen}>
       <header className="site-header">
         <button className="brand" type="button" onClick={() => changeAge(0)} aria-label="Earth History, return to today">
           <span className="brand-orbit" aria-hidden="true"><span /></span>
@@ -1063,6 +1446,7 @@ export default function App() {
         data-cao-motion-tier={caoTimelineLoading.motionTier}
         data-cao-motion-foreground-status={caoTimelineLoading.foregroundStatus}
         data-cao-timeline-loading-status={caoTimelineLoading.status}
+        data-focus-resolution={focusResolution ?? undefined}
         data-cao-requested-age-ma={ageMa}
         data-cao-displayed-age-ma={periodCoordinateState.displayedAgeMa}
       >
@@ -1070,6 +1454,12 @@ export default function App() {
           caoRevision={caoRevision}
           caoMotionFrame={currentCaoMotionFrame}
           caoWithheld={caoLoadError !== null}
+          palaeoInterval={palaeoPrepared}
+          onPalaeoPublicationFailed={handlePalaeoPublicationFailed}
+          palaeoFrame={palaeoFrame}
+          palaeoToneBytes={palaeoToneBytes}
+          palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
+          palaeoToneIntervalId={palaeoPrepared?.intervalId ?? null}
           snapshot={displayedSnapshot}
           layers={layers}
           selectedPoiId={selectedPoiId}
@@ -1092,7 +1482,11 @@ export default function App() {
             <button type="button" onClick={() => setSnapshot(editorialSnapshotForAge(ageMa))}>Try again</button>
           </div>
         )}
-        <details className="surface-info" data-status={surfaceInfoState}>
+        <details
+          className="surface-info"
+          data-status={surfaceInfoState}
+          onToggle={(event) => setMapKeyOpen(event.currentTarget.open)}
+        >
           <summary aria-label={`Open map key. ${surfaceInfoSummary}. Cao reconstruction ${foundationStatus}.`}>
             <Info size={14} aria-hidden="true" />
             <span className="surface-status-dot" aria-hidden="true" />
@@ -1108,10 +1502,75 @@ export default function App() {
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
               <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
-              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>Continental shelf context; ancient water depth unknown</span></li>
+              {palaeoClassInKey("lm") && (
+                <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
+              )}
+              {palaeoClassInKey("sm") && (
+                <li><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Palaeo shallow sea</strong>Cao et al. 2017 shallow-marine polygons for the active map interval</span></li>
+              )}
+              {palaeoClassInKey("m") && (
+                <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
+              )}
+              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
+                ? "Cao 2024 continental crust, depth unmapped"
+                : "Continental shelf context; ancient water depth unknown"}</span></li>
             </ul>
+            {palaeoKeyVisible && (
+              <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
+                <strong>Palaeo-coastlines (Cao 2017)</strong>
+                {palaeoInterval !== null && (
+                  <p className="surface-info-note" data-testid="palaeo-interval-line">{
+                    palaeoIntervalKeyLine(palaeoInterval)}</p>
+                )}
+                {palaeoIntervalDetached && (
+                  <p className="surface-info-note">Exposed shelf is the ETOPO 2022 present-day surface
+                    at or above &minus;120&nbsp;m with today&rsquo;s land subtracted, inside the southern
+                    and central North Sea, the Sunda shelf and Beringia only. It is drawn beside
+                    today&rsquo;s land, which stays visible: every other coastline at this age is the
+                    present-day one.</p>
+                )}
+                {palaeoFallback && (
+                  <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">
+                    No palaeogeography evidence at this age; showing the Cao 2024 coast proxy
+                  </p>
+                )}
+                {palaeoInterval !== null && (
+                  <div className="palaeo-limitation-key" data-testid="palaeo-limitations">
+                    <strong>Limitations</strong>
+                    <ul>
+                      {(palaeoIntervalDetached
+                        ? PALAEO_DETACHED_LIMITATIONS
+                        : PALAEO_MAP_INTERVAL_LIMITATIONS).map((limitation) => (
+                        <li key={limitation}>{limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {!palaeoIntervalDetached && (
+                  <ul className="outline-marker-key">
+                    <li><i className="outline-marker outline-marker-dark" aria-hidden="true" /><span>Dark outline · over reconstructed land</span></li>
+                    <li><i className="outline-marker outline-marker-light" aria-hidden="true" /><span>Light grey outline · over shallow or deep sea</span></li>
+                  </ul>
+                )}
+                <small>Outline tone is a legibility device, not evidence. Modern-country outlines are
+                  position markers at this age, never historical borders or coastlines.</small>
+              </div>
+            )}
             <div className="surface-evidence-key">
               <strong>Evidence in this view</strong>
+              {palaeoKeyVisible && palaeoEvidence.references.map((reference) => (
+                <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
+                  {reference.editorial ? " · EarthHistory modification after this reference" : ""}
+                  {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
+              ))}
+              {palaeoKeyVisible && palaeoEvidence.references.length === 0
+                && palaeoEvidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}
+              {palaeoKeyVisible && palaeoEvidence.references.length === 0
+                && palaeoEvidence.sourceIds.length === 0
+                && <span>No palaeo-coastline charts on screen{palaeoEvidence.unavailableReason === null
+                  ? "" : ` · ${palaeoEvidence.unavailableReason}`}</span>}
+              {greaterIndiaVisible && <span>{GREATER_INDIA_EVIDENCE_LINE}</span>}
+              {restoredMarginsVisible && <span>{RESTORED_COLLISION_MARGIN_EVIDENCE_LINE}</span>}
               {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}
               {classifiedShallowMarineVisible && <span>Modern Iceland shelf · generalized 0–200 m class</span>}
               {qualifiedMaterialVisible && <span>Source-qualified material · cited reconstruction pose; exposure unknown</span>}
@@ -1126,6 +1585,11 @@ export default function App() {
               <span role="status">Cao reconstruction · {foundationStatus}</span>
               {caoLoadError !== null && (
                 <span role="status">Cao reconstruction unavailable · surface withheld</span>
+              )}
+              {palaeoError !== null && (
+                <span role="status" data-testid="palaeo-error-notice">
+                  Palaeo-coastlines withheld · {palaeoError}
+                </span>
               )}
               {caoTimelineLoading.status === "loading" && (
                 <span role="status">Current age ready · loading timeline data</span>
@@ -1289,6 +1753,7 @@ export default function App() {
           ? displayedCao.display.youngerAgeMa : undefined}
         geographicSourceAgeBracketMa={displayedCao === null ? undefined
           : [displayedCao.display.youngerAgeMa, displayedCao.display.olderAgeMa]}
+        intervalMarksMa={layers.palaeoCoastlines ? CAO_2017_MAP_INTERVAL_MARKS_MA : undefined}
         slices={timeSlices}
         playing={playing}
         onPlayingChange={handlePlayingChange}
@@ -1299,13 +1764,32 @@ export default function App() {
 
       <Modal open={panel === "layers"} title="Visible layers" eyebrow="Map controls" onClose={closePanel}>
         <div className="layer-list">
-          {LAYER_META.map(({ key, label, detail, icon: LayerIcon }) => (
-            <button type="button" key={key} aria-pressed={layers[key]} onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}>
-              <span className="layer-icon"><LayerIcon size={18} /></span>
-              <span><strong>{label}</strong><small>{detail}</small></span>
-              <span className={`switch ${layers[key] ? "is-on" : ""}`} aria-label={`${label} ${layers[key] ? "on" : "off"}`}><i /></span>
-            </button>
-          ))}
+          {LAYER_META.map(({ key, label, detail, icon: LayerIcon }) => {
+            // Only the palaeo-coastline layer can be unavailable, and only
+            // because its charts are missing from the build. An age with no
+            // published map is a fallback, not a reason to disable the control.
+            const unavailableReason = key === "palaeoCoastlines"
+              ? palaeoEvidence.unavailableReason : null;
+            const busy = key === "palaeoCoastlines" && palaeoEvidence.loading;
+            return (
+              <button
+                type="button"
+                key={key}
+                aria-pressed={layers[key]}
+                aria-busy={busy || undefined}
+                disabled={unavailableReason !== null}
+                onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}
+              >
+                <span className="layer-icon"><LayerIcon size={18} /></span>
+                <span><strong>{label}</strong><small>{detail}</small>
+                  {unavailableReason !== null && <small className="layer-unavailable">Unavailable · {unavailableReason}</small>}
+                  {key === "palaeoCoastlines" && unavailableReason === null && layers[key] && palaeoFallback
+                    && <small className="layer-unavailable">No Cao 2017 map at this age · showing the Cao 2024 coast proxy</small>}
+                </span>
+                <span className={`switch ${layers[key] ? "is-on" : ""}`} aria-label={`${label} ${layers[key] ? "on" : "off"}`}><i /></span>
+              </button>
+            );
+          })}
           <button type="button" aria-disabled="true" disabled>
             <span className="layer-icon"><Waves size={18} /></span>
             <span>

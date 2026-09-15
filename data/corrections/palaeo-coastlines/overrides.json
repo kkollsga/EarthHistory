@@ -1,0 +1,1832 @@
+{
+ "classes": {
+  "lm": {
+   "overridePlateIds": [
+    606,
+    141,
+    616,
+    233,
+    3307,
+    212,
+    631,
+    678,
+    117,
+    525
+   ],
+   "plates": [
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       74.72,
+       27.447,
+       98.82,
+       35.823
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       68.822,
+       22.95,
+       104.718,
+       40.319
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "70.9% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (22349215 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 22349214.595,
+      "conflictOver250KmPercent": 70.89,
+      "cutAreaPercentOfClass": 1.1033,
+      "cutAreaSquareKilometres": 31525746.201,
+      "topDisagreeingOwnerPlateIds": [
+       501,
+       616,
+       580,
+       457
+      ]
+     },
+     "name": "Lhasa",
+     "plateId1": 606,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -121.994,
+       73.846,
+       -87.39,
+       77.981
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -156.342,
+       69.35,
+       -53.042,
+       82.478
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "49.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (5360058 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 5360057.558,
+      "conflictOver250KmPercent": 49.44,
+      "cutAreaPercentOfClass": 0.3794,
+      "cutAreaSquareKilometres": 10841442.556,
+      "topDisagreeingOwnerPlateIds": [
+       120,
+       101,
+       102,
+       124
+      ]
+     },
+     "name": "Canadian Arctic (Sverdrup/Ellesmere block)",
+     "plateId1": 141,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       83.53,
+       27.796,
+       98.86,
+       35.36
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       77.672,
+       23.299,
+       104.718,
+       39.857
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "50.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (4543683 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 4543682.547,
+      "conflictOver250KmPercent": 50.8,
+      "cutAreaPercentOfClass": 0.313,
+      "cutAreaSquareKilometres": 8944368.394,
+      "topDisagreeingOwnerPlateIds": [
+       606,
+       501,
+       5011,
+       457
+      ]
+     },
+     "name": "Qiangtang",
+     "plateId1": 616,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -87.166,
+       19.868,
+       -70.754,
+       28.414
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -92.522,
+       15.371,
+       -65.398,
+       32.911
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "43.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (3282096 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 3282096.382,
+      "conflictOver250KmPercent": 43.82,
+      "cutAreaPercentOfClass": 0.2622,
+      "cutAreaSquareKilometres": 7490579.791,
+      "topDisagreeingOwnerPlateIds": [
+       109,
+       101,
+       274,
+       108
+      ]
+     },
+     "name": "Central Asia (Kazakh/Turan)",
+     "plateId1": 233,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       15.212,
+       39.55,
+       19.303,
+       41.931
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       8.688,
+       35.053,
+       25.827,
+       46.427
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "84.9% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (2045487 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 2045486.671,
+      "conflictOver250KmPercent": 84.88,
+      "cutAreaPercentOfClass": 0.0843,
+      "cutAreaSquareKilometres": 2409818.223,
+      "topDisagreeingOwnerPlateIds": [
+       307,
+       306,
+       322,
+       305
+      ]
+     },
+     "name": "Apulia",
+     "plateId1": 3307,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -88.694,
+       9.595,
+       -81.56,
+       16.59
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -93.513,
+       5.098,
+       -76.741,
+       21.087
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "52.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (1078225 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 1078225.471,
+      "conflictOver250KmPercent": 52.75,
+      "cutAreaPercentOfClass": 0.0715,
+      "cutAreaSquareKilometres": 2043840.994,
+      "topDisagreeingOwnerPlateIds": [
+       909,
+       222,
+       901,
+       216
+      ]
+     },
+     "name": "Central America / Chortis",
+     "plateId1": 212,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       129.139,
+       28.801,
+       138.531,
+       35.912
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       123.234,
+       24.304,
+       144.436,
+       40.409
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "42.5% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (709318 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 709318.164,
+      "conflictOver250KmPercent": 42.49,
+      "cutAreaPercentOfClass": 0.0584,
+      "cutAreaSquareKilometres": 1669545.177,
+      "topDisagreeingOwnerPlateIds": [
+       601,
+       636,
+       626,
+       625
+      ]
+     },
+     "name": "Sibumasu",
+     "plateId1": 631,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       121.624,
+       -1.209,
+       127.632,
+       15.266
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       116.846,
+       -5.706,
+       132.41,
+       19.762
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "71.0% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (464496 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 464496.242,
+      "conflictOver250KmPercent": 70.96,
+      "cutAreaPercentOfClass": 0.0229,
+      "cutAreaSquareKilometres": 654586.107,
+      "topDisagreeingOwnerPlateIds": [
+       901,
+       630,
+       628,
+       646
+      ]
+     },
+     "name": "Indochina / Sukhothai",
+     "plateId1": 678,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2017-source-record-union-bbox",
+      "bbox": [
+       -74.634,
+       74.151,
+       -38.08,
+       80.729
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -117.623,
+       69.654,
+       4.909,
+       85.225
+      ],
+      "partitionPolygons": 0,
+      "reason": "Cao et al. (2024) v2.4 carries no static partition for this plate id, so there is no present-day crust to bound the override by. The footprint falls back to the union of the Cao et al. (2017) records that carry this PLATEID1, which bounds the override to the ground the source itself assigns to the plate but excludes nothing the source already assigned"
+     },
+     "justification": "90.1% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (357502 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 357502.304,
+      "conflictOver250KmPercent": 90.07,
+      "cutAreaPercentOfClass": 0.0139,
+      "cutAreaSquareKilometres": 396913.404,
+      "topDisagreeingOwnerPlateIds": [
+       102
+      ]
+     },
+     "name": "Chukotka",
+     "plateId1": 117,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       33.322,
+       38.685,
+       39.502,
+       40.729
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       26.938,
+       34.188,
+       45.886,
+       45.226
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "53.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (290145 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 290144.572,
+      "conflictOver250KmPercent": 53.26,
+      "cutAreaPercentOfClass": 0.0191,
+      "cutAreaSquareKilometres": 544743.325,
+      "topDisagreeingOwnerPlateIds": [
+       526,
+       551,
+       505,
+       302
+      ]
+     },
+     "name": "Madagascar-Somali margin block",
+     "plateId1": 525,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    }
+   ]
+  },
+  "m": {
+   "overridePlateIds": [
+    616,
+    233,
+    506,
+    141,
+    306,
+    678,
+    647,
+    834
+   ],
+   "plates": [
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       83.53,
+       27.796,
+       98.86,
+       35.36
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       77.672,
+       23.299,
+       104.718,
+       39.857
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "90.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (9090131 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 9090130.519,
+      "conflictOver250KmPercent": 90.31,
+      "cutAreaPercentOfClass": 2.2537,
+      "cutAreaSquareKilometres": 10065589.094,
+      "topDisagreeingOwnerPlateIds": [
+       5011,
+       501,
+       606,
+       50101
+      ]
+     },
+     "name": "Qiangtang",
+     "plateId1": 616,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -87.166,
+       19.868,
+       -70.754,
+       28.414
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -92.522,
+       15.371,
+       -65.398,
+       32.911
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "71.1% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (4146689 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 4146689.029,
+      "conflictOver250KmPercent": 71.1,
+      "cutAreaPercentOfClass": 1.3059,
+      "cutAreaSquareKilometres": 5832386.462,
+      "topDisagreeingOwnerPlateIds": [
+       109,
+       101,
+       108
+      ]
+     },
+     "name": "Central Asia (Kazakh/Turan)",
+     "plateId1": 233,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       59.845,
+       31.921,
+       69.28,
+       35.954
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       53.936,
+       27.424,
+       75.189,
+       40.451
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "50.6% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (1579942 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 1579941.619,
+      "conflictOver250KmPercent": 50.64,
+      "cutAreaPercentOfClass": 0.6985,
+      "cutAreaSquareKilometres": 3119701.469,
+      "topDisagreeingOwnerPlateIds": [
+       5011,
+       50101,
+       501,
+       50102
+      ]
+     },
+     "name": "Sri Lanka / Greater India margin",
+     "plateId1": 506,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -121.994,
+       73.846,
+       -87.39,
+       77.981
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -156.342,
+       69.35,
+       -53.042,
+       82.478
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "67.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (1516478 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 1516477.938,
+      "conflictOver250KmPercent": 67.85,
+      "cutAreaPercentOfClass": 0.5005,
+      "cutAreaSquareKilometres": 2235164.082,
+      "topDisagreeingOwnerPlateIds": [
+       101,
+       120,
+       102,
+       124
+      ]
+     },
+     "name": "Canadian Arctic (Sverdrup/Ellesmere block)",
+     "plateId1": 141,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -0.938,
+       35.893,
+       10.422,
+       43.945
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -7.717,
+       31.397,
+       17.2,
+       48.442
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "41.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (1352130 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 1352130.496,
+      "conflictOver250KmPercent": 41.76,
+      "cutAreaPercentOfClass": 0.7249,
+      "cutAreaSquareKilometres": 3237723.247,
+      "topDisagreeingOwnerPlateIds": [
+       337,
+       308,
+       334,
+       319
+      ]
+     },
+     "name": "Iberia",
+     "plateId1": 306,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       121.624,
+       -1.209,
+       127.632,
+       15.266
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       116.846,
+       -5.706,
+       132.41,
+       19.762
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "47.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (879192 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 879191.511,
+      "conflictOver250KmPercent": 47.2,
+      "cutAreaPercentOfClass": 0.4171,
+      "cutAreaSquareKilometres": 1862872.357,
+      "topDisagreeingOwnerPlateIds": [
+       646,
+       677,
+       612,
+       658
+      ]
+     },
+     "name": "Indochina / Sukhothai",
+     "plateId1": 678,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       97.547,
+       1.448,
+       102.31,
+       12.255
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       92.851,
+       -3.048,
+       107.006,
+       16.752
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "61.6% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (692363 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 692362.715,
+      "conflictOver250KmPercent": 61.59,
+      "cutAreaPercentOfClass": 0.2517,
+      "cutAreaSquareKilometres": 1124140.501,
+      "topDisagreeingOwnerPlateIds": [
+       64701,
+       614,
+       67350,
+       657
+      ]
+     },
+     "name": "South China margin",
+     "plateId1": 647,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       165.997,
+       -36.395,
+       171.88,
+       -25.097
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       160.049,
+       -40.892,
+       177.829,
+       -20.6
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "46.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (324684 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 324684.335,
+      "conflictOver250KmPercent": 46.75,
+      "cutAreaPercentOfClass": 0.1555,
+      "cutAreaSquareKilometres": 694490.974,
+      "topDisagreeingOwnerPlateIds": [
+       813,
+       825,
+       983,
+       901
+      ]
+     },
+     "name": "Antarctic terrane",
+     "plateId1": 834,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    }
+   ]
+  },
+  "sm": {
+   "overridePlateIds": [
+    501,
+    606,
+    616,
+    603,
+    430,
+    103,
+    601,
+    141,
+    615,
+    678,
+    3307,
+    647,
+    525,
+    614,
+    212,
+    522,
+    306,
+    254,
+    16122,
+    506,
+    625,
+    526,
+    16111,
+    275,
+    668,
+    176,
+    234
+   ],
+   "plates": [
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       56.92,
+       -25.645,
+       97.022,
+       35.524
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       51.048,
+       -30.142,
+       102.893,
+       40.02
+      ],
+      "partitionPolygons": 31,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "42.6% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (41056592 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 41056591.641,
+      "conflictOver250KmPercent": 42.63,
+      "cutAreaPercentOfClass": 4.2004,
+      "cutAreaSquareKilometres": 96302643.086,
+      "topDisagreeingOwnerPlateIds": [
+       606,
+       50601,
+       61601,
+       457
+      ]
+     },
+     "name": "Greater India",
+     "plateId1": 501,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       74.72,
+       27.447,
+       98.82,
+       35.823
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       68.822,
+       22.95,
+       104.718,
+       40.319
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "80.1% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (37760903 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 37760902.677,
+      "conflictOver250KmPercent": 80.1,
+      "cutAreaPercentOfClass": 2.0562,
+      "cutAreaSquareKilometres": 47142087.699,
+      "topDisagreeingOwnerPlateIds": [
+       501,
+       61601,
+       616,
+       5011
+      ]
+     },
+     "name": "Lhasa",
+     "plateId1": 606,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       83.53,
+       27.796,
+       98.86,
+       35.36
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       77.672,
+       23.299,
+       104.718,
+       39.857
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "73.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (20549950 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 20549949.705,
+      "conflictOver250KmPercent": 73.4,
+      "cutAreaPercentOfClass": 1.2211,
+      "cutAreaSquareKilometres": 27995585.18,
+      "topDisagreeingOwnerPlateIds": [
+       606,
+       457,
+       501,
+       5011
+      ]
+     },
+     "name": "Qiangtang",
+     "plateId1": 616,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       93.781,
+       5.862,
+       100.376,
+       29.804
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       88.337,
+       1.366,
+       105.82,
+       34.301
+      ],
+      "partitionPolygons": 6,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "52.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (19435412 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 19435412.252,
+      "conflictOver250KmPercent": 52.84,
+      "cutAreaPercentOfClass": 1.6043,
+      "cutAreaSquareKilometres": 36781901.004,
+      "topDisagreeingOwnerPlateIds": [
+       607,
+       7250,
+       68601,
+       647
+      ]
+     },
+     "name": "North China margin",
+     "plateId1": 603,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       95.03,
+       43.018,
+       134.485,
+       53.461
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       86.555,
+       38.522,
+       142.96,
+       57.958
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "46.0% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (19398734 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 19398734.15,
+      "conflictOver250KmPercent": 46.04,
+      "cutAreaPercentOfClass": 1.838,
+      "cutAreaSquareKilometres": 42138759.845,
+      "topDisagreeingOwnerPlateIds": [
+       401,
+       451,
+       4010,
+       601
+      ]
+     },
+     "name": "Central Asia (Kyrgyz North Tianshan)",
+     "plateId1": 430,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -169.257,
+       66.909,
+       -136.02,
+       75.148
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -180.0,
+       62.413,
+       -111.006,
+       79.644
+      ],
+      "partitionPolygons": 7,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "41.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (18527732 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 18527732.358,
+      "conflictOver250KmPercent": 41.39,
+      "cutAreaPercentOfClass": 1.9525,
+      "cutAreaSquareKilometres": 44765181.653,
+      "topDisagreeingOwnerPlateIds": [
+       43300,
+       16140,
+       43301,
+       42200
+      ]
+     },
+     "name": "Iberia/Atlantic margin",
+     "plateId1": 103,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       102.626,
+       31.184,
+       140.306,
+       46.444
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       95.49,
+       26.687,
+       147.442,
+       50.941
+      ],
+      "partitionPolygons": 12,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "45.0% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (17590793 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 17590793.207,
+      "conflictOver250KmPercent": 44.95,
+      "cutAreaPercentOfClass": 1.707,
+      "cutAreaSquareKilometres": 39136223.922,
+      "topDisagreeingOwnerPlateIds": [
+       456,
+       451,
+       4561,
+       457
+      ]
+     },
+     "name": "Central Asia (Tarim/Junggar)",
+     "plateId1": 601,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -121.994,
+       73.846,
+       -87.39,
+       77.981
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -156.342,
+       69.35,
+       -53.042,
+       82.478
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "84.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (15942603 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 15942602.691,
+      "conflictOver250KmPercent": 84.33,
+      "cutAreaPercentOfClass": 0.8245,
+      "cutAreaSquareKilometres": 18904282.288,
+      "topDisagreeingOwnerPlateIds": [
+       101,
+       120,
+       124,
+       42100
+      ]
+     },
+     "name": "Canadian Arctic (Sverdrup/Ellesmere block)",
+     "plateId1": 141,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       133.802,
+       -10.208,
+       147.114,
+       -3.508
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       129.153,
+       -14.704,
+       151.763,
+       0.988
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "54.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (12394951 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 12394950.664,
+      "conflictOver250KmPercent": 54.3,
+      "cutAreaPercentOfClass": 0.9956,
+      "cutAreaSquareKilometres": 22826809.031,
+      "topDisagreeingOwnerPlateIds": [
+       901,
+       830,
+       697,
+       681
+      ]
+     },
+     "name": "Himalaya-Tethys block",
+     "plateId1": 615,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       121.624,
+       -1.209,
+       127.632,
+       15.266
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       116.846,
+       -5.706,
+       132.41,
+       19.762
+      ],
+      "partitionPolygons": 3,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "70.1% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (10999082 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 10999082.178,
+      "conflictOver250KmPercent": 70.12,
+      "cutAreaPercentOfClass": 0.6842,
+      "cutAreaSquareKilometres": 15686368.375,
+      "topDisagreeingOwnerPlateIds": [
+       901,
+       609,
+       611,
+       608
+      ]
+     },
+     "name": "Indochina / Sukhothai",
+     "plateId1": 678,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       15.212,
+       39.55,
+       19.303,
+       41.931
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       8.688,
+       35.053,
+       25.827,
+       46.427
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "64.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (10631829 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 10631828.587,
+      "conflictOver250KmPercent": 64.23,
+      "cutAreaPercentOfClass": 0.7219,
+      "cutAreaSquareKilometres": 16551708.105,
+      "topDisagreeingOwnerPlateIds": [
+       307,
+       308,
+       322,
+       305
+      ]
+     },
+     "name": "Apulia",
+     "plateId1": 3307,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       97.547,
+       1.448,
+       102.31,
+       12.255
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       92.851,
+       -3.048,
+       107.006,
+       16.752
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "60.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (9369564 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 9369564.011,
+      "conflictOver250KmPercent": 60.17,
+      "cutAreaPercentOfClass": 0.6792,
+      "cutAreaSquareKilometres": 15572867.763,
+      "topDisagreeingOwnerPlateIds": [
+       64701,
+       614,
+       657,
+       60402
+      ]
+     },
+     "name": "South China margin",
+     "plateId1": 647,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       33.322,
+       38.685,
+       39.502,
+       40.729
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       26.938,
+       34.188,
+       45.886,
+       45.226
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "88.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (8029342 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 8029341.725,
+      "conflictOver250KmPercent": 88.78,
+      "cutAreaPercentOfClass": 0.3945,
+      "cutAreaSquareKilometres": 9044467.529,
+      "topDisagreeingOwnerPlateIds": [
+       526,
+       505,
+       551,
+       5031
+      ]
+     },
+     "name": "Madagascar-Somali margin block",
+     "plateId1": 525,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       107.423,
+       -5.55,
+       119.678,
+       4.801
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       102.856,
+       -10.047,
+       124.245,
+       9.298
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "49.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (7286739 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 7286739.139,
+      "conflictOver250KmPercent": 49.43,
+      "cutAreaPercentOfClass": 0.6429,
+      "cutAreaSquareKilometres": 14740679.766,
+      "topDisagreeingOwnerPlateIds": [
+       61405,
+       736,
+       65702,
+       657
+      ]
+     },
+     "name": "Qamdo",
+     "plateId1": 614,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -88.694,
+       9.595,
+       -81.56,
+       16.59
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -93.513,
+       5.098,
+       -76.741,
+       21.087
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "63.1% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (6647662 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 6647661.706,
+      "conflictOver250KmPercent": 63.08,
+      "cutAreaPercentOfClass": 0.4596,
+      "cutAreaSquareKilometres": 10538361.25,
+      "topDisagreeingOwnerPlateIds": [
+       909,
+       222,
+       911,
+       231
+      ]
+     },
+     "name": "Central America / Chortis",
+     "plateId1": 212,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       25.883,
+       34.685,
+       40.997,
+       39.879
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       19.592,
+       30.188,
+       47.288,
+       44.376
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "43.0% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (6545974 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 6545973.728,
+      "conflictOver250KmPercent": 43.03,
+      "cutAreaPercentOfClass": 0.6635,
+      "cutAreaSquareKilometres": 15213152.588,
+      "topDisagreeingOwnerPlateIds": [
+       5031,
+       521,
+       715,
+       526
+      ]
+     },
+     "name": "Antarctic margin block",
+     "plateId1": 522,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -0.938,
+       35.893,
+       10.422,
+       43.945
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -7.717,
+       31.397,
+       17.2,
+       48.442
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "65.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (6340753 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 6340753.292,
+      "conflictOver250KmPercent": 65.16,
+      "cutAreaPercentOfClass": 0.4244,
+      "cutAreaSquareKilometres": 9731136.396,
+      "topDisagreeingOwnerPlateIds": [
+       307,
+       308,
+       302,
+       334
+      ]
+     },
+     "name": "Iberia",
+     "plateId1": 306,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -73.419,
+       17.247,
+       -67.595,
+       20.134
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -78.366,
+       12.751,
+       -62.648,
+       24.631
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "57.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (5449050 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 5449050.339,
+      "conflictOver250KmPercent": 57.33,
+      "cutAreaPercentOfClass": 0.4146,
+      "cutAreaSquareKilometres": 9504973.828,
+      "topDisagreeingOwnerPlateIds": [
+       233,
+       205,
+       274,
+       275
+      ]
+     },
+     "name": "South American margin",
+     "plateId1": 254,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -138.922,
+       55.167,
+       -134.511,
+       59.882
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -149.321,
+       50.67,
+       -124.113,
+       64.378
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "47.6% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (4851031 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 4851030.75,
+      "conflictOver250KmPercent": 47.57,
+      "cutAreaPercentOfClass": 0.4448,
+      "cutAreaSquareKilometres": 10198329.059,
+      "topDisagreeingOwnerPlateIds": [
+       18106,
+       16121,
+       901,
+       16140
+      ]
+     },
+     "name": "Alaska terrane",
+     "plateId1": 16122,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       59.845,
+       31.921,
+       69.28,
+       35.954
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       53.936,
+       27.424,
+       75.189,
+       40.451
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "46.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (4284744 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 4284743.836,
+      "conflictOver250KmPercent": 46.18,
+      "cutAreaPercentOfClass": 0.4047,
+      "cutAreaSquareKilometres": 9278446.542,
+      "topDisagreeingOwnerPlateIds": [
+       5011,
+       50101,
+       501,
+       50102
+      ]
+     },
+     "name": "Sri Lanka / Greater India margin",
+     "plateId1": 506,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       138.754,
+       37.535,
+       144.473,
+       48.383
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       131.303,
+       33.038,
+       151.923,
+       52.879
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "86.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (3437905 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 3437905.179,
+      "conflictOver250KmPercent": 86.4,
+      "cutAreaPercentOfClass": 0.1736,
+      "cutAreaSquareKilometres": 3979249.291,
+      "topDisagreeingOwnerPlateIds": [
+       624,
+       901,
+       301,
+       601
+      ]
+     },
+     "name": "Simao",
+     "plateId1": 625,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       33.105,
+       38.156,
+       48.57,
+       42.407
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       26.524,
+       33.659,
+       55.151,
+       46.903
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "42.3% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (3165902 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 3165901.714,
+      "conflictOver250KmPercent": 42.27,
+      "cutAreaPercentOfClass": 0.3267,
+      "cutAreaSquareKilometres": 7490259.06,
+      "topDisagreeingOwnerPlateIds": [
+       715,
+       307,
+       522,
+       346
+      ]
+     },
+     "name": "Somali margin",
+     "plateId1": 526,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -141.372,
+       52.311,
+       -128.151,
+       61.329
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -152.352,
+       47.814,
+       -117.171,
+       65.825
+      ],
+      "partitionPolygons": 2,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "41.2% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (2874264 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 2874263.573,
+      "conflictOver250KmPercent": 41.22,
+      "cutAreaPercentOfClass": 0.3042,
+      "cutAreaSquareKilometres": 6973541.242,
+      "topDisagreeingOwnerPlateIds": [
+       901,
+       903,
+       1731,
+       16124
+      ]
+     },
+     "name": "Alaska terrane",
+     "plateId1": 16111,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -85.779,
+       19.464,
+       -74.802,
+       22.854
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -90.841,
+       14.967,
+       -69.739,
+       27.351
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "77.6% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (1400205 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 1400205.2,
+      "conflictOver250KmPercent": 77.62,
+      "cutAreaPercentOfClass": 0.0787,
+      "cutAreaSquareKilometres": 1803975.829,
+      "topDisagreeingOwnerPlateIds": [
+       205,
+       233,
+       222,
+       274
+      ]
+     },
+     "name": "Patagonia",
+     "plateId1": 275,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       115.883,
+       -8.127,
+       121.562,
+       0.566
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       111.275,
+       -12.623,
+       126.17,
+       5.063
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "44.4% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (524575 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 524574.531,
+      "conflictOver250KmPercent": 44.4,
+      "cutAreaPercentOfClass": 0.0515,
+      "cutAreaSquareKilometres": 1181558.789,
+      "topDisagreeingOwnerPlateIds": [
+       681,
+       669,
+       667,
+       565
+      ]
+     },
+     "name": "West Burma",
+     "plateId1": 668,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -125.203,
+       34.899,
+       -118.324,
+       42.696
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -131.82,
+       30.402,
+       -111.707,
+       47.193
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "47.8% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (351174 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 351174.338,
+      "conflictOver250KmPercent": 47.84,
+      "cutAreaPercentOfClass": 0.032,
+      "cutAreaSquareKilometres": 734054.221,
+      "topDisagreeingOwnerPlateIds": [
+       901,
+       105
+      ]
+     },
+     "name": "unnamed Cao 2017 source plate",
+     "plateId1": 176,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    },
+    {
+     "claimOrInference": "inference",
+     "footprint": {
+      "basis": "cao-2024-static-partition-union-bbox",
+      "bbox": [
+       -64.754,
+       10.709,
+       -59.961,
+       18.44
+      ],
+      "bufferKilometres": 500.0,
+      "bufferedBbox": [
+       -69.636,
+       6.212,
+       -55.079,
+       22.936
+      ],
+      "partitionPolygons": 1,
+      "reason": "the override may only rebind a piece that lies on or near this plate's own present-day Cao et al. (2024) v2.4 crust; a piece further away keeps its partition binding, because a PLATEID1 value alone is not evidence that ground an ocean away rode this plate"
+     },
+     "justification": "100.0% of this plate's cut area is carried more than 250 km from its PLATEID1 position by the partition owner (315838 km2); the partition binding places the class in a different reconstruction frame",
+     "measured": {
+      "conflictAreaSquareKilometres": 315837.873,
+      "conflictOver250KmPercent": 100.0,
+      "cutAreaPercentOfClass": 0.0138,
+      "cutAreaSquareKilometres": 315837.873,
+      "topDisagreeingOwnerPlateIds": [
+       201,
+       101
+      ]
+     },
+     "name": "Central Asia block",
+     "plateId1": 234,
+     "sourceIds": [
+      "palaeo-coastlines-cao2017-audit-v1"
+     ]
+    }
+   ]
+  }
+ },
+ "footprintRule": "Every override entry declares a footprint. A cut piece is rebound by PLATEID1 only when its representative point lies inside that entry's bufferedBbox; a piece outside it keeps the partition binding and is reported as a declined override. bufferedBbox is bbox expanded by bufferKilometres, the latitude span directly and the longitude span at the poleward edge, so it contains every point within bufferKilometres of the bbox. 500 km is twice the 250 km frame-conflict threshold: the override may reach one conflict distance beyond the plate's own present-day crust, which absorbs the difference between the Cao 2017 PLATEID1 assignment and the Cao 2024 partition outline, and no further.",
+ "overrideSetId": "palaeo-coastlines-plateid1-overrides-v1",
+ "pinnedAt": "2026-09-15",
+ "rule": {
+  "claimOrInference": "inference: EarthHistory's own measurement, not a claim of Cao et al. (2017) or Cao et al. (2024)",
+  "conflictThresholdKilometres": 250.0,
+  "default": "a cookie-cut piece rides the plate of the present-day Cao 2024 static partition that owns it",
+  "measuredAt": "interval mid-age, representative point of each piece, both rotation files loaded",
+  "override": "a piece whose source PLATEID1 appears in the class table below rides PLATEID1 instead of its partition owner, because the partition owner carries the class more than 250 km from where its own PLATEID1 would place it over most of that plate's area: the two are different reconstruction frames, not a small disagreement",
+  "selection": "audit-measured: conflictOver250KmPercent >= 40 and conflictAreaSquareKilometres >= 200000, summed over the 24 canonical intervals; the piece is still cut by the partitions, only its motion binding changes",
+  "sourceIds": [
+   "palaeo-coastlines-cao2017-audit-v1",
+   "cao-2017-paleogeography",
+   "cao-v2.4-static-partitions"
+  ]
+ },
+ "schemaVersion": 1,
+ "shallowMarinePolicy": "the sm table is large (27 plates, 26.3 % of sm area in conflict) because sm spreads over Pacific, Farallon and Marie Byrd ground that no continental PLATEID1 can pose; the plan's Phase 7 policy (emit only co-moving pieces, count the rest) is a runtime scope decision and is not applied by this compiler, which emits every piece with its frame-conflict flag set"
+}

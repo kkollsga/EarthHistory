@@ -2,9 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GlobeStats, LayerVisibility, LonLat, SurfaceStage, WorldSnapshot } from "../data";
 import {
+  buildPalaeoOutlineToneTexels,
+  decodePalaeoOutlineToneTables,
   gplatesToRendererDirection,
   numberScalarOps,
+  palaeoOutlineToneCounts,
+  type CaoPalaeoIntervalFrame,
   type MaterialAddress,
+  type PalaeoOutlineToneTables,
+  type PreparedCaoPalaeoInterval,
   type PreparedCaoRevision,
   type UnitDirection,
 } from "../reconstruction";
@@ -26,9 +32,27 @@ import {
 } from "./globeGuides";
 import { setInspectionLightPosition } from "./inspectionLight";
 import {
+  CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER,
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
+  type CaoFoundationSurfaceHit,
 } from "./reconstruction/caoFoundation";
+import {
+  caoCompositeCoversDirection,
+  caoCompositeReferenceSurfaceClass,
+  caoPalaeoCoastlineDomainBand,
+  caoPalaeoModeState,
+  CAO_PALAEO_VISIBILITY_INITIAL_STATE,
+  intersectCaoComposite,
+  nextCaoPalaeoVisibilityState,
+  type CaoPalaeoModeState,
+  type CaoPalaeoVisibilityState,
+} from "./reconstruction/palaeoComposite";
+import {
+  NO_PALAEO_MATERIAL_CORRECTIONS,
+  palaeoChartPickState,
+  preparedCaoRevisionForPalaeoInterval,
+} from "./reconstruction/palaeoPublication";
 import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
@@ -109,9 +133,44 @@ export interface EarthHistoryDiagnostics {
   };
 }
 
+/**
+ * Surface class covering one piece of present-day ground at the drawn age, or
+ * null. The compiled witness table (`palaeo_coastlines_correction.py`) asks
+ * exactly this question offline; the browser suite asks it of the live scene so
+ * the two cannot drift, and nothing in the application reads it.
+ */
+export type EarthHistorySurfaceProbe =
+  (longitudeDegrees: number, latitudeDegrees: number) => string | null;
+
+/**
+ * Surface class and incident-light cosine under one canvas pixel, or null where
+ * no surface chart is drawn there.
+ *
+ * The rendered tone of a surface class is not its base colour: the inspection
+ * light, the hemisphere fill and the ACES curve carry a base colour a long way,
+ * and they carry it further the closer the ground is to the sub-camera point.
+ * A tone contract can therefore only be asserted against what the frame
+ * actually contains, which needs the class *under a pixel* and the lighting
+ * that pixel was shaded at. `cosLight` is the same `dot(normal, lightDirection)`
+ * the fragment stage uses, so a census can bucket pixels by lighting rather
+ * than assuming a uniform frame. The browser suite reads it; nothing in the
+ * application calls it.
+ */
+export type EarthHistoryPixelSurfaceProbe = (
+  cssX: number,
+  cssY: number,
+) => {
+  readonly surfaceClass: string;
+  readonly cosLight: number;
+  /** Renderer-frame longitude/latitude of the hit, the frame `at=` names. */
+  readonly direction: readonly [number, number];
+} | null;
+
 declare global {
   interface Window {
     __earthHistoryDiagnostics?: EarthHistoryDiagnostics;
+    __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
+    __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
   }
 }
 
@@ -387,18 +446,50 @@ function editorialGlobeColor(environment: WorldSnapshot["environment"]): number 
 function createCaoGpuRetirementOwner(
   renderer: RendererLike,
   backend: EarthHistoryDiagnostics["backend"],
+  maxPendingResources = 2,
+  maxPendingBytes = 4 * 1024 * 1024,
 ): GpuRetirementOwner {
   if (backend === "webgpu") {
     const queue = renderer.backend?.device?.queue;
     if (!queue) throw new Error("Cao renderer requires the active WebGPU submission queue");
-    return new GpuRetirementOwner(new WebGpuSubmissionFence(queue), 2, 4 * 1024 * 1024);
+    return new GpuRetirementOwner(new WebGpuSubmissionFence(queue),
+      maxPendingResources, maxPendingBytes);
   }
   const context = renderer.backend?.gl ?? renderer.getContext?.();
   if (!(context instanceof WebGL2RenderingContext)) {
     throw new Error("Cao renderer requires the active WebGL2 context");
   }
-  return new GpuRetirementOwner(new WebGl2SubmissionFence(context), 2, 4 * 1024 * 1024);
+  return new GpuRetirementOwner(new WebGl2SubmissionFence(context),
+    maxPendingResources, maxPendingBytes);
 }
+
+/**
+ * Bounds for the palaeo-coastline instance. It streams one Cao 2017 map
+ * interval at a time, so it replaces static geometry where the native instance
+ * never may.
+ *
+ * Measured 2026-09-15 over the promoted `lm`+`sm`+`m` set, after the cookie-cut
+ * seam buffer and the 1,000 km frame-conflict drop: the worst interval refines
+ * to 393,375 vertices and 605,192 triangles (the promoted manifest's own
+ * reservation), against 300,697 / 483,487 before the seam buffer. The limits
+ * below keep about a quarter of headroom over that, as they did before. The
+ * refined counts are roughly 1.9x the compiler's own triangle estimate, because
+ * this runtime bisects conformingly while the compiler models each triangle
+ * alone; the 1 degree edge bound is the chord-sag contract and cannot be relaxed
+ * to bring it down. One resource and 40 MiB of retirement cover a single
+ * interval swap; the publication ledger is a palette and per-chart pose table
+ * only.
+ */
+const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
+  maxBatches: 64,
+  maxVertices: 500_000,
+  maxTriangles: 760_000,
+  maxRetainedSourceBytes: 30 * 1024 * 1024,
+  maxPublicationBytes: 512 * 1024,
+  maxSpatialIndexBytes: 512 * 1024,
+});
+const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
+const CAO_PALAEO_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -456,11 +547,43 @@ export class GlobeScene {
   private readonly focusMarkerProjectedPosition = new THREE.Vector3();
   private readonly controls: OrbitControls;
   private readonly caoFoundationRenderer: CaoFoundationSurfaceRenderer;
+  private readonly caoPalaeoRenderer: CaoFoundationSurfaceRenderer;
   private readonly globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
   private readonly cloudMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   private resizeObserver: ResizeObserver;
   private layers: LayerVisibility = { clouds: true, borders: true, guides: true,
-    tectonics: false, rivers: false };
+    tectonics: false, rivers: false, palaeoCoastlines: false };
+  private palaeoRequestedAgeMa: number | null = null;
+  private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
+  /**
+   * Whether the native instance is currently hiding `batch-land` in favour of
+   * palaeo charts. Cached because switching it walks the published group and
+   * rebuilds the renderer diagnostics, and this is consulted every frame.
+   */
+  private nativeSurfaceModeIsPalaeo = false;
+  /** Whether the palaeo instance has charts on screen, independent of the native stack. */
+  private palaeoSurfacesDrawn = false;
+  private palaeoOutlineToneTable: Uint8Array | null = null;
+  private palaeoOutlineToneIntervalId: string | null = null;
+  /** The interval whose charts are published, and the one its geometry belongs to. */
+  private publishedPalaeoIntervalId: string | null = null;
+  private palaeoPublicationFailureReason: string | null = null;
+  private palaeoStaticIntervalId: string | null = null;
+  private palaeoIntervalSourceBytes = 0;
+  /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
+  private palaeoTonePayload: Uint8Array | null = null;
+  private palaeoToneTableIndex = -1;
+  private palaeoToneSourceIntervalId: string | null = null;
+  private palaeoToneTables: PalaeoOutlineToneTables | null = null;
+  private palaeoToneDecodedFrom: Uint8Array | null = null;
+  private reportedPalaeoIntervalId: string | null | undefined = undefined;
+  private reportedPalaeoAssetBytes = -1;
+  /** `undefined` until the first apply, so the initial all-dark upload happens once. */
+  private appliedOutlineToneIntervalId: string | null | undefined = undefined;
+  /** Last values written to the canvas dataset, so a still frame writes nothing. */
+  private reportedOutlineToneIntervalId: string | null | undefined = undefined;
+  private reportedOutlineToneDarkSegments = -1;
+  private reportedOutlineToneLightSegments = -1;
   private requestedQuality: RequestedQuality;
   private effectiveQuality: "high" | "low";
   private detail: SurfaceDetail = "coarse";
@@ -521,6 +644,21 @@ export class GlobeScene {
         maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );
+    // A second instance owns the palaeo-coastline charts. It keeps its own
+    // retirement owners — one for publications, one for the static geometry a
+    // map-interval change replaces — because a single owner bounded at one
+    // pending resource cannot hold both retirements of the same swap.
+    this.caoPalaeoRenderer = new CaoFoundationSurfaceRenderer(
+      this.globeGroup,
+      createCaoGpuRetirementOwner(renderer, backend,
+        CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES),
+      { ...CAO_PALAEO_RENDERER_LIMITS, maxTextureSize: maximumTextureSize },
+      { allowStaticGeometryReplacement: true,
+        staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
+          CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES) },
+    );
+    this.caoPalaeoRenderer.setPalaeoCoastlineMode(true);
+    this.caoPalaeoRenderer.setDomainVisibility(false);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -560,7 +698,7 @@ export class GlobeScene {
     }));
     this.globeMesh.castShadow = true;
     this.globeMesh.receiveShadow = true;
-    this.globeMesh.renderOrder = 0;
+    this.globeMesh.renderOrder = CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER;
     this.cloudMesh = new THREE.Mesh(this.makeCloudGeometry(), new THREE.MeshStandardMaterial({
       color: 0xdde7e8, transparent: true, opacity: 0.34, roughness: 0.94,
       depthWrite: false, alphaTest: 0.025,
@@ -604,6 +742,7 @@ export class GlobeScene {
 
   private applyCaoFoundationWithheldState(): CaoFoundationDiagnostics {
     const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
+    this.updatePalaeoDomainVisibility();
     this.pendingCaoDiagnostics = null;
     this.markerGroup.visible = false;
     const dataset = this.renderer.domElement.dataset;
@@ -658,7 +797,8 @@ export class GlobeScene {
         paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa,
         materialCorrections);
       this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
-      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.palaeoRequestedAgeMa = requestedAgeMa;
+      this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.markerGroup.visible = true;
@@ -744,7 +884,12 @@ export class GlobeScene {
       this.rebuildMarkers();
       this.markerGroup.visible = !this.caoFoundationWithheld;
       this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(revision.requestedAgeMa);
-      this.caoFoundationRenderer.setLayerVisibility(this.layers.borders, this.layers.tectonics);
+      this.palaeoRequestedAgeMa = revision.requestedAgeMa;
+      // The country line segment count is only knowable from a publication, so
+      // a tone payload that arrived before the first native publish is decoded
+      // and uploaded here rather than discarded.
+      this.applyPalaeoOutlineTones();
+      this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
       if (this.caoFoundationWithheld) return this.applyCaoFoundationWithheldState();
       this.pendingCaoDiagnostics = diagnostics;
@@ -808,6 +953,168 @@ export class GlobeScene {
     }
   }
 
+  /**
+   * Publishes one Cao 2017 map interval on the palaeo instance, or clears it.
+   *
+   * A map interval is the streaming unit, so a new interval is a static
+   * geometry replacement: the swap is armed with its reason first, and the arm
+   * is spent by exactly that publication. Scrubbing inside an interval never
+   * reaches here — `retargetPalaeoMotion` re-poses the resident geometry — so a
+   * sample that stays inside one map cannot cost a geometry rebuild.
+   *
+   * `publish` takes over the interval's lease and releases it, exactly as it
+   * does for a native revision, so the interval store is free to evict the
+   * decoded payload once its buffers are the publication's own.
+   */
+  setPreparedPalaeoInterval(interval: PreparedCaoPalaeoInterval | null): CaoFoundationDiagnostics | null {
+    if (interval === null) {
+      this.clearPalaeoPublication();
+      this.updatePalaeoDomainVisibility();
+      return null;
+    }
+    try {
+      if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
+        this.caoPalaeoRenderer.armStaticGeometryChange(
+          `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
+      }
+      const diagnostics = this.caoPalaeoRenderer.publish(
+        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration);
+      this.palaeoPublicationFailureReason = null;
+      this.publishedPalaeoIntervalId = interval.intervalId;
+      this.palaeoStaticIntervalId = interval.intervalId;
+      this.palaeoIntervalSourceBytes = interval.activeSourceBytes;
+      this.palaeoRequestedAgeMa = interval.requestedAgeMa;
+      this.applyLayerVisibility();
+      this.guideLabelTonesStaleSince = performance.now();
+      return diagnostics;
+    } catch (error) {
+      // A failed palaeo publication must never take the native surface with it.
+      // The layer is optional, so the mode falls back to today's composition and
+      // names the reason in the dataset rather than throwing out of a React
+      // effect and blanking the globe. The guards themselves — an unarmed
+      // geometry swap, a reservation miss — are proven red in
+      // `palaeoPublication.test.ts`, where the throw is the assertion.
+      this.clearPalaeoPublication();
+      this.updatePalaeoDomainVisibility();
+      this.palaeoPublicationFailureReason =
+        error instanceof Error ? error.message : "palaeo-coastline publication failed";
+      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+        this.palaeoPublicationFailureReason;
+      return null;
+    }
+  }
+
+  /**
+   * Why the last prepared interval was refused, for the owner that still holds
+   * it. A refused publication is the layer's one silent failure mode: nothing
+   * is on screen, the lease is still held elsewhere, and only the holder can
+   * decide to ask again.
+   */
+  palaeoFallbackReason(): string {
+    return this.palaeoPublicationFailureReason ?? "";
+  }
+
+  /**
+   * Re-poses the published interval at a new age inside the same map. The
+   * charts and their order are the interval's own, so a frame for a different
+   * interval is refused rather than retargeting one interval's poses onto
+   * another's geometry.
+   */
+  retargetPalaeoMotion(frame: CaoPalaeoIntervalFrame): CaoFoundationDiagnostics | null {
+    if (this.publishedPalaeoIntervalId === null
+        || this.publishedPalaeoIntervalId !== frame.intervalId) return null;
+    const pick = palaeoChartPickState(frame.charts);
+    const diagnostics = this.caoPalaeoRenderer.retargetMotion(
+      frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
+      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS);
+    this.palaeoRequestedAgeMa = frame.requestedAgeMa;
+    this.applyLayerVisibility();
+    this.guideLabelTonesStaleSince = performance.now();
+    return diagnostics;
+  }
+
+  /**
+   * The verified EHPT payload and the table the active interval reads.
+   *
+   * The bytes are fetched once per enablement and decoded here rather than by
+   * the caller, because only this scene knows the country line batch's own
+   * segment count — and a table compiled against a different outline package
+   * would address the wrong segments with every index still in range.
+   */
+  setPalaeoOutlineTones(
+    payload: Uint8Array | null,
+    tableIndex: number,
+    intervalId: string | null,
+  ): void {
+    this.palaeoTonePayload = payload;
+    this.palaeoToneTableIndex = tableIndex;
+    this.palaeoToneSourceIntervalId = intervalId;
+    if (payload === null) {
+      this.palaeoToneTables = null;
+      this.palaeoToneDecodedFrom = null;
+    }
+    this.applyPalaeoOutlineTones();
+  }
+
+  /**
+   * Decodes and uploads the active table, or falls back to the single dark ink.
+   *
+   * A table this scene cannot trust is not a reason to lose the outline: the
+   * fallback is exactly today's overlay, and the reason is recorded. The
+   * decoder's own rejections are proven red in `outlineTones.test.ts`.
+   */
+  private applyPalaeoOutlineTones(): void {
+    try {
+      this.uploadPalaeoOutlineTones();
+    } catch (error) {
+      this.palaeoToneTables = null;
+      this.palaeoToneDecodedFrom = null;
+      this.setCountryLineToneTable(null, null);
+      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+        error instanceof Error ? error.message : "palaeo outline tone tables could not be decoded";
+    }
+  }
+
+  private uploadPalaeoOutlineTones(): void {
+    const payload = this.palaeoTonePayload;
+    const segmentCount = this.caoFoundationRenderer.diagnostics().countryLineSegments;
+    if (payload === null || this.palaeoToneSourceIntervalId === null
+        || this.palaeoToneTableIndex < 0 || segmentCount < 1) {
+      this.setCountryLineToneTable(null, null);
+      return;
+    }
+    if (this.palaeoToneDecodedFrom !== payload || this.palaeoToneTables === null
+        || this.palaeoToneTables.segmentCount !== segmentCount) {
+      this.palaeoToneTables = decodePalaeoOutlineToneTables(payload, segmentCount);
+      this.palaeoToneDecodedFrom = payload;
+    }
+    if (this.palaeoToneTableIndex >= this.palaeoToneTables.tableCount) {
+      throw new Error("palaeo outline tone table index is outside the published tables");
+    }
+    const counts = palaeoOutlineToneCounts(this.palaeoToneTables, this.palaeoToneTableIndex);
+    if (counts.lightSegments + counts.darkSegments !== segmentCount) {
+      throw new Error("palaeo outline tone counts disagree with the country line batch");
+    }
+    this.setCountryLineToneTable(
+      buildPalaeoOutlineToneTexels(this.palaeoToneTables, this.palaeoToneTableIndex),
+      this.palaeoToneSourceIntervalId);
+  }
+
+  /**
+   * Drops the palaeo publication and everything that depends on it.
+   *
+   * Turning the mode off releases every outstanding interval lease in the
+   * runtime, so a publication left standing here would be drawing geometry
+   * whose payload the interval store is already free to evict.
+   */
+  private clearPalaeoPublication(): void {
+    if (this.publishedPalaeoIntervalId === null) return;
+    this.caoPalaeoRenderer.clear();
+    this.publishedPalaeoIntervalId = null;
+    this.palaeoIntervalSourceBytes = 0;
+    this.guideLabelTonesStaleSince = performance.now();
+  }
+
   setEditorialSnapshot(snapshot: WorldSnapshot | null): void {
     this.snapshot = snapshot;
     const stage = snapshot?.environment.stage;
@@ -825,6 +1132,8 @@ export class GlobeScene {
         0.12 + (environment.cloudCover ?? 0.5) * 0.34, 0.12, 0.42,
       );
       const age = snapshot.requestedAgeMa ?? snapshot.ageMa;
+      this.palaeoRequestedAgeMa = age;
+      this.updatePalaeoDomainVisibility();
       if (age > CAO_SOURCE_AGE_DOMAIN_MA.oldest) {
         const diagnostics = this.caoFoundationRenderer.setDomainVisibility(false);
         this.renderer.domElement.dataset.caoFoundationStatus = "unsupported";
@@ -854,7 +1163,7 @@ export class GlobeScene {
     const guidesChanged = this.layers.guides !== layers.guides;
     this.layers = layers;
     this.cloudMesh.visible = layers.clouds;
-    this.caoFoundationRenderer.setLayerVisibility(layers.borders, layers.tectonics);
+    this.applyLayerVisibility();
     this.renderer.domElement.dataset.countryRibbonVisible = String(layers.borders);
     this.renderer.domElement.dataset.nativeBoundaryVisible = String(layers.tectonics);
     if (guidesChanged) this.rebuildOverlays();
@@ -943,6 +1252,7 @@ export class GlobeScene {
     this.controls.removeEventListener("end", this.handleControlsEnd);
     this.controls.dispose();
     this.caoFoundationRenderer.disposeForRendererTeardown();
+    this.caoPalaeoRenderer.disposeForRendererTeardown();
     this.markerTexture.dispose();
     this.focusLockMarkerTexture.dispose();
     this.focusLockMarker = null;
@@ -958,6 +1268,12 @@ export class GlobeScene {
     this.renderer.dispose();
     this.renderer.domElement.remove();
     delete window.__earthHistoryDiagnostics;
+    if (window.__earthHistorySurfaceProbe === this.surfaceProbe) {
+      delete window.__earthHistorySurfaceProbe;
+    }
+    if (window.__earthHistoryPixelSurfaceProbe === this.pixelSurfaceProbe) {
+      delete window.__earthHistoryPixelSurfaceProbe;
+    }
   }
 
   private makeGlobeGeometry(): THREE.BufferGeometry {
@@ -1081,6 +1397,152 @@ export class GlobeScene {
     this.renderer.domElement.dataset.caoFoundationAnchorAgeMa = String(requestedAgeMa);
   }
 
+  /**
+   * One layer record reaches both surface instances. The palaeo instance is
+   * always in palaeo mode — its charts are the mode — while the native instance
+   * enters it only while palaeo charts are actually drawn, which is what hides
+   * `batch-land`. The layer flag is not that condition: at a fallback age the
+   * layer is on and the palaeo instance draws nothing, so keying native land
+   * off the flag would leave bare shelf where today's coastline belongs.
+   * `updatePalaeoDomainVisibility` owns the effective answer and runs last.
+   */
+  private applyLayerVisibility(): void {
+    const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
+      palaeoCoastlines: this.nativeSurfaceModeIsPalaeo };
+    this.caoFoundationRenderer.setLayerVisibility(record);
+    this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
+    // Turning the mode off releases every palaeo interval lease in the runtime,
+    // so a publication left standing here would keep drawing geometry whose
+    // payload the interval store is already free to evict.
+    if (!this.layers.palaeoCoastlines) this.clearPalaeoPublication();
+    this.updatePalaeoDomainVisibility();
+  }
+
+  /**
+   * Applies the one-frame hysteresis at the Cao 2017 map boundaries and reports
+   * the mode. The notice follows the requested age immediately; the geometry
+   * follows one frame later, so a scrub resting on 402 Ma cannot strobe.
+   */
+  private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
+    const band = caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa);
+    const inside = band !== "none";
+    const requested = this.layers.palaeoCoastlines && inside && !this.caoFoundationWithheld;
+    // Only the frame loop advances the hysteresis; a layer toggle or a scrub
+    // sample that also lands in the same frame must not spend its second frame
+    // and flip the domain immediately.
+    if (advanceHysteresis) {
+      this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility,
+        requested ? band : "none");
+    }
+    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
+    const state = caoPalaeoModeState({ layerEnabled: this.layers.palaeoCoastlines,
+      band, visibleBand: this.palaeoVisibility.band,
+      published: palaeo.identity !== null });
+    // Native land, the composite pick and coverage, and the guide-label ink all
+    // follow the effective mode, so a fallback age keeps exactly today's
+    // composition instead of hiding land nothing has replaced.
+    this.applyNativeSurfaceMode(state);
+    const drawn = state.palaeoDrawn;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoPalaeoCoastlineMode = state.mode;
+    dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
+      ? "age-outside-cao-2017-map-intervals" : "";
+    dataset.caoPalaeoBand = this.layers.palaeoCoastlines ? state.band : "";
+    dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
+    dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
+    // The interval on screen, not the one the age asks for: a load in flight
+    // leaves the previous map drawn, and the diagnostic must say which.
+    const intervalId = drawn ? this.publishedPalaeoIntervalId : null;
+    // Bytes behind what is on screen, for the same reason. The outline tone
+    // tables are fetched once per enablement and stay resident across a scrub,
+    // but they tone nothing at a fallback age — `applyCountryLineToneTable`
+    // clears the table there — so a fallback reports zero exactly as its
+    // interval id, its charts and its triangles do.
+    const assetBytes = drawn
+      ? this.palaeoIntervalSourceBytes + (this.palaeoTonePayload?.byteLength ?? 0) : 0;
+    if (intervalId !== this.reportedPalaeoIntervalId || assetBytes !== this.reportedPalaeoAssetBytes) {
+      this.reportedPalaeoIntervalId = intervalId;
+      this.reportedPalaeoAssetBytes = assetBytes;
+      dataset.caoPalaeoIntervalId = intervalId ?? "";
+      dataset.caoPalaeoAssetBytes = String(assetBytes);
+    }
+    this.applyCountryLineToneTable(state.mode === "on");
+  }
+
+  /**
+   * Puts the native instance into the palaeo stack, or back into its own.
+   *
+   * One flag decides three things at once: whether `batch-land` is drawn,
+   * whether the composite ranks the palaeo classes into its precedence table,
+   * and which surfaces the guide-label ink reads as land. Keeping them on one
+   * switch is what stops a fallback age from hiding land in the picture while
+   * the pick still reports it.
+   */
+  private applyNativeSurfaceMode(state: CaoPalaeoModeState): void {
+    // The palaeo instance can be on screen while the native instance stays in
+    // its own stack: that is exactly the detached LGM band, where the lowstand
+    // shelf is drawn over today's land rather than instead of it.
+    this.palaeoSurfacesDrawn = state.palaeoDrawn;
+    const palaeoMode = state.nativeSurfaceMode === "palaeo";
+    if (palaeoMode === this.nativeSurfaceModeIsPalaeo) return;
+    this.nativeSurfaceModeIsPalaeo = palaeoMode;
+    this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+  }
+
+  /**
+   * The outline tone table for one Cao 2017 map interval, or `null` to put the
+   * whole overlay back to its single dark ink. Held rather than applied
+   * directly: the tones belong to the palaeo mode, so a fallback age, a
+   * withheld surface or a layer toggle clears them without the caller having to
+   * notice.
+   */
+  setCountryLineToneTable(texels: Uint8Array | null, intervalId: string | null): void {
+    this.palaeoOutlineToneTable = texels;
+    this.palaeoOutlineToneIntervalId = texels === null ? null : intervalId;
+    // Force the next apply, even onto the interval id that is already resident:
+    // the bytes behind it may be different ones.
+    this.appliedOutlineToneIntervalId = undefined;
+    this.updatePalaeoDomainVisibility();
+  }
+
+  /**
+   * Uploads a tone table at most once per interval change. The frame loop runs
+   * through here, and the material's own byte comparison would otherwise walk
+   * the whole table every frame for an answer that only changes at an interval
+   * boundary.
+   */
+  private applyCountryLineToneTable(modeIsOn: boolean): void {
+    const intervalId = modeIsOn ? this.palaeoOutlineToneIntervalId : null;
+    // The counts are still read every frame: a publication built after the last
+    // table change carries its own tone state.
+    const counts = intervalId === this.appliedOutlineToneIntervalId
+      ? this.caoFoundationRenderer.countryLineToneCounts()
+      : this.caoFoundationRenderer.setCountryLineToneTable(
+        intervalId === null ? null : this.palaeoOutlineToneTable);
+    this.appliedOutlineToneIntervalId = intervalId;
+    if (intervalId === this.reportedOutlineToneIntervalId
+        && counts.darkSegments === this.reportedOutlineToneDarkSegments
+        && counts.lightSegments === this.reportedOutlineToneLightSegments) return;
+    this.reportedOutlineToneIntervalId = intervalId;
+    this.reportedOutlineToneDarkSegments = counts.darkSegments;
+    this.reportedOutlineToneLightSegments = counts.lightSegments;
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoOutlineToneIntervalId = intervalId ?? "";
+    dataset.caoOutlineToneDarkSegments = String(counts.darkSegments);
+    dataset.caoOutlineToneLightSegments = String(counts.lightSegments);
+  }
+
+  /** Nearest hit across both instances, ranked by one precedence table. */
+  private intersectCompositeRay(
+    rayOrigin: [number, number, number],
+    rayDirection: [number, number, number],
+  ): CaoFoundationSurfaceHit | null {
+    return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
+      this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
+      { mode: this.caoFoundationRenderer.surfaceMode(),
+        palaeoVisible: this.palaeoSurfacesDrawn });
+  }
+
   private rebuildOverlays(): void {
     clearGroup(this.overlayGroup);
     if (!this.layers.guides) {
@@ -1142,10 +1604,13 @@ export class GlobeScene {
     const started = performance.now();
     const step = advanceGuideLabelToneScan(this.guideLabelToneScan,
       GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME, (direction) => native
-        // Land only: shelf water is a dark background like the open ocean, so
-        // it takes the light ink too.
-        ? this.caoFoundationRenderer.coversDirection(
-          [direction.x, direction.y, direction.z], { includeShelf: false })
+        // Land only: shelf water and mapped shallow sea are dark backgrounds
+        // like the open ocean, so they take the light ink too. The composite is
+        // what keeps a palaeo landmass dark once native land is hidden.
+        ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
+          this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
+          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode(),
+            palaeoVisible: this.palaeoSurfacesDrawn })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -1260,7 +1725,7 @@ export class GlobeScene {
     const worldToGlobe = this.globeGroup.matrixWorld.clone().invert();
     const localOrigin = this.raycaster.ray.origin.clone().applyMatrix4(worldToGlobe);
     const localRay = this.raycaster.ray.direction.clone().transformDirection(worldToGlobe);
-    const caoHit = this.caoFoundationRenderer.intersectRay(
+    const caoHit = this.intersectCompositeRay(
       [localOrigin.x, localOrigin.y, localOrigin.z], [localRay.x, localRay.y, localRay.z]);
     const sphereHit = this.raycaster.intersectObject(this.globeMesh, false)[0];
     const localDirection = caoHit === null
@@ -1353,6 +1818,7 @@ export class GlobeScene {
     this.updatePoiMarkerScale();
     this.reportFocusMarkerOffset();
     this.updateInspectionLight();
+    this.updatePalaeoDomainVisibility(true);
     this.updateGuideLabelTones(now);
     this.updateGuideLabelVisibility();
     if (this.impactGroup.visible && this.autoRotate && !this.reducedMotion.matches) {
@@ -1390,6 +1856,55 @@ export class GlobeScene {
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 
+  /**
+   * Surface class over one piece of present-day ground at the drawn age. The
+   * browser suite reads it to ask the compiled witness questions of the live
+   * scene; nothing in the application calls it.
+   */
+  private readonly surfaceProbe: EarthHistorySurfaceProbe = (longitudeDegrees, latitudeDegrees) => {
+    const longitude = longitudeDegrees * Math.PI / 180;
+    const latitude = latitudeDegrees * Math.PI / 180;
+    const radius = Math.cos(latitude);
+    return caoCompositeReferenceSurfaceClass(
+      this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView(),
+      this.caoPalaeoRenderer.surfaceView(),
+      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
+      { mode: this.caoFoundationRenderer.surfaceMode(),
+        palaeoVisible: this.palaeoSurfacesDrawn });
+  };
+
+  /**
+   * Surface class and lighting under one canvas pixel, in CSS pixels measured
+   * from the canvas's top-left corner. It walks the same composite ray the
+   * pointer pick walks, so it answers with the class the viewer sees.
+   */
+  private readonly pixelSurfaceProbe: EarthHistoryPixelSurfaceProbe = (cssX, cssY) => {
+    const canvas = this.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    this.pointer.set((cssX / rect.width) * 2 - 1, -(cssY / rect.height) * 2 + 1);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    this.globeGroup.updateWorldMatrix(true, false);
+    const worldToGlobe = this.globeGroup.matrixWorld.clone().invert();
+    const localOrigin = this.raycaster.ray.origin.clone().applyMatrix4(worldToGlobe);
+    const localRay = this.raycaster.ray.direction.clone().transformDirection(worldToGlobe);
+    const hit = this.intersectCompositeRay(
+      [localOrigin.x, localOrigin.y, localOrigin.z], [localRay.x, localRay.y, localRay.z]);
+    if (hit === null) return null;
+    // The reconstructed radial direction is the shaded normal (`normalNode`
+    // transforms exactly this vector), and the inspection light is a point on
+    // the camera axis, so the cosine is the light vector at the hit itself
+    // rather than at the globe centre.
+    const localNormal = new THREE.Vector3(...hit.position).normalize();
+    const worldNormal = localNormal.clone().transformDirection(this.globeGroup.matrixWorld);
+    const worldPoint = this.globeGroup.localToWorld(
+      new THREE.Vector3(...hit.position));
+    const lightDirection = this.sunLight.position.clone().sub(worldPoint).normalize();
+    return { surfaceClass: hit.surfaceClass,
+      cosLight: Number(worldNormal.dot(lightDirection).toFixed(6)),
+      direction: vector3ToLonLat(localNormal) };
+  };
+
   private publishStats(now: number): void {
     this.lastStatsAt = now;
     const recent = this.frameTimes.slice(-180);
@@ -1419,6 +1934,11 @@ export class GlobeScene {
         workerRetainedBytes: 0, evictions: 0, queuedJobs: 0, workerPoolSize: 0, staleJobs: 0 },
     };
     window.__earthHistoryDiagnostics = diagnostics;
+    // Republished beside the diagnostics rather than installed once in the
+    // constructor: a scene that replaces another must own the hook, and the
+    // replaced scene's dispose() must not take the live one's with it.
+    window.__earthHistorySurfaceProbe = this.surfaceProbe;
+    window.__earthHistoryPixelSurfaceProbe = this.pixelSurfaceProbe;
     const dataset = this.renderer.domElement.dataset;
     dataset.detail = diagnostics.detail;
     dataset.quality = diagnostics.effectiveQuality;

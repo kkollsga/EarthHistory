@@ -1,0 +1,307 @@
+{
+ "schemaVersion": 1,
+ "basinId": "makassar-strait",
+ "title": "Makassar Strait and the South Makassar Basin",
+ "status": "edited",
+ "pinnedAt": "2026-09-15",
+ "description": "Basin edit contract for the Makassar Strait. Two cited operations in one Cao et al. (2017) map interval: the Middle-Late Eocene South Makassar Basin at 49-37 Ma, removed from the land class and added to the shallow-marine class on the same footprint. The add-shallow is the contract-mandated companion - the nearest Cao shallow-marine polygon is 69.8 km away, so a bare removal would leave the basin axis unclassified. The Central Luconia candidate the research memo proposes at 11-2 Ma is not in this contract and is recorded in notes.leftAlone. Eight further findings are recorded there with their reasons.",
+ "window": {
+  "bbox": [
+   115.5,
+   -6.0,
+   121.0,
+   1.5
+  ],
+  "reason": "the South Makassar Basin, the Paternoster platform to its west and the West Sulawesi margin to its east; wide enough to hold the operation and both of its unedited controls, and stopping short of the North Makassar Basin's own shallow-marine polygon"
+ },
+ "intervals": [
+  "49-37"
+ ],
+ "classes": [
+  "lm",
+  "sm"
+ ],
+ "editorial": "EarthHistory modification after the references listed in this contract",
+ "notes": {
+  "leftAlone": [
+   {
+    "intervalIds": [
+     "11-2"
+    ],
+    "subject": "Central Luconia carbonate province offshore Sarawak",
+    "reason": "The research memo proposes a lower-confidence remove-land plus add-shallow over about 112.4-115.0 E and 3.8-5.0 N, because Cycle IV-VIII carbonate buildups and the prograding Baram delta record continuous marine deposition while Cao carries land about 145 km offshore. It is deliberately not built here: the 11-2 bin reaches 2.01 Ma and the first Plio-Pleistocene lowstands did expose parts of that shelf, so the operation rests entirely on the minimum-land reading of the bin, and it belongs to a different basin window (sarawak-luconia) that no coordinator has approved. The Makassar operation does not depend on it.",
+    "references": [
+     "hall-2008-borneo",
+     "morley-2012-se-asia-tectonics"
+    ]
+   },
+   {
+    "intervalIds": [
+     "49-37",
+     "37-29",
+     "29-20"
+    ],
+    "subject": "lacustrine syn-rift fill of the Malay, Penyu, West Natuna, Cuu Long and Nam Con Son basins",
+    "reason": "Their Eocene-Oligocene syn-rift fill is lacustrine and ships as land because there is no lake class. This is the single largest epistemic gap in the province and belongs in the map key, not in an edit: painting shallow marine over a rift lake would assert a marine connection nobody claims.",
+    "references": [
+     "morley-2012-se-asia-tectonics"
+    ]
+   },
+   {
+    "intervalIds": [
+     "37-29",
+     "29-20",
+     "20-11",
+     "11-2"
+    ],
+    "subject": "the Makassar Strait rendered shallow marine over more than 2,000 m of water",
+    "reason": "Shallow marine is an environment class, not a depth, and Cao has no deep-marine class. Removing the shallow marine would leave bare crust, which is a worse statement. Declared limitation, not a defect - and the same limitation the 49-37 add-shallow above inherits.",
+    "references": [
+     "hall-2009-north-makassar"
+    ]
+   },
+   {
+    "intervalIds": [
+     "29-20",
+     "20-11"
+    ],
+    "subject": "the Nam Con Son and Sarawak points that return neither class",
+    "reason": "Sub-class-floor gaps at single coordinates: the neighbouring class is 0.9-26 km away, inside the roughly 30 km class floor of the source. Placing the Luconia shelf edge better would need digitised Cycle isopachs. Move the witness point, do not edit the data.",
+    "references": [
+     "hall-2008-borneo"
+    ]
+   },
+   {
+    "intervalIds": [
+     "58-49"
+    ],
+    "subject": "Kutei and Makassar already shallow marine one bin before rift onset",
+    "reason": "Both points carry the shallow-marine class at 58-49 Ma, one bin before the roughly 45 Ma rift onset. Cao's own map interval starts at 58 Ma and a maximum-flooding bin renders its wettest state, so this is a phase-in-bin effect at the old edge of the bin, not a defect.",
+    "references": [
+     "hall-2012-indonesia-reconstructions"
+    ]
+   },
+   {
+    "intervalIds": [
+     "20-11"
+    ],
+    "subject": "the West Natuna marine incursion",
+    "reason": "West Natuna renders as land at 20-11 Ma with shallow marine 37 km away. The incursion is a late-bin Middle-Late Miocene event and the miss is barely outside the class floor. Phase-in-bin, not a defect.",
+    "references": [
+     "morley-2012-se-asia-tectonics"
+    ]
+   },
+   {
+    "intervalIds": [
+     "11-2"
+    ],
+    "subject": "the Mekong delta shoreline",
+    "reason": "Land at 11-2 Ma with shallow marine 24 km away, inside the class floor. The modern delta is Holocene, so the Late Miocene shoreline there is genuinely uncertain at this scale.",
+    "references": [
+     "hall-2013-sundaland-palaeogeography"
+    ]
+   },
+   {
+    "intervalIds": [
+     "20-11",
+     "11-2"
+    ],
+    "subject": "mountain polygons over the Sarawak fold belt and central Borneo",
+    "reason": "Cao mountain polygons cover parts of the Sarawak fold belt and central Borneo at 20-11 and 11-2 Ma, drawing above anything beneath them. The edit contract has no mountain operation; this is a map-key limitation, and it is also what bounds the declined Luconia candidate on its southern side.",
+    "references": [
+     "hall-2008-borneo"
+    ]
+   }
+  ],
+  "rights": "Every publication named here is citation-only. No figure, map plate, polygon, coordinate list or table from any of them is traced, digitised, copied or redistributed. Every footprint below is a coarse rectangle or few-vertex belt built from bounds the cited text states in words, not an outline read off a published map. The only redistributed palaeogeographic geometry in this program remains Cao et al. (2017), CC BY 3.0.",
+  "frame": "Every geometry above is present-day WGS84, like the Cao 2017 source. Pieces inside this window ride their native Cao 2024 binding; no restoration plate applies here. The Sundaland margin is an extensional province in the source model, so an edit drawn in present-day coordinates is posed exactly as the native charts are.",
+  "residualLimitations": [
+   "Residual limitation this operation does not fix and must not be widened to chase: the true Middle-Late Eocene state of the South Makassar Basin is deep marine over thinned crust, and this layer has no deep-marine class. The add-shallow companion trades a false land claim for a declared depth limitation; shallow marine here is a class of environment, not a statement of water depth."
+  ]
+ },
+ "ops": [
+  {
+   "opId": "makassar-strait-49-37-south-makassar-remove-land",
+   "kind": "remove-land",
+   "intervalIds": [
+    "49-37"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       117.3,
+       -1.0
+      ],
+      [
+       119.3,
+       -1.0
+      ],
+      [
+       119.3,
+       -4.6
+      ],
+      [
+       118.4,
+       -4.6
+      ],
+      [
+       117.8,
+       -3.0
+      ],
+      [
+       117.3,
+       -1.6
+      ],
+      [
+       117.3,
+       -1.0
+      ]
+     ]
+    ]
+   },
+   "rationale": "The Makassar Strait opened by Middle Eocene extension of the south-eastern Sundaland margin and was a deepening marine basin, not land, through the Middle and Late Eocene; it has never closed and never narrowed below about 75 km. Cao 2017 renders the axis of the South Makassar Basin as continuous land through 49-37 Ma, which contradicts the layer's own minimum-land / maximum-flooding reading of a bin, and it does so on Wallace's Line, where a false land bridge is biogeographically load-bearing. The footprint is the basin axis as the sources describe it in words: about 117.3 E to 119.3 E and about 1.0 S to 4.6 S, bounded west by the eastern edge of the Paternoster carbonate platform, which keeps its land, east by the West Sulawesi margin at about 119.3 E, and north by the already shallow-marine North Makassar Basin at about 1.0 S. It is a six-vertex polygon drawn from those stated bounds, not an outline traced from any published map. Residual limitation this operation does not fix and must not be widened to chase: the true Middle-Late Eocene state of the South Makassar Basin is deep marine over thinned crust, and this layer has no deep-marine class. The add-shallow companion trades a false land claim for a declared depth limitation; shallow marine here is a class of environment, not a statement of water depth.",
+   "spatialUncertaintyKilometres": 40.0,
+   "editorial": "EarthHistory modification after hall-2012-indonesia-reconstructions, hall-2009-north-makassar, hall-2013-sundaland-palaeogeography",
+   "references": [
+    "hall-2012-indonesia-reconstructions",
+    "hall-2009-north-makassar",
+    "hall-2013-sundaland-palaeogeography",
+    "hall-2009-sundaland"
+   ],
+   "claimOrInference": "the Middle Eocene opening of the Makassar Strait, its deepening marine Eocene section and its never having narrowed below about 75 km are claims of the sources; that Cao's land over the southern axis is therefore wrong for 49-37 Ma, and the choice of footprint, are EarthHistory inferences"
+  },
+  {
+   "opId": "makassar-strait-49-37-south-makassar-add-shallow",
+   "kind": "add-shallow",
+   "intervalIds": [
+    "49-37"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       117.3,
+       -1.0
+      ],
+      [
+       119.3,
+       -1.0
+      ],
+      [
+       119.3,
+       -4.6
+      ],
+      [
+       118.4,
+       -4.6
+      ],
+      [
+       117.8,
+       -3.0
+      ],
+      [
+       117.3,
+       -1.6
+      ],
+      [
+       117.3,
+       -1.0
+      ]
+     ]
+    ]
+   },
+   "rationale": "The contract-mandated companion to the land removal. The nearest Cao shallow-marine polygon is 69.8 km from this footprint, so no mapped sea lies beneath the land removed here and a bare removal would leave the basin axis unclassified - rendered as crust of unmapped depth - which is a worse statement than the land it replaces. Same outline, same uncertainty as the removal. The class asserts marine, not shallow: see the residual limitation.",
+   "spatialUncertaintyKilometres": 40.0,
+   "editorial": "EarthHistory modification after hall-2009-north-makassar, hall-2013-sundaland-palaeogeography",
+   "references": [
+    "hall-2009-north-makassar",
+    "hall-2013-sundaland-palaeogeography"
+   ],
+   "claimOrInference": "the marine Eocene section of the Makassar Straits is a claim of the sources; rendering a deep basin in the shallow-marine class, the only marine class this layer has, is an EarthHistory inference forced by the class vocabulary"
+  }
+ ],
+ "references": [
+  {
+   "sourceId": "hall-2012-indonesia-reconstructions",
+   "citation": "Hall, R. 2012. Late Jurassic-Cenozoic reconstructions of the Indonesian region and the Indian Ocean. Tectonophysics 570-571, 1-41.",
+   "url": "https://doi.org/10.1016/j.tecto.2012.04.021",
+   "year": 2012,
+   "constrains": "Makassar Strait opening age and Cenozoic Sundaland geometry",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  },
+  {
+   "sourceId": "hall-2009-north-makassar",
+   "citation": "Hall, R., Cloke, I. R., Nur'aini, S., Puspita, S. D., Calvert, S. J. and Elders, C. F. 2009. The North Makassar Straits: what lies beneath? Petroleum Geoscience 15, 147-158.",
+   "url": "https://doi.org/10.1144/1354-079309-829",
+   "year": 2009,
+   "constrains": "the thinned-crust, deep-marine Eocene section of the Makassar Straits",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  },
+  {
+   "sourceId": "hall-2013-sundaland-palaeogeography",
+   "citation": "Hall, R. 2013. The palaeogeography of Sundaland and Wallacea since the Late Jurassic. Journal of Limnology 72(s2), 1-17.",
+   "url": "https://doi.org/10.4081/jlimnol.2013.s2.e1",
+   "year": 2013,
+   "constrains": "Cenozoic Sundaland land-sea distribution and the Wallacea barrier",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  },
+  {
+   "sourceId": "hall-2009-sundaland",
+   "citation": "Hall, R. 2009. Southeast Asia's changing palaeogeography. Blumea 54, 148-161.",
+   "url": "https://doi.org/10.3767/000651909X475941",
+   "year": 2009,
+   "constrains": "the statement that the Makassar Straits were never narrower than about 75 km, which bounds how far west this operation may reach",
+   "claimOrInference": "claim of the source",
+   "note": "already present in src/data/sources.ts before this contract."
+  },
+  {
+   "sourceId": "morley-2012-se-asia-tectonics",
+   "citation": "Morley, C. K. 2012. Late Cretaceous-Early Palaeogene tectonic development of SE Asia. Earth-Science Reviews 115, 37-75.",
+   "url": "https://doi.org/10.1016/j.earscirev.2012.08.002",
+   "year": 2012,
+   "constrains": "rift-basin onset and the non-marine syn-rift fill of the Sunda basins, which is why the lacustrine basins to the west are left alone",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  },
+  {
+   "sourceId": "hall-2008-borneo",
+   "citation": "Hall, R., van Hattum, M. W. A. and Spakman, W. 2008. Impact of India-Asia collision on SE Asia: The record in Borneo. Tectonophysics 451, 366-389.",
+   "url": "https://doi.org/10.1016/j.tecto.2007.11.058",
+   "year": 2008,
+   "constrains": "Sarawak Orogeny timing, Borneo uplift and Sarawak shelf deposition, which bound the declined Central Luconia candidate and the Borneo interior witnesses",
+   "claimOrInference": "claim of the source",
+   "note": "DOI resolved against Crossref on 2026-09-15."
+  }
+ ],
+ "opSchema": {
+  "kinds": [
+   "add-land",
+   "remove-land",
+   "add-shallow",
+   "remove-shallow",
+   "replace-ring"
+  ],
+  "requiredFields": [
+   "opId",
+   "kind",
+   "intervalIds",
+   "geometry",
+   "rationale",
+   "spatialUncertaintyKilometres",
+   "editorial",
+   "references"
+  ],
+  "geometry": "GeoJSON Polygon or MultiPolygon in present-day WGS84 coordinates, entirely inside the basin window, longitude span below 180 degrees",
+  "references": "at least one entry of this contract's references[], named by sourceId; the compiler rejects an operation without one",
+  "intervals": "every intervalId an operation names must be a canonical Cao interval AND appear in this contract's intervals[]; the operation's intervals must be contiguous in the canonical schedule, and a source record the operation edits may not stay active outside them",
+  "editorial": "must start with 'EarthHistory modification after '; the same prefix is what the emitted evidence record carries",
+  "replaceRing": "replace-ring additionally names targetRecordIndex: the Cao 2017 record whose ring the geometry replaces",
+  "reporting": "the compiler records the area added and removed per operation, per class and per interval, in the emitted catalog"
+ }
+}

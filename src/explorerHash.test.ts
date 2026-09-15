@@ -3,8 +3,15 @@ import {
   buildExplorerHash,
   createThrottledHistoryWriter,
   EXPLORER_HASH_SYNC_MIN_INTERVAL_MS,
+  parseLayerVisibility,
   serializeAge,
 } from "./explorerHash";
+import type { LayerVisibility } from "./data";
+
+const DEFAULT_LAYERS: LayerVisibility = {
+  clouds: false, borders: true, guides: true, tectonics: false, rivers: false,
+  palaeoCoastlines: false,
+};
 
 describe("explorer hash sync", () => {
   it("serializes ages with stable precision for the URL", () => {
@@ -12,6 +19,33 @@ describe("explorer hash sync", () => {
     expect(serializeAge(0.42)).toBe("0.42");
     expect(serializeAge(12.345)).toBe("12.35");
     expect(serializeAge(225.67)).toBe("225.7");
+  });
+
+  it("round-trips the layer set, and reads a link written before a layer existed", () => {
+    // A link shared before the palaeo-coastline mode existed names the layers
+    // that were on then. The new layer must read off: a default applied to an
+    // unnamed key would switch a whole rendering mode on in someone else's link.
+    const oldLink = parseLayerVisibility("borders,guides", DEFAULT_LAYERS);
+    expect(oldLink.palaeoCoastlines).toBe(false);
+    expect(oldLink).toEqual({ ...DEFAULT_LAYERS, borders: true, guides: true });
+
+    // And the layer round-trips once a link does name it.
+    const layers: LayerVisibility = { ...DEFAULT_LAYERS, palaeoCoastlines: true };
+    const serialized = Object.entries(layers)
+      .filter(([, visible]) => visible).map(([key]) => key).join(",");
+    expect(serialized).toBe("borders,guides,palaeoCoastlines");
+    expect(parseLayerVisibility(serialized, DEFAULT_LAYERS)).toEqual(layers);
+
+    // An empty parameter is every layer off, which is a state the app writes;
+    // an absent parameter is a different thing and keeps the defaults.
+    expect(parseLayerVisibility("", DEFAULT_LAYERS)).toEqual({
+      clouds: false, borders: false, guides: false, tectonics: false, rivers: false,
+      palaeoCoastlines: false,
+    });
+    expect(parseLayerVisibility(null, DEFAULT_LAYERS)).toEqual(DEFAULT_LAYERS);
+    // An unknown key in a link from a newer build is ignored, not carried.
+    expect(parseLayerVisibility("borders,someFutureLayer", DEFAULT_LAYERS))
+      .toEqual({ ...DEFAULT_LAYERS, borders: true, guides: false });
   });
 
   it("builds a hash fragment from search params", () => {

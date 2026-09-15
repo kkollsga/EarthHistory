@@ -33,6 +33,7 @@ from shapely.geometry import MultiPolygon, Polygon, mapping, shape
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -197,7 +198,7 @@ def build() -> tuple[dict, dict, dict]:
     for path in (LAKES, COASTS, CONTINENTS, STATIC, ROTATIONS):
         verify(path)
     rotation_model = pygplates.RotationModel(str(ROTATIONS), default_anchor_plate_id=0)
-    core = json.loads((PUBLIC / "core.json").read_text())
+    core = package_intern.read_package_json(PUBLIC / "core.json")
     charts = {chart["chartId"]: chart for chart in core["charts"]}
     palette = json.loads((PUBLIC / "motion-palette.json").read_text())
     palette_plates = {entry["plateId"] for entry in palette["entries"]

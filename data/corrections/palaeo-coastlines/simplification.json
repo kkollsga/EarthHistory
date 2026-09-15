@@ -1,0 +1,152 @@
+{
+ "schemaVersion": 1,
+ "configId": "palaeo-coastlines-simplification-v1",
+ "pinnedAt": "2026-09-15",
+ "method": "shapely Douglas-Peucker with preserve_topology=True, applied per cut piece after the cookie-cut and before int16 quantisation",
+ "seamBufferKilometres": 1.5,
+ "seamBufferToleranceMultiple": 1.25,
+ "seamBufferToleranceReason": "The overlap has to survive the node reduction that follows it. Douglas-Peucker can move each side of a seam by up to its own tolerance, so a buffer smaller than that tolerance re-opens the gap: measured at a flat 1.5 km the worst interior gap in the 166-146 Ma payload was still 0.80 km on lm and 1.72 km on sm. Each piece is therefore grown by this multiple of its own tolerance where that exceeds seamBufferKilometres - 2.78 km at the 0.02 degree baseline, 6.95 km for shallow marine at 0.05 degrees - and the floor applies to everything else.",
+ "seamBufferReason": "A source record that straddles a partition boundary is cookie-cut into pieces that share an exact edge, and each piece is then node-reduced on its own. Douglas-Peucker runs over the whole ring, so the two copies of the shared edge come back displaced and the hairline between them shows the darker crust, or the sphere, at closest zoom. Every piece of a multi-piece record is therefore grown by this distance and clipped back to the record it was cut from, so the neighbours overlap instead of gapping. Same-class overdraw is invisible; the clip means the record's own outline never moves and the growth can only happen at a seam. The buffer runs in a local equirectangular frame (longitude scaled by the cosine of the piece's latitude) so the distance is the same east-west and north-south. The overlap it adds is measured per piece, declared per interval as seamOverlapAreaSquareKilometres, and subtracted by the area-preservation gate rather than the gate being widened.",
+ "areaClasses": [
+  {
+   "minimumAreaSquareKilometres": 0,
+   "toleranceDegrees": 0.02,
+   "reason": "audit-measured baseline: area error -0.005 % (lm) to -0.013 % (m), well inside the 0.05 % gate"
+  },
+  {
+   "minimumAreaSquareKilometres": 1000000,
+   "toleranceDegrees": 0.035,
+   "reason": "a piece above 1e6 km2 carries most of the nodes and none of the narrow features; half-way to the audit's 0.05 degree measurement, which alone reaches -0.030 % on lm"
+  },
+  {
+   "minimumAreaSquareKilometres": 10000000,
+   "toleranceDegrees": 0.05,
+   "reason": "continent-scale pieces only; the audit measures -0.030 % (lm) at this tolerance applied to every piece, so applying it to the few largest is far inside the gate"
+  }
+ ],
+ "classAreaClasses": {
+  "sm": [
+   {
+    "minimumAreaSquareKilometres": 0,
+    "toleranceDegrees": 0.05,
+    "reason": "shallow marine is an environment class whose mapped boundary is a modelled facies limit, not a coastline, so the audit's 0.05 degree variant is the defensible tolerance for it: the audit measured -0.030 % area error with 0.05 degrees applied to every piece, well inside the 0.05 % gate, and the per-piece 0.1 % guard, the narrow-feature witnesses and the protected North Sea window still apply unchanged"
+   }
+  ]
+ },
+ "classAreaClassesReason": "the areaClasses ladder above is the default for every class; a class named here replaces the whole ladder. Only the ladder is per class - the vertex cap, the per-piece area guard, the protected windows and the narrow-feature witnesses stay shared.",
+ "vertexCapPerPiece": 20000,
+ "vertexCapEscalation": {
+  "factor": 2.0,
+  "maximumToleranceDegrees": 0.2,
+  "reason": "a piece still above the cap after its class tolerance is retried at double tolerance until it fits or the maximum is reached; the escalation is recorded per piece in the quality-control record"
+ },
+ "lostPiecePolicy": {
+  "rule": "retain-unsimplified-per-component",
+  "minimumPieceSquareKilometres": 25.0,
+  "reason": "node reduction runs per connected component. A component that Douglas-Peucker empties, that is still outside perPieceAreaErrorPercent at minimumToleranceDegrees, or that loses a hole or splits, is emitted with its unsimplified ring instead of being distorted or lost. Measured before this rule a 202 km2 island vanished from an 842,373 km2 piece 1.8 degrees away while the piece's own area stayed inside 0.1 %; the gate then measures pieces genuinely dropped, and the quality-control record counts every component that took this path."
+ },
+ "quantisation": {
+  "longitude": "int16 round(lon * 32767 / 180)",
+  "latitude": "int16 round(lat * 32767 / 90)",
+  "maximumLongitudeErrorDegrees": 0.002747,
+  "maximumLatitudeErrorDegrees": 0.001373,
+  "note": "the quantisation step is an order of magnitude below the 0.02 degree baseline tolerance, so simplification, not quantisation, sets the geometric error"
+ },
+ "protectedWindows": [
+  {
+   "windowId": "north-sea",
+   "bbox": [
+    -5.0,
+    53.0,
+    9.0,
+    62.5
+   ],
+   "reason": "the Viking Graben, Central Graben, Moray Firth and Zechstein margin are 20-60 km wide; a 0.02 degree (2.2 km) tolerance is a large fraction of their width and the basin edit contract is written against these outlines",
+   "sourceIds": [
+    "earthhistory-north-sea-restoration-v1",
+    "palaeo-coastlines-cao2017-audit-v1"
+   ]
+  },
+  {
+   "windowId": "iceland",
+   "bbox": [
+    -27.0,
+    62.0,
+    -12.0,
+    68.0
+   ],
+   "reason": "the iceland basin contract draws land from the Natturufraedistofnun Islands 1:600,000 bedrock outcrop, already simplified at 0.02 degrees by scripts/research/palaeo_coastlines_iceland_ops.py against declared 60 and 100 km uncertainties. A second node reduction inside this window would move a coastline the contract derives and pins, and the island's fjord-scale detail is already at the class floor",
+   "sourceIds": [
+    "iinh-iceland-bedrock-age-500k",
+    "palaeo-coastlines-cao2017-audit-v1"
+   ]
+  }
+ ],
+ "narrowFeatureWitnesses": [
+  {
+   "witnessId": "viking-graben",
+   "transect": [
+    [
+     1.0,
+     60.5
+    ],
+    [
+     4.0,
+     60.5
+    ]
+   ],
+   "description": "east-west transect across the Viking Graben at 60.5 N"
+  },
+  {
+   "witnessId": "central-graben",
+   "transect": [
+    [
+     1.5,
+     56.5
+    ],
+    [
+     5.0,
+     56.5
+    ]
+   ],
+   "description": "east-west transect across the Central Graben at 56.5 N"
+  },
+  {
+   "witnessId": "moray-firth",
+   "transect": [
+    [
+     -4.5,
+     57.9
+    ],
+    [
+     -0.5,
+     57.9
+    ]
+   ],
+   "description": "east-west transect across the Inner and Outer Moray Firth at 57.9 N"
+  },
+  {
+   "witnessId": "zechstein-margin",
+   "transect": [
+    [
+     2.0,
+     53.0
+    ],
+    [
+     8.0,
+     55.5
+    ]
+   ],
+   "description": "transect across the southern Zechstein basin margin from the southern North Sea into the north German basin"
+  }
+ ],
+ "narrowFeatureToleranceKilometres": 2.0,
+ "gates": {
+  "simplificationAreaErrorPercent": 0.05,
+  "lostPiecesPerInterval": 5,
+  "largestLostPieceSquareKilometres": 500.0
+ },
+ "perPieceAreaErrorPercent": 0.1,
+ "minimumToleranceDegrees": 0.005,
+ "perPieceAreaErrorReason": "no single piece may move its own spherical area by more than this; a piece that does is retried at half the tolerance down to minimumToleranceDegrees. Without the guard the worst mountain interval measured -0.0696 % against a 0.05 % gate while the class average was -0.0112 %: a few narrow belts carried the whole error."
+}

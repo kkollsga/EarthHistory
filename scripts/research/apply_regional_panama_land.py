@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import emit_cao_material_corrections as material
 import regional_panama_correction as source_contract
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -262,7 +263,8 @@ def apply(package: Path, *, regenerate_material: bool = True) -> dict:
     source_contract.validate_document(contract)
     core_path, manifest_path = package / "core.json", package / "manifest.json"
     palette_path, palette_binary_path = package / "motion-palette.json", package / "motion-palette.bin"
-    core, manifest, palette = json.loads(core_path.read_text()), json.loads(manifest_path.read_text()), json.loads(palette_path.read_text())
+    core, manifest, palette = (package_intern.read_package_json(core_path),
+                               json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     if any(row["chartId"].startswith(CHART_PREFIX) for row in core["charts"]):
         raise BuildError("Panama charts already applied")
     if len(core["charts"]) < EXPECTED_BASE_CHARTS:
@@ -291,7 +293,7 @@ def apply(package: Path, *, regenerate_material: bool = True) -> dict:
     land_batch["vertexCount"] = len(combined["directions"])
     land_batch["triangleCount"] = len(combined["indices"]) // 3
     land_batch["geometryAsset"] = asset(land_path)
-    write_atomic(core_path, canonical(core))
+    write_atomic(core_path, canonical(package_intern.intern_charts(core)))
     palette_binary = encode_palette(palette, records)
     write_atomic(palette_binary_path, palette_binary)
     palette["binary"] = asset(palette_binary_path)
@@ -319,7 +321,7 @@ def validate_applied(package: Path, *, original_geometry=None, original_charts=N
                      old_palette_entries=None, old_intervals=None, old_palette_bytes=None) -> dict:
     package = package.resolve()
     contract = json.loads(CONTRACT.read_text())
-    core = json.loads((package / "core.json").read_text())
+    core = package_intern.read_package_json(package / "core.json")
     manifest = json.loads((package / "manifest.json").read_text())
     palette = json.loads((package / "motion-palette.json").read_text())
     binary, records = decode_palette(package / "motion-palette.bin", palette)

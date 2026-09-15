@@ -28,6 +28,45 @@ export interface ReconstructionPackageManifestV2 {
   readonly motionPalette: MotionPaletteAsset;
   readonly checkpoints: readonly (PackageAsset & { readonly ageMa: number; readonly transitiveBytes: number })[];
   readonly materialCorrections?: { readonly id: string; readonly catalog: PackageAsset };
+  /** Optional Cao 2017 palaeogeography layer; absent means the mode has no assets. */
+  readonly palaeoCoastlines?: PalaeoCoastlineAssets;
+}
+
+export type PalaeoCoastlineSurfaceClassId = "lm" | "sm" | "m";
+
+export interface PalaeoCoastlineClassAsset {
+  readonly surfaceClass: PalaeoCoastlineSurfaceClassId;
+  /** `palaeo-<class>-catalog.json`; the per-interval payload files sit beside it. */
+  readonly catalog: PackageAsset;
+  /**
+   * Linear base colour of the class. Display height is not declared: the
+   * renderer's shell table owns the offset each palaeo class is drawn at, and a
+   * second height in the package would double it.
+   */
+  readonly baseColorRgb: readonly [number, number, number];
+}
+
+/**
+ * What the palaeo surface renderer instance and the artifact budget check are
+ * promised before any interval is fetched. `maxEdgeDegrees` is the chord-sag
+ * contract: above 1 degree a flat chord sinks further into the opaque globe
+ * than the shelf shell stands above it.
+ */
+export interface PalaeoCoastlineReservation {
+  readonly maxResidentSourceBytes: number;
+  readonly maxIntervalVertices: number;
+  readonly maxIntervalTriangles: number;
+  readonly maxEdgeDegrees: number;
+}
+
+export interface PalaeoCoastlineAssets {
+  readonly id: string;
+  /** The ages the 24 published map intervals cover; outside it the mode falls back. */
+  readonly ageDomainMa: ReconstructionAgeDomain;
+  readonly classes: readonly PalaeoCoastlineClassAsset[];
+  /** `outline-tones.json` and `outline-tones.ehpt`: the 24 country-outline tone tables. */
+  readonly outlineTones: { readonly catalog: PackageAsset; readonly binary: PackageAsset };
+  readonly reservation: PalaeoCoastlineReservation;
 }
 
 export type MaterialChartRole = "model-geography" | "country-reference" | "poi-anchor" | "focus-anchor";
@@ -39,13 +78,18 @@ export interface MaterialChartEvidence {
   readonly correction?: {
     readonly correctionId: string;
     readonly phase: "observed-exposed-land" | "source-qualified-material" |
-      "uncertain-continuation" | "formation-uncertain";
-    readonly materialStatus?: "supported" | "native-source-supported-age-unknown" | "formation-uncertain";
+      "uncertain-continuation" | "formation-uncertain" | "restored-collision-margin";
+    readonly materialStatus?: "supported" | "native-source-supported-age-unknown"
+      | "formation-uncertain" | "restored-consumed-margin";
     readonly poseStatus?: "source-qualified" | "model-inference" | "native-target-only" | "uncertain-continuation";
     readonly materialOriginRangeMa?: readonly [number, number];
     /** Lake-void infill only: the cited or present-only onset the chart's lifecycle starts at. */
     readonly lakeOnsetMa?: number;
     readonly lake?: string;
+    /** Restored collision margin only: the age the model consumes this crust. */
+    readonly consumedByMa?: number;
+    /** Restored collision margin only: the published width the strip restores. */
+    readonly restoredWidthKm?: number;
   };
 }
 
@@ -56,6 +100,16 @@ export interface MaterialChartEvidence {
  */
 export const LAKE_VOID_INFILL_SOURCE_TYPE = "EarthHistoryLakeVoidInfill";
 export const LAKE_VOID_INFILL_OLDEST_MA = 1800;
+
+/**
+ * Restored pre-collision margin crust: the continental margin the Alpine and
+ * Scandian collisions consumed, authored as cited model inference on the plate
+ * that carries its datum crust and retired as the model closes the room for it.
+ * It is crust, never land: the charts carry unknown surface evidence and draw
+ * with the shelf appearance, and every lifecycle ends above the present day.
+ */
+export const RESTORED_COLLISION_MARGIN_SOURCE_TYPE = "EarthHistoryRestoredCollisionMargin";
+export const RESTORED_COLLISION_MARGIN_OLDEST_MA = 600;
 
 export interface RigidMaterialChartV2 {
   readonly kind: "rigid";
@@ -83,17 +137,45 @@ export interface RigidMaterialChartV2 {
   readonly surfaceEvidence: SurfaceEvidenceState;
 }
 
+/**
+ * How a batch is drawn, and therefore what a viewer reads it as. Omitted means
+ * the renderer decides from the batch id (`batch-shelf` reads as shelf water,
+ * every other native or correction batch as land). A palaeogeography batch
+ * declares its class instead of encoding it in a name the renderer must parse.
+ */
+export type SpatialBatchSurfaceAppearanceV2 =
+  | "land" | "shelf" | "palaeo-land" | "palaeo-shallow-marine" | "palaeo-mountain";
+
+export const SPATIAL_BATCH_SURFACE_APPEARANCES: readonly SpatialBatchSurfaceAppearanceV2[] =
+  Object.freeze(["land", "shelf", "palaeo-land", "palaeo-shallow-marine", "palaeo-mountain"]);
+
 export interface ReconstructionSpatialBatchV2 {
   readonly batchId: string;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly geometryAsset: PackageAsset;
   readonly encoding: "ehgb-v2-f32xyz-u32";
+  /** Declared drawing class; an unknown value is rejected, never defaulted. */
+  readonly surfaceAppearance?: SpatialBatchSurfaceAppearanceV2;
   readonly staticDisplayControl?: {
     readonly displayHeightMetres: number;
     readonly baseColorRgb: readonly [number, number, number];
   };
   readonly overlapPolicy?: "native-visual-and-picking-precedence";
+}
+
+/**
+ * A declared appearance must name a class the renderer knows. Defaulting an
+ * unknown value to land would draw a shallow sea as a continent without any
+ * signal, so the package is rejected instead.
+ */
+export function validateSpatialBatchSurfaceAppearanceV2(
+  batch: Pick<ReconstructionSpatialBatchV2, "surfaceAppearance">,
+): void {
+  if (batch.surfaceAppearance !== undefined
+      && !SPATIAL_BATCH_SURFACE_APPEARANCES.includes(batch.surfaceAppearance)) {
+    throw new Error("unknown Cao spatial batch surface appearance");
+  }
 }
 
 export interface MaterialCorrectionCatalogV1 {
@@ -323,6 +405,57 @@ function sameMotionBindingSignature(
     && left.every((value, index) => value === right[index]);
 }
 
+const PALAEO_SURFACE_CLASS_IDS: readonly PalaeoCoastlineSurfaceClassId[] = Object.freeze(["lm", "sm", "m"]);
+
+/**
+ * Ceilings of the palaeo surface renderer instance in `GlobeScene`, measured
+ * against the promoted `lm`+`sm`+`m` set in 2026-09-15. Adding the mountain
+ * class moved the worst interval's declared reservation to 334,021 vertices and
+ * 513,878 triangles at the 1 degree refinement; these bounds keep about 13 %
+ * over that, the same headroom the two-class set carried.
+ */
+const PALAEO_MAX_INTERVAL_VERTICES = 500_000;
+const PALAEO_MAX_INTERVAL_TRIANGLES = 760_000;
+const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
+
+export function validatePalaeoCoastlineAssets(
+  palaeo: PalaeoCoastlineAssets,
+  domain: ReconstructionAgeDomain,
+): void {
+  const ages = palaeo.ageDomainMa;
+  const reservation = palaeo.reservation;
+  if (!palaeo.id || !Number.isFinite(ages?.youngest) || !Number.isFinite(ages.oldest)
+      || ages.youngest < 0 || ages.youngest >= ages.oldest
+      || ages.youngest < domain.youngest || ages.oldest > domain.oldest
+      || !assetValid(palaeo.outlineTones?.catalog) || !assetValid(palaeo.outlineTones.binary)
+      || !Array.isArray(palaeo.classes) || palaeo.classes.length === 0
+      || palaeo.classes.length > PALAEO_SURFACE_CLASS_IDS.length) {
+    throw new Error("invalid Cao palaeo-coastline manifest section");
+  }
+  const declared = new Set<string>();
+  for (const entry of palaeo.classes) {
+    if (!PALAEO_SURFACE_CLASS_IDS.includes(entry.surfaceClass) || declared.has(entry.surfaceClass)
+        || !assetValid(entry.catalog) || !Array.isArray(entry.baseColorRgb)
+        || entry.baseColorRgb.length !== 3
+        || entry.baseColorRgb.some((channel: number) => !Number.isFinite(channel) || channel < 0 || channel > 1)) {
+      throw new Error("invalid Cao palaeo-coastline class asset");
+    }
+    declared.add(entry.surfaceClass);
+  }
+  if (!Number.isSafeInteger(reservation?.maxResidentSourceBytes)
+      || reservation.maxResidentSourceBytes <= 0
+      || reservation.maxResidentSourceBytes > PALAEO_MAX_RESIDENT_SOURCE_BYTES
+      || !Number.isSafeInteger(reservation.maxIntervalVertices)
+      || reservation.maxIntervalVertices <= 0
+      || reservation.maxIntervalVertices > PALAEO_MAX_INTERVAL_VERTICES
+      || !Number.isSafeInteger(reservation.maxIntervalTriangles)
+      || reservation.maxIntervalTriangles <= 0
+      || reservation.maxIntervalTriangles > PALAEO_MAX_INTERVAL_TRIANGLES
+      || !(reservation.maxEdgeDegrees > 0) || reservation.maxEdgeDegrees > 1) {
+    throw new Error("invalid Cao palaeo-coastline reservation");
+  }
+}
+
 export function validateReconstructionPackageManifestV2(manifest: ReconstructionPackageManifestV2): void {
   const domain = manifest.ageDomainMa;
   if (manifest.schemaVersion !== 2 || !manifest.packageId || !manifest.revision
@@ -348,6 +481,7 @@ export function validateReconstructionPackageManifestV2(manifest: Reconstruction
     }
     previous = checkpoint.ageMa;
   }
+  if (manifest.palaeoCoastlines) validatePalaeoCoastlineAssets(manifest.palaeoCoastlines, domain);
 }
 
 export function validateMaterialCorrectionCatalogV1(
@@ -390,6 +524,17 @@ export function validateMaterialCorrectionCatalogV1(
             && lifecycle.oldest <= 540))
       : phase === "uncertain-continuation"
         ? lifecycle.youngest > 410 && lifecycle.oldest === 540
+      : phase === "restored-collision-margin"
+        // The crust is consumed by the collision, so the lifecycle must end
+        // above the present day and the youngest bound is exclusive: a strip
+        // that reached 0 Ma would draw restored margin over today's geography.
+        ? lifecycle.youngest > 0 && lifecycle.oldest > lifecycle.youngest
+          && lifecycle.oldest <= RESTORED_COLLISION_MARGIN_OLDEST_MA
+          && chart.lifecycle.youngestExclusive === true
+          && correction?.materialStatus === "restored-consumed-margin"
+          && correction.poseStatus === "model-inference"
+          && correction.consumedByMa === lifecycle.youngest
+          && typeof correction.restoredWidthKm === "number" && correction.restoredWidthKm > 0
         : false;
     if (chart.role !== "model-geography" || chart.evidence.status !== "derived-overlay"
         || !correction || !catalog.correctionIds.includes(correction.correctionId)
@@ -408,7 +553,7 @@ export function validateMaterialCorrectionCatalogV1(
         || chart.sourceFeatureTypes.length !== 1
         || !["EarthHistorySourceQualifiedMaterialCorrection", "EarthHistoryDomainFragmentReplacement",
           "EarthHistoryObservedModernLandCorrection", "EarthHistoryVolcanicIslandMaterialCorrection",
-          LAKE_VOID_INFILL_SOURCE_TYPE]
+          LAKE_VOID_INFILL_SOURCE_TYPE, RESTORED_COLLISION_MARGIN_SOURCE_TYPE]
           .includes(chart.sourceFeatureTypes[0]!)) {
       throw new Error("invalid derived material correction chart");
     }
@@ -506,6 +651,7 @@ export function validateMaterialCorrectionCatalogV1(
     }
   }
   for (const batch of catalog.spatialBatches) {
+    validateSpatialBatchSurfaceAppearanceV2(batch);
     const control = batch.staticDisplayControl;
     if (!control || control.displayHeightMetres !== 0
         || control.baseColorRgb.length !== 3 || control.baseColorRgb.some((value) => !Number.isFinite(value)
@@ -570,6 +716,7 @@ export function validateReconstructionCoreV2(
   }
   const batchIds = new Set<string>();
   for (const batch of core.spatialBatches) {
+    validateSpatialBatchSurfaceAppearanceV2(batch);
     const expectedBytes = 32 + batch.vertexCount * 20 + batch.triangleCount * 12;
     if (!batch.batchId || batchIds.has(batch.batchId) || !Number.isSafeInteger(batch.vertexCount)
         || batch.vertexCount < 3 || !Number.isSafeInteger(batch.triangleCount) || batch.triangleCount < 1

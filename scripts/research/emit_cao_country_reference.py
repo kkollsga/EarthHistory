@@ -6,6 +6,7 @@ import hashlib, json, math, struct
 from pathlib import Path
 from cao_domain import CAO_SOURCE_OLDEST_MA, CAO_SOURCE_YOUNGEST_MA
 import pygplates
+import cao_package_intern as package_intern
 
 ROOT = Path(__file__).resolve().parents[2]
 STAGE = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1"
@@ -41,7 +42,7 @@ def main(out: Path | None = None):
     global OUT
     OUT = Path(out) if out else DEFAULT_OUT
     assert sha(SOURCE) == SOURCE_SHA
-    core_path=OUT/"core.json";core=json.loads(core_path.read_text());palette=json.loads((OUT/"motion-palette.json").read_text())
+    core_path=OUT/"core.json";core=package_intern.read_package_json(core_path);palette=json.loads((OUT/"motion-palette.json").read_text())
     static=list(pygplates.FeatureCollection(str(MODEL/"static_polygons.gpmlz")))
     polygons=[]
     for feature in static:

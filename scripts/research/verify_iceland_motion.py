@@ -11,6 +11,7 @@ from pathlib import Path
 import pygplates
 
 import apply_regional_barents_shelf as barents
+import cao_package_intern as package_intern
 import emit_cao_foundation_package as foundation
 
 
@@ -43,7 +44,9 @@ def validate(package: Path, output: Path) -> dict:
     palette = json.loads((package / manifest["motionPalette"]["catalog"]["url"]).read_text())
     _, records = barents.decode_palette(package / manifest["motionPalette"]["binary"]["url"], palette)
     correction_path = package / manifest["materialCorrections"]["catalog"]["url"]
-    correction = json.loads(correction_path.read_text())
+    # The correction catalog ships interned; read it back through the interning
+    # owner or every chart row would be an index list rather than a chart.
+    correction = package_intern.read_package_json(correction_path)
     charts = [chart for chart in correction["charts"]
               if chart.get("evidence", {}).get("correction", {}).get("correctionId") == CORRECTION_ID]
     if len(charts) != 14:

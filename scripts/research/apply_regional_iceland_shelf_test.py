@@ -8,10 +8,13 @@ import importlib.util
 import json
 import os
 import struct
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cao_package_intern as package_intern  # noqa: E402
 
 MODULE = Path(__file__).with_name("apply_regional_iceland_shelf.py")
 SPEC = importlib.util.spec_from_file_location("apply_regional_iceland_shelf", MODULE)
@@ -56,10 +59,10 @@ class RegionalIcelandShelfWriterTest(unittest.TestCase):
         source = self.applied_public_package()
         with self.package_copy(source) as package:
             core_path = package / "core.json"
-            core = json.loads(core_path.read_text())
+            core = package_intern.read_package_json(core_path)
             target = next(chart for chart in core["charts"] if chart["chartId"].startswith(writer.CHART_PREFIX))
             target["lifecycle"]["validTimeMa"]["oldest"] = 0.000001
-            writer.write_atomic(core_path, writer.canonical(core))
+            writer.write_atomic(core_path, writer.canonical(package_intern.intern_charts(core)))
             self.rebind_core(package)
             with self.assertRaisesRegex(writer.BuildError, "lifecycle or evidence"):
                 writer.validate_applied(package)
@@ -89,7 +92,7 @@ class RegionalIcelandShelfWriterTest(unittest.TestCase):
 
     @staticmethod
     def applied_public_package() -> Path:
-        public_core = json.loads((writer.DEFAULT_PACKAGE / "core.json").read_text())
+        public_core = package_intern.read_package_json(writer.DEFAULT_PACKAGE / "core.json")
         if not any(chart["chartId"].startswith(writer.CHART_PREFIX) for chart in public_core["charts"]):
             raise AssertionError("shipped Iceland shelf package is absent")
         return writer.DEFAULT_PACKAGE

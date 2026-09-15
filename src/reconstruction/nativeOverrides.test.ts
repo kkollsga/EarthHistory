@@ -12,8 +12,12 @@ import {
   type ReconstructionCoreV2,
   type ReconstructionPackageManifestV2,
 } from "./packageV2";
+import { expandInternedPackageDocument } from "./packageIntern";
 
 const packageRoot = resolve("public/data/reconstruction/cao-v2.4");
+/** Package JSON is read raw here, so the interning decoder runs explicitly. */
+const readJson = async (url: string): Promise<unknown> =>
+  JSON.parse(await readFile(resolve(packageRoot, url), "utf8")) as unknown;
 
 const diskFetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
@@ -42,13 +46,11 @@ function lonLatDirection(longitude: number, latitude: number): readonly [number,
 async function publicPackage() {
   const manifest = JSON.parse(await readFile(resolve(packageRoot, "manifest.json"), "utf8")) as
     ReconstructionPackageManifestV2;
-  const core = JSON.parse(await readFile(resolve(packageRoot, manifest.core.url), "utf8")) as
+  const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as
     ReconstructionCoreV2;
   const correctionDescriptor = manifest.materialCorrections;
   if (!correctionDescriptor) throw new Error("public package lacks material corrections");
-  const catalog = JSON.parse(await readFile(
-    resolve(packageRoot, correctionDescriptor.catalog.url), "utf8",
-  )) as MaterialCorrectionCatalogV1;
+  const catalog = expandInternedPackageDocument(await readJson(correctionDescriptor.catalog.url)) as MaterialCorrectionCatalogV1;
   return { manifest, core, catalog };
 }
 

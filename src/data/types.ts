@@ -70,6 +70,51 @@ export interface LayerVisibility {
   guides: boolean;
   tectonics: boolean;
   rivers: boolean;
+  /** Cao 2017 palaeogeography polygons replacing the Cao 2024 coast fill. */
+  palaeoCoastlines: boolean;
+}
+
+/**
+ * One reference behind a palaeo-coastline chart on screen: the Cao et al.
+ * (2017) source itself, or a publication that constrains a local modification
+ * of its polygons. `claim` separates what the source states from what this
+ * project inferred, and `editorial` marks a reference that justifies an
+ * EarthHistory edit rather than supplying geometry.
+ */
+export interface PalaeoEvidenceReference {
+  sourceId: string;
+  citation: string;
+  url?: string;
+  year?: number;
+  /** What the reference constrains, in the reader's words. */
+  constrains: string;
+  claim: "source-states" | "earthhistory-infers";
+  editorial: boolean;
+}
+
+/**
+ * What the palaeo-coastline layer is currently drawing and on whose authority.
+ * The renderer owns the geometry; this is the summary the map key and the
+ * evidence badge read. Phase 3 of the palaeo-coastlines program fills it from
+ * the interval store; until then it stays at its empty state.
+ */
+export interface PalaeoCoastlineEvidence {
+  /**
+   * Published Cao 2017 map interval whose charts are on screen, e.g. `94-81`;
+   * null while none is. Which interval an age belongs to is a pure function of
+   * the age (`selectPalaeoInterval`), so it is not repeated here — this is the
+   * interval actually drawn, which can lag the requested age by a load.
+   */
+  intervalId: string | null;
+  /** Stable source identifiers for every chart on screen. */
+  sourceIds: string[];
+  references: PalaeoEvidenceReference[];
+  /** Charts carrying a cited local modification; any of them makes the view a synthesis. */
+  editedChartIds: string[];
+  /** Why the layer cannot be enabled at all, when its assets are missing. */
+  unavailableReason: string | null;
+  /** True while an interval's charts are being fetched or prepared. */
+  loading: boolean;
 }
 
 export interface GlobeStats {

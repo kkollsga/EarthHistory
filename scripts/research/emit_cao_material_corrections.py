@@ -18,6 +18,8 @@ import cao_material_corrections as contract
 import regional_iceland_correction as iceland_contract
 import regional_observed_land_omission_correction as omission_contract
 import regional_lake_void_correction as lake_contract
+import restored_margins_correction as margin_contract
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,6 +28,11 @@ OUT = PUBLIC / "corrections/material-v1"
 CATALOG_ID = "earthhistory-cao-v2.4-material-corrections-v1"
 CATALOG_VERSION = "4"
 LAND_COLOR = [0.45, 0.55, 0.3]
+# Restored pre-collision margins are crust of unmapped depth, not cited land, so
+# their batch declares the shelf appearance and carries the shelf's own colour
+# (CAO_FOUNDATION_DEFAULT_BASE_COLORS.shelf). Every other correction batch keeps
+# the land appearance and LAND_COLOR.
+CRUST_COLOR = [0.0431, 0.2863, 0.3922]
 MAX_EDGE_RADIANS = math.radians(1)
 EARTH_RADIUS_METRES = 6_371_000
 DISPLAY_SHELL_OFFSET_METRES = 400
@@ -795,7 +802,8 @@ def chart(manifest, feature, phase, palette):
     correction_id = manifest["correctionId"]
     source_ids = [str(value) for value in feature["sourceIds"]]
     replacement = feature.get("replacementEvidence")
-    label = ("observed-exposed-land" if phase == "observed" else
+    label = (margin_contract.PHASE if phase == margin_contract.PHASE else
+             "observed-exposed-land" if phase == "observed" else
              "source-qualified-material" if phase in {"qualified", "model-pose"} else
              "formation-uncertain" if phase == "formation" else "uncertain-continuation")
     if feature.get("phaseLifecycles") is not None:
@@ -812,6 +820,16 @@ def chart(manifest, feature, phase, palette):
         })
         if replacement["materialOriginRangeMa"] is not None:
             correction["materialOriginRangeMa"] = replacement["materialOriginRangeMa"]
+    elif feature.get("materialRole") == "restored-collision-margin":
+        # Restored crust the collision consumed: the lifecycle end is the model's
+        # own statement that the crust is gone, and the published width is what
+        # the map key carries.
+        correction.update({
+            "materialStatus": "restored-consumed-margin",
+            "poseStatus": "model-inference",
+            "consumedByMa": feature["consumption"]["consumedByMa"],
+            "restoredWidthKm": feature["restoredExtent"]["widthKm"],
+        })
     elif feature.get("materialRole") == "lake-void-infill":
         correction.update({
             "materialStatus": "supported",
@@ -829,6 +847,8 @@ def chart(manifest, feature, phase, palette):
             "materialOriginRangeMa": origin,
         })
     source_type = ("EarthHistoryObservedModernLandCorrection" if phase == "observed" else
+                   margin_contract.SOURCE_TYPE
+                   if feature.get("materialRole") == "restored-collision-margin" else
                    lake_contract.SOURCE_TYPE if feature.get("materialRole") == "lake-void-infill" else
                    "EarthHistoryVolcanicIslandMaterialCorrection"
                    if feature.get("phaseLifecycles") is not None else
@@ -857,6 +877,8 @@ def chart(manifest, feature, phase, palette):
                             feature["uncertainty"]["exposure"],
                             ("observed land classification is limited to the exact modern reference age"
                              if phase == "observed" else
+                             margin_contract.contract.LIMITATION_PHASE
+                             if feature.get("materialRole") == "restored-collision-margin" else
                              "land inferred between native coast charts before the cited or default lake onset; not a shoreline, depth, or height claim"
                              if feature.get("materialRole") == "lake-void-infill" else
                              "material support is not a palaeoshoreline, exposed-land, or height claim"),
@@ -973,6 +995,41 @@ def refresh_outer_manifest():
         "scope": "Iceland and the thirteen land-omission charts are observed modern land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
         "outputs": correction_outputs,
     }
+    palaeo = package.get("palaeoCoastlines")
+    if palaeo is not None:
+        # The Cao 2017 palaeogeography set is its own dataset with its own
+        # licence, so it is declared as its own input rather than folded into the
+        # Cao 2024 foundation. Every promoted file is re-measured here, which is
+        # what keeps `promote_palaeo_coastlines.py` from being the only thing
+        # that ever writes these digests.
+        palaeo_root = PUBLIC / "palaeo-coastlines"
+        palaeo_paths = sorted(path for path in palaeo_root.rglob("*") if path.is_file())
+        if not palaeo_paths:
+            raise contract.CorrectionError(
+                "the package declares palaeoCoastlines but no files are published")
+        root_manifest["inputs"]["cao-2017-palaeogeography-v1"] = {
+            "record": "docs/research/palaeo-coastlines-cao2017.md",
+            "url": "https://www.earthbyte.org/webdav/ftp/Data_Collections/Cao_etal_2017_Paleogeography/",
+            "title": ("Cao et al. (2017) global palaeogeography, GPlates 2.3 package: landmass, "
+                      "shallow-marine and mountain polygons in present-day WGS84"),
+            "publicationOrVersionDate": "2017",
+            "retrievalDate": "2026-09-15",
+            "license": "CC BY 3.0",
+            "geographicBasis": ("present-day WGS84 polygons with PLATEID1, FROMAGE and TOAGE, cut by "
+                                "the present-day Cao et al. (2024) v2.4 static partitions"),
+            "evidenceRole": ("classified palaeogeographic map polygons for the 24 published intervals "
+                             "402-2 Ma; an interval records the minimum land and maximum flooding "
+                             "mapped anywhere in that bin, not a shoreline at one moment"),
+            "processing": ("EHPR v1 ring payloads, one per class per interval, with columnar class "
+                           "catalogs and 24 country-outline tone tables; the mountain class, the "
+                           "unsimplified payloads and the provenance sidecars stay offline"),
+            "outputs": [{"role": str(path.relative_to(palaeo_root)),
+                         "path": str(path.relative_to(ROOT)),
+                         "bytes": path.stat().st_size, "sha256": sha256(path)}
+                        for path in palaeo_paths],
+        }
+    elif "cao-2017-palaeogeography-v1" in root_manifest.get("inputs", {}):
+        del root_manifest["inputs"]["cao-2017-palaeogeography-v1"]
     root_manifest["retrievedAt"] = "2026-09-12"
     root_manifest["generatedBy"] = (
         "Cao layered coasts/continents foundation with source-native triangulation recovery, "
@@ -1015,8 +1072,12 @@ def main():
     lake_contract.validate_document(lake_manifest)
     rows = [*rows, *((lake_manifest, lake_contract.MANIFEST, feature)
                      for feature in lake_manifest["features"])]
+    margin_manifest = json.loads(margin_contract.MANIFEST.read_text())
+    margin_contract.validate_document(margin_manifest)
+    rows = [*rows, *((margin_manifest, margin_contract.MANIFEST, feature)
+                     for feature in margin_manifest["features"])]
     package, palette, records = palette_data()
-    core = json.loads((PUBLIC / package["core"]["url"]).read_text())
+    core = package_intern.read_package_json(PUBLIC / package["core"]["url"])
     native_overrides, replacement_rows = native_override_rows(core)
     rows = [*rows, *replacement_rows]
     OUT.mkdir(parents=True, exist_ok=True)
@@ -1024,9 +1085,13 @@ def main():
     batches = []
     geometry_paths = []
     with tempfile.TemporaryDirectory(prefix="earthhistory-corrections-") as scratch:
+        # One batch per declared appearance: the first three draw with the land
+        # appearance on the correction shell, the fourth with the shelf (crust,
+        # depth-unmapped) appearance below palaeo-shallow-marine.
         for batch_name, phases in (("observed", ("observed",)),
                                    ("qualified", ("qualified",)),
-                                   ("uncertain", ("uncertain", "model-pose", "formation"))):
+                                   ("uncertain", ("uncertain", "model-pose", "formation")),
+                                   ("restored-margin", (margin_contract.PHASE,))):
             staged = stage_phases(rows, phases, batch_name, len(core["charts"]) + len(charts),
                                   palette, records, Path(scratch))
             if not staged:
@@ -1042,16 +1107,20 @@ def main():
             geometry_path = OUT / f"{batch_name}.ehgb"
             write_geometry(geometry_path, directions, indices, vertex_charts)
             geometry_paths.append(geometry_path)
-            batches.append({
+            crust = batch_name == "restored-margin"
+            batch = {
                 "batchId": f"material-correction-{batch_name}",
                 "vertexCount": len(directions),
                 "triangleCount": len(indices) // 3,
                 "geometryAsset": asset(geometry_path),
                 "encoding": "ehgb-v2-f32xyz-u32",
                 "staticDisplayControl": {"displayHeightMetres": 0,
-                                         "baseColorRgb": LAND_COLOR},
+                                         "baseColorRgb": CRUST_COLOR if crust else LAND_COLOR},
                 "overlapPolicy": "native-visual-and-picking-precedence",
-            })
+            }
+            if crust:
+                batch["surfaceAppearance"] = "shelf"
+            batches.append(batch)
     catalog = {
         "schemaVersion": 1,
         "id": CATALOG_ID,
@@ -1063,6 +1132,7 @@ def main():
                                  iceland_manifest["correctionId"],
                                  omission_manifest["correctionId"],
                                  lake_manifest["correctionId"],
+                                 margin_manifest["correctionId"],
                                  *(override["correctionId"] for override in native_overrides)}),
         "nativeChartOverrides": native_overrides,
         "alignmentWitnesses": alignment_witnesses(additive_rows, palette, records),
@@ -1070,7 +1140,8 @@ def main():
         "spatialBatches": batches,
     }
     catalog_path = OUT / "catalog.json"
-    catalog_path.write_bytes(canonical_json(catalog))
+    catalog_path.write_bytes(canonical_json(
+        package_intern.intern_charts(catalog, package_intern.CORRECTION_CHART_FIELDS)))
     update_public_manifest(catalog_path, geometry_paths,
                            update_root_manifest=not args.skip_root_manifest)
     print(json.dumps({"corrections": len(catalog["correctionIds"]), "charts": len(charts),

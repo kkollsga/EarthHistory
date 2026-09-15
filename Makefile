@@ -1,5 +1,6 @@
 .PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs check-corrections \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
+	check-palaeo-compile check-precollision-extent check-restored-margins \
 	prune-build-cache sync-agents
 
 DEV_DOCS_MAX_MB ?= 50
@@ -65,6 +66,8 @@ check-dev-docs:
 	@python3 scripts/check_dev_docs.py --max-mb "$(DEV_DOCS_MAX_MB)"
 
 check-corrections:
+	@python3 scripts/research/cao_package_intern.py --self-test
+	@python3 scripts/research/apply_cao_package_interning.py
 	@python3 scripts/research/cao_material_corrections.py --self-test
 	@python3 scripts/research/cao_material_corrections.py
 	@python3 scripts/research/validate_regional_barents_shelf.py --self-test
@@ -80,6 +83,8 @@ check-corrections:
 	@python3 scripts/research/regional_observed_land_omission_correction.py --runtime
 	@python3 scripts/research/regional_lake_void_correction.py --self-test --runtime
 	@python3 scripts/research/regional_lake_void_correction.py --runtime
+	@python3 scripts/research/restored_margins_correction.py --self-test --runtime
+	@python3 scripts/research/restored_margins_correction.py --runtime
 	@python3 scripts/research/validate_north_sea_restoration.py --self-test
 	@python3 scripts/research/validate_north_sea_restoration.py
 	@python3 -m unittest scripts/research/apply_cao_native_triangulation_repair_test.py
@@ -92,6 +97,58 @@ check-corrections:
 	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
 	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
 	@python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test
+	@python3 scripts/research/validate_palaeo_coastlines_runtime.py --self-test >/dev/null
+	@python3 scripts/research/validate_palaeo_coastlines_runtime.py >/dev/null
+	@python3 scripts/research/validate_precollision_extent.py --record-only --self-test >/dev/null
+	@python3 scripts/research/validate_precollision_extent.py --record-only >/dev/null
+	@$(MAKE) --no-print-directory check-palaeo-compile
+	@$(MAKE) --no-print-directory check-restored-margins
+	@$(MAKE) --no-print-directory check-precollision-extent
+
+# The palaeo-coastline compile oracle reads the Cao source zips and the offline
+# compiled store through the pinned pyGPlates environment, and the Iceland
+# contract re-derives its geometry from the pinned NI bedrock snapshot through
+# the same one. A bare checkout has none of them. Where they are present it must pass; where they are not it says
+# so by name instead of reporting a pass. The published bytes are gated
+# unconditionally by validate_palaeo_coastlines_runtime.py above.
+PALAEO_PYTHON ?= ../EarthHistory-data/palaeomap-study/verification/pygplates-venv/bin/python
+check-palaeo-compile:
+	@if [ -x "$(PALAEO_PYTHON)" ]; then \
+		"$(PALAEO_PYTHON)" scripts/research/palaeo_coastlines_iceland_ops.py --check >/dev/null \
+		&& "$(PALAEO_PYTHON)" scripts/research/palaeo_coastlines_iceland_ops.py --self-test >/dev/null \
+		&& "$(PALAEO_PYTHON)" scripts/research/palaeo_coastlines_correction.py --self-test >/dev/null \
+		&& echo "palaeo_coastlines_iceland_ops --check/--self-test and palaeo_coastlines_correction --self-test: pass"; \
+	else \
+		echo "palaeo_coastlines_iceland_ops and palaeo_coastlines_correction --self-test: not run, the pinned pyGPlates environment is absent ($(PALAEO_PYTHON))"; \
+	fi
+
+# The restored pre-collision margin contract has the same two halves. Its
+# tracked and published checks run unconditionally above; re-deriving the
+# minimum gap between the restored Baltoscandian margin and the North-Sea-
+# restored UK block at every Scandian age needs the pinned Cao model and
+# pyGPlates, so it reports "not run" by name rather than a pass it did not earn.
+check-restored-margins:
+	@if [ -x "$(PALAEO_PYTHON)" ]; then \
+		"$(PALAEO_PYTHON)" scripts/research/restored_margins_correction.py --model --self-test >/dev/null \
+		&& "$(PALAEO_PYTHON)" scripts/research/restored_margins_correction.py --model >/dev/null \
+		&& echo "restored_margins_correction (North Sea clearance re-derivation): pass"; \
+	else \
+		echo "restored_margins_correction (North Sea clearance re-derivation): not run, the pinned pyGPlates environment is absent ($(PALAEO_PYTHON))"; \
+	fi
+
+# The pre-collision extent gate has the same two halves. Its record-only run is
+# unconditional above: the literature minima, their references and the pinned
+# verdicts need no model. Re-deriving the sixteen transects, nineteen overlaps
+# and twenty convergences from the Cao 2024 model needs the same pinned
+# environment the palaeo compile does, so it reports "not run" by name rather
+# than reporting a pass it did not earn (R2/R10).
+check-precollision-extent:
+	@if [ -x "$(PALAEO_PYTHON)" ]; then \
+		"$(PALAEO_PYTHON)" scripts/research/validate_precollision_extent.py >/dev/null \
+		&& echo "validate_precollision_extent (model re-derivation): pass"; \
+	else \
+		echo "validate_precollision_extent (model re-derivation): not run, the pinned pyGPlates environment is absent ($(PALAEO_PYTHON))"; \
+	fi
 
 # R4: Vite/TypeScript caches have a named owner and explicit bound.
 check-build-cache:

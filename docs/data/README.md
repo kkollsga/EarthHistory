@@ -83,6 +83,80 @@ They are not period-specific Hadley-cell observations. The independent climate
 module has synthetic software checks; calibrated historical climate and biome
 fields have not been promoted as part of this foundation.
 
+## Palaeo-coastlines (Cao 2017)
+
+An optional layer draws mapped palaeogeography instead of the Cao 2024 coast
+proxy. Its source is [Cao et al. (2017)](https://doi.org/10.5194/bg-14-5425-2017)
+under CC BY 3.0; the scientific record is
+[Cao 2017 palaeogeography as a palaeo-coastline source](../research/palaeo-coastlines-cao2017.md)
+and the wire format is [EHPR v1](palaeo-coastlines-format.md), which is the
+authority for the bytes, the columnar class catalog and the country-outline tone
+tables. `public/data/reconstruction/cao-v2.4/palaeo-coastlines/` holds three
+classes, `lm` (landmass), `sm` (shallow marine) and `m` (mountain), as one ring
+payload per class per published interval. The mountain class shipped on
+2026-09-15: withholding it painted emergent orogen - between 2.1 and 23.9
+million km2 of ground per interval - as crust of unmapped depth. The Cao 2017
+ice class `i` is still not compiled, and the provenance sidecars and the
+unsimplified payloads never enter a build.
+
+The 24 published intervals run `402-380` to `11-2` Ma. A piece is drawn on its
+own `(TOAGE, FROMAGE]` lifecycle, not on the interval of the file it ships in,
+because an off-schedule source record appears in every interval it overlaps. The
+runtime decodes the rings in a worker, ear-clips each piece with its holes and
+refines every edge to at most 1° of arc before drawing.
+
+Every source record is cookie-cut by the present-day Cao 2024 static partitions
+and each cut piece is node-reduced on its own, which used to leave the two copies
+of a shared edge displaced from one another: a hairline through which the darker
+crust, or the bare sphere, showed at closest zoom. Each piece of a record cut
+into more than one is therefore grown back across its seams — by at least
+`seamBufferKilometres` (1.5 km) and by `seamBufferToleranceMultiple` (1.25) times
+its own reduction tolerance where that is larger — and clipped to the record it
+came from, so neighbours overlap instead of gapping. Same-class overdraw is
+invisible; the clip means the record's own outline never moves. A record whose
+pieces still leave a hole inside that outline afterwards is emitted unsimplified
+(`retainReason: seam-gap`). The overlap the buffer adds is the same ground
+counted twice, so it is declared per interval as
+`seamOverlapAreaSquareKilometres` and every area ratio subtracts it; both
+parameters live in `data/corrections/palaeo-coastlines/simplification.json` and
+`palaeo_coastlines_qc.py` reports the residual seam width per class.
+
+A cut piece rides the plate of the partition that owns it unless its own
+`PLATEID1` has an override entry, and an override applies when the piece's
+centroid and at least half its area lie inside that plate's one declared
+footprint. Every override plate applies to every class, because a frame conflict
+belongs to the plate rather than to the class drawn on it. Whatever the binding,
+a piece the binding would carry more than **1,000 km** from its own `PLATEID1`
+position at the interval mid-age is **dropped and counted**
+(`droppedFrameConflictSquareKilometres`), never drawn: past that distance the
+partition binding is not an approximation of the source frame, it is a different
+place on Earth. Measured 2026-09-15, before this rule four Qiangtang (616) and
+Tarim (601) mountain pieces and one landmass piece were bound to India and drawn
+6,474–6,837 km from where Cao 2017 puts them, 46 % of the mountain area over
+India at 94–81 Ma. The 250 km frame-conflict flag still marks the pieces that
+remain.
+
+Each piece is posed by the plate its catalog binding names, resolved against the
+shared motion palette by the normative `palaeo-binding-entry-v1` rule: a North
+Sea restoration entry first, then the eight recovery plates that never fall back
+to native motion, then `correction-plate-` entries at and above 410 Ma, and the
+native chain below it. A piece the rule cannot pose is not drawn, and its state
+is `unsupported`/`missing-motion` — or `source-seam` inside a declared rotation
+discontinuity, which is a statement about the model rather than about what has
+finished downloading.
+
+Drawing and picking precedence, lowest first: shelf, palaeo shallow marine,
+corrections, palaeo land, palaeo mountain. Native land is hidden outright while
+the mode is on, because nothing else would keep a Cao 2024 coast fill over the
+Cao 2017 polygons that replace it. Shells are 400, 700, 800, 1,300 and 1,600 m,
+ordered against the 242.6 m chord sag at the 1° edge bound.
+
+Outside 2.01–402 Ma — including the present day — the mode falls back to today's
+composition with a map-key notice. Cao 2024 continental crust that carries
+neither class keeps its own "depth unmapped" meaning and is never drawn as deep
+marine. A country outline over a Cao 2017 sea is drawn in light ink; the tone is
+a legibility aid and never evidence that the modern country existed.
+
 ## Storage and resource ownership
 
 | Asset | Contents |
@@ -94,10 +168,61 @@ fields have not been promoted as part of this foundation.
 | Checkpoint JSON | Exact display controls and references to native state assets |
 | EHNB boundary assets | Exact source-age directed boundary points and metadata |
 | EHTO ownership assets | Exact source-age topology rings, polygon/hole identity and plate metadata |
+| EHPR palaeo payloads | Cao 2017 rings per class per map interval: pieces, rings and quantised vertices |
+| Palaeo class catalogs | Columnar bindings, gap sets, evidence, lifecycles and per-interval reservations |
+| EHPT outline tones | 24 country-outline tone tables, two bits per reference segment |
 
 Loaders verify declared identity, length, digest and packed headers before
 acceptance. Frame-incompatible assets cannot be combined. Invalid support must
 remain unavailable rather than reviving an older reconstruction engine.
+
+### Interned package JSON
+
+The package JSON is shipped in a lossless interned form. Nothing scientific is
+removed: every chart, source identifier, citation, limitation string, lifecycle
+bound, motion binding, epistemic status and digest survives with the same value.
+The runtime decoder is `src/reconstruction/packageIntern.ts`, which runs on every
+verified JSON load before any validator sees the document; the offline encoder
+and its round-trip self-test are `scripts/research/cao_package_intern.py`, and
+`scripts/research/apply_cao_package_interning.py` owns the applied form and every
+digest that follows from it. A document without an encoding marker below is
+passed through untouched.
+
+| Marker | Files | Encoding |
+| --- | --- | --- |
+| `chartDictionaries` + `chartColumns` (+ `chartIdCollapse: "v1"`) | `core.json`, `corrections/material-v1/catalog.json` | Repeated chart fields are stored once per distinct value and referenced by one dense column per field |
+| `segmentIdEncoding: "age-sourceFeatureId-part-v1"` | `boundary-*.json` | `segmentId` is derived, not shipped; UUIDs and enums are interned per file |
+| `ringIdEncoding: "age-topologyId-ordinal-v1"` | `ownership-*.json` | `polygonId` and `ringId` are derived, not shipped |
+
+`chartDictionaries` maps a chart field name to the distinct values of that field
+in first-appearance order, and `chartColumns` maps the same name to one
+reference per chart, in chart order. A dotted name (`evidence.limitations`)
+addresses a field of the chart's `evidence` object. Only a field every chart
+carries becomes a column, so every column is dense and exactly as long as
+`charts`; a field some charts lack (`motionSupportGaps`, on four of 4,995) stays
+written out in the chart. `core.json` columns `lifecycle`, `surfaceEvidence`,
+`motionBindings`, `evidence.limitations`, `evidence.sourceIds`,
+`evidence.status`, `sourceFeatureIds`, `sourceFeatureTypes`, `kind`, `role`,
+`chartRevision` and `geometryReferenceAgeMa`; the correction catalog columns the
+same list with the whole `evidence` object in place of its three parts. Columns
+rather than per-chart `<field>Ref` keys are what make the encoding pay: twelve
+repeated key names cost more per chart than the references they introduce.
+Under `chartIdCollapse: "v1"` a chart whose `fragmentOrCohortId` or `materialId`
+equals its `chartId` ships `fragmentOrCohortIdIsChartId`/`materialIdIsChartId`
+instead of the repeated string.
+
+`boundary-*.json` rebuilds `segmentId` as
+`<sourceAgeMa>:<sourceFeatureId>:part:<sourcePart>`; its three GPlates UUID
+fields index a per-file `strings` table and its low-cardinality fields index
+per-file `dictionaries`. `ownership-*.json` rebuilds `polygonId` as
+`<sourceAgeMa>:<topologyId>` and appends the ring's ordinal within its polygon
+for `ringId`, which requires each polygon's rings to stay contiguous in the file.
+
+A reference outside its table, a column that no longer spans the charts or has
+lost its dictionary, a ring shipped outside its polygon group, and a derived
+identifier that collides with another are all rejected at decode or
+validation time rather than decoded into a different value
+(`src/reconstruction/packageIntern.test.ts`).
 
 The runtime loading contract permits two resident and two unsettled checkpoint
 payloads, including their native assets. Canceled work continues to count until

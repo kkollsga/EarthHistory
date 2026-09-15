@@ -8,10 +8,13 @@ import importlib.util
 import json
 import shutil
 import struct
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cao_package_intern as package_intern  # noqa: E402
 
 MODULE = Path(__file__).with_name("apply_regional_barents_shelf.py")
 SPEC = importlib.util.spec_from_file_location("apply_regional_barents_shelf", MODULE)
@@ -45,7 +48,7 @@ class RegionalBarentsShelfTest(unittest.TestCase):
         manifest_path = self.package / "manifest.json"
         correction_path = self.package / "corrections/material-v1/catalog.json"
         contract = json.loads(repair.CONTRACT.read_text())
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         palette = json.loads(palette_path.read_text())
         _binary, records = repair.decode_palette(binary_path, palette)
         kept_entries, kept_records = [], []
@@ -81,7 +84,7 @@ class RegionalBarentsShelfTest(unittest.TestCase):
             chart["evidence"]["sourceIds"].remove(repair.SOURCE_ID)
             chart["evidence"]["limitations"][1] = repair.BASE_LIMITATION
             chart["surfaceEvidence"]["reason"] = repair.BASE_SURFACE_REASON
-        core_path.write_bytes(repair.canonical(core))
+        core_path.write_bytes(repair.canonical(package_intern.intern_charts(core)))
         manifest = json.loads(manifest_path.read_text())
         old_core_sha = manifest["core"]["sha256"]
         manifest["core"] = repair.asset(core_path)
@@ -116,12 +119,12 @@ class RegionalBarentsShelfTest(unittest.TestCase):
         self.assertEqual(repair.check(self.package)["baselineMissingAt422"], [True, True, True])
 
     def test_exact_identity_repair_preserves_geometry_and_coast_charts(self) -> None:
-        before = json.loads((self.package / "core.json").read_text())
+        before = package_intern.read_package_json(self.package / "core.json")
         correction_before = json.loads(
             (self.package / "corrections/material-v1/catalog.json").read_text()
         )
         result = repair.apply(self.package)
-        after = json.loads((self.package / "core.json").read_text())
+        after = package_intern.read_package_json(self.package / "core.json")
         correction_after = json.loads(
             (self.package / "corrections/material-v1/catalog.json").read_text()
         )
@@ -164,7 +167,7 @@ class RegionalBarentsShelfTest(unittest.TestCase):
 
     def test_chart_identity_mutation_is_rejected(self) -> None:
         core_path = self.package / "core.json"
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         core["charts"][74]["sourceFeatureIds"] = ["GPlates-wrong"]
         core_path.write_text(json.dumps(core))
         self.rebind_core_identity(core_path)
@@ -173,12 +176,12 @@ class RegionalBarentsShelfTest(unittest.TestCase):
 
     def test_410_lifecycle_mutation_reproduces_the_422_failure(self) -> None:
         repair.apply(self.package)
-        core = json.loads((self.package / "core.json").read_text())
+        core = package_intern.read_package_json(self.package / "core.json")
         target = next(chart for chart in core["charts"]
                       if chart["chartId"] == json.loads(repair.CONTRACT.read_text())["charts"][0]["chartId"])
         target["lifecycle"]["validTimeMa"]["oldest"] = 410
         core_path = self.package / "core.json"
-        core_path.write_bytes(repair.canonical(core))
+        core_path.write_bytes(repair.canonical(package_intern.intern_charts(core)))
         self.rebind_core_identity(core_path)
         with self.assertRaisesRegex(repair.BuildError, "unexpected repaired lifecycles"):
             repair.validate_applied(self.package)

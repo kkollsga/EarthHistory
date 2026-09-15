@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cao_package_intern as package_intern
 import apply_cao_modern_country_reference as appender
 
 
@@ -38,7 +39,7 @@ class ModernCountryReferenceApplyTest(unittest.TestCase):
         core_path = self.package / "core.json"
         palette_path = self.package / "motion-palette.json"
         palette_binary_path = self.package / "motion-palette.bin"
-        core = json.loads(core_path.read_text())
+        core = package_intern.read_package_json(core_path)
         matches = [index for index, row in enumerate(core["charts"])
                    if row["chartId"].startswith(appender.CHART_PREFIX)]
         self.assertEqual(matches, list(range(matches[0], len(core["charts"]))))
@@ -67,7 +68,7 @@ class ModernCountryReferenceApplyTest(unittest.TestCase):
         palette_binary_path.write_bytes(appender.encode_palette(palette, records[:entry["sampleOffset"]]))
         palette["binary"] = appender.asset(palette_binary_path)
         palette_path.write_bytes(appender.canonical(palette))
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest_path = self.package / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
         manifest["core"] = appender.asset(core_path)
@@ -79,7 +80,7 @@ class ModernCountryReferenceApplyTest(unittest.TestCase):
         line = next(row for row in core["lineBatches"] if row["batchId"] == "country-reference")
         line["geometryAsset"] = appender.asset(self.package / line["geometryAsset"]["url"])
         core_path = self.package / "core.json"
-        core_path.write_bytes(appender.canonical(core))
+        core_path.write_bytes(appender.canonical(package_intern.intern_charts(core)))
         manifest_path = self.package / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
         manifest["core"] = appender.asset(core_path)
@@ -96,7 +97,7 @@ class ModernCountryReferenceApplyTest(unittest.TestCase):
 
     def test_cross_country_vertex_remap_is_rejected(self):
         appender.apply(self.package)
-        core = json.loads((self.package / "core.json").read_text())
+        core = package_intern.read_package_json(self.package / "core.json")
         target_indices = [index for index, row in enumerate(core["charts"])
                           if row["chartId"].startswith(appender.CHART_PREFIX)]
         line = next(row for row in core["lineBatches"] if row["batchId"] == "country-reference")
@@ -115,7 +116,7 @@ class ModernCountryReferenceApplyTest(unittest.TestCase):
         with self.assertRaisesRegex(appender.BuildError, "explicit staging package"):
             appender.apply(appender.PUBLIC)
         appender.apply(self.package)
-        core = json.loads((self.package / "core.json").read_text())
+        core = package_intern.read_package_json(self.package / "core.json")
         chart = next(row for row in core["charts"] if row["chartId"].startswith(appender.CHART_PREFIX))
         chart["lifecycle"]["validTimeMa"]["oldest"] = 0.000001
         self.refresh_line_identities(core)

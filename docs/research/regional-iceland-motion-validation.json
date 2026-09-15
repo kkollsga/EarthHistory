@@ -13,9 +13,9 @@
   },
   "packageAssets": {
     "core": {
-      "bytes": 6314414,
-      "sha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
-      "url": "core.json"
+      "url": "core.json",
+      "bytes": 1427415,
+      "sha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502"
     },
     "motionPaletteCatalog": {
       "bytes": 802764,
@@ -28,9 +28,9 @@
       "url": "motion-palette.bin"
     },
     "materialCorrectionCatalog": {
-      "bytes": 397090,
-      "sha256": "ab48dcd5311f5276219530ef1153a60dde34878aa5c391ee2e4c584a6a70f6c1",
-      "url": "corrections/material-v1/catalog.json"
+      "url": "corrections/material-v1/catalog.json",
+      "bytes": 243939,
+      "sha256": "d78e016257ae1215aa1327205947a56d5bb1c1dfbf1909c927d9b30dcfe42710"
     }
   },
   "testedPlateIds": [
@@ -269,7 +269,6 @@
     }
   ],
   "packageAssetsRebasedBy": [
-    "earthhistory-country-reference-source-fragment-bridge-v1",
-    "earthhistory-lake-void-infill-v1"
+    "earthhistory-cao-package-interning-v1"
   ]
 }

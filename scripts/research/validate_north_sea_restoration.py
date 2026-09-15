@@ -18,6 +18,7 @@ import json
 import math
 import struct
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -163,7 +164,7 @@ def validate_contract(contract: dict) -> None:
 
 
 def validate_package(contract: dict, package: Path) -> dict:
-    core = json.loads((package / "core.json").read_text())
+    core = package_intern.read_package_json(package / "core.json")
     manifest = json.loads((package / "manifest.json").read_text())
     if manifest["core"]["sha256"] != sha(package / "core.json"):
         fail("manifest.core", "core identity mismatch")

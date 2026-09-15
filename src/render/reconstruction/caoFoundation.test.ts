@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { BufferAttribute, Group, InstancedBufferAttribute, InstancedBufferGeometry, IntType, LineSegments, Mesh } from "three";
+import { BufferAttribute, Color, Group, InstancedBufferAttribute, InstancedBufferGeometry, IntType, LineSegments, Mesh, SRGBColorSpace } from "three";
 import {
   CaoReconstructionRuntime,
   chartPickStateFromMotionFrame,
@@ -9,6 +9,7 @@ import {
   type PreparedCaoRevision,
   type ReconstructionPackageManifestV2,
   packageAssetPath,
+  validateSpatialBatchSurfaceAppearanceV2,
   type StaticAssetFetcher,
 } from "../../reconstruction";
 import { numberScalarOps } from "../../reconstruction/arithmetic";
@@ -27,12 +28,30 @@ import {
   CAO_FOUNDATION_MAX_VERTICAL_EXAGGERATION,
   CAO_FOUNDATION_GLOBE_OCCLUDER_RADIUS,
   CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
+  CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES,
+  CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES,
+  CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
   CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
+  CAO_FOUNDATION_DEFAULT_BASE_COLORS,
+  CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES,
+  CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES,
+  CAO_FOUNDATION_SURFACE_PRECEDENCE,
+  CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER,
+  CAO_FOUNDATION_SURFACE_SHELLS,
+  caoFoundationSurfaceClassVisible,
   CaoFoundationSurfaceRenderer,
+  caoFoundationChordSagMetres,
+  caoFoundationSurfaceClass,
+  caoFoundationShellOffsetMetres,
+  type CaoFoundationSurfaceClass,
   caoFoundationCountryLineHalfWidthPx,
   caoFoundationCountryLinePadPx,
   caoFoundationCountryLineQuadBytes,
+  CAO_FOUNDATION_COUNTRY_LINE_DARK_INK,
+  CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK,
+  CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE,
   createCaoFoundationCountryLineMaterial,
+  createCaoFoundationCountryLineToneTexture,
   createCaoFoundationGeometryResource,
   caoFoundationMaxDisplayedShellMetres,
   createCaoFoundationPaletteTexture,
@@ -41,12 +60,27 @@ import {
   evaluateCountryLineHorizonVisibility,
   evaluateCountryLineQuadOffsetPx,
   evaluateCountryLineSegmentVisibility,
+  caoFoundationAppearanceDim,
+  caoFoundationAppearanceFrontSideOnly,
+  caoFoundationAppearanceRoughness,
   caoFoundationBatchAppearance,
   caoFoundationSurfaceCoversDirection,
   intersectCaoFoundationSurface,
   packPreparedCaoPalette,
 } from "./caoFoundation";
 import { GpuRetirementOwner } from "./gpuRetirement";
+import { caoPalaeoModeState } from "./palaeoComposite";
+import { GUIDE_LABEL_LIGHT_INK_STYLE } from "../globeGuides";
+import {
+  PALAEO_OUTLINE_TONE_LAND,
+  PALAEO_OUTLINE_TONE_SHALLOW,
+  PALAEO_OUTLINE_TONE_TEXTURE_WIDTH,
+  buildPalaeoOutlineToneTexels,
+  decodePalaeoOutlineToneTables,
+  encodePalaeoOutlineToneTables,
+  palaeoOutlineToneTextureRows,
+  type PalaeoOutlineToneClass,
+} from "../../reconstruction/outlineTones";
 
 function fixture(entryCount = 2): PreparedCaoRevision {
   const values = new Float32Array(entryCount * 11);
@@ -68,7 +102,8 @@ function fixture(entryCount = 2): PreparedCaoRevision {
     materialCorrectionIdentity: null,
     materialCorrections: { observedActiveCharts: 0, classifiedShallowMarineActiveCharts: 0,
       qualifiedActiveCharts: 0, uncertainActiveCharts: 0,
-      formationUncertainActiveCharts: 0, modelInferredPoseActiveCharts: 0,
+      formationUncertainActiveCharts: 0, restoredCollisionMarginActiveCharts: 0,
+      modelInferredPoseActiveCharts: 0,
       overriddenNativeCharts: 0, activeSourceIds: [], correctionIds: [] },
     requestedAgeMa: 0, frameIdentity: "cao-frame",
     display: { youngerAgeMa: 0, olderAgeMa: 5, fraction: 0 },
@@ -145,6 +180,26 @@ function nodeOperands(root: unknown): Set<unknown> {
   return new Set();
 }
 
+/**
+ * Descendants of `root` reachable without passing through `blocked`. A varying
+ * is the stage boundary, so "what does the fragment stage evaluate itself" is
+ * exactly this walk with the varying blocked.
+ */
+function nodeDescendantsExcept(root: unknown, blocked: unknown): Set<unknown> {
+  const seen = new Set<unknown>();
+  const visit = (node: unknown) => {
+    if (node === null || typeof node !== "object" || seen.has(node) || node === blocked) return;
+    seen.add(node);
+    const children = (node as { getChildren?: () => Iterable<unknown> }).getChildren;
+    if (typeof children === "function") for (const child of children.call(node)) visit(child);
+  };
+  visit(root);
+  return seen;
+}
+
+const textureNodesIn = (nodes: Iterable<unknown>) =>
+  [...nodes].filter((node) => (node as { isTextureNode?: boolean }).isTextureNode === true);
+
 function rendererDirection(longitude: number, latitude: number): [number, number, number] {
   const [x, y, z] = gplatesLonLat(longitude, latitude);
   return [x, z, -y];
@@ -172,7 +227,7 @@ describe("Cao foundation renderer boundary", () => {
       maxPublicationBytes: 2 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(5);
+    expect(resource.batches).toHaveLength(6);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
@@ -272,7 +327,9 @@ describe("Cao foundation renderer boundary", () => {
 
     const packed = packPreparedCaoPalette(fixture(), 2_048);
     const texture = createCaoFoundationPaletteTexture(packed);
-    const stroke = createCaoFoundationCountryLineMaterial(texture, packed.width, 0);
+    const strokeSegments = 9;
+    const stroke = createCaoFoundationCountryLineMaterial(texture, packed.width, 0,
+      strokeSegments);
     expect(stroke.material.opacity).toBe(0.92);
     for (const graph of [stroke]) {
       // A quad corner is rasterized up to a pixel and a half from the pixel its
@@ -369,9 +426,112 @@ describe("Cao foundation renderer boundary", () => {
       expect(fragmentGraph).toContain(fragmentSin);
       expect(fragmentGraph).not.toContain(vertexCullCos);
       expect(fragmentGraph).not.toContain(vertexCullSin);
+
+      // Two-tone ink. The colour must be a real mix of the two inks, not the
+      // dark constant it used to be: a colorNode left at `darkInk` would keep
+      // every outline legible over land and invisible over a palaeo sea, with
+      // the whole tone pipeline uploading tables nothing reads.
+      expect(graph.material.colorNode).not.toBeNull();
+      expect(graph.material.colorNode).not.toBe(graph.darkInk);
+      expect(graph.material.colorNode).not.toBe(graph.lightInk);
+      const colorNodes = nodeDescendants(graph.material.colorNode);
+      expect(colorNodes).toContain(graph.darkInk);
+      expect(colorNodes).toContain(graph.lightInk);
+      expect(colorNodes).toContain(graph.toneMix);
+      const colorOperands = nodeOperands(graph.material.colorNode);
+      expect(colorOperands).toContain(graph.darkInk);
+      expect(colorOperands).toContain(graph.lightInk);
+      expect(colorOperands).toContain(graph.toneMix);
+      // The tone arrives through exactly one varying, and that varying is flat:
+      // all four corners of a quad carry the same segment index, so there is no
+      // gradient to interpolate and a smooth varying would only invite one.
+      expect((graph.toneMix as { isVaryingNode?: boolean }).isVaryingNode).toBe(true);
+      expect((graph.toneMix as { interpolationType?: string }).interpolationType).toBe("flat");
+      expect([...colorNodes]
+        .filter((node) => (node as { isVaryingNode?: boolean }).isVaryingNode)).toHaveLength(1);
+      expect(nodeDescendants(graph.toneMix)).toContain(graph.segmentToneSample);
+      // And the texture load stays behind that varying. Reading the tone table
+      // in the fragment stage would run a texture load per outline fragment for
+      // a value that is constant across the whole quad.
+      const toneTextureNodes = textureNodesIn(colorNodes);
+      expect(toneTextureNodes).toHaveLength(1);
+      expect((toneTextureNodes[0] as { value?: unknown }).value).toBe(graph.toneTexture);
+      expect(textureNodesIn(nodeDescendantsExcept(graph.material.colorNode, graph.toneMix)))
+        .toHaveLength(0);
     }
+    // The inks themselves. The dark slate is unchanged, and the light grey is
+    // the guide labels' own water ink so an outline over a palaeo sea reads
+    // like a label over the same water.
+    expect([...CAO_FOUNDATION_COUNTRY_LINE_DARK_INK]).toEqual([0.12, 0.15, 0.18]);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK_STYLE).toBe(GUIDE_LABEL_LIGHT_INK_STYLE);
+    expect([...CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK]).toEqual(
+      [...new Color().setStyle(GUIDE_LABEL_LIGHT_INK_STYLE, SRGBColorSpace).toArray()]);
+    // Decoded out of sRGB, so the outline matches the guide-label texture on
+    // screen rather than rendering a visibly brighter grey.
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK[0]).toBeLessThan(0xd0 / 255);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_LIGHT_INK[0]).toBeGreaterThan(0.5);
+    stroke.toneTexture.dispose();
     stroke.material.dispose();
     texture.dispose();
+  });
+
+  it("carries one tone per outline segment and stays dark without a table", () => {
+    const segmentCount = 300;
+    const toneTexture = createCaoFoundationCountryLineToneTexture(segmentCount);
+    const rows = palaeoOutlineToneTextureRows(segmentCount);
+    expect(rows).toBe(3);
+    expect(toneTexture.image.width).toBe(PALAEO_OUTLINE_TONE_TEXTURE_WIDTH);
+    expect(toneTexture.image.height).toBe(rows);
+    // Zero-filled: `mix(dark, light, 0)` is `dark` exactly, so an outline with
+    // no table loaded is the single-ink outline this change started from.
+    expect([...(toneTexture.image.data as Uint8Array)].every((value) => value === 0)).toBe(true);
+    toneTexture.dispose();
+
+    const packed = packPreparedCaoPalette(fixture(), 2_048);
+    const palette = createCaoFoundationPaletteTexture(packed);
+    const graph = createCaoFoundationCountryLineMaterial(palette, packed.width, 0, segmentCount);
+    const data = graph.toneTexture.image.data as Uint8Array;
+    expect(graph.toneCounts()).toEqual({ darkSegments: segmentCount, lightSegments: 0 });
+
+    const classes = Array.from({ length: segmentCount }, (_, index) =>
+      (index < 120 ? PALAEO_OUTLINE_TONE_SHALLOW
+        : PALAEO_OUTLINE_TONE_LAND) as PalaeoOutlineToneClass);
+    const tables = decodePalaeoOutlineToneTables(
+      encodePalaeoOutlineToneTables([classes], segmentCount), segmentCount);
+    const texels = buildPalaeoOutlineToneTexels(tables, 0);
+
+    // `needsUpdate` is write-only on a three texture; `version` is what the
+    // backend actually re-uploads on, so that is what an upload is counted by.
+    const uploads = () => graph.toneTexture.version;
+    const beforeFirst = uploads();
+    expect(graph.setCountryLineToneTable(texels))
+      .toEqual({ darkSegments: 180, lightSegments: 120 });
+    expect(uploads()).toBe(beforeFirst + 1);
+    expect(data[0]).toBe(255);
+    expect(data[119]).toBe(255);
+    expect(data[120]).toBe(0);
+
+    // Reapplying the resident table must not re-upload it: the renderer
+    // reapplies on every publication, which is every scrub sample.
+    const beforeRepeat = uploads();
+    expect(graph.setCountryLineToneTable(texels.slice()))
+      .toEqual({ darkSegments: 180, lightSegments: 120 });
+    expect(uploads()).toBe(beforeRepeat);
+
+    // Null restores the all-dark table, and that *is* a change.
+    expect(graph.setCountryLineToneTable(null))
+      .toEqual({ darkSegments: segmentCount, lightSegments: 0 });
+    expect(uploads()).toBe(beforeRepeat + 1);
+    expect([...data].every((value) => value === 0)).toBe(true);
+
+    // A table sized for another outline package is rejected rather than
+    // partially applied.
+    expect(() => graph.setCountryLineToneTable(new Uint8Array(texels.length + 1)))
+      .toThrow(/tone table shape mismatch/);
+
+    graph.toneTexture.dispose();
+    graph.material.dispose();
+    palette.dispose();
   });
 
   it("expands a segment into a quad of the stroke's own width", () => {
@@ -590,9 +750,12 @@ describe("Cao foundation renderer boundary", () => {
     expect(caoFoundationCountryLineQuadBytes(0)).toBe(0);
     // Four corners of (quad-local corner, start, end, entry) at 40 bytes each,
     // plus six 32-bit indices.
-    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES).toBe(184);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES).toBe(200);
     expect(caoFoundationCountryLineQuadBytes(1_000))
       .toBe(1_000 * CAO_FOUNDATION_COUNTRY_LINE_QUAD_SEGMENT_BYTES);
+    // The shipped country batch, counted once so a per-corner attribute cannot
+    // be added without the ledger moving with it.
+    expect(caoFoundationCountryLineQuadBytes(12_045)).toBe(2_409_000);
     const shared = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const strip = { ...fixture(), lineBatches: [{ batchId: "countries",
       staticGeometryIdentity: "countries@1", vertexCount: 3, segmentCount: 2,
@@ -634,6 +797,12 @@ describe("Cao foundation renderer boundary", () => {
     expect(quadEndpoints("countryLineEnd", 0)).toEqual([0, 1, 0]);
     expect(quadEndpoints("countryLineStart", 1)).toEqual([0, 1, 0]);
     expect(quadEndpoints("countryLineEnd", 1)).toEqual([0, 0, 1]);
+    // Every corner carries its own segment index: the tone table is addressed
+    // by it, so a corner holding the wrong segment would paint one outline
+    // segment in another segment's ink.
+    const segmentAttribute = stripGeometry.getAttribute("countryLineSegmentIndex") as BufferAttribute;
+    expect(segmentAttribute.gpuType).toBe(IntType);
+    expect([...(segmentAttribute.array as Uint32Array)]).toEqual([0, 0, 0, 0, 1, 1, 1, 1]);
     stripResource.dispose();
   });
 
@@ -919,7 +1088,21 @@ describe("Cao foundation renderer boundary", () => {
     expect(lineDraws).toBe(1);
     expect(diagnostics).toMatchObject({ drawCount: 3, countryLineBatches: 1,
       countryLineSegments: 1, nativeBoundarySegments: 1, nativeBoundarySourceAgeMa: 0,
-      topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0 });
+      topologyOwnershipRings: 1, topologyOwnershipSourceAgeMa: 0,
+      // No tone table loaded: every segment is dark, which is the outline the
+      // globe drew before the palaeo mode existed.
+      countryLineToneDarkSegments: 1, countryLineToneLightSegments: 0 });
+    const oneLight = buildPalaeoOutlineToneTexels(decodePalaeoOutlineToneTables(
+      encodePalaeoOutlineToneTables([[PALAEO_OUTLINE_TONE_SHALLOW]], 1), 1), 0);
+    expect(surface.setCountryLineToneTable(oneLight))
+      .toEqual({ darkSegments: 0, lightSegments: 1 });
+    expect(surface.diagnostics()).toMatchObject({ countryLineToneLightSegments: 1 });
+    // A republication — every scrub sample is one — must keep the loaded tones
+    // rather than flashing the outline back to a single ink for a frame.
+    surface.publish({ ...revision }, 8);
+    expect(surface.countryLineToneCounts()).toEqual({ darkSegments: 0, lightSegments: 1 });
+    expect(surface.setCountryLineToneTable(null))
+      .toEqual({ darkSegments: 1, lightSegments: 0 });
     expect(group.children[0]!.children.filter(
       (child) => child.userData.overlayLayer === "borders")).toHaveLength(lineDraws);
     expect(surface.identifyTopology([1, 0, 0])).toEqual({ kind: "instantaneous-owner",
@@ -934,7 +1117,7 @@ describe("Cao foundation renderer boundary", () => {
     // Withheld or hidden domain: no surface is on screen, so nothing is covered.
     expect(surface.coversDirection([1, 0, 0])).toBe(false);
     expect(group.children[0]!.visible).toBe(false);
-    surface.setLayerVisibility(false, false);
+    surface.setLayerVisibility({ borders: false, tectonics: false, palaeoCoastlines: false });
     expect(group.children[0]!.children.filter((child) => child.userData.overlayLayer).every(
       (child) => !child.visible,
     )).toBe(true);
@@ -1088,4 +1271,438 @@ describe("Cao foundation renderer boundary", () => {
     surface.disposeForRendererTeardown();
     completions.shift()?.();
   });
+
+  it("resolves every drawing class through one decision point", () => {
+    // Undeclared batches keep the batch-id default the shipped package relies on.
+    expect(caoFoundationBatchAppearance("batch-shelf")).toBe("shelf");
+    expect(caoFoundationBatchAppearance("batch-land")).toBe("land");
+    expect(caoFoundationBatchAppearance("correction-fine")).toBe("land");
+    // A declared class wins over any name the renderer might otherwise parse.
+    expect(caoFoundationBatchAppearance("palaeo-0", "palaeo-land")).toBe("palaeo-land");
+    expect(caoFoundationBatchAppearance("palaeo-1", "palaeo-shallow-marine"))
+      .toBe("palaeo-shallow-marine");
+    expect(caoFoundationBatchAppearance("palaeo-2", "palaeo-mountain")).toBe("palaeo-mountain");
+    expect(caoFoundationBatchAppearance("anything", "shelf")).toBe("shelf");
+    // An unknown class must never default to land: a shallow sea drawn as a
+    // continent is exactly the misreading the class exists to prevent.
+    expect(() => caoFoundationBatchAppearance("palaeo-3", "palaeo-lagoon"))
+      .toThrow(/unknown Cao foundation batch surface appearance/);
+    expect(() => validateSpatialBatchSurfaceAppearanceV2(
+      { surfaceAppearance: "palaeo-lagoon" as never }))
+      .toThrow(/unknown Cao spatial batch surface appearance/);
+    expect(() => validateSpatialBatchSurfaceAppearanceV2({ surfaceAppearance: undefined }))
+      .not.toThrow();
+    // Corrections are drawn with the land appearance but are their own class.
+    expect(caoFoundationSurfaceClass("land", true)).toBe("corrections");
+    expect(caoFoundationSurfaceClass("land", false)).toBe("land");
+    expect(caoFoundationSurfaceClass("palaeo-land", false)).toBe("palaeo-land");
+    // Shells follow the resolved appearance, not the batch id.
+    expect(caoFoundationShellOffsetMetres("batch-shelf")).toBe(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES);
+    expect(caoFoundationShellOffsetMetres("palaeo-0", "palaeo-mountain"))
+      .toBe(CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES);
+
+    // Default colours are package data; these are the values the compiler emits.
+    expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-land"].map((value) =>
+      Math.round(value * 255))).toEqual([0x9a, 0xa8, 0x6b]);
+    expect(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"].map((value) =>
+      Math.round(value * 255))).toEqual([0xfd, 0x73, 0x28]);
+    // A linear albedo, not a swatch: the lighting and the ACES curve carry it to
+    // a light brown on screen, so it is more saturated here than the tone it
+    // draws. The rendered contract lives in the browser tone census, which is
+    // the only place it can be measured; what this file pins is that the class
+    // is a brown at all - red ahead of green ahead of blue.
+    const mountain = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"];
+    expect(mountain[0]).toBeGreaterThan(mountain[1]);
+    expect(mountain[1]).toBeGreaterThan(mountain[2]);
+    // The mountain class is inked dark by the outline tone table, like land, so
+    // the dark ink is what has to stay legible over it: measured 5.57:1.
+    expect(contrastRatio(CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-mountain"],
+      CAO_FOUNDATION_COUNTRY_LINE_DARK_INK)).toBeGreaterThan(3);
+    const shallow = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-shallow-marine"];
+    // Saturated teal: green and blue well above red, and blue at least as strong
+    // as green, so it does not read as the olive of a landmass.
+    expect(shallow[1]).toBeGreaterThan(shallow[0] * 3);
+    expect(shallow[2]).toBeGreaterThan(shallow[1]);
+    // The light outline/label ink has to stay legible over it. Country outlines
+    // turn light grey over water when the mode is on, so a shallow sea that is
+    // too bright erases them.
+    expect(contrastRatio(shallow, [0xd0 / 255, 0xd4 / 255, 0xd5 / 255])).toBeGreaterThan(4.5);
+    // And it must read as a different, brighter water than the 0.58-dimmed
+    // shelf blue it sits on, or the mapped sea is invisible.
+    const dimmedShelf = CAO_FOUNDATION_DEFAULT_BASE_COLORS.shelf
+      .map((value) => value * caoFoundationAppearanceDim("shelf")) as [number, number, number];
+    expect(relativeLuminance(shallow)).toBeGreaterThan(relativeLuminance(dimmedShelf));
+    expect(caoFoundationAppearanceDim("palaeo-shallow-marine")).toBe(1);
+    expect(caoFoundationAppearanceDim("shelf")).toBe(0.58);
+    // Water classes are front-faced; land-like classes keep both faces.
+    expect(caoFoundationAppearanceFrontSideOnly("palaeo-shallow-marine")).toBe(true);
+    expect(caoFoundationAppearanceFrontSideOnly("palaeo-land")).toBe(false);
+    expect(caoFoundationAppearanceFrontSideOnly("palaeo-mountain")).toBe(false);
+    expect(caoFoundationAppearanceRoughness("palaeo-mountain"))
+      .toBe(caoFoundationAppearanceRoughness("land"));
+  });
+
+  it("clears every shell the chord sag could push a triangle through", () => {
+    // R(1 - cos(edge/2)): a flat chord sits this far inside the sphere at its
+    // midpoint, so a shell at h actually occupies [h - sag, h].
+    expect(CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES).toBe(1);
+    const sag = caoFoundationChordSagMetres(CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES);
+    expect(sag).toBeCloseTo(242.59, 2);
+    expect(caoFoundationChordSagMetres(0)).toBe(0);
+    // The 400 m native gap is one sag clearance wide and no more: an edge past
+    // about 1.284 degrees already pushes a shelf triangle through the land shell.
+    expect(caoFoundationChordSagMetres(1.29)).toBeGreaterThan(
+      CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES - CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES);
+    expect(() => caoFoundationChordSagMetres(Number.NaN)).toThrow(/chord sag edge/);
+    expect(() => caoFoundationChordSagMetres(-1)).toThrow(/chord sag edge/);
+
+    expect(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES).toBe(400);
+    expect(CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES).toBe(700);
+    expect(CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES).toBe(800);
+    expect(CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES).toBe(1_300);
+    expect(CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES).toBe(1_600);
+    expect(CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES).toBe(1_800);
+
+    // Precedence, draw order and (for the separated classes) shell height are
+    // one order, so a class cannot outrank another in the pick and lose in the
+    // draw.
+    expect(CAO_FOUNDATION_SURFACE_PRECEDENCE).toEqual(["shelf", "correction-shelf",
+      "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain", "land"]);
+    const renderOrders = CAO_FOUNDATION_SURFACE_SHELLS.map((shell) => shell.renderOrder);
+    expect(renderOrders).toEqual([...renderOrders].sort((left, right) => left - right));
+    expect(new Set(renderOrders).size).toBe(renderOrders.length);
+
+    for (const shell of CAO_FOUNDATION_SURFACE_SHELLS) {
+      // Nothing may reach the country-line shell; the publication guard enforces
+      // the same bound against the display-height ceiling.
+      expect(shell.shellOffsetMetres).toBeLessThan(CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
+    }
+
+    const exempt: string[] = [];
+    for (const mode of ["native", "palaeo"] as const) {
+      const stack = CAO_FOUNDATION_SURFACE_SHELLS.filter((shell) =>
+        mode === "palaeo" ? shell.visibleInPalaeoMode : shell.visibleInNativeMode);
+      for (let index = 1; index < stack.length; index += 1) {
+        const lower = stack[index - 1]!;
+        const upper = stack[index]!;
+        expect(upper.shellOffsetMetres).toBeGreaterThanOrEqual(lower.shellOffsetMetres);
+        if (upper.shellOffsetMetres - sag > lower.shellOffsetMetres) continue;
+        // A pair the geometry cannot separate must be separated by policy: a
+        // lower class that writes no depth is simply painted over in draw
+        // order, and no depth test can interleave the two.
+        expect(lower.writesDepth, `${lower.surfaceClass} under ${upper.surfaceClass}`).toBe(false);
+        exempt.push(`${lower.surfaceClass}>${upper.surfaceClass}`);
+      }
+    }
+    // Exactly four pairs are exempt, and all four are exempt for the same
+    // reason: the lower class of the pair writes no depth, so the class above it
+    // simply paints over it in draw order. Two of them are the restored
+    // pre-collision margin class, which shares the 700 m shell with
+    // palaeo-shallow-marine and sits under the 800 m correction shell.
+    expect([...new Set(exempt)].sort()).toEqual([
+      "correction-shelf>corrections", "correction-shelf>palaeo-shallow-marine",
+      "corrections>land", "palaeo-shallow-marine>corrections"]);
+    // Every depth-writing class is cleared by whatever is drawn above it.
+    for (const upper of CAO_FOUNDATION_SURFACE_SHELLS) {
+      for (const lower of CAO_FOUNDATION_SURFACE_SHELLS) {
+        if (!lower.writesDepth || lower.renderOrder >= upper.renderOrder) continue;
+        if (!(lower.visibleInPalaeoMode && upper.visibleInPalaeoMode)
+            && !(lower.visibleInNativeMode && upper.visibleInNativeMode)) continue;
+        expect(upper.shellOffsetMetres - sag,
+          `${upper.surfaceClass} over ${lower.surfaceClass}`)
+          .toBeGreaterThan(lower.shellOffsetMetres);
+      }
+    }
+  });
+
+  it("orders the LGM composition so nothing lower overdraws something higher", () => {
+    // The `lgm` band is the one composition that draws the native stack and the
+    // palaeo stack at the same time: `caoPalaeoModeState` keeps
+    // `nativeSurfaceMode` at "native" there, because hiding today's land to show
+    // three footprints of exposed shelf would blank every coastline on Earth.
+    //
+    // That is also the one composition where a *lower* class draws *later*:
+    // native land is renderOrder 2 at the 800 m shell, and the palaeo classes it
+    // must not paint over are renderOrder 1.7 and 1.8 at 1,300 and 1,600 m. Draw
+    // order cannot protect them, so depth must: the higher class has to write
+    // depth and clear the lower one by more than the 1 degree chord sag.
+    const sag = 6_371_000 * (1 - Math.cos((0.5 * Math.PI) / 180));
+    const lgmComposition = CAO_FOUNDATION_SURFACE_SHELLS.filter((shell) =>
+      shell.visibleInNativeMode || shell.visibleInPalaeoMode);
+    expect(lgmComposition.map((shell) => shell.surfaceClass)).toEqual([
+      "shelf", "correction-shelf", "palaeo-shallow-marine", "corrections",
+      "palaeo-land", "palaeo-mountain", "land"]);
+
+    const lateAndLower: string[] = [];
+    for (const upper of lgmComposition) {
+      for (const lower of lgmComposition) {
+        // `lower` sits on a lower shell than `upper` but is drawn afterwards,
+        // so draw order alone would let it paint over the class in front of it.
+        if (lower.renderOrder <= upper.renderOrder
+            || lower.shellOffsetMetres >= upper.shellOffsetMetres) continue;
+        lateAndLower.push(`${lower.surfaceClass}>${upper.surfaceClass}`);
+        expect(upper.writesDepth,
+          `${lower.surfaceClass} draws after ${upper.surfaceClass} and only depth can stop it`)
+          .toBe(true);
+        expect(upper.shellOffsetMetres - sag,
+          `${upper.surfaceClass} must clear ${lower.surfaceClass} by more than the chord sag`)
+          .toBeGreaterThan(lower.shellOffsetMetres);
+      }
+    }
+    // Exactly the two palaeo classes native land is drawn after and under.
+    expect(lateAndLower.sort()).toEqual(["land>palaeo-land", "land>palaeo-mountain"]);
+
+    // Nothing that does not write depth may be the only thing standing between a
+    // higher class and a later-drawn lower one, and the opaque sphere the whole
+    // stack sits on is below every shell and drawn first.
+    expect(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES).toBeGreaterThan(0);
+    for (const shell of lgmComposition) {
+      expect(shell.renderOrder).toBeGreaterThan(CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER);
+    }
+  });
+
+  it("hides native land only in the effective palaeo mode", () => {
+    // The visibility set per {layer flag, effective mode}. `fallback` is the one
+    // the defect got wrong: the layer is on, the palaeo instance draws nothing,
+    // and native land must stay exactly where the layer-off composition has it.
+    const visibleClasses = (mode: "native" | "palaeo") =>
+      CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
+        caoFoundationSurfaceClassVisible(surfaceClass, mode));
+    // The restored pre-collision margin class is visible in both modes: it is a
+    // correction like any other, and hiding it in the native mode would make the
+    // globe disagree with itself at the same age with the layer off.
+    const todaysComposition = ["shelf", "correction-shelf", "corrections", "land"];
+    expect(visibleClasses("native")).toEqual(todaysComposition);
+    expect(visibleClasses("palaeo")).toEqual(
+      ["shelf", "correction-shelf", "palaeo-shallow-marine", "corrections",
+        "palaeo-land", "palaeo-mountain"]);
+
+    const cases = [
+      { layerOn: false, insideDomain: false, domainVisible: false, published: false, mode: "off" },
+      { layerOn: false, insideDomain: true, domainVisible: true, published: true, mode: "off" },
+      { layerOn: true, insideDomain: false, domainVisible: false, published: false, mode: "fallback" },
+      { layerOn: true, insideDomain: true, domainVisible: false, published: true, mode: "loading" },
+      { layerOn: true, insideDomain: true, domainVisible: true, published: false, mode: "loading" },
+      { layerOn: true, insideDomain: true, domainVisible: true, published: true, mode: "on" },
+    ] as const;
+    for (const probe of cases) {
+      const state = caoPalaeoModeState({ layerEnabled: probe.layerOn,
+        band: probe.insideDomain ? "cao-2017" : "none",
+        visibleBand: probe.domainVisible ? "cao-2017" : "none",
+        published: probe.published });
+      expect(state.mode, JSON.stringify(probe)).toBe(probe.mode);
+      const classes = visibleClasses(state.nativeSurfaceMode);
+      expect(classes.includes("land"), `native land in mode ${state.mode}`)
+        .toBe(probe.mode !== "on");
+      if (probe.mode !== "on") expect(classes).toEqual(todaysComposition);
+    }
+  });
+
+  it("draws and picks the palaeo stack in precedence order with native land hidden", () => {
+    const revision = palaeoRevision();
+    const retirement = new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000);
+    const group = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(group, retirement, palaeoLimits);
+    const nativeDiagnostics = surface.publish(revision, 8);
+    expect(nativeDiagnostics.palaeoCoastlineMode).toBe(false);
+    expect(nativeDiagnostics.chartRanges).toBe(6);
+    const meshes = () => group.children[0]!.children.filter((child): child is Mesh =>
+      child instanceof Mesh);
+    const visibleClasses = () => meshes().filter((mesh) => mesh.visible)
+      .map((mesh) => mesh.userData.surfaceClass as string);
+    expect(meshes().map((mesh) => [mesh.userData.surfaceClass, mesh.renderOrder])).toEqual([
+      ["shelf", 1], ["palaeo-shallow-marine", 1.2], ["corrections", 1.5],
+      ["palaeo-land", 1.7], ["palaeo-mountain", 1.8], ["land", 2],
+    ]);
+    // Depth writing is what forces shell separation; the two classes 100 m apart
+    // must not write it.
+    expect(meshes().map((mesh) => (mesh.material as { depthWrite: boolean }).depthWrite))
+      .toEqual([true, false, false, true, true, true]);
+    expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
+    expect(nativeDiagnostics.drawCount).toBe(3);
+
+    const palaeoDiagnostics = surface.setPalaeoCoastlineMode(true);
+    expect(palaeoDiagnostics.palaeoCoastlineMode).toBe(true);
+    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine", "corrections",
+      "palaeo-land", "palaeo-mountain"]);
+    expect(palaeoDiagnostics.drawCount).toBe(5);
+    surface.setPalaeoCoastlineMode(false);
+    expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
+    surface.setLayerVisibility({ borders: true, tectonics: true, palaeoCoastlines: true });
+    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine", "corrections",
+      "palaeo-land", "palaeo-mountain"]);
+
+    const resource = createCaoFoundationGeometryResource(revision, palaeoLimits);
+    const poses = new Float32Array(6 * 8);
+    for (let chart = 0; chart < 6; chart += 1) poses.set([1, 0, 0, 0, 1, 0, 0, 0], chart * 8);
+    const pick = (active: readonly number[], mode: "native" | "palaeo") =>
+      intersectCaoFoundationSurface(resource, { chartPoses: poses, chartActive: new Uint8Array(active) },
+        [3, 0, 0], [-1, 0, 0], 65_536, mode)?.surfaceClass ?? null;
+    // Native mode: the palaeo charts are not drawn, so they cannot be picked.
+    expect(pick([1, 1, 1, 1, 1, 1], "native")).toBe("land");
+    expect(pick([1, 1, 1, 1, 1, 0], "native")).toBe("corrections");
+    expect(pick([1, 1, 0, 1, 1, 0], "native")).toBe("shelf");
+    // Palaeo mode: native land is hidden and the palaeo classes rank above and
+    // below the corrections exactly as they are drawn.
+    expect(pick([1, 1, 1, 1, 1, 1], "palaeo")).toBe("palaeo-mountain");
+    expect(pick([1, 1, 1, 1, 0, 1], "palaeo")).toBe("palaeo-land");
+    expect(pick([1, 1, 1, 0, 0, 1], "palaeo")).toBe("corrections");
+    expect(pick([1, 1, 0, 0, 0, 1], "palaeo")).toBe("palaeo-shallow-marine");
+    expect(pick([1, 0, 0, 0, 0, 1], "palaeo")).toBe("shelf");
+    expect(pick([0, 0, 0, 0, 0, 1], "palaeo")).toBeNull();
+
+    // Coverage by class, and the includeShelf alias unchanged for the callers
+    // that only ask "is this land, rather than water of any depth".
+    const covers = (active: readonly number[], options: Parameters<
+      typeof caoFoundationSurfaceCoversDirection>[3]) =>
+      caoFoundationSurfaceCoversDirection(resource,
+        { chartPoses: poses, chartActive: new Uint8Array(active) },
+        rendererDirection(0, 0), options);
+    expect(covers([1, 0, 0, 0, 0, 0], {})).toBe(true);
+    expect(covers([1, 0, 0, 0, 0, 0], { includeShelf: false })).toBe(false);
+    expect(covers([0, 1, 0, 0, 0, 0], { includeShelf: false })).toBe(false);
+    expect(covers([0, 0, 0, 1, 0, 0], { includeShelf: false })).toBe(true);
+    expect(covers([0, 0, 0, 0, 1, 0], { includeShelf: false })).toBe(true);
+    expect(covers([0, 0, 1, 0, 0, 0], { includeShelf: false })).toBe(true);
+    expect(covers([0, 0, 0, 0, 0, 1], { includeShelf: false })).toBe(true);
+    expect(covers([0, 1, 0, 0, 0, 0], { surfaceClasses: ["palaeo-shallow-marine"] })).toBe(true);
+    expect(covers([0, 0, 0, 1, 0, 0], { surfaceClasses: ["palaeo-shallow-marine"] })).toBe(false);
+    expect(covers([1, 1, 1, 1, 1, 1], { surfaceClasses: [] })).toBe(false);
+    // surfaceClasses wins over the alias, and an unknown class is rejected.
+    expect(covers([1, 0, 0, 0, 0, 0],
+      { includeShelf: false, surfaceClasses: ["shelf"] })).toBe(true);
+    expect(() => covers([1, 1, 1, 1, 1, 1],
+      { surfaceClasses: ["palaeo-lagoon" as CaoFoundationSurfaceClass] }))
+      .toThrow(/unknown Cao foundation surface class/);
+    expect(CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES).toEqual(
+      ["land", "corrections", "palaeo-land", "palaeo-mountain"]);
+
+    resource.dispose();
+    surface.disposeForRendererTeardown();
+  });
+
+  it("replaces static geometry only when the change was armed, retiring the old copy once", () => {
+    const first = palaeoRevision();
+    const second = { ...palaeoRevision("@2"), identity: "cao@r1:1", requestId: 2, requestedAgeMa: 1 };
+    const third = { ...palaeoRevision("@3"), identity: "cao@r1:2", requestId: 3, requestedAgeMa: 2 };
+
+    // The native instance keeps the strict invariant: one package, one geometry.
+    const nativeSurface = new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
+    nativeSurface.publish(palaeoRevision(), 8);
+    expect(() => nativeSurface.armStaticGeometryChange("interval change"))
+      .toThrow(/does not allow static geometry replacement/);
+    expect(() => nativeSurface.publish({ ...palaeoRevision("@2"), identity: "cao@r1:1",
+      requestId: 2, requestedAgeMa: 1 }, 8))
+      .toThrow(/static geometry changed within renderer lifetime/);
+    nativeSurface.disposeForRendererTeardown();
+
+    // Replacement without a retirement owner would dispose buffers the last
+    // submission may still reference.
+    expect(() => new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits,
+      { allowStaticGeometryReplacement: true }))
+      .toThrow(/replacement requires a retirement owner/);
+
+    const staticCompletions: Array<() => void> = [];
+    const staticRetirement = new GpuRetirementOwner({
+      waitForSubmittedWork: () => new Promise<void>((resolve) => staticCompletions.push(resolve)),
+    }, 4, 8 * 1024 * 1024);
+    const surface = new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits,
+      { allowStaticGeometryReplacement: true, staticGeometryRetirement: staticRetirement });
+    const firstDiagnostics = surface.publish(first, 8);
+    expect(staticRetirement.pendingCount()).toBe(0);
+    // Armed replacement is the palaeo instance's normal path; an unarmed one is
+    // still a compile or loader defect and must fail loudly.
+    expect(() => surface.publish(second, 8))
+      .toThrow(/static geometry changed within renderer lifetime/);
+    expect(staticRetirement.pendingCount()).toBe(0);
+    expect(surface.diagnostics().staticGeometryIdentity)
+      .toBe(firstDiagnostics.staticGeometryIdentity);
+
+    surface.armStaticGeometryChange("cao 2017 map interval change");
+    const replaced = surface.publish(second, 8);
+    expect(replaced.staticGeometryIdentity).not.toBe(firstDiagnostics.staticGeometryIdentity);
+    expect(staticRetirement.pendingCount()).toBe(1);
+    expect(staticRetirement.pendingBytes()).toBe(firstDiagnostics.retainedStaticBytes);
+    // The arming is consumed by exactly one replacement.
+    expect(() => surface.publish(third, 8))
+      .toThrow(/static geometry changed within renderer lifetime/);
+    expect(staticRetirement.pendingCount()).toBe(1);
+    // Republishing the same geometry retires nothing further.
+    surface.publish({ ...second, identity: "cao@r1:1b", requestId: 4 }, 8);
+    expect(staticRetirement.pendingCount()).toBe(1);
+    staticCompletions.shift()?.();
+    surface.disposeForRendererTeardown();
+  });
 });
+
+/** WCAG relative luminance, so a colour choice can be gated rather than argued. */
+function relativeLuminance(color: readonly [number, number, number] | readonly number[]): number {
+  const [r, g, b] = color.map((channel) => channel <= 0.04045
+    ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+function contrastRatio(
+  left: readonly number[],
+  right: readonly number[],
+): number {
+  const a = relativeLuminance(left);
+  const b = relativeLuminance(right);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+const palaeoLimits = { ...limits, maxBatches: 16, maxVertices: 5_000, maxTriangles: 5_000 };
+
+/**
+ * One batch per drawing class, all overlapping at longitude 0 / latitude 0 and
+ * nested so a radial ray crosses every one of them.
+ */
+function palaeoRevision(geometrySuffix = "@1"): PreparedCaoRevision {
+  const base = fixture(6);
+  const makeBatch = (
+    batchId: string,
+    halfDegrees: number,
+    chartIndex: number,
+    nativePrecedence: boolean,
+    surfaceAppearance?: "land" | "shelf" | "palaeo-land" | "palaeo-shallow-marine" | "palaeo-mountain",
+  ) => {
+    const points = [[-halfDegrees, -halfDegrees], [halfDegrees, -halfDegrees],
+      [0, halfDegrees]] as const;
+    const directions = new Float32Array(points.flatMap(([lon, lat]) => gplatesLonLat(lon, lat)));
+    const indices = new Uint32Array([0, 1, 2]);
+    const seamIds = new Uint32Array(3);
+    const entries = new Uint16Array([chartIndex, chartIndex, chartIndex]);
+    const bytes = directions.byteLength + indices.byteLength + seamIds.byteLength
+      + 2 * entries.byteLength;
+    return { batchId, staticGeometryIdentity: `${batchId}${geometrySuffix}`, vertexCount: 3,
+      triangleCount: 1, staticGeometryBytes: bytes, nativePrecedence, surfaceAppearance,
+      chartTriangleRanges: [{ chartIndex, firstTriangle: 0, triangleCount: 1 }],
+      createStaticGeometryCopy: () => ({ referenceDirections: new Float32Array(directions),
+        indices: new Uint32Array(indices), seamIds: new Uint32Array(seamIds),
+        preparedEntryIndices: new Uint16Array(entries),
+        materialChartIndices: new Uint16Array(entries) }),
+      createDisplayControlsCopy: () => ({
+        displayHeightStart: { kind: "uniform" as const, value: 0 },
+        displayHeightEnd: { kind: "uniform" as const, value: 0 },
+        baseColor: { kind: "uniform" as const,
+          value: CAO_FOUNDATION_DEFAULT_BASE_COLORS[surfaceAppearance
+            ?? (batchId === "batch-shelf" ? "shelf" : "land")] } }) };
+  };
+  const chart = (chartId: string) => ({ ...base.charts[0]!, chartId, chartRevision: "1",
+    materialId: chartId, fragmentOrCohortId: chartId });
+  return { ...base,
+    batches: [
+      makeBatch("batch-shelf", 0.5, 0, false),
+      makeBatch("palaeo-shallow", 0.4, 1, false, "palaeo-shallow-marine"),
+      makeBatch("correction-fine", 0.3, 2, true),
+      makeBatch("palaeo-land", 0.2, 3, false, "palaeo-land"),
+      makeBatch("palaeo-mountain", 0.15, 4, false, "palaeo-mountain"),
+      makeBatch("batch-land", 0.25, 5, false),
+    ],
+    charts: [chart("native-shelf"), chart("palaeo-shallow"), chart("correction"),
+      chart("palaeo-land"), chart("palaeo-mountain"), chart("native-land")],
+  } satisfies PreparedCaoRevision;
+}

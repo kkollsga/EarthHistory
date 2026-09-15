@@ -1,0 +1,226 @@
+{
+ "description": "Every offline input the palaeo-coastline compiler reads, pinned by size and sha256. The compiler refuses to run when any of them changes; the digests are the same values the Phase R audit recorded in docs/research/palaeo-coastlines-cao2017-audit.json.",
+ "manifestId": "palaeo-coastlines-source-manifest-v1",
+ "pinnedAt": "2026-09-15",
+ "schemaVersion": 1,
+ "sources": [
+  {
+   "archive": {
+    "bytes": 74691405,
+    "path": "geography/earthbyte-paleogeography-gplates2.3.zip",
+    "root": "../EarthHistory-data/palaeomap-study",
+    "sha256": "9cbbd835bff27367c5f542912bb58571b0fb10f81173e0a16ceb3e53d264781b"
+   },
+   "attribution": "Cao et al. (2017), EarthByte GPlates 2.3 Paleogeography package, CC BY 3.0; the package README also requires citing Matthews et al. (2016), doi:10.1016/j.gloplacha.2016.10.002.",
+   "citation": "Cao, X., Zahirovic, S., Flament, N., Williams, S., Golonka, J. and Muller, R. D. (2017) Improving global paleogeography since the late Paleozoic using paleobiology. Biogeosciences 14, 5425-5439.",
+   "evidenceRole": "landmass, shallow-marine and mountain map classes for the 24 published map intervals",
+   "excludedFromEveryBuild": [
+    {
+     "item": "research-only GitHub snapshot, commit e92592aae168a1653fe93716eb3c928ccc23fe54",
+     "reason": "GitHub reports no repository licence"
+    },
+    {
+     "item": "cao-2017-supplement.zip LZW GeoTIFF raster maps",
+     "reason": "no separate licence file; categorical illustration rather than data"
+    }
+   ],
+   "geographicBasis": "present-day WGS84 (GCS_WGS_1984, lm_402_2.prj); no rotation file ships with the package",
+   "license": "CC BY 3.0",
+   "members": [
+    {
+     "bytes": 4337916,
+     "path": "Paleogeography/Global_Cao_etal/lm_402_2.shp",
+     "role": "lm landmass",
+     "sha256": "e59c76b2473f26686ba7f98f09e868c2b0e2b037764d16039862d0502822a490"
+    },
+    {
+     "bytes": 5474185,
+     "path": "Paleogeography/Global_Cao_etal/lm_402_2.dbf",
+     "role": "lm landmass",
+     "sha256": "fdbf49e9616ffc6e1998389863d5ca6cb7547bdcba639d366c56d7ca2f2a2088"
+    },
+    {
+     "bytes": 57340,
+     "path": "Paleogeography/Global_Cao_etal/lm_402_2.shx",
+     "role": "lm landmass",
+     "sha256": "a6f0acd843a6c02da49b7a95b21e0aec50b2cf785ea79dfbf4db88698bf3a350"
+    },
+    {
+     "bytes": 6094908,
+     "path": "Paleogeography/Global_Cao_etal/sm_402_2.shp",
+     "role": "sm shallow marine",
+     "sha256": "0d0051e17a380116b78f57b5f0460101150488867b2cde1480487987e65a8a01"
+    },
+    {
+     "bytes": 9176153,
+     "path": "Paleogeography/Global_Cao_etal/sm_402_2.dbf",
+     "role": "sm shallow marine",
+     "sha256": "59ad1f43fece15a2fc01128c8ea44bed41a0bdc845d0da5a172ad6eef1e1db25"
+    },
+    {
+     "bytes": 107260,
+     "path": "Paleogeography/Global_Cao_etal/sm_402_2.shx",
+     "role": "sm shallow marine",
+     "sha256": "eb90b36ed896a050246bf689ac85c0ddf24f15524df95ae693711130519e6585"
+    },
+    {
+     "bytes": 2466252,
+     "path": "Paleogeography/Global_Cao_etal/m_402_2.shp",
+     "role": "m mountains",
+     "sha256": "96de4cc4c969526b2425f3b472f62cc35df7cade09371407a7076c5304e130e4"
+    },
+    {
+     "bytes": 3664195,
+     "path": "Paleogeography/Global_Cao_etal/m_402_2.dbf",
+     "role": "m mountains",
+     "sha256": "5074e60cc751a5c21f4cf46d402e1abfbdc98981c598e53b2de05d67a0531019"
+    },
+    {
+     "bytes": 38412,
+     "path": "Paleogeography/Global_Cao_etal/m_402_2.shx",
+     "role": "m mountains",
+     "sha256": "96c59730ce527cfd38d6e536cb7068fddb4ee68e9aa6683268dfa60e8e4e4427"
+    },
+    {
+     "bytes": 122092,
+     "path": "Paleogeography/Global_Cao_etal/i_402_2.shp",
+     "role": "i ice",
+     "sha256": "4a122b60ad7d09d8c571e3244d4239dd1e07c41f2ba021a63561bb0e9737cda0"
+    },
+    {
+     "bytes": 173883,
+     "path": "Paleogeography/Global_Cao_etal/i_402_2.dbf",
+     "role": "i ice",
+     "sha256": "77de2e1a9119ab02226bf6ed1741f265651fa83533378128e32dc4b34086dee7"
+    },
+    {
+     "bytes": 2124,
+     "path": "Paleogeography/Global_Cao_etal/i_402_2.shx",
+     "role": "i ice",
+     "sha256": "87c14e9dc06553b7dda7e292b14de7fb492b6495b69be221f4f7db9ab76afe7c"
+    },
+    {
+     "bytes": 145,
+     "path": "Paleogeography/Global_Cao_etal/lm_402_2.prj",
+     "role": "coordinate reference statement",
+     "sha256": "a02a27b1d1982c8516d83398e85a3c8b1aef1713c13ef4d84d7bde17430c07c4"
+    },
+    {
+     "bytes": 2242,
+     "path": "Paleogeography/Global_Cao_etal/_README.txt",
+     "role": "package citation requirements",
+     "sha256": "a10ab7d3c323d54265e017c69c700e5000bffbd9cc4b7b58ce6741479a28e47c"
+    }
+   ],
+   "modificationStatement": "EarthHistory modifications: the present-day polygons are cut by the present-day Cao et al. (2024) v2.4 static partitions, each piece is given exactly one partition owner and rides that plate, ring edges are densified on great circles, node counts are reduced by Douglas-Peucker, and the published FROMAGE/TOAGE map interval becomes a half-open (TOAGE, FROMAGE] lifecycle.",
+   "publicationOrVersionDate": "2017; EarthByte GPlates 2.3 package",
+   "retrievedAt": "2026-09-15",
+   "sourceId": "cao-2017-paleogeography",
+   "temporalRangeMa": [
+    2.01,
+    402.0
+   ],
+   "title": "Improving global paleogeography since the late Paleozoic using paleobiology (EarthByte GPlates 2.3 Paleogeography package)",
+   "url": "https://doi.org/10.5194/bg-14-5425-2017"
+  },
+  {
+   "attribution": "required by the Cao 2017 package README whenever its geometry is used",
+   "citation": "Matthews, K. J. et al. (2016) Global and Planetary Change 146, 226-250.",
+   "evidenceRole": "citation requirement only; no Matthews rotation is loaded or redistributed",
+   "license": "publisher terms; cited only",
+   "publicationOrVersionDate": "2016",
+   "retrievedAt": "2026-09-15",
+   "sourceId": "matthews-2016-plate-boundaries",
+   "temporalRangeMa": [
+    0,
+    410
+   ],
+   "title": "Global plate boundary evolution and kinematics since the late Paleozoic",
+   "url": "https://doi.org/10.1016/j.gloplacha.2016.10.002"
+  },
+  {
+   "attribution": "Cao et al. (2024)",
+   "citation": "Cao, X. et al. (2024) Geoscience Frontiers; plate model v2.4.",
+   "evidenceRole": "present-day plate ownership (cookie-cut partitions) and rigid motion",
+   "geographicBasis": "Cao palaeomagnetic absolute frame, anchor plate 0, geometry at 0 Ma",
+   "license": "CC BY 4.0",
+   "members": [
+    {
+     "bytes": 2248936,
+     "path": "plates/extracted/cao2024-v2.4/1.8Ga_model_GSF/static_polygons.gpmlz",
+     "role": "present-day static partitions",
+     "sha256": "9b30d231157f99f9a7942d073efcb85649b0a6e10e49332637df2386f1b1350f"
+    },
+    {
+     "bytes": 1243843,
+     "path": "plates/extracted/cao2024-v2.4/1.8Ga_model_GSF/shapes_continents.gpmlz",
+     "role": "continental crust extent (area audit)",
+     "sha256": "6e30de73967f81a403f46370295dec5c0d7ed3ffd80c73d47df926461d949616"
+    },
+    {
+     "bytes": 625128,
+     "path": "plates/extracted/cao2024-v2.4/1.8Ga_model_GSF/1000_0_rotfile.rot",
+     "role": "rotations 0-1000 Ma",
+     "sha256": "e13c16ef5b2f8f116f598635e42a126b016b2c615358b499bcc3433f4a3c735c"
+    },
+    {
+     "bytes": 36539,
+     "path": "plates/extracted/cao2024-v2.4/1.8Ga_model_GSF/1800_1000_rotfile.rot",
+     "role": "rotations 1000-1800 Ma; required or pyGPlates silently returns identity for 17 sub-blocks",
+     "sha256": "db2a57a8b7c7a08891c19840b6334ffb9c279b6a991a2c2eed099edb23445785"
+    }
+   ],
+   "publicationOrVersionDate": "2.4",
+   "retrievedAt": "2026-09-09",
+   "rootDirectory": "../EarthHistory-data/palaeomap-study",
+   "sourceId": "cao-v2.4-static-partitions",
+   "temporalRangeMa": [
+    0,
+    1800
+   ],
+   "title": "Cao et al. (2024) v2.4 static polygons and rotation files",
+   "url": "https://doi.org/10.5281/zenodo.13628813"
+  },
+  {
+   "attribution": "Cao et al. (2024)",
+   "bytes": 802764,
+   "citation": "EarthHistory public/data/reconstruction/cao-v2.4/motion-palette.json",
+   "evidenceRole": "palette entry ids the emitted pieces bind to, including the North Sea restoration entries",
+   "license": "derived from CC BY 4.0 Cao et al. (2024)",
+   "note": "pinned so a palette re-emission cannot silently change a binding; motion-palette.json is regenerated by the package emitters, so a mismatch is a re-pin decision, not automatically a defect",
+   "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
+   "publicationOrVersionDate": "2026-09-14",
+   "retrievedAt": "2026-09-15",
+   "sha256": "70cf3f2c72912de66453c84616a2a75372e9af1084fff594967587e5d9d27cdd",
+   "sourceId": "cao-v2.4-motion-palette",
+   "title": "EarthHistory compiled Cao v2.4 motion palette catalog",
+   "url": "public/data/reconstruction/cao-v2.4/motion-palette.json"
+  },
+  {
+   "attribution": "EarthHistory",
+   "citation": "data/corrections/north-sea-restoration/restoration-contract.json",
+   "evidenceRole": "the restoration palette entries that pieces on partitions 303 and 315 bind to inside the window",
+   "license": "EarthHistory",
+   "publicationOrVersionDate": "2026-09-14",
+   "retrievedAt": "2026-09-15",
+   "sourceId": "earthhistory-north-sea-restoration-v1",
+   "temporalRangeMa": [
+    130.0,
+    430.0
+   ],
+   "title": "EarthHistory North Sea rigid UK-block restoration contract",
+   "url": "data/corrections/north-sea-restoration/restoration-contract.json"
+  },
+  {
+   "attribution": "EarthHistory",
+   "citation": "docs/research/palaeo-coastlines-cao2017-audit.json and docs/research/palaeo-coastlines-cao2017.md",
+   "evidenceRole": "the measurements the override table, the one-owner rule and the simplification budget rest on",
+   "license": "EarthHistory",
+   "publicationOrVersionDate": "2026-09-15",
+   "retrievedAt": "2026-09-15",
+   "sourceId": "palaeo-coastlines-cao2017-audit-v1",
+   "title": "Cao 2017 palaeogeography source audit",
+   "url": "docs/research/palaeo-coastlines-cao2017.md"
+  }
+ ]
+}

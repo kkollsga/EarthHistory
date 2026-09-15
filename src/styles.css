@@ -137,6 +137,15 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 }
 .stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 61% 44%, transparent 0 34%, rgba(2, 6, 8, .025) 58%, rgba(2, 6, 8, .34) 100%), linear-gradient(90deg, rgba(2, 6, 8, .36), transparent 28%, transparent 82%, rgba(2, 6, 8, .24)); }
 .surface-info { position: absolute; z-index: 5; right: 14px; bottom: 14px; color: var(--muted); }
+/* Closed, the key is a small pill that must stay under the chapter panel. Open,
+   its panel is the width of a phone screen and reaches the header. Raising it
+   above the chapter card (.context-panel, z-index 10) is not enough and never
+   was: the key lives inside .globe-stage, which has its own z-index and is
+   therefore its own stacking context, so this value only orders the key against
+   its siblings inside the stage. On a phone the card is removed from the layout
+   while the key is open (see the 720px block below), which is the only rule that
+   keeps the two off each other's pixels. */
+.surface-info[open] { z-index: 12; }
 .surface-info summary {
   display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 11px; border: 1px solid rgba(154, 199, 210, .28);
   border-radius: 999px; background: rgba(5, 11, 14, .78); color: var(--ice); font-size: 9px; font-weight: 700;
@@ -152,11 +161,20 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-info[data-status="loading"] .surface-status-dot { background: var(--copper-bright); }
 .surface-info[data-status="editorial"] .surface-status-dot { background: #a6a39a; }
 .surface-info[data-status="error"] .surface-status-dot { background: #d78c6e; }
+/* The key grew a palaeo block, an outline legend and an evidence list, and a
+   fixed 440px ceiling cut them off below the fold with nothing on screen saying
+   so. The panel takes the height the stage actually leaves between the header
+   and the timeline, and keeps a visible scrollbar for whatever still overflows
+   on a short window. */
 .surface-info-panel {
-  position: absolute; right: 0; bottom: calc(100% + 8px); width: min(360px, calc(100vw - 32px)); max-height: min(440px, calc(100vh - var(--header-height) - var(--timeline-height) - 74px));
-  overflow-y: auto; padding: 15px; border: 1px solid rgba(154, 199, 210, .28); background: rgba(5, 11, 14, .94);
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - var(--header-height) - var(--timeline-height) - 74px);
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  scrollbar-color: rgba(154, 199, 210, .42) transparent;
+  padding: 15px; border: 1px solid rgba(154, 199, 210, .28); background: rgba(5, 11, 14, .94);
   backdrop-filter: blur(16px); box-shadow: 0 18px 44px rgba(0, 0, 0, .42);
 }
+.surface-info-panel::-webkit-scrollbar { width: 8px; }
+.surface-info-panel::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(154, 199, 210, .42); }
 .surface-info-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .surface-info-heading span { color: var(--copper-bright); font-size: 9px; text-transform: uppercase; letter-spacing: .17em; }
 .surface-info-heading strong { color: var(--ink); font-family: var(--serif); font-size: 16px; font-weight: 400; }
@@ -169,6 +187,31 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-swatch { width: 10px; height: 10px; margin-top: 2px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 50%; }
 .surface-swatch-land { background: rgb(115, 140, 77); }
 .surface-swatch-shelf { background: rgb(28, 82, 101); }
+/* The three palaeo classes carry the renderer's own base colours. */
+.surface-swatch-palaeo-land { background: rgb(154, 168, 107); }
+.surface-swatch-palaeo-shallow { background: rgb(20, 96, 107); }
+/* The mountain swatch is the tone the globe renders (measured 234,198,139 in
+   full light), not its linear albedo: the albedo is pre-compensated for the
+   ACES wash and would show the key a brown the map never draws. */
+.surface-swatch-palaeo-mountain { background: rgb(234, 198, 139); }
+.surface-palaeo-key { display: grid; gap: 2px; padding: 11px 0 1px; border-bottom: 1px solid var(--line); }
+.surface-palaeo-key > strong { color: var(--ink); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
+.surface-palaeo-key .surface-info-note { margin: 6px 0 0; font-size: 10px; }
+.surface-palaeo-key[data-fallback="true"] .surface-info-note[role="status"] { color: var(--copper-bright); }
+.surface-palaeo-key > small { margin-top: 7px; color: var(--dim); font-size: 9px; line-height: 1.4; }
+/* The epistemic limitations of the rendered classes: what the Cao 2017 charts
+   cannot say, stated where the classes are named rather than in a document. */
+.palaeo-limitation-key { margin-top: 9px; }
+.palaeo-limitation-key > strong { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .1em; }
+.palaeo-limitation-key ul { display: grid; gap: 4px; margin: 5px 0 0; padding: 0; list-style: none; }
+.palaeo-limitation-key li { position: relative; padding-left: 9px; color: var(--dim); font-size: 9px; line-height: 1.4; }
+.palaeo-limitation-key li::before { content: ""; position: absolute; left: 0; top: 5px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+.outline-marker-key { display: grid; gap: 5px; margin: 9px 0 0; padding: 0; list-style: none; }
+.outline-marker-key li { display: grid; grid-template-columns: 13px 1fr; align-items: center; gap: 9px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.outline-marker { width: 12px; height: 2px; border-radius: 1px; }
+.outline-marker-dark { background: rgb(31, 38, 46); box-shadow: 0 0 0 1px rgba(255, 255, 255, .22); }
+.outline-marker-light { background: #d0d4d5; }
+.layer-unavailable { color: var(--copper-bright); }
 .surface-evidence-key { display: grid; gap: 5px; padding: 11px 0 1px; color: var(--muted); font-size: 9px; line-height: 1.4; }
 .surface-evidence-key > strong { color: var(--ink); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .surface-evidence-key > span::before { content: "·"; margin-right: 6px; color: var(--copper-bright); }
@@ -303,6 +346,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .timeline-range::-moz-range-track { height: 3px; border-radius: 2px; background: linear-gradient(90deg, rgba(154, 199, 210, .78), rgba(200, 134, 88, .82)); }
 .timeline-range::-webkit-slider-thumb { box-sizing: border-box; width: 19px; height: 19px; margin-top: -8px; appearance: none; border: 3px solid #0b1113; border-radius: 50%; background: var(--copper-bright); box-shadow: 0 0 0 1px var(--copper-bright), 0 0 15px rgba(229, 164, 111, .68); }
 .timeline-range::-moz-range-thumb { box-sizing: border-box; width: 19px; height: 19px; border: 3px solid #0b1113; border-radius: 50%; background: var(--copper-bright); box-shadow: 0 0 0 1px var(--copper-bright), 0 0 15px rgba(229, 164, 111, .68); }
+/* Published map-interval bounds. Decoration under the chapter marks: they say
+   where a stepped map layer changes, and are never pointer or keyboard targets. */
+.interval-marks { position: absolute; z-index: 2; inset: 0 0 auto; height: 18px; pointer-events: none; }
+.interval-mark { position: absolute; top: 3px; width: 1px; height: 12px; background: rgba(154, 199, 210, .42); transform: translateX(-50%); }
 .chapter-marks { position: absolute; z-index: 3; inset: 0 0 auto; height: 18px; pointer-events: none; }
 .chapter-mark { position: absolute; top: 2px; width: 11px; height: 16px; transform: translateX(-50%); }
 .chapter-mark::after { content: ""; position: absolute; left: 5px; top: 7px; width: 1px; height: 7px; background: rgba(220, 222, 216, .26); }
@@ -437,7 +484,21 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .globe-stage { top: 92px; right: 0; bottom: var(--timeline-height); left: 0; min-height: 0; }
   .surface-info { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
   .surface-info summary { min-height: 44px; padding: 0 12px; }
-  .surface-info-panel { width: calc(100vw - 16px); max-height: min(48vh, calc(100vh - var(--header-height) - var(--timeline-height) - 66px)); }
+  .surface-info-panel { width: calc(100vw - 16px); max-height: calc(100vh - var(--header-height) - var(--timeline-height) - 66px); }
+  /* 390 px leaves no room for both. While the key is open the chapter card is
+     removed from the layout rather than painted over: an open key that covers
+     half a card is less readable than one that covers none of it, and the card
+     comes straight back when the key closes. */
+  .atlas-shell[data-map-key-open="true"] .context-panel { display: none; }
+  /* The palaeo block adds its swatches, a legend, a limitations list and two
+     sentences to a key that already fills a phone panel, so the phone tightens
+     the spacing first and only then scrolls. */
+  .surface-color-key { gap: 6px; padding-bottom: 9px; }
+  .surface-palaeo-key { padding-top: 9px; }
+  .surface-palaeo-key .surface-info-note { margin-top: 5px; font-size: 9px; line-height: 1.4; }
+  .palaeo-limitation-key { margin-top: 7px; }
+  .palaeo-limitation-key ul { gap: 3px; }
+  .outline-marker-key { gap: 4px; margin-top: 7px; }
   .location-lock { left: max(8px, env(safe-area-inset-left)); bottom: calc(58px + env(safe-area-inset-bottom)); max-width: calc(100% - 16px); }
   .stage-vignette { background: linear-gradient(180deg, rgba(2, 6, 8, .32), transparent 32%, rgba(2, 6, 8, .35)); }
   .modal-panel { padding: 24px 22px 32px; }

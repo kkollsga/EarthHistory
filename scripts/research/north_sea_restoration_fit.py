@@ -25,6 +25,7 @@ import json
 import math
 import struct
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -214,7 +215,7 @@ def chart_centroids(core):
 
 
 def select_charts():
-    core = json.loads((PUBLIC / "core.json").read_text())
+    core = package_intern.read_package_json(PUBLIC / "core.json")
     palette = json.loads((PUBLIC / "motion-palette.json").read_text())
     entry_plate = {entry["entryId"]: entry["plateId"] for entry in palette["entries"]}
     centroids = chart_centroids(core)

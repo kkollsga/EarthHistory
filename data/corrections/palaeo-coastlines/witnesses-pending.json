@@ -1,0 +1,802 @@
+[
+ {
+  "name": "Black Sea Maikop",
+  "lon": 34.0,
+  "lat": 43.0,
+  "interval": "37-29",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Black Sea upper Maikop",
+  "lon": 34.0,
+  "lat": 43.0,
+  "interval": "29-20",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Middle Caspian Maikop",
+  "lon": 51.0,
+  "lat": 42.0,
+  "interval": "29-20",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "North Caucasus foredeep Maikop",
+  "lon": 44.0,
+  "lat": 45.0,
+  "interval": "37-29",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Caspian isolated basin",
+  "lon": 51.0,
+  "lat": 42.0,
+  "interval": "11-2",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "note": "Mandatory epistemic note where this row surfaces: a brackish lake-sea rendered in the only class available, not a marine shelf."
+ },
+ {
+  "name": "Pannonian Basin Badenian",
+  "lon": 19.0,
+  "lat": 47.0,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "note": "Mandatory epistemic note: Paratethys brackish to marine basin; Cao mountain polygons cover the basin interior at the adjacent intervals."
+ },
+ {
+  "name": "Transylvanian Basin Badenian",
+  "lon": 24.5,
+  "lat": 46.5,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "note": "Mandatory epistemic note: Paratethys basin, brackish to marine."
+ },
+ {
+  "name": "Transylvanian Basin post-Pannonian",
+  "lon": 24.5,
+  "lat": 46.5,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "note": "Mandatory epistemic note: the basin's post-Pannonian emergence, not an open-ocean shoreline."
+ },
+ {
+  "name": "Aral Turan continental",
+  "lon": 60.0,
+  "lat": 44.0,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Dacian Basin Sarmatian",
+  "lon": 26.0,
+  "lat": 44.5,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Molasse Obere Meeresmolasse",
+  "lon": 11.0,
+  "lat": 48.0,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "Molasse Chattian freshwater",
+  "lon": 11.0,
+  "lat": 48.5,
+  "interval": "29-20",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "control": true,
+  "note": "BASIN_EDIT_WITNESSES control for the North Alpine foreland op: same point, the adjacent interval outside the op's declared interval, so a footprint that leaks into 29-20 turns this row red."
+ },
+ {
+  "name": "Molasse late Miocene continental",
+  "lon": 11.0,
+  "lat": 48.5,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md"
+ },
+ {
+  "name": "North Alpine foreland UMM",
+  "lon": 11.0,
+  "lat": 48.5,
+  "interval": "37-29",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-paratethys.md",
+  "afterOp": "north-alpine-foreland-37-29-untere-meeresmolasse-add-shallow",
+  "note": "Flips only when the North Alpine foreland remove-land + add-shallow pair lands; at 49ccb43 this point is lm."
+ },
+ {
+  "name": "Sundaland emergent core Eocene",
+  "lon": 105.0,
+  "lat": 2.0,
+  "interval": "49-37",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Sundaland emergent core late Miocene",
+  "lon": 105.0,
+  "lat": 2.0,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Sundaland emergent core LGM",
+  "lon": 105.0,
+  "lat": 2.0,
+  "interval": "lgm",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Malay Basin syn-rift non-marine",
+  "lon": 104.0,
+  "lat": 6.0,
+  "interval": "29-20",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "note": "Mandatory epistemic note: lacustrine syn-rift section rendered in the only non-marine class available, not a claim of dry emergent land."
+ },
+ {
+  "name": "Malay Basin Pliocene marine",
+  "lon": 104.0,
+  "lat": 6.0,
+  "interval": "11-2",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Nam Con Son Pliocene marine",
+  "lon": 109.0,
+  "lat": 8.0,
+  "interval": "11-2",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Rajang trough deep marine",
+  "lon": 114.0,
+  "lat": 1.0,
+  "interval": "58-49",
+  "classes": [],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Borneo interior post-Sarawak-Orogeny land",
+  "lon": 114.0,
+  "lat": 1.0,
+  "interval": "29-20",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "note": "Mandatory epistemic note: post-orogenic emergent Borneo, the state the Sarawak Orogeny leaves behind."
+ },
+ {
+  "name": "Borneo Central Range",
+  "lon": 114.0,
+  "lat": 1.0,
+  "interval": "11-2",
+  "classes": [
+   "lm",
+   "m"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Sarawak shelf Oligocene",
+  "lon": 113.0,
+  "lat": 4.5,
+  "interval": "29-20",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Kutei marine Eocene transgression",
+  "lon": 117.5,
+  "lat": -0.5,
+  "interval": "49-37",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Mahakam delta plain",
+  "lon": 117.5,
+  "lat": -0.5,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md"
+ },
+ {
+  "name": "Makassar Strait open Neogene",
+  "lon": 118.5,
+  "lat": -2.0,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "control": true,
+  "note": "BASIN_EDIT_WITNESSES control for the Makassar op: the same point one bin younger, so a footprint that leaks into 37-29 or beyond is caught by the interval check."
+ },
+ {
+  "name": "Makassar Strait marine at LGM",
+  "lon": 118.5,
+  "lat": -2.0,
+  "interval": "lgm",
+  "classes": [],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "note": "Asserts that the Makassar Strait stays marine at the LGM: the Wallace's Line contract for this layer."
+ },
+ {
+  "name": "Paternoster platform Eocene land",
+  "lon": 116.5,
+  "lat": -4.0,
+  "interval": "49-37",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "control": true,
+  "note": "BASIN_EDIT_WITNESSES control for the Makassar op: inside the basin window's western margin but outside the op footprint, so a footprint that leaks west turns this row red."
+ },
+ {
+  "name": "South Makassar Basin Eocene",
+  "lon": 118.5,
+  "lat": -2.0,
+  "interval": "49-37",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-sundaland.md",
+  "afterOp": "makassar-strait-49-37-south-makassar-add-shallow",
+  "note": "Flips only when the Makassar remove-land + add-shallow pair lands; at 49ccb43 this point is lm. The memo's row 16 (Central Luconia, with OP-2) is deliberately omitted: OP-2 is not built."
+ },
+ {
+  "name": "western-interior-seaway",
+  "lon": -100.0,
+  "lat": 45.0,
+  "interval": "117-94",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Extends the existing western-interior-seaway row, which already holds 94-81: [\"sm\"]; do not duplicate that interval."
+ },
+ {
+  "name": "western-interior-seaway",
+  "lon": -100.0,
+  "lat": 45.0,
+  "interval": "81-58",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Extends the existing western-interior-seaway row, which already holds 94-81: [\"sm\"]; do not duplicate that interval."
+ },
+ {
+  "name": "western-interior-seaway",
+  "lon": -100.0,
+  "lat": 45.0,
+  "interval": "58-49",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Extends the existing western-interior-seaway row, which already holds 94-81: [\"sm\"]; do not duplicate that interval."
+ },
+ {
+  "name": "wis-sevier-foredeep-utah",
+  "lon": -111.0,
+  "lat": 40.0,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-sevier-foredeep-utah",
+  "lon": -111.0,
+  "lat": 40.0,
+  "interval": "81-58",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-sevier-highland-utah",
+  "lon": -114.0,
+  "lat": 40.0,
+  "interval": "94-81",
+  "classes": [
+   "m"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "The one Sevier reading the mountain class gets right; the southern-half collapse at 81-58 is a stated limitation, not an edit."
+ },
+ {
+  "name": "wis-east-shore-40n",
+  "lon": -97.0,
+  "lat": 40.0,
+  "interval": "117-94",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-shore-40n",
+  "lon": -97.0,
+  "lat": 40.0,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-shore-40n",
+  "lon": -97.0,
+  "lat": 40.0,
+  "interval": "58-49",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-craton-40n",
+  "lon": -93.0,
+  "lat": 40.0,
+  "interval": "117-94",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-craton-40n",
+  "lon": -93.0,
+  "lat": 40.0,
+  "interval": "94-81",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-craton-40n",
+  "lon": -93.0,
+  "lat": 40.0,
+  "interval": "81-58",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-shore-45n",
+  "lon": -95.0,
+  "lat": 45.0,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-east-shore-45n",
+  "lon": -95.0,
+  "lat": 45.0,
+  "interval": "58-49",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-boreal-corridor",
+  "lon": -115.0,
+  "lat": 60.0,
+  "interval": "117-94",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-boreal-corridor",
+  "lon": -115.0,
+  "lat": 60.0,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-boreal-corridor",
+  "lon": -115.0,
+  "lat": 60.0,
+  "interval": "81-58",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-hudson-bay-land",
+  "lon": -90.0,
+  "lat": 55.0,
+  "interval": "117-94",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Negative control: the Boreal link is not through Hudson Bay."
+ },
+ {
+  "name": "wis-hudson-bay-land",
+  "lon": -90.0,
+  "lat": 55.0,
+  "interval": "94-81",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Negative control: the Boreal link is not through Hudson Bay."
+ },
+ {
+  "name": "wis-hudson-bay-land",
+  "lon": -90.0,
+  "lat": 55.0,
+  "interval": "81-58",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "note": "Negative control: the Boreal link is not through Hudson Bay."
+ },
+ {
+  "name": "wis-gulf-coast-texas",
+  "lon": -95.0,
+  "lat": 32.0,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-gulf-coast-texas",
+  "lon": -95.0,
+  "lat": 32.0,
+  "interval": "81-58",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-gulf-coast-texas",
+  "lon": -95.0,
+  "lat": 32.0,
+  "interval": "58-49",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md"
+ },
+ {
+  "name": "wis-san-juan-basin",
+  "lon": -108.0,
+  "lat": 36.5,
+  "interval": "94-81",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "control": true,
+  "note": "BASIN_EDIT_WITNESSES control for the San Juan op: the same point one bin older, outside the op's declared interval."
+ },
+ {
+  "name": "wis-san-juan-basin",
+  "lon": -108.0,
+  "lat": 36.5,
+  "interval": "81-58",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-western-interior.md",
+  "afterOp": "western-interior-81-58-san-juan-lewis-sea-add-shallow",
+  "note": "Flips only when the San Juan remove-land + add-shallow pair lands; at 49ccb43 this point is lm, which is the before-state the memo pins."
+ },
+ {
+  "name": "paranense-corrientes-tep",
+  "lon": -57.0,
+  "lat": -31.0,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md"
+ },
+ {
+  "name": "paranense-corrientes-retreat",
+  "lon": -57.0,
+  "lat": -31.0,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "The only point recording the late-Miocene withdrawal, on the correct side of del Rio's Santa Fe limit."
+ },
+ {
+  "name": "paranense-chaco-parana",
+  "lon": -60.0,
+  "lat": -30.0,
+  "interval": "20-11",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md"
+ },
+ {
+  "name": "paranense-chaco-parana-pre",
+  "lon": -60.0,
+  "lat": -30.0,
+  "interval": "29-20",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "The pre-transgression control at the Laguna Paiva type latitude; the cited reading, not a defect."
+ },
+ {
+  "name": "paranense-chaco-north-dry",
+  "lon": -60.0,
+  "lat": -25.0,
+  "interval": "20-11",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md"
+ },
+ {
+  "name": "paranense-chaco-west-dry",
+  "lon": -64.0,
+  "lat": -30.0,
+  "interval": "20-11",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "The western limit Ruskin et al. 2011 explicitly discourage mapping past."
+ },
+ {
+  "name": "paranense-pampas-dry",
+  "lon": -62.0,
+  "lat": -36.0,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "Unconstrained by literature; records the payload, not a claim."
+ },
+ {
+  "name": "pebas-maranon-land",
+  "lon": -75.0,
+  "lat": -6.0,
+  "interval": "20-11",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "Mandatory epistemic note: lm is the conservative class here, not a settled one - Parra et al. 2026 contest it."
+ },
+ {
+  "name": "pebas-solimoes-land",
+  "lon": -66.0,
+  "lat": -4.0,
+  "interval": "11-2",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md"
+ },
+ {
+  "name": "pebas-beni-land",
+  "lon": -67.0,
+  "lat": -10.0,
+  "interval": "20-11",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "Records the payload, not a claim: SA10 is unconstrained and tidal influence is not sm."
+ },
+ {
+  "name": "andean-foreland-eocene-sea",
+  "lon": -75.0,
+  "lat": -4.0,
+  "interval": "37-29",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "Recorded so the unexplained pre-Neogene marine belt is visible if it moves; not an endorsement."
+ },
+ {
+  "name": "andean-foreland-oligocene-dry",
+  "lon": -75.0,
+  "lat": -4.0,
+  "interval": "29-20",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-south-america-neogene.md",
+  "note": "The negative control for the row above."
+ },
+ {
+  "name": "loppa-high-early-cretaceous-marine",
+  "lon": 20.546,
+  "lat": 72.057,
+  "interval": "135-117",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md",
+  "note": "The held Loppa op's own target; no op is proposed, and the crest-exposure source A.4 names has not been read."
+ },
+ {
+  "name": "loppa-crest-late-jurassic-island",
+  "lon": 21.0,
+  "lat": 72.0,
+  "interval": "166-146",
+  "classes": [
+   "lm",
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md"
+ },
+ {
+  "name": "loppa-crest-early-cretaceous-marine",
+  "lon": 21.0,
+  "lat": 72.0,
+  "interval": "135-117",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md"
+ },
+ {
+  "name": "bjarmeland-platform-early-cretaceous",
+  "lon": 30.0,
+  "lat": 73.0,
+  "interval": "135-117",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md",
+  "note": "Eastern negative control: a Loppa op must change the high, not the platform."
+ },
+ {
+  "name": "hammerfest-basin-albian-land",
+  "lon": 22.0,
+  "lat": 71.5,
+  "interval": "117-94",
+  "classes": [
+   "lm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md",
+  "note": "Recorded so the neighbouring basin's land in the later bin is not read as support for the held Loppa op."
+ },
+ {
+  "name": "tunguska-mississippian-sea",
+  "lon": 100.0,
+  "lat": 62.0,
+  "interval": "359-338",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md",
+  "note": "The contested state itself; witnessing it keeps the B.3 limitation visible instead of quietly changing."
+ },
+ {
+  "name": "tunguska-mississippian-sea-south",
+  "lon": 105.0,
+  "lat": 60.0,
+  "interval": "359-338",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md"
+ },
+ {
+  "name": "tunguska-mississippian-north",
+  "lon": 95.0,
+  "lat": 65.0,
+  "interval": "359-338",
+  "classes": [
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md",
+  "note": "Any future removal must spare the northern point; this row is what would catch a blanket removal."
+ },
+ {
+  "name": "tunguska-mississippian-east",
+  "lon": 110.0,
+  "lat": 58.0,
+  "interval": "359-338",
+  "classes": [
+   "lm",
+   "sm"
+  ],
+  "memo": "docs/research/palaeo-coastlines-barents-and-tunguska.md"
+ }
+]

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GpuRetirementRefusedError } from "./gpuRetirement";
 import { AtomicPrototypePublisher, type OwnedPrototypeResources } from "./publication";
 
 class Resource implements OwnedPrototypeResources {
@@ -77,6 +78,32 @@ describe("AtomicPrototypePublisher", () => {
     expect(publisher.retainedBytes()).toBe(32);
     expect(publisher.retirementFailures()).toHaveLength(1);
     expect(publisher.retirementFailures()[0]).toEqual(new Error("device lost"));
+  });
+
+  it("disposes a refused retirement instead of keeping its bytes forever", async () => {
+    // A refused retirement is not a failure of a retirement that happened: the
+    // bounded owner never took the resource, so the publisher still owns it.
+    // Keeping the bytes in the ledger spent the publication budget on resources
+    // nobody held, and the palaeo-coastline layer latched at "loading" the next
+    // time it tried to publish: every trip out of the published age domain
+    // cleared the publication, and each clear was refused once the owner's one
+    // pending slot was busy.
+    const publisher = new AtomicPrototypePublisher<Resource>();
+    const first = publisher.begin("first");
+    const refused = new Resource(12, new GpuRetirementRefusedError(
+      "GPU retirement backpressure bound exceeded"));
+    publisher.stage(first, 0, "settled", refused);
+    publisher.commit(first);
+    const second = publisher.begin("second");
+    publisher.stage(second, 1, "settled", new Resource(20));
+    publisher.commit(second);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(publisher.retainedBytes()).toBe(20);
+    expect(publisher.refusedRetirementCount()).toBe(1);
+    expect(refused.disposed).toBe(true);
+    // A refusal is not a device-loss failure and must not be reported as one.
+    expect(publisher.retirementFailures()).toHaveLength(0);
   });
 
   it("rejects invalid resource accounting before staging", () => {

@@ -5,12 +5,17 @@ import { CaoReconstructionRuntime } from "./engineV2";
 import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, resolveChartMotionSegment,
   resolveChartMotionSupportGap } from "./motionFrameV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
+import { numberScalarOps, rotateDirection } from "./arithmetic";
 import { validateReconstructionCoreV2, type ReconstructionCoreV2,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { loadVerifiedCaoFoundation } from "./loaderV2";
 import type { MotionPaletteCatalog } from "./palette";
+import { expandInternedPackageDocument } from "./packageIntern";
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
+/** Package JSON is read raw here, so the interning decoder runs explicitly. */
+const readJson = async (url: string): Promise<unknown> =>
+  JSON.parse(await readFile(resolve(root, url), "utf8")) as unknown;
 const fetcher: StaticAssetFetcher = async (url, signal) => {
   if (signal?.aborted) throw new DOMException("aborted", "AbortError");
   const bytes = await readFile(resolve(root, packageAssetPath(url)));
@@ -44,7 +49,7 @@ describe("continuous Cao motion frames", () => {
   it("rejects an unauthored motion interval instead of holding a nearest pose", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
-    const core = JSON.parse(await readFile(resolve(root, manifest.core.url), "utf8")) as
+    const core = expandInternedPackageDocument(await readJson(manifest.core.url)) as
       ReconstructionCoreV2;
     const palette = JSON.parse(await readFile(resolve(root, manifest.motionPalette.catalog.url), "utf8")) as
       MotionPaletteCatalog;
@@ -233,6 +238,50 @@ describe("continuous Cao motion frames", () => {
       expect(postModern.charts.find((chart) => chart.chartId === chartId)?.support)
         .toEqual({ kind: "inactive", reason: "unborn" });
     }
+  });
+
+  // `at=<lon>,<lat>` is a present-day coordinate, so the deep link has to be
+  // posed through the chart that owns that ground before the camera aims at it.
+  // The inverse of that pose is exactly what the coverage path applies to a
+  // rendered direction, so the round trip is the contract both share.
+  it("poses a present-day direction through the chart that owns the ground", async () => {
+    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
+      ReconstructionPackageManifestV2;
+    const foundation = await loadVerifiedCaoFoundation(manifest, fetcher);
+
+    // Present-day (-100, 45): the Western Interior of North America, the ground
+    // the 90 Ma seaway capture frames.
+    const interior = lonLatDirection(-100, 45);
+    const modern = evaluateCaoMotionFrame(manifest, foundation, 0);
+    const modernResolved = modern.resolvePresentDayDirection(interior);
+    expect(modernResolved.resolution).toBe("posed");
+    expect(modernResolved.chartId).not.toBeNull();
+    for (const axis of [0, 1, 2]) {
+      expect(modernResolved.direction[axis]).toBeCloseTo(interior[axis]!, 6);
+    }
+
+    const cretaceous = evaluateCaoMotionFrame(manifest, foundation, 90);
+    const posed = cretaceous.resolvePresentDayDirection(interior);
+    expect(posed.resolution).toBe("posed");
+    // The coverage path undoes the same chart's pose to answer a rendered
+    // direction; inverting the pose must return the requested ground exactly.
+    const chart = cretaceous.charts.find((candidate) => candidate.chartId === posed.chartId)!;
+    const restored = rotateDirection(numberScalarOps, chart.inversePoseQuaternion, posed.direction);
+    for (const axis of [0, 1, 2]) {
+      expect(restored[axis]).toBeCloseTo(interior[axis]!, 6);
+    }
+    // North America is well away from its present-day longitude at 90 Ma: a
+    // direction that had not moved would frame different ground.
+    const cosine = posed.direction[0] * interior[0]! + posed.direction[1] * interior[1]!
+      + posed.direction[2] * interior[2]!;
+    expect(Math.acos(Math.min(1, cosine)) * 180 / Math.PI).toBeGreaterThan(5);
+
+    // Open ocean carries no chart, so there is no reconstructed position to
+    // aim at and the raw direction comes back flagged.
+    const pacific = lonLatDirection(-140, -25);
+    const unposed = modern.resolvePresentDayDirection(pacific);
+    expect(unposed).toMatchObject({ resolution: "present-day-unposed", chartId: null });
+    expect([...unposed.direction]).toEqual([...pacific]);
   });
 
 });

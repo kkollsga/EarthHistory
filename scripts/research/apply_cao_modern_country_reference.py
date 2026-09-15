@@ -12,6 +12,7 @@ import os
 import struct
 from copy import deepcopy
 from pathlib import Path
+import cao_package_intern as package_intern
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -312,7 +313,8 @@ def apply(package: Path) -> dict:
     contract = json.loads(CONTRACT.read_text())
     core_path, manifest_path = package / "core.json", package / "manifest.json"
     palette_path, palette_binary_path = package / "motion-palette.json", package / "motion-palette.bin"
-    core, manifest, palette = json.loads(core_path.read_text()), json.loads(manifest_path.read_text()), json.loads(palette_path.read_text())
+    core, manifest, palette = (package_intern.read_package_json(core_path),
+                               json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     if any(row["chartId"].startswith(CHART_PREFIX) for row in core["charts"]):
         raise BuildError("exact-present country extension already applied")
     if any(row["entryId"] == ENTRY_ID for row in palette["entries"]):
@@ -377,7 +379,7 @@ def apply(package: Path) -> dict:
     write_atomic(palette_binary_path, palette_binary)
     palette["binary"] = asset(palette_binary_path)
     write_atomic(palette_path, canonical(palette))
-    write_atomic(core_path, canonical(core))
+    write_atomic(core_path, canonical(package_intern.intern_charts(core)))
     manifest["core"] = asset(core_path)
     manifest["motionPalette"]["catalog"] = asset(palette_path)
     manifest["motionPalette"]["binary"] = asset(palette_binary_path)
@@ -401,7 +403,8 @@ def validate_applied(package: Path, *, original_geometry=None, original_charts=N
     validate_contract(contract)
     core_path, manifest_path = package / "core.json", package / "manifest.json"
     palette_path, palette_binary_path = package / "motion-palette.json", package / "motion-palette.bin"
-    core, manifest, palette = json.loads(core_path.read_text()), json.loads(manifest_path.read_text()), json.loads(palette_path.read_text())
+    core, manifest, palette = (package_intern.read_package_json(core_path),
+                               json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     if (manifest["core"] != asset(core_path)
             or manifest["motionPalette"]["catalog"] != asset(palette_path)
             or manifest["motionPalette"]["binary"] != asset(palette_binary_path)):

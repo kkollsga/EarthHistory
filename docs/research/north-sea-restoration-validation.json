@@ -1,5 +1,5 @@
 {
-  "appliedCoreSha256": "a7f46b45feaaf8c5109e752722048216e4bfdf44859a0c2b15b9a62984e357d0",
+  "appliedCoreSha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502",
   "correctionId": "earthhistory-north-sea-restoration-v1",
   "maximumMotionResidualRad": 2.8186868879892362e-05,
   "maximumResidualAgeMa": 341.5,
@@ -234,5 +234,8 @@
       "expectedKm": 46.585,
       "pair": "Aberdeen-Stavanger"
     }
+  ],
+  "packageAssetsRebasedBy": [
+    "earthhistory-cao-package-interning-v1"
   ]
 }
