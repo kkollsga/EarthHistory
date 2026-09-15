@@ -24,6 +24,7 @@ export const NO_PALAEO_MATERIAL_CORRECTIONS: PreparedCaoRevision["materialCorrec
   qualifiedActiveCharts: 0,
   uncertainActiveCharts: 0,
   formationUncertainActiveCharts: 0,
+  restoredCollisionMarginActiveCharts: 0,
   modelInferredPoseActiveCharts: 0,
   overriddenNativeCharts: 0,
   activeSourceIds: Object.freeze([]),

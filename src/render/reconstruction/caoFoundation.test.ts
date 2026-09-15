@@ -102,7 +102,8 @@ function fixture(entryCount = 2): PreparedCaoRevision {
     materialCorrectionIdentity: null,
     materialCorrections: { observedActiveCharts: 0, classifiedShallowMarineActiveCharts: 0,
       qualifiedActiveCharts: 0, uncertainActiveCharts: 0,
-      formationUncertainActiveCharts: 0, modelInferredPoseActiveCharts: 0,
+      formationUncertainActiveCharts: 0, restoredCollisionMarginActiveCharts: 0,
+      modelInferredPoseActiveCharts: 0,
       overriddenNativeCharts: 0, activeSourceIds: [], correctionIds: [] },
     requestedAgeMa: 0, frameIdentity: "cao-frame",
     display: { youngerAgeMa: 0, olderAgeMa: 5, fraction: 0 },
@@ -226,7 +227,7 @@ describe("Cao foundation renderer boundary", () => {
       maxPublicationBytes: 2 * 1024 * 1024,
     };
     const resource = createCaoFoundationGeometryResource(revision, packageLimits);
-    expect(resource.batches).toHaveLength(5);
+    expect(resource.batches).toHaveLength(6);
     expect(resource.lineBatches).toHaveLength(1);
     expect(resource.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBeGreaterThan(0);
     expect(resource.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBeGreaterThan(0);
@@ -1357,8 +1358,8 @@ describe("Cao foundation renderer boundary", () => {
     // Precedence, draw order and (for the separated classes) shell height are
     // one order, so a class cannot outrank another in the pick and lose in the
     // draw.
-    expect(CAO_FOUNDATION_SURFACE_PRECEDENCE).toEqual(["shelf", "palaeo-shallow-marine",
-      "corrections", "palaeo-land", "palaeo-mountain", "land"]);
+    expect(CAO_FOUNDATION_SURFACE_PRECEDENCE).toEqual(["shelf", "correction-shelf",
+      "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain", "land"]);
     const renderOrders = CAO_FOUNDATION_SURFACE_SHELLS.map((shell) => shell.renderOrder);
     expect(renderOrders).toEqual([...renderOrders].sort((left, right) => left - right));
     expect(new Set(renderOrders).size).toBe(renderOrders.length);
@@ -1385,8 +1386,13 @@ describe("Cao foundation renderer boundary", () => {
         exempt.push(`${lower.surfaceClass}>${upper.surfaceClass}`);
       }
     }
-    // Exactly two pairs are exempt, and both are exempt for the same reason.
+    // Exactly four pairs are exempt, and all four are exempt for the same
+    // reason: the lower class of the pair writes no depth, so the class above it
+    // simply paints over it in draw order. Two of them are the restored
+    // pre-collision margin class, which shares the 700 m shell with
+    // palaeo-shallow-marine and sits under the 800 m correction shell.
     expect([...new Set(exempt)].sort()).toEqual([
+      "correction-shelf>corrections", "correction-shelf>palaeo-shallow-marine",
       "corrections>land", "palaeo-shallow-marine>corrections"]);
     // Every depth-writing class is cleared by whatever is drawn above it.
     for (const upper of CAO_FOUNDATION_SURFACE_SHELLS) {
@@ -1416,7 +1422,8 @@ describe("Cao foundation renderer boundary", () => {
     const lgmComposition = CAO_FOUNDATION_SURFACE_SHELLS.filter((shell) =>
       shell.visibleInNativeMode || shell.visibleInPalaeoMode);
     expect(lgmComposition.map((shell) => shell.surfaceClass)).toEqual([
-      "shelf", "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain", "land"]);
+      "shelf", "correction-shelf", "palaeo-shallow-marine", "corrections",
+      "palaeo-land", "palaeo-mountain", "land"]);
 
     const lateAndLower: string[] = [];
     for (const upper of lgmComposition) {
@@ -1453,10 +1460,14 @@ describe("Cao foundation renderer boundary", () => {
     const visibleClasses = (mode: "native" | "palaeo") =>
       CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
         caoFoundationSurfaceClassVisible(surfaceClass, mode));
-    const todaysComposition = ["shelf", "corrections", "land"];
+    // The restored pre-collision margin class is visible in both modes: it is a
+    // correction like any other, and hiding it in the native mode would make the
+    // globe disagree with itself at the same age with the layer off.
+    const todaysComposition = ["shelf", "correction-shelf", "corrections", "land"];
     expect(visibleClasses("native")).toEqual(todaysComposition);
     expect(visibleClasses("palaeo")).toEqual(
-      ["shelf", "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain"]);
+      ["shelf", "correction-shelf", "palaeo-shallow-marine", "corrections",
+        "palaeo-land", "palaeo-mountain"]);
 
     const cases = [
       { layerOn: false, insideDomain: false, domainVisible: false, published: false, mode: "off" },

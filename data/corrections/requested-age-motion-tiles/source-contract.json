@@ -42,8 +42,8 @@
     "materialCorrections": {
       "catalog": {
         "url": "corrections/material-v1/catalog.json",
-        "bytes": 220600,
-        "sha256": "4404aa882d0f8bb64f715272f37c0538d3dfab29fbef5bbdea33de4d131dcb28"
+        "bytes": 243939,
+        "sha256": "b4f8b892a5f403dcd8a0b3ab6d8cd221c0090dc4580c3ca3721d0353bb8f3ee7"
       },
       "id": "earthhistory-cao-v2.4-material-corrections-v1"
     }
@@ -57,7 +57,7 @@
     "expectedRecordCount": 281219,
     "expectedEntryDescriptorCount": 11043,
     "expectedIndexBytes": 28068,
-    "expectedIndexSha256": "bf4488ee3951452a7651d0fb1cda34c304ec779f946c48039705fc43cc95335f",
+    "expectedIndexSha256": "fef2a278deb896e6bab86d718444206e65019aa378ba69731682bc17c46f49c5",
     "outputLimitBytes": 6610000,
     "cleanupOwner": "root",
     "scratchRoot": "/tmp/earthhistory-requested-age/data"

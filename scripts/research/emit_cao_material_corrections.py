@@ -18,6 +18,7 @@ import cao_material_corrections as contract
 import regional_iceland_correction as iceland_contract
 import regional_observed_land_omission_correction as omission_contract
 import regional_lake_void_correction as lake_contract
+import restored_margins_correction as margin_contract
 import cao_package_intern as package_intern
 
 
@@ -27,6 +28,11 @@ OUT = PUBLIC / "corrections/material-v1"
 CATALOG_ID = "earthhistory-cao-v2.4-material-corrections-v1"
 CATALOG_VERSION = "4"
 LAND_COLOR = [0.45, 0.55, 0.3]
+# Restored pre-collision margins are crust of unmapped depth, not cited land, so
+# their batch declares the shelf appearance and carries the shelf's own colour
+# (CAO_FOUNDATION_DEFAULT_BASE_COLORS.shelf). Every other correction batch keeps
+# the land appearance and LAND_COLOR.
+CRUST_COLOR = [0.0431, 0.2863, 0.3922]
 MAX_EDGE_RADIANS = math.radians(1)
 EARTH_RADIUS_METRES = 6_371_000
 DISPLAY_SHELL_OFFSET_METRES = 400
@@ -796,7 +802,8 @@ def chart(manifest, feature, phase, palette):
     correction_id = manifest["correctionId"]
     source_ids = [str(value) for value in feature["sourceIds"]]
     replacement = feature.get("replacementEvidence")
-    label = ("observed-exposed-land" if phase == "observed" else
+    label = (margin_contract.PHASE if phase == margin_contract.PHASE else
+             "observed-exposed-land" if phase == "observed" else
              "source-qualified-material" if phase in {"qualified", "model-pose"} else
              "formation-uncertain" if phase == "formation" else "uncertain-continuation")
     if feature.get("phaseLifecycles") is not None:
@@ -813,6 +820,16 @@ def chart(manifest, feature, phase, palette):
         })
         if replacement["materialOriginRangeMa"] is not None:
             correction["materialOriginRangeMa"] = replacement["materialOriginRangeMa"]
+    elif feature.get("materialRole") == "restored-collision-margin":
+        # Restored crust the collision consumed: the lifecycle end is the model's
+        # own statement that the crust is gone, and the published width is what
+        # the map key carries.
+        correction.update({
+            "materialStatus": "restored-consumed-margin",
+            "poseStatus": "model-inference",
+            "consumedByMa": feature["consumption"]["consumedByMa"],
+            "restoredWidthKm": feature["restoredExtent"]["widthKm"],
+        })
     elif feature.get("materialRole") == "lake-void-infill":
         correction.update({
             "materialStatus": "supported",
@@ -830,6 +847,8 @@ def chart(manifest, feature, phase, palette):
             "materialOriginRangeMa": origin,
         })
     source_type = ("EarthHistoryObservedModernLandCorrection" if phase == "observed" else
+                   margin_contract.SOURCE_TYPE
+                   if feature.get("materialRole") == "restored-collision-margin" else
                    lake_contract.SOURCE_TYPE if feature.get("materialRole") == "lake-void-infill" else
                    "EarthHistoryVolcanicIslandMaterialCorrection"
                    if feature.get("phaseLifecycles") is not None else
@@ -858,6 +877,8 @@ def chart(manifest, feature, phase, palette):
                             feature["uncertainty"]["exposure"],
                             ("observed land classification is limited to the exact modern reference age"
                              if phase == "observed" else
+                             margin_contract.contract.LIMITATION_PHASE
+                             if feature.get("materialRole") == "restored-collision-margin" else
                              "land inferred between native coast charts before the cited or default lake onset; not a shoreline, depth, or height claim"
                              if feature.get("materialRole") == "lake-void-infill" else
                              "material support is not a palaeoshoreline, exposed-land, or height claim"),
@@ -1051,6 +1072,10 @@ def main():
     lake_contract.validate_document(lake_manifest)
     rows = [*rows, *((lake_manifest, lake_contract.MANIFEST, feature)
                      for feature in lake_manifest["features"])]
+    margin_manifest = json.loads(margin_contract.MANIFEST.read_text())
+    margin_contract.validate_document(margin_manifest)
+    rows = [*rows, *((margin_manifest, margin_contract.MANIFEST, feature)
+                     for feature in margin_manifest["features"])]
     package, palette, records = palette_data()
     core = package_intern.read_package_json(PUBLIC / package["core"]["url"])
     native_overrides, replacement_rows = native_override_rows(core)
@@ -1060,9 +1085,13 @@ def main():
     batches = []
     geometry_paths = []
     with tempfile.TemporaryDirectory(prefix="earthhistory-corrections-") as scratch:
+        # One batch per declared appearance: the first three draw with the land
+        # appearance on the correction shell, the fourth with the shelf (crust,
+        # depth-unmapped) appearance below palaeo-shallow-marine.
         for batch_name, phases in (("observed", ("observed",)),
                                    ("qualified", ("qualified",)),
-                                   ("uncertain", ("uncertain", "model-pose", "formation"))):
+                                   ("uncertain", ("uncertain", "model-pose", "formation")),
+                                   ("restored-margin", (margin_contract.PHASE,))):
             staged = stage_phases(rows, phases, batch_name, len(core["charts"]) + len(charts),
                                   palette, records, Path(scratch))
             if not staged:
@@ -1078,16 +1107,20 @@ def main():
             geometry_path = OUT / f"{batch_name}.ehgb"
             write_geometry(geometry_path, directions, indices, vertex_charts)
             geometry_paths.append(geometry_path)
-            batches.append({
+            crust = batch_name == "restored-margin"
+            batch = {
                 "batchId": f"material-correction-{batch_name}",
                 "vertexCount": len(directions),
                 "triangleCount": len(indices) // 3,
                 "geometryAsset": asset(geometry_path),
                 "encoding": "ehgb-v2-f32xyz-u32",
                 "staticDisplayControl": {"displayHeightMetres": 0,
-                                         "baseColorRgb": LAND_COLOR},
+                                         "baseColorRgb": CRUST_COLOR if crust else LAND_COLOR},
                 "overlapPolicy": "native-visual-and-picking-precedence",
-            })
+            }
+            if crust:
+                batch["surfaceAppearance"] = "shelf"
+            batches.append(batch)
     catalog = {
         "schemaVersion": 1,
         "id": CATALOG_ID,
@@ -1099,6 +1132,7 @@ def main():
                                  iceland_manifest["correctionId"],
                                  omission_manifest["correctionId"],
                                  lake_manifest["correctionId"],
+                                 margin_manifest["correctionId"],
                                  *(override["correctionId"] for override in native_overrides)}),
         "nativeChartOverrides": native_overrides,
         "alignmentWitnesses": alignment_witnesses(additive_rows, palette, records),

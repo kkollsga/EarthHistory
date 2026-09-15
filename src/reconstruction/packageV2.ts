@@ -78,13 +78,18 @@ export interface MaterialChartEvidence {
   readonly correction?: {
     readonly correctionId: string;
     readonly phase: "observed-exposed-land" | "source-qualified-material" |
-      "uncertain-continuation" | "formation-uncertain";
-    readonly materialStatus?: "supported" | "native-source-supported-age-unknown" | "formation-uncertain";
+      "uncertain-continuation" | "formation-uncertain" | "restored-collision-margin";
+    readonly materialStatus?: "supported" | "native-source-supported-age-unknown"
+      | "formation-uncertain" | "restored-consumed-margin";
     readonly poseStatus?: "source-qualified" | "model-inference" | "native-target-only" | "uncertain-continuation";
     readonly materialOriginRangeMa?: readonly [number, number];
     /** Lake-void infill only: the cited or present-only onset the chart's lifecycle starts at. */
     readonly lakeOnsetMa?: number;
     readonly lake?: string;
+    /** Restored collision margin only: the age the model consumes this crust. */
+    readonly consumedByMa?: number;
+    /** Restored collision margin only: the published width the strip restores. */
+    readonly restoredWidthKm?: number;
   };
 }
 
@@ -95,6 +100,16 @@ export interface MaterialChartEvidence {
  */
 export const LAKE_VOID_INFILL_SOURCE_TYPE = "EarthHistoryLakeVoidInfill";
 export const LAKE_VOID_INFILL_OLDEST_MA = 1800;
+
+/**
+ * Restored pre-collision margin crust: the continental margin the Alpine and
+ * Scandian collisions consumed, authored as cited model inference on the plate
+ * that carries its datum crust and retired as the model closes the room for it.
+ * It is crust, never land: the charts carry unknown surface evidence and draw
+ * with the shelf appearance, and every lifecycle ends above the present day.
+ */
+export const RESTORED_COLLISION_MARGIN_SOURCE_TYPE = "EarthHistoryRestoredCollisionMargin";
+export const RESTORED_COLLISION_MARGIN_OLDEST_MA = 600;
 
 export interface RigidMaterialChartV2 {
   readonly kind: "rigid";
@@ -509,6 +524,17 @@ export function validateMaterialCorrectionCatalogV1(
             && lifecycle.oldest <= 540))
       : phase === "uncertain-continuation"
         ? lifecycle.youngest > 410 && lifecycle.oldest === 540
+      : phase === "restored-collision-margin"
+        // The crust is consumed by the collision, so the lifecycle must end
+        // above the present day and the youngest bound is exclusive: a strip
+        // that reached 0 Ma would draw restored margin over today's geography.
+        ? lifecycle.youngest > 0 && lifecycle.oldest > lifecycle.youngest
+          && lifecycle.oldest <= RESTORED_COLLISION_MARGIN_OLDEST_MA
+          && chart.lifecycle.youngestExclusive === true
+          && correction?.materialStatus === "restored-consumed-margin"
+          && correction.poseStatus === "model-inference"
+          && correction.consumedByMa === lifecycle.youngest
+          && typeof correction.restoredWidthKm === "number" && correction.restoredWidthKm > 0
         : false;
     if (chart.role !== "model-geography" || chart.evidence.status !== "derived-overlay"
         || !correction || !catalog.correctionIds.includes(correction.correctionId)
@@ -527,7 +553,7 @@ export function validateMaterialCorrectionCatalogV1(
         || chart.sourceFeatureTypes.length !== 1
         || !["EarthHistorySourceQualifiedMaterialCorrection", "EarthHistoryDomainFragmentReplacement",
           "EarthHistoryObservedModernLandCorrection", "EarthHistoryVolcanicIslandMaterialCorrection",
-          LAKE_VOID_INFILL_SOURCE_TYPE]
+          LAKE_VOID_INFILL_SOURCE_TYPE, RESTORED_COLLISION_MARGIN_SOURCE_TYPE]
           .includes(chart.sourceFeatureTypes[0]!)) {
       throw new Error("invalid derived material correction chart");
     }

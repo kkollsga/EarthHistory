@@ -6,6 +6,43 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Added
 
+- **Restored pre-collision margins for the Alps and the Scandinavian
+  Caledonides.** The Cao 2024 model builds both orogens out of present-day crust
+  tiles: the Alpine convergence closed a 316 km empty seam without shortening a
+  square kilometre of crust, and the 122 km of Baltican crust west of the
+  Norwegian coast at 62 N is modern Atlantic shelf, not a restored Iapetan
+  margin. `data/corrections/restored-margins/` now authors the missing crust the
+  way Cao themselves carry Greater India: 15 cited model-inference strips,
+  852,308 km² in present-day WGS84 reference coordinates, on the plate that
+  carries each strip's own datum crust (307/308 for Adria, split where the Cao
+  partition changes between 8.75 and 9.00 E; 305 for Europe; 302 for Baltica;
+  102 for East Greenland), each with a lifecycle that retires it as the model
+  closes the room for it — 40 → 5 Ma in the Alps, 430 → 405 Ma in the
+  Caledonides, every `youngest` bound exclusive so the 410 Ma authoring junction
+  is met without double drawing. `scripts/research/validate_precollision_extent.py`
+  re-run with them included turns the two failing collision verdicts into
+  passes: Adria 0 → **184.6 km** against a ≥ 140 km minimum, Baltica 122.2 →
+  **400.9 km** at 62 N and 400.7 km at 66 N against ≥ 140 / 250 km, with the
+  European conjugate at 233.5 km, East Greenland at 201.4–201.8 km and India
+  unchanged at 1,341.0 km.
+- **It is crust, not land.** Every strip carries unknown surface evidence and no
+  palaeo class — the Cao 2017 classes over these coordinates ride the conjugate
+  plate and would slide off the restored crust. They are the first correction
+  batch to declare a `surfaceAppearance`, `shelf`, which the renderer draws as
+  the new `correction-shelf` surface class on the 700 m shell below
+  palaeo-shallow-marine and above the native shelf, never with the land fill the
+  other correction batches carry and never counted as land by a "is this land"
+  question. The stacking contract is unchanged in kind: the class writes no
+  depth, and the depth-writing shelf below it is cleared by 457.41 m against the
+  242.59 m chord sag.
+- Gates: `scripts/research/restored_margins_correction.py` (9 tracked mutations
+  proven red, 11 with `--model`, plus a runtime mutation), the North Sea
+  clearance re-derived at every Scandian age (minimum **56.2 km** against the
+  restored plate-303 block, over a 50 km floor), 14 mutations in the shortening
+  validator's self-test including the two that remove a restored margin and
+  watch the transect fall back, and `src/reconstruction/restoredMargins.test.ts`
+  reading the shipped bytes (posed at 45 and 420 Ma, absent at 0, 1 and 5 Ma).
+  Record: `docs/research/palaeo-coastlines-restored-margins.md`.
 - A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
   coast proxy with mapped palaeogeography for the 24 published map intervals
   from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. All

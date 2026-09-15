@@ -90,6 +90,8 @@ export interface PreparedMaterialCorrections {
   readonly qualifiedActiveCharts: number;
   readonly uncertainActiveCharts: number;
   readonly formationUncertainActiveCharts: number;
+  /** Restored pre-collision margin crust posed this frame; crust, never land. */
+  readonly restoredCollisionMarginActiveCharts: number;
   readonly modelInferredPoseActiveCharts: number;
   readonly overriddenNativeCharts: number;
   readonly activeSourceIds: readonly string[];

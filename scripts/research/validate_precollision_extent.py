@@ -40,20 +40,28 @@ time, a feature area moved past its 1 % band, a literature minimum raised above
 the model, a measured extent moved past its band, and a minimum stripped of its
 reference.
 
-**A recorded FAIL is not a gate failure.** Two of the three verdicts are
-failures today and are pinned as such: the Alps and the Caledonides carry no
-restored pre-collision margin, and authoring one is Phase 11 of
-``dev-docs/plans/palaeo-coastlines-polygons.md``. This file fails only when the
-*measurement* drifts from the pinned record, when a recorded ``pass`` turns into
-a ``fail``, or when a verdict stops following the numbers printed beside it. When
-Phase 11 lands, the Alpine and Caledonide rows are re-measured and re-pinned here
-in the same commit that adds the crust, and this gate is what proves they moved.
+**All three verdicts pass, and two of them pass because of charts we author.**
+The model's own crust answers only the Himalaya. The Alps and the Caledonides
+are answered by the tracked restored pre-collision margins of
+``data/corrections/restored-margins/`` (Phase 11), which join the *lower-plate*
+crust group here exactly as Cao's own Greater India features join plate 501.
+Their datum groups stay native-only, so the datum a restored margin is measured
+against is never moved by the margin itself.
+
+**A recorded verdict is what the pinned numbers say, never a wish.** This file
+fails when the *measurement* drifts from the pinned record, when a recorded
+``pass`` turns into a ``fail``, when a verdict stops following the numbers
+printed beside it, or when a restored margin that a pinned extent depends on
+leaves the correction set. The last one is what proves the gate is measuring our
+charts and not just re-reading our constants.
 
 Wired into ``make check-corrections``: ``--record-only`` runs in any checkout and
-checks the literature minima, their references, the pinned verdicts and the
-tracked JSON record; the pyGPlates re-derivation runs only where the pinned
-environment exists, the same rule ``check-palaeo-compile`` follows. See
-``docs/research/palaeo-coastlines-collision-shortening.md``.
+checks the literature minima, their references, the pinned verdicts, the tracked
+restored-margin contract and the tracked JSON record; the pyGPlates
+re-derivation runs only where the pinned environment exists, the same rule
+``check-palaeo-compile`` follows. See
+``docs/research/palaeo-coastlines-collision-shortening.md`` and
+``docs/research/palaeo-coastlines-restored-margins.md``.
 """
 
 from __future__ import annotations
@@ -63,6 +71,7 @@ import copy
 import json
 import math
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,28 +156,39 @@ INDIA_LIMITS_DEGREES = {
     "88E": {"greaterIndiaNorth": 38.66, "presentCrustNorth": 26.72},
     "92E": {"greaterIndiaNorth": 37.10, "presentCrustNorth": 26.92},
 }
-#: Adria carries no pre-collision extension at all: its northern limit and the
-#: European southern limit are the two sides of one shared partition boundary.
-ADRIA_EXTENT_KM = {"8E": 0.0, "10E": 0.0, "12E": 0.0, "14E": 0.0}
+#: Adria's own crust carries no pre-collision extension: its northern limit and
+#: the European southern limit are the two sides of one shared partition
+#: boundary. The extension measured here is the tracked restored Adriatic
+#: margin, riding plates 307 and 308, north of the *native* European limit.
+ADRIA_EXTENT_KM = {"8E": 184.6, "10E": 184.6, "12E": 184.6, "14E": 184.6}
 ADRIA_LIMITS_DEGREES = {
-    "8E": {"adriaNorth": 45.56, "europeSouth": 46.30},
-    "10E": {"adriaNorth": 47.30, "europeSouth": 47.32},
-    "12E": {"adriaNorth": 47.68, "europeSouth": 47.70},
-    "14E": {"adriaNorth": 47.06, "europeSouth": 47.92},
+    "8E": {"adriaNorth": 47.96, "europeSouth": 46.30},
+    "10E": {"adriaNorth": 48.98, "europeSouth": 47.32},
+    "12E": {"adriaNorth": 49.36, "europeSouth": 47.70},
+    "14E": {"adriaNorth": 49.58, "europeSouth": 47.92},
 }
-#: Baltica west of the Norwegian coastline is the present continental shelf, not
-#: a restored Iapetan margin. Measured against the model's own plate-302
-#: coastline polygons.
-CALEDONIDE_EXTENT_KM = {"58N": 287.6, "60N": 190.1, "62N": 122.2,
-                        "64N": 188.2, "66N": 142.0, "68N": 135.8}
+#: Baltica west of the Norwegian coastline. Between 62 and 71 N the restored
+#: Baltoscandian margin carries it to the published 400 km floor; at 58 and
+#: 60 N, outside the authored belt, the figure is still the present continental
+#: shelf and is recorded unchanged. Measured against the model's own plate-302
+#: coastline polygons, which the restored margin never joins.
+CALEDONIDE_EXTENT_KM = {"58N": 287.6, "60N": 190.1, "62N": 400.9,
+                        "64N": 400.7, "66N": 400.7, "68N": 400.7}
 CALEDONIDE_LIMITS_DEGREES = {
     "58N": {"crustWest": 2.20, "coastWest": 7.08},
     "60N": {"crustWest": 1.98, "coastWest": 5.40},
-    "62N": {"crustWest": 3.04, "coastWest": 5.38},
-    "64N": {"crustWest": 6.12, "coastWest": 9.98},
-    "66N": {"crustWest": 9.42, "coastWest": 12.56},
-    "68N": {"crustWest": 12.14, "coastWest": 15.40},
+    "62N": {"crustWest": -2.30, "coastWest": 5.38},
+    "64N": {"crustWest": 1.76, "coastWest": 9.98},
+    "66N": {"crustWest": 3.70, "coastWest": 12.56},
+    "68N": {"crustWest": 5.78, "coastWest": 15.40},
 }
+#: Conjugate-margin extents, recorded rather than gated: no literature minimum
+#: is pinned on them. The European and Laurentian restored margins reach beyond
+#: their own present outlines by these amounts.
+CONJUGATE_EXTENT_KM = {"europe-8E": 233.5, "europe-10E": 233.5,
+                       "europe-12E": 233.5, "europe-14E": 233.5,
+                       "greenland-70N": 201.6, "greenland-72N": 201.4,
+                       "greenland-74N": 201.7, "greenland-76N": 201.8}
 
 #: Reconstructed crust-on-crust overlap. Zero overlap with a positive minimum
 #: gap is the model saying the two plates have not met yet; a positive overlap is
@@ -520,13 +540,77 @@ LITERATURE_MINIMA = {
 #: model is short of the minimum; a passing row has none.
 PINNED_VERDICTS = {
     "india-asia": {"verdict": "pass", "modelExtentKm": 1341.0, "shortfallKm": None},
-    "adria-europe": {"verdict": "fail", "modelExtentKm": 0.0, "shortfallKm": 140.0},
-    "baltica-laurentia": {"verdict": "fail", "modelExtentKm": 122.2, "shortfallKm": 17.8},
+    "adria-europe": {"verdict": "pass", "modelExtentKm": 184.6, "shortfallKm": None},
+    "baltica-laurentia": {"verdict": "pass", "modelExtentKm": 400.9, "shortfallKm": None},
 }
+
+#: Which pinned extent depends on which restored margin. A pinned extent that no
+#: longer has its margin behind it is the failure this mapping exists to catch.
+RESTORED_MARGIN_DEPENDENCIES = {
+    "adria-europe": "adria",
+    "baltica-laurentia": "baltica",
+}
+#: The restored margin the model must still carry, and the extent the datum
+#: falls back to when it is gone. Both are re-derived by the model run.
+RESTORED_MARGIN_FALLBACK_KM = {"adria": 0.0, "baltica": 122.2}
 
 
 class ExtentError(ValueError):
     """A pinned pre-collision extent premise did not hold."""
+
+
+# --------------------------------------------------------------------------
+# the restored pre-collision margins this gate measures with
+# --------------------------------------------------------------------------
+
+RESTORED_MARGINS = ROOT / "data/corrections/restored-margins"
+RESTORED_FILES = ("restored-margins-alps-v1.geojson",
+                  "restored-margins-caledonides-v1.geojson")
+
+
+def restored_margin_rings(region: Path | None = None) -> dict:
+    """Load the tracked restored margins, grouped by the margin they restore.
+
+    These are the charts the browser downloads, in present-day reference
+    coordinates on the plate that carries their datum crust. They join the
+    lower-plate crust group of a transect, never its datum group.
+    """
+    base = RESTORED_MARGINS if region is None else region
+    groups = {"adria": [], "europe": [], "baltica": [], "laurentia": []}
+    for name in RESTORED_FILES:
+        path = base / name
+        if not path.is_file():
+            raise ExtentError(f"missing restored-margin contract: {path}")
+        document = json.loads(path.read_text())
+        for feature in document["features"]:
+            margin = feature["properties"]["margin"]
+            if margin not in groups:
+                raise ExtentError(f"{feature['id']}: unknown restored margin {margin!r}")
+            for ring in feature["geometry"]["coordinates"]:
+                groups[margin].append([(position[0], position[1]) for position in ring])
+    return groups
+
+
+def check_restored_margins(margins: dict, verdicts: dict) -> dict:
+    """Every pinned extent that leans on a restored margin still has one.
+
+    This is the record-only half of the same statement the model run measures:
+    if the Adriatic or Baltoscandian charts leave the correction set, the pinned
+    extent behind the verdict is no longer backed by anything.
+    """
+    rows = []
+    for collision, margin in RESTORED_MARGIN_DEPENDENCIES.items():
+        if collision not in verdicts:
+            continue
+        rings = margins.get(margin) or []
+        if not rings:
+            raise ExtentError(
+                f"{collision}: the pinned extent "
+                f"{verdicts[collision]['modelExtentKm']:.1f} km needs the restored {margin} "
+                f"margin, but no such chart is in the correction set; without it the transect "
+                f"falls back to {RESTORED_MARGIN_FALLBACK_KM[margin]:.1f} km")
+        rows.append({"collision": collision, "margin": margin, "rings": len(rings)})
+    return {"restoredMargins": rows}
 
 
 # --------------------------------------------------------------------------
@@ -636,7 +720,7 @@ def model_available() -> bool:
     return True
 
 
-def measure_model(features_pinned: dict | None = None) -> dict:
+def measure_model(features_pinned: dict | None = None, region: Path | None = None) -> dict:
     """Re-derive every measured number from the pinned model."""
     features_pinned = PINNED_FEATURES if features_pinned is None else features_pinned
     import numpy as np
@@ -744,8 +828,35 @@ def measure_model(features_pinned: dict | None = None) -> dict:
                 best = lon
         return best
 
+    def limit_on_parallel_east(polygons, lat, low=-60.0, high=20.0, step=0.02):
+        best = None
+        count = int(round((high - low) / step))
+        for index in range(count + 1):
+            lon = low + index * step
+            if contains(polygons, lon, lat) and (best is None or lon > best):
+                best = lon
+        return best
+
     present = {key: [rings_of(feature) for feature in group_features(key)] for key in GROUPS}
     present_polygons = {key: polygons_of(rings) for key, rings in present.items()}
+
+    # The restored pre-collision margins join the *lower-plate* crust group of
+    # each transect, exactly as Cao's own Greater India features are already in
+    # plate 501's group. The datum a transect measures against keeps its native
+    # crust only, so a restored margin can never move its own datum.
+    restored = restored_margin_rings(region)
+    present_polygons["europe_native"] = list(present_polygons["europe"])
+    present_polygons["adria"] = (present_polygons["adria"]
+                                 + polygons_of([restored["adria"]]))
+    present_polygons["baltica"] = (present_polygons["baltica"]
+                                   + polygons_of([restored["baltica"]]))
+    present_polygons["europe_restored"] = (present_polygons["europe_native"]
+                                           + polygons_of([restored["europe"]]))
+    greenland_rings = [rings_of(feature) for feature in continents
+                       if feature.get_reconstruction_plate_id() == 102]
+    present_polygons["greenland_native"] = polygons_of(greenland_rings)
+    present_polygons["greenland_restored"] = (present_polygons["greenland_native"]
+                                              + polygons_of([restored["laurentia"]]))
 
     # ---- India transects
     india_extent = {}
@@ -766,9 +877,16 @@ def measure_model(features_pinned: dict | None = None) -> dict:
     for label, pinned_km in ADRIA_EXTENT_KM.items():
         lon = float(label[:-1])
         north_ad = limit_on_meridian(present_polygons["adria"], lon, 35.0, 52.0)
-        south_eu = limit_on_meridian(present_polygons["europe"], lon, 35.0, 55.0, northern=False)
+        south_eu = limit_on_meridian(present_polygons["europe_native"], lon, 35.0, 55.0,
+                                     northern=False)
         if north_ad is None or south_eu is None:
             raise ExtentError(f"Adria transect {label}: no crust on the meridian")
+        limits = ADRIA_LIMITS_DEGREES[label]
+        if (abs(north_ad - limits["adriaNorth"]) > 0.05
+                or abs(south_eu - limits["europeSouth"]) > 0.05):
+            raise ExtentError(f"Adria transect {label}: limits ({north_ad:.2f} N, {south_eu:.2f} N) "
+                              f"are not the pinned ({limits['adriaNorth']:.2f} N, "
+                              f"{limits['europeSouth']:.2f} N)")
         overhang = max(0.0, (north_ad - south_eu) * KM_PER_DEGREE_LATITUDE)
         if abs(overhang - pinned_km) > EXTENT_TOLERANCE_KM:
             raise ExtentError(f"Adria transect {label}: {overhang:.1f} km of Adriatic crust "
@@ -786,12 +904,42 @@ def measure_model(features_pinned: dict | None = None) -> dict:
         west_coast = limit_on_parallel(coast_polygons, lat, -20.0, 35.0)
         if west_crust is None or west_coast is None:
             raise ExtentError(f"Caledonide transect {label}: no Baltica crust or coast")
+        limits = CALEDONIDE_LIMITS_DEGREES[label]
+        if (abs(west_crust - limits["crustWest"]) > 0.05
+                or abs(west_coast - limits["coastWest"]) > 0.05):
+            raise ExtentError(f"Caledonide transect {label}: limits ({west_crust:.2f} E, "
+                              f"{west_coast:.2f} E) are not the pinned "
+                              f"({limits['crustWest']:.2f} E, {limits['coastWest']:.2f} E)")
         km_per_degree = KM_PER_DEGREE_LATITUDE * math.cos(math.radians(lat))
         measured = (west_coast - west_crust) * km_per_degree
         if abs(measured - pinned_km) > EXTENT_TOLERANCE_KM:
             raise ExtentError(f"Caledonide transect {label}: {measured:.1f} km of crust west "
                               f"of the coast, not the pinned {pinned_km:.1f} km")
         caledonide_extent[label] = round(measured, 1)
+
+    # ---- conjugate-margin extents: how far each restored margin reaches beyond
+    # its own present outline. Recorded, not gated on a literature minimum.
+    conjugate = {}
+    for lon in (8.0, 10.0, 12.0, 14.0):
+        native = limit_on_meridian(present_polygons["europe_native"], lon, 35.0, 55.0,
+                                   northern=False)
+        restored_limit = limit_on_meridian(present_polygons["europe_restored"], lon, 35.0, 55.0,
+                                           northern=False)
+        if native is None or restored_limit is None:
+            raise ExtentError(f"European conjugate transect {lon:g}E: no crust on the meridian")
+        conjugate[f"europe-{lon:g}E"] = round((native - restored_limit) * KM_PER_DEGREE_LATITUDE, 1)
+    for lat in (70.0, 72.0, 74.0, 76.0):
+        km_per_degree = KM_PER_DEGREE_LATITUDE * math.cos(math.radians(lat))
+        native = limit_on_parallel_east(present_polygons["greenland_native"], lat)
+        restored_limit = limit_on_parallel_east(present_polygons["greenland_restored"], lat)
+        if native is None or restored_limit is None:
+            raise ExtentError(f"Greenland conjugate transect {lat:g}N: no crust on the parallel")
+        conjugate[f"greenland-{lat:g}N"] = round((restored_limit - native) * km_per_degree, 1)
+    for label, pinned_km in CONJUGATE_EXTENT_KM.items():
+        measured = conjugate[label]
+        if abs(measured - pinned_km) > EXTENT_TOLERANCE_KM:
+            raise ExtentError(f"conjugate transect {label}: {measured:.1f} km beyond the present "
+                              f"outline, not the pinned {pinned_km:.1f} km")
 
     # ---- reconstructed overlap, on an equal-area projection about the pair
     def unit(lon, lat):
@@ -908,6 +1056,7 @@ def measure_model(features_pinned: dict | None = None) -> dict:
             convergence[f"{left}|{right}|{age_label}"] = round(measured, 1)
 
     return {"features": features, "indiaExtentKm": india_extent,
+            "conjugateMarginExtentKm": conjugate,
             "adriaExtentKm": adria_extent, "caledonideExtentKm": caledonide_extent,
             "overlapKm2": overlaps, "minimumGapKm": gaps, "convergenceKm": convergence}
 
@@ -918,7 +1067,7 @@ def measure_model(features_pinned: dict | None = None) -> dict:
 
 def validate(record_only: bool = False, minima: dict | None = None,
              verdicts: dict | None = None, features: dict | None = None,
-             record_path: Path | None = None) -> dict:
+             record_path: Path | None = None, margin_region: Path | None = None) -> dict:
     minima = LITERATURE_MINIMA if minima is None else minima
     verdicts = PINNED_VERDICTS if verdicts is None else verdicts
     features = PINNED_FEATURES if features is None else features
@@ -930,6 +1079,7 @@ def validate(record_only: bool = False, minima: dict | None = None,
     result = {"status": "pass",
               "literature": check_literature(minima),
               "verdicts": check_verdicts(minima, verdicts, extents),
+              "margins": check_restored_margins(restored_margin_rings(margin_region), verdicts),
               "record": check_record(record_path, features, verdicts)}
     if record_only:
         result["model"] = {"status": "not run",
@@ -939,7 +1089,7 @@ def validate(record_only: bool = False, minima: dict | None = None,
         result["model"] = {"status": "not run",
                            "reason": f"the pinned model or environment is unavailable ({MODEL})"}
         return result
-    result["model"] = measure_model(features)
+    result["model"] = measure_model(features, margin_region)
     return result
 
 
@@ -998,10 +1148,40 @@ def self_test(record_only: bool = False) -> dict:
                                      "measurement", record_only=record_only, verdicts=moved))
 
     flipped = copy.deepcopy(PINNED_VERDICTS)
-    flipped["adria-europe"]["verdict"] = "pass"
-    rejections.append(expect_failure("an Alpine verdict flipped to pass while the model "
-                                     "carries no Adriatic extension",
+    flipped["adria-europe"]["verdict"] = "fail"
+    rejections.append(expect_failure("an Alpine verdict left at fail after the restored "
+                                     "Adriatic margin is included",
                                      record_only=record_only, verdicts=flipped))
+
+    flipped_north = copy.deepcopy(PINNED_VERDICTS)
+    flipped_north["baltica-laurentia"]["verdict"] = "fail"
+    rejections.append(expect_failure("a Caledonide verdict left at fail after the restored "
+                                     "Baltoscandian margin is included",
+                                     record_only=record_only, verdicts=flipped_north))
+
+    thinned = copy.deepcopy(PINNED_VERDICTS)
+    thinned["adria-europe"]["modelExtentKm"] = 0.0
+    rejections.append(expect_failure("a pinned Alpine extent that forgets the restored margin",
+                                     record_only=record_only, verdicts=thinned))
+
+    # The two that matter: they prove the gate is measuring our charts and not
+    # just re-reading our constants. In a record-only run the dependency check
+    # rejects them; in a model run the transect itself falls back and the pin
+    # stops matching.
+    with tempfile.TemporaryDirectory(prefix="earthhistory-precollision-") as scratch:
+        for margin, name in (("adria", RESTORED_FILES[0]),
+                             ("baltica", RESTORED_FILES[1])):
+            region = Path(scratch) / margin
+            region.mkdir()
+            for source in RESTORED_FILES:
+                document = json.loads((RESTORED_MARGINS / source).read_text())
+                document["features"] = [row for row in document["features"]
+                                        if row["properties"]["margin"] != margin]
+                (region / source).write_text(json.dumps(document))
+            label = ("Adriatic" if margin == "adria" else "Baltoscandian")
+            rejections.append(expect_failure(
+                f"the restored {label} margin removed from the correction set",
+                record_only=record_only, margin_region=region))
 
     shrunk = copy.deepcopy(LITERATURE_MINIMA)
     shrunk["baltica-laurentia"]["minimumKm"] = 100.0

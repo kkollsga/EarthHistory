@@ -51,6 +51,7 @@ import {
   CAO_2017_MAP_INTERVAL_MARKS_MA,
   GREATER_INDIA_CHART_ID,
   GREATER_INDIA_EVIDENCE_LINE,
+  RESTORED_COLLISION_MARGIN_EVIDENCE_LINE,
   PALAEO_MAP_INTERVALS,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
@@ -933,6 +934,11 @@ export default function App() {
   // (docs/research/palaeo-coastlines-collision-shortening.md).
   const greaterIndiaVisible = (displayedCao?.charts ?? []).some(
     (chart) => chart.chartId === GREATER_INDIA_CHART_ID && chart.support.kind === "supported");
+  // The same statement for the two collisions the model leaves short, gated on
+  // the charts being posed rather than on the age: every strip has its own
+  // retirement, so the line follows whichever ones are still on screen.
+  const restoredMarginsVisible =
+    (displayedCao?.materialCorrections.restoredCollisionMarginActiveCharts ?? 0) > 0;
   // Read off the interval actually published, not off the requested age: the
   // source ids are the ones whose charts are posed on screen, and a load in
   // flight leaves the previous map — and its evidence — visible.
@@ -1506,6 +1512,7 @@ export default function App() {
                 && <span>No palaeo-coastline charts on screen{palaeoEvidence.unavailableReason === null
                   ? "" : ` · ${palaeoEvidence.unavailableReason}`}</span>}
               {greaterIndiaVisible && <span>{GREATER_INDIA_EVIDENCE_LINE}</span>}
+              {restoredMarginsVisible && <span>{RESTORED_COLLISION_MARGIN_EVIDENCE_LINE}</span>}
               {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}
               {classifiedShallowMarineVisible && <span>Modern Iceland shelf · generalized 0–200 m class</span>}
               {qualifiedMaterialVisible && <span>Source-qualified material · cited reconstruction pose; exposure unknown</span>}

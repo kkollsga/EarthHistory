@@ -37,6 +37,10 @@ SCOPE_CLAUSE = (
 HEADER_BYTES = 32
 SHELF_SHELL_METRES = 400
 LAND_SHELL_METRES = 800
+# A correction batch that declares the shelf appearance - restored pre-collision
+# margin crust - is drawn on the 700 m `correction-shelf` shell, not the 800 m
+# land shell every other correction batch shares (caoFoundation.ts).
+CORRECTION_SHELF_SHELL_METRES = 700
 EARTH_RADIUS_METRES = 6_371_000
 FLOAT32_ORDER_MARGIN = 1e-7
 # Composed native + correction geometry. The production renderer reserves
@@ -241,7 +245,9 @@ def clearance_report(package: Path) -> dict:
     correction_minima = {}
     for batch in catalog["spatialBatches"]:
         value = decode_ehgb((package / batch["geometryAsset"]["url"]).read_bytes())
-        correction_minima[batch["batchId"]] = triangle_radius_extrema(value, LAND_SHELL_METRES)[0]
+        shell = (CORRECTION_SHELF_SHELL_METRES if batch.get("surfaceAppearance") == "shelf"
+                 else LAND_SHELL_METRES)
+        correction_minima[batch["batchId"]] = triangle_radius_extrema(value, shell)[0]
     all_land_min = min(land_min, *correction_minima.values())
     old_shelf_min, _ = triangle_radius_extrema(shelf, 80)
     old_land_min, _ = triangle_radius_extrema(land, 400)
@@ -458,10 +464,14 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
     catalog = json.loads(catalog_path.read_text())
     if catalog["baseline"]["coreSha256"] != manifest["core"]["sha256"]:
         raise BuildError("material correction baseline is stale")
-    land_color = material.LAND_COLOR
-    if any(row["staticDisplayControl"]["baseColorRgb"] != land_color
+    # Each correction batch paints in the colour its declared appearance names:
+    # the land appearance for cited or inferred ground, the shelf appearance for
+    # restored pre-collision margin crust, which must not read as land.
+    expected_color = {"shelf": material.CRUST_COLOR}
+    if any(row["staticDisplayControl"]["baseColorRgb"]
+           != expected_color.get(row.get("surfaceAppearance"), material.LAND_COLOR)
            for row in catalog["spatialBatches"]):
-        raise BuildError("material correction land display colors diverge")
+        raise BuildError("material correction display colors diverge from their appearance")
     chart_indices = []
     for batch in catalog["spatialBatches"]:
         geometry = decode_ehgb((package / batch["geometryAsset"]["url"]).read_bytes())

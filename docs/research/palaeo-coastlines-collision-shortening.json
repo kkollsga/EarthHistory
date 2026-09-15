@@ -823,7 +823,10 @@
             ],
             "adriaNorthLimitDeg": 45.56,
             "europeSouthLimitDeg": 46.3,
-            "adriaEuropeOverlapKm": -82.3
+            "adriaEuropeOverlapKm": -82.3,
+            "adriaNorthLimitWithRestoredMarginDeg": 47.96,
+            "extentBeyondEuropeanMarginWithRestoredMarginKm": 184.6,
+            "nativeExtentBeyondEuropeanMarginKm": 0.0
           },
           "10E": {
             "adriaSpans": [
@@ -844,7 +847,10 @@
             ],
             "adriaNorthLimitDeg": 47.3,
             "europeSouthLimitDeg": 47.32,
-            "adriaEuropeOverlapKm": -2.2
+            "adriaEuropeOverlapKm": -2.2,
+            "adriaNorthLimitWithRestoredMarginDeg": 48.98,
+            "extentBeyondEuropeanMarginWithRestoredMarginKm": 184.6,
+            "nativeExtentBeyondEuropeanMarginKm": 0.0
           },
           "12E": {
             "adriaSpans": [
@@ -865,7 +871,10 @@
             ],
             "adriaNorthLimitDeg": 47.68,
             "europeSouthLimitDeg": 47.7,
-            "adriaEuropeOverlapKm": -2.2
+            "adriaEuropeOverlapKm": -2.2,
+            "adriaNorthLimitWithRestoredMarginDeg": 49.36,
+            "extentBeyondEuropeanMarginWithRestoredMarginKm": 184.6,
+            "nativeExtentBeyondEuropeanMarginKm": 0.0
           },
           "14E": {
             "adriaSpans": [
@@ -886,7 +895,10 @@
             ],
             "adriaNorthLimitDeg": 47.06,
             "europeSouthLimitDeg": 47.92,
-            "adriaEuropeOverlapKm": -95.6
+            "adriaEuropeOverlapKm": -95.6,
+            "adriaNorthLimitWithRestoredMarginDeg": 49.58,
+            "extentBeyondEuropeanMarginWithRestoredMarginKm": 184.6,
+            "nativeExtentBeyondEuropeanMarginKm": 0.0
           }
         },
         "presentFrameOverlapKm2": {
@@ -1031,11 +1043,13 @@
         }
       },
       "verdict": {
-        "verdict": "fail",
+        "verdict": "pass",
         "transect": "10E",
-        "modelExtentKm": 0.0,
+        "modelExtentKm": 184.6,
         "minimumKm": 140.0,
-        "shortfallKm": 140.0
+        "shortfallKm": null,
+        "source": "the restored Adriatic margin of data/corrections/restored-margins/; Adria's own Cao crust reaches 0.0 km north of the European margin on every meridian",
+        "nativeModelExtentKm": 0.0
       }
     },
     "baltica-laurentia": {
@@ -1111,7 +1125,10 @@
             "balticaCrustWestLimitDeg": 2.2,
             "balticaCoastWestLimitDeg": 7.08,
             "crustBeyondCoastKm": 287.6,
-            "kmPerDegreeLongitude": 58.92
+            "kmPerDegreeLongitude": 58.92,
+            "crustBeyondCoastWithRestoredMarginKm": 287.6,
+            "balticaCrustWestLimitWithRestoredMarginDeg": 2.2,
+            "authoredBelt": false
           },
           "60N": {
             "balticaCrustSpans": [
@@ -1169,7 +1186,10 @@
             "balticaCrustWestLimitDeg": 1.98,
             "balticaCoastWestLimitDeg": 5.4,
             "crustBeyondCoastKm": 190.1,
-            "kmPerDegreeLongitude": 55.6
+            "kmPerDegreeLongitude": 55.6,
+            "crustBeyondCoastWithRestoredMarginKm": 190.1,
+            "balticaCrustWestLimitWithRestoredMarginDeg": 1.98,
+            "authoredBelt": false
           },
           "62N": {
             "balticaCrustSpans": [
@@ -1195,7 +1215,10 @@
             "balticaCrustWestLimitDeg": 3.04,
             "balticaCoastWestLimitDeg": 5.38,
             "crustBeyondCoastKm": 122.2,
-            "kmPerDegreeLongitude": 52.2
+            "kmPerDegreeLongitude": 52.2,
+            "crustBeyondCoastWithRestoredMarginKm": 400.9,
+            "balticaCrustWestLimitWithRestoredMarginDeg": -2.3,
+            "authoredBelt": true
           },
           "64N": {
             "balticaCrustSpans": [
@@ -1229,7 +1252,10 @@
             "balticaCrustWestLimitDeg": 6.12,
             "balticaCoastWestLimitDeg": 9.98,
             "crustBeyondCoastKm": 188.2,
-            "kmPerDegreeLongitude": 48.74
+            "kmPerDegreeLongitude": 48.74,
+            "crustBeyondCoastWithRestoredMarginKm": 400.7,
+            "balticaCrustWestLimitWithRestoredMarginDeg": 1.76,
+            "authoredBelt": true
           },
           "66N": {
             "balticaCrustSpans": [
@@ -1259,7 +1285,10 @@
             "balticaCrustWestLimitDeg": 9.42,
             "balticaCoastWestLimitDeg": 12.56,
             "crustBeyondCoastKm": 142.0,
-            "kmPerDegreeLongitude": 45.23
+            "kmPerDegreeLongitude": 45.23,
+            "crustBeyondCoastWithRestoredMarginKm": 400.7,
+            "balticaCrustWestLimitWithRestoredMarginDeg": 3.7,
+            "authoredBelt": true
           },
           "68N": {
             "balticaCrustSpans": [
@@ -1293,7 +1322,10 @@
             "balticaCrustWestLimitDeg": 12.14,
             "balticaCoastWestLimitDeg": 15.4,
             "crustBeyondCoastKm": 135.8,
-            "kmPerDegreeLongitude": 41.65
+            "kmPerDegreeLongitude": 41.65,
+            "crustBeyondCoastWithRestoredMarginKm": 400.7,
+            "balticaCrustWestLimitWithRestoredMarginDeg": 5.78,
+            "authoredBelt": true
           }
         },
         "presentFrameOverlapKm2": {
@@ -1555,18 +1587,19 @@
         }
       },
       "verdict": {
-        "verdict": "fail",
+        "verdict": "pass",
         "transect": "62N",
-        "modelExtentKm": 122.2,
+        "modelExtentKm": 400.9,
         "minimumKm": 140.0,
-        "shortfallKm": 17.8,
+        "shortfallKm": null,
         "at66N": {
-          "modelExtentKm": 142.0,
+          "modelExtentKm": 400.7,
           "minimumKm": 250.0,
-          "shortfallKm": 108.0
+          "shortfallKm": null
         },
-        "strictModelExtentKm": 0.0,
-        "strictNote": "the 122.2 km of Baltican crust west of the coast at 62 N is the modern stretched Atlantic shelf, not a restored Caledonian margin; on a strict reading the model carries no restored pre-collision Baltican margin at all"
+        "nativeModelExtentKm": 122.2,
+        "nativeAt66NModelExtentKm": 142.0,
+        "source": "the restored Baltoscandian margin of data/corrections/restored-margins/, which reaches the published 401 km floor between 62 and 71 N. Without it the 122.2 km of Baltican crust west of the coast at 62 N is the modern stretched Atlantic shelf, not a restored Caledonian margin, and on a strict reading the model carries no restored pre-collision Baltican margin at all."
       }
     }
   },
@@ -2738,6 +2771,30 @@
           ]
         }
       }
+    }
+  },
+  "restoredMargins": {
+    "contract": "data/corrections/restored-margins/restored-margins-manifest.json",
+    "correctionId": "earthhistory-restored-collision-margins-v1",
+    "record": "docs/research/palaeo-coastlines-restored-margins.md",
+    "design": "docs/research/palaeo-coastlines-restored-margins-design.md",
+    "claim": "cited model-inference crust charts on the lower plate of each collision, with lifecycles that retire each strip as the model consumes it. They are crust, not land, and they join the crust group of a transect, never its datum group.",
+    "strips": 15,
+    "areaKm2": {
+      "adria": 128533.0,
+      "europe": 130167.0,
+      "baltica": 448050.9,
+      "laurentia": 145557.0
+    },
+    "conjugateMarginExtentKm": {
+      "europe-8E": 233.5,
+      "europe-10E": 233.5,
+      "europe-12E": 233.5,
+      "europe-14E": 233.5,
+      "greenland-70N": 201.6,
+      "greenland-72N": 201.4,
+      "greenland-74N": 201.7,
+      "greenland-76N": 201.8
     }
   }
 }

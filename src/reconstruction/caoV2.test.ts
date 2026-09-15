@@ -256,12 +256,16 @@ describe("native Cao package v2", () => {
     expect(prepared.display).toEqual({ youngerAgeMa: 225, olderAgeMa: 230, fraction: 0.5 });
     expect(prepared.motionPalette.entryCount).toBeGreaterThan(3_200);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.motionPalette.entryCount * 11);
-    expect(prepared.batches).toHaveLength(5);
+    expect(prepared.batches).toHaveLength(6);
     // Complete authored rotation collection recovers the previously omitted
-    // North American and Amazonian source geometry.
+    // North American and Amazonian source geometry. The sixth batch is the
+    // restored pre-collision margins: they declare the shelf appearance rather
+    // than the land one every other correction batch carries, and a batch is
+    // the only place an appearance can be declared.
     expect(prepared.batches.map((batch) => batch.batchId)).toEqual([
       "batch-shelf", "batch-land", "material-correction-observed",
       "material-correction-qualified", "material-correction-uncertain",
+      "material-correction-restored-margin",
     ]);
     expect(prepared.batches[0]!.vertexCount).toBe(156_252);
     expect(prepared.batches[1]!.vertexCount).toBe(183_333);
@@ -270,19 +274,19 @@ describe("native Cao package v2", () => {
     expect(prepared.batches[2]).toMatchObject({
       batchId: "material-correction-observed", vertexCount: 1_217, triangleCount: 1_307,
     });
-    // 396,385 native and regional-correction vertices plus the 6,937 lake-void
-    // infill vertices added on 2026-09-14 (101 charts in the qualified batch).
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(403_322);
-    // 564,757 before the lake-void infill plus its 6,899 triangles.
-    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(571_656);
+    // 403,322 native, regional-correction and lake-void vertices plus the 1,566
+    // restored pre-collision margin vertices added on 2026-09-15 (15 strips).
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(404_888);
+    // 571,656 before the restored margins plus their 2,419 triangles.
+    expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)).toBe(574_075);
     expect(prepared.lineBatches).toHaveLength(1);
     // Historical reconstructed segments retain their chart ownership; exact 0 Ma
     // adds the pinned modern-reference complement without assigning it into deep time.
     expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 24_090, segmentCount: 12_045 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(427_412);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(428_978);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(583_701);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(586_120);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -291,10 +295,10 @@ describe("native Cao package v2", () => {
     }
     const resource = createCaoFoundationGeometryResource(prepared, {
       // Layered shelf/land and bounded correction meshes.
-      // Five spatial batches plus the country-reference line batch.
-      // Production reservation (GlobeScene): the composed package holds 403,322
-      // vertices and 571,656 triangles after the lake-void infill.
-      maxBatches: 6, maxVertices: 520_000, maxTriangles: 660_000,
+      // Six spatial batches plus the country-reference line batch.
+      // Production reservation (GlobeScene): the composed package holds 404,888
+      // vertices and 574,075 triangles after the restored pre-collision margins.
+      maxBatches: 7, maxVertices: 520_000, maxTriangles: 660_000,
       maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });
@@ -316,6 +320,7 @@ describe("native Cao package v2", () => {
       "earthhistory-regional-western-laurentia-material-v1",
       "earthhistory-regional-western-source450-native-v1",
       "earthhistory-regional-western-source490-native-v1",
+      "earthhistory-restored-collision-margins-v1",
     ]);
     expect(prepared.nativeBoundary).toMatchObject({ kind: "unavailable", reason: "fractional-topology-unqualified" });
     const address = prepared.addressForChartDirection(0, [1, 0, 0]);

@@ -23,8 +23,19 @@ crust it ever had, the model builds a mountain belt out of nothing.
 | Collision | Literature minimum, and what it is | Model | Verdict |
 |---|---:|---:|---|
 | **India–Asia** (Himalaya–Tibet), 85 E | **≥ 1,000 km** of Indian continental crust north of the present Himalayan front (band 800–1,350 km) | **1,341 km** | **PASS** |
-| **Adria–Europe** (Alps), 10 E | **≥ 140 km** of Adriatic crust north of its present outline (band 140–300 km) | **0 km** | **FAIL** by 140 km |
-| **Baltica–Laurentia** (Scandian Caledonides), 62 N | **≥ 140 km** of Baltican crust west of the present Norwegian coast (≥ 250 km at 66 N, ≥ 400 km at 70 N) | **122 km**, and that 122 km is modern Atlantic shelf, not restored margin | **FAIL** by 18 km at 62 N, 108 km at 66 N; **by 140 / 250 km** on a strict reading |
+| **Adria–Europe** (Alps), 10 E | **≥ 140 km** of Adriatic crust north of its present outline (band 140–300 km) | **0 km** on the model's own crust; **184.6 km** with the restored margin | **FAILED** by 140 km; **PASS** since 2026-09-15 |
+| **Baltica–Laurentia** (Scandian Caledonides), 62 N | **≥ 140 km** of Baltican crust west of the present Norwegian coast (≥ 250 km at 66 N, ≥ 400 km at 70 N) | **122 km** of modern Atlantic shelf on the model's own crust; **400.9 km** with the restored margin (400.7 km at 66 N) | **FAILED** by 18 km at 62 N and 108 km at 66 N; **PASS** since 2026-09-15 |
+
+**This memo measured the model, and the model still says what it said here.**
+The two failing rows were answered on 2026-09-15 by charts we author rather than
+by the model changing: the restored pre-collision margins of
+`data/corrections/restored-margins/`, recorded in
+[palaeo-coastlines-restored-margins.md](palaeo-coastlines-restored-margins.md)
+and designed in
+[palaeo-coastlines-restored-margins-design.md](palaeo-coastlines-restored-margins-design.md).
+Everything below about the *model's own* crust is unchanged and still true; only
+the verdicts moved, and they moved because crust was added, not because a
+measurement did.
 
 The India answer is a genuine pass and it comes from one feature: Cao 2024 ships
 `Greater India based on Gibbons et al. (2015) Gondwana Research` on plate 501,
@@ -200,8 +211,10 @@ European crust tiles is about **316 km wide at 35 Ma**, and it shuts without a
 single square kilometre of crust being shortened. On the globe the Oligocene
 Alps are a hole, not a mountain belt.
 
-**Verdict: FAIL by 140 km** (0 km against a 140 km minimum), and by ≥ 230 km more
-on the European side. The literature is not asking for a subtlety here: Le
+**Verdict on the model's own crust: FAIL by 140 km** (0 km against a 140 km
+minimum), and by ≥ 230 km more on the European side. *Answered 2026-09-15 by the
+restored Adriatic and European margins — 184.6 and 233.5 km — which is why the
+row at the top of this memo now reads PASS.* The literature is not asking for a subtlety here: Le
 Breton et al. 2021 put at least 63 % of all material consumed in the Alpine
 orogeny at extended continental lithosphere and ocean–continent transition.
 
@@ -283,8 +296,10 @@ pre-collision feature. But 122,405 km² over a >1,800 km belt is ~68 km of avera
 shortening; ≥ 600 km over that belt would be **≥ 1.08 million km²** (*Inference*).
 The model supplies about **11 %**.
 
-**Verdict: FAIL**, by 18 km at 62 N and 108 km at 66 N against the transect
-minima, or by the full 140 / 250 km on the strict reading.
+**Verdict on the model's own crust: FAIL**, by 18 km at 62 N and 108 km at 66 N
+against the transect minima, or by the full 140 / 250 km on the strict reading.
+*Answered 2026-09-15 by the restored Baltoscandian margin — 400.9 km at 62 N and
+400.7 km at 66 N — which is why the row at the top of this memo now reads PASS.*
 
 **Context worth carrying.** Two authoring facts sit inside this window. The
 Cao/Merdith **410 Ma junction** ([regional-material-model-lineage.md](regional-material-model-lineage.md))
@@ -369,8 +384,8 @@ Three rules behind that wording:
    the number: 1 Myr of collision age moves the convergence budget by 150–180 km
    (van Hinsbergen et al. 2019, *Verbatim*).
 
-For the Alps and the Caledonides the key must say the opposite, because the model
-has nothing to show:
+For the Alps and the Caledonides the key said the opposite while the model had
+nothing to show:
 
 > **The Alps and the Caledonides are drawn from present-day crust outlines.** The
 > plate model carries no restored pre-collision Adriatic or Baltican margin, so
@@ -378,6 +393,22 @@ has nothing to show:
 > shortening is at least 140 km of Adriatic margin (Le Breton et al. 2021;
 > Schmid et al. 1996) and at least 400 km across the Scandinavian Caledonides
 > (Gee 1978; Gayer et al. 1987).
+
+**Superseded 2026-09-15.** That paragraph is false the moment the restored
+margins ship, and the map key no longer carries it. What the key says now names
+the same papers and the same spread, but says that the crust is authored, that
+it is crust rather than land, and when the model removes it:
+
+> Restored pre-collision margins · model inference after Le Breton et al. (2021),
+> Schmid et al. (1996), Handy et al. (2010), Gayer et al. (1987), Gee (1978),
+> Lorenz et al. (2011) and Fossen (2010); published spread 140–423 km per margin;
+> consumed by collision between 430 and 405 Ma (Caledonides) and 40 and 5 Ma
+> (Alps). Crust of unmapped depth, not mapped geography: no shoreline or water
+> depth is claimed.
+
+The statement the old paragraph made about the *plate model* remains true and is
+still the reason the charts exist: Cao 2024 v2.4 carries no restored
+pre-collision Adriatic or Baltican margin of its own.
 
 ---
 

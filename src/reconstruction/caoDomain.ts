@@ -52,3 +52,26 @@ export const GREATER_INDIA_CHART_ID =
 export const GREATER_INDIA_EVIDENCE_LINE =
   "Greater India crust · model inference after Gibbons et al. (2015); published "
   + "spread ~600–3,000 km; removed from the model at 10 Ma";
+
+/**
+ * The correction that answers the same question for the two collisions the Cao
+ * model leaves short. `data/corrections/restored-margins/` authors the
+ * pre-collision continental margin the Alps and the Scandian orogen consumed,
+ * on the plate that carries each strip's datum crust, retired as the model
+ * closes the room for it.
+ */
+export const RESTORED_COLLISION_MARGIN_CORRECTION_ID =
+  "earthhistory-restored-collision-margins-v1";
+
+/**
+ * What the map key says while any restored-margin chart is posed. Same register
+ * as the Greater India line, and one addition the strips need that Greater
+ * India does not: these charts are drawn as crust of unmapped depth, so the
+ * line says so rather than letting the reader infer a shoreline from a fill.
+ */
+export const RESTORED_COLLISION_MARGIN_EVIDENCE_LINE =
+  "Restored pre-collision margins · model inference after Le Breton et al. (2021), "
+  + "Schmid et al. (1996), Handy et al. (2010), Gayer et al. (1987), Gee (1978), "
+  + "Lorenz et al. (2011) and Fossen (2010); published spread 140–423 km per margin; "
+  + "consumed by collision between 430 and 405 Ma (Caledonides) and 40 and 5 Ma (Alps). "
+  + "Crust of unmapped depth, not mapped geography: no shoreline or water depth is claimed.";

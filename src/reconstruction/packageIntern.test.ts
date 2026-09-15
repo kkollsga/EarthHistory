@@ -105,7 +105,8 @@ describe("interned Cao package documents", () => {
       { chartDictionaries: Record<string, unknown[]>;
         chartColumns: Record<string, number[]>; charts: Record<string, unknown>[] };
     const catalog = expandInternedPackageDocument(interned) as MaterialCorrectionCatalogV1;
-    expect(catalog.charts).toHaveLength(212);
+    // 212 before the restored pre-collision margins plus their 15 strips.
+    expect(catalog.charts).toHaveLength(227);
     for (const chart of catalog.charts) expect(chart.evidence.sourceIds.length).toBeGreaterThan(0);
     const core = expandInternedPackageDocument(
       await raw(packageManifest.core.url)) as ReconstructionCoreV2;

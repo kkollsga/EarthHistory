@@ -63,6 +63,7 @@ function revisionOf(batches: readonly BatchSpec[], chartCount: number): Prepared
     materialCorrectionIdentity: null,
     materialCorrections: { observedActiveCharts: 0, classifiedShallowMarineActiveCharts: 0,
       qualifiedActiveCharts: 0, uncertainActiveCharts: 0, formationUncertainActiveCharts: 0,
+      restoredCollisionMarginActiveCharts: 0,
       modelInferredPoseActiveCharts: 0, overriddenNativeCharts: 0,
       activeSourceIds: [], correctionIds: [] },
     requestedAgeMa: 0, frameIdentity: "cao-frame",

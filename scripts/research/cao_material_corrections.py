@@ -105,7 +105,8 @@ def feature_phase_intervals(feature: dict, path: str) -> list[tuple[str, float, 
     surface_phases = feature.get("phaseLifecycles")
     if surface_phases is not None:
         rows = []
-        for phase in ("observed", "qualified", "model-pose", "formation"):
+        for phase in ("observed", "qualified", "model-pose", "formation",
+                      "restored-collision-margin"):
             lifecycle = surface_phases.get(phase)
             if lifecycle is None:
                 continue
@@ -574,7 +575,8 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
                            *(row["correctionId"] for _, row in raw_overrides),
                            iceland_manifest["correctionId"],
                            omission_manifest["correctionId"],
-                           "earthhistory-lake-void-infill-v1"})
+                           "earthhistory-lake-void-infill-v1",
+                           "earthhistory-restored-collision-margins-v1"})
     if catalog.get("schemaVersion") != 1 or catalog.get("id") != descriptor.get("id") \
             or catalog.get("correctionIds") != expected_ids:
         fail("material correction catalog", "regional correction identity set mismatch")
@@ -638,9 +640,14 @@ def validate_generated_catalog(manifests: list[dict]) -> None:
     lake_manifest = json.loads(lake.MANIFEST.read_text())
     lake.validate_document(lake_manifest)
     lake.validate_generated_catalog(lake_manifest, catalog, package_path.parent)
+    import restored_margins_correction as margins
+    margin_manifest = json.loads(margins.MANIFEST.read_text())
+    margins.validate_document(margin_manifest)
+    margins.validate_generated_catalog(margin_manifest, catalog, package_path.parent)
     expected_chart_ids.update(chart["chartId"] for chart in catalog.get("charts", [])
                               if chart.get("evidence", {}).get("correction", {}).get("correctionId")
-                              in (iceland.CORRECTION_ID, omission.CORRECTION_ID, lake.CORRECTION_ID))
+                              in (iceland.CORRECTION_ID, omission.CORRECTION_ID, lake.CORRECTION_ID,
+                                  margins.CORRECTION_ID))
     emitted_overrides = {row.get("overrideId"): row for row in catalog.get("nativeChartOverrides", [])}
     if len(emitted_overrides) != len(raw_overrides):
         fail("material correction catalog.nativeChartOverrides", "override identity set mismatch")

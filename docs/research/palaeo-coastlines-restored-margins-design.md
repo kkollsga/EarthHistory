@@ -11,12 +11,17 @@ against ≥ 140 / 250 / 400 km — by authoring the missing crust the way Cao et
 Research**: a first-class polygon on the lower plate, with a lifecycle that
 retires it when the collision consumes it.
 
-**Status: design only.** Nothing in `data/`, `public/`, `scripts/` or `src/` is
-changed by this memo. The drafts it reports — two GeoJSON collections, a
-manifest, a compiler and a projected validator run — live in the session
-scratchpad and are named in [§ E](#e-the-contract). The projected validator run
-in [§ F](#f-projected-acceptance) is real: it was executed against the pinned
-model with the drafts included, and all three collision verdicts turn `PASS`.
+**Status: implemented 2026-09-15.** This memo is kept as the design record; what
+actually ships, and every number re-derived from the tracked contract, is in
+[palaeo-coastlines-restored-margins.md](palaeo-coastlines-restored-margins.md).
+Where the two disagree, the implementation record wins — it names the two places
+the implementation departed from this design (the charts ship in their own
+`material-correction-restored-margin` batch rather than joining
+`material-correction-uncertain`, because a surface appearance is declared per
+batch; and the seam schedule's inter-stage overflow is declared and gated rather
+than assumed away). The projected acceptance run in
+[§ F](#f-projected-acceptance) was reproduced by the shipped gate, transect for
+transect.
 
 **It is crust, not land.** No strip in this design asserts a shoreline, a water
 depth, a relief or a subaerial exposure at any age. Every strip carries

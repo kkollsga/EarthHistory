@@ -342,6 +342,8 @@ export function evaluateCaoMotionFrame(
       && chart.evidence.correction?.phase === "uncertain-continuation").length,
     formationUncertainActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
       && chart.evidence.correction?.phase === "formation-uncertain").length,
+    restoredCollisionMarginActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
+      && chart.evidence.correction?.phase === "restored-collision-margin").length,
     modelInferredPoseActiveCharts: charts.filter((chart) => chart.support.kind === "supported"
       && chart.evidence.correction?.phase === "source-qualified-material"
       && ["model-inference", "native-target-only"]

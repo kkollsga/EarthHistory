@@ -12,7 +12,7 @@
       "record": "https://doi.org/10.5281/zenodo.13628813",
       "license": "CC BY 4.0 (Cao v2.4); public domain (Natural Earth)",
       "retrievalDate": "2026-09-10",
-      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Forty-eight large modern lakes that Cao leaves as coast voids inside the continental outline are filled with land-appearance infill at ages older than each lake's cited or present-only onset.",
+      "processing": "Pinned Cao v2.4 shapes_coasts.gpmlz as land-fill proxy and shapes_continents.gpmlz as shallow-shelf underlay; an exact-modern Natural Earth generalized 0-200 m Iceland shelf overlay; exact-modern Natural Earth 1:50m Panama land only outside the emitted native coast footprint; exact-modern completion of Natural Earth country locator lines; native boundaries/ownership over the compiled Cao domain. Fifteen source-native coast charts rejected by the former mixed-precision validator are recovered at emitted float32 precision; the paired Arunta/Musgrave source crossing is repaired by a vertex-preserving 2-opt operation. Exact-modern Exact-modern Natural Earth 1:50m land fills thirteen Cao static partitions that have no coast or continent counterpart, where the model leaves observed land bare of both the coastline and the continental-outline underlay. Forty-eight large modern lakes that Cao leaves as coast voids inside the continental outline are filled with land-appearance infill at ages older than each lake's cited or present-only onset. Optional requested-age motion tiles copy exact records from the unchanged full palette for first-frame transport; they add no scientific geometry or motion.",
       "scope": "Cao v2.4 0-1800 Ma layered foundation (coastline-class land over continental-outline shelf), plus a Natural Earth generalized Iceland shallow-marine overlay at exactly 0 Ma; five observed Panama land charts, thirteen observed land-omission charts, and complete Natural Earth country locator lines at exactly 0 Ma; native boundaries/ownership. Country lines remain modern locators only; the Panama and observed-land-omission geometry is not backdated and the shelf overlay is not a palaeoshoreline or growth simulation. Recovered Cao coast charts retain authored lifecycles and unknown surface exposure. Lake-void infill is land inference older than each lake's onset; the present-day lake voids keep the model's own shelf class.",
       "outputs": [
         {
@@ -4278,7 +4278,7 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "9bd044eb890a5c07ae7ef86afe5ee36029a62c88016c0ac0d32c088c33968df3",
+          "sha256": "1108d57f5c1815312ba9d28689e4ebb4d3cf767421b34e94c4971b002e5d0f9c",
           "bytes": 41545
         },
         {
@@ -4296,7 +4296,7 @@
         {
           "role": "index.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-tiles/index.json",
-          "sha256": "bf4488ee3951452a7651d0fb1cda34c304ec779f946c48039705fc43cc95335f",
+          "sha256": "fef2a278deb896e6bab86d718444206e65019aa378ba69731682bc17c46f49c5",
           "bytes": 28068
         },
         {
@@ -7561,8 +7561,8 @@
         {
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
-          "bytes": 220600,
-          "sha256": "4404aa882d0f8bb64f715272f37c0538d3dfab29fbef5bbdea33de4d131dcb28"
+          "bytes": 243939,
+          "sha256": "b4f8b892a5f403dcd8a0b3ab6d8cd221c0090dc4580c3ca3721d0353bb8f3ee7"
         },
         {
           "role": "observed.ehgb",
@@ -7581,6 +7581,12 @@
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
           "bytes": 1494968,
           "sha256": "6b57175bad3912c5fea866d694de14b9e972d6b5c717728395ce2d1c1c25e0df"
+        },
+        {
+          "role": "restored-margin.ehgb",
+          "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/restored-margin.ehgb",
+          "bytes": 60380,
+          "sha256": "a4fb1ca22819cf205e835a676941b64350cdd2966cef10ab3358994fa9e307d9"
         }
       ]
     },

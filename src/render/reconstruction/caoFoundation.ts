@@ -160,16 +160,27 @@ export function caoFoundationBatchAppearance(
 
 /**
  * Drawing class: the appearance, except that a material-correction batch is its
- * own class. Corrections are drawn with the land appearance but sit on their own
- * shell slot and own precedence rank, so the two must not be conflated.
+ * own class. Corrections are drawn on their own shell slot and own precedence
+ * rank, so appearance and class must not be conflated.
+ *
+ * A correction batch declares one of two appearances and each gets its own
+ * class. `land` is the historic one: cited or inferred ground, on the 800 m
+ * correction shell above native land's own fill. `shelf` is the restored
+ * pre-collision margin: crust of unmapped depth that must not read as cited
+ * land, so it keeps the shelf's colour and sits below palaeo-shallow-marine,
+ * at crust level. It is a separate class from the native shelf because the
+ * native shelf writes depth on the 400 m shell and a coplanar second surface
+ * there would interleave with it.
  */
-export type CaoFoundationSurfaceClass = CaoFoundationBatchAppearance | "corrections";
+export type CaoFoundationSurfaceClass =
+  CaoFoundationBatchAppearance | "corrections" | "correction-shelf";
 
 export function caoFoundationSurfaceClass(
   appearance: CaoFoundationBatchAppearance,
   nativePrecedence: boolean,
 ): CaoFoundationSurfaceClass {
-  return nativePrecedence ? "corrections" : appearance;
+  if (!nativePrecedence) return appearance;
+  return appearance === "shelf" ? "correction-shelf" : "corrections";
 }
 
 export interface CaoFoundationSurfaceShell {
@@ -192,6 +203,7 @@ export interface CaoFoundationSurfaceShell {
  * `[h - sag, h]`, so an upper class is guaranteed in front of a *depth-writing*
  * lower class only while `h(upper) - 242.59 > h(lower)`:
  *
+ *   shelf 400 -> correction-shelf 700:        700 - 242.59 = 457.41 > 400
  *   shelf 400 -> palaeo-shallow-marine 700:   700 - 242.59 = 457.41 > 400
  *   shelf 400 -> corrections 800:             800 - 242.59 = 557.41 > 400
  *   shelf 400 -> palaeo-land 1 300:         1 300 - 242.59 = 1 057.41 > 400
@@ -215,11 +227,25 @@ export interface CaoFoundationSurfaceShell {
  * Raising the correction shell or lowering the shelf shell instead would move a
  * native constant that the present-day globe, its picking bounds and its
  * goldens are already built on.
+ *
+ * `correction-shelf` — restored pre-collision margin crust — takes the same
+ * exemption twice, and for the same reason. It shares the 700 m shell with
+ * palaeo-shallow-marine and writes no depth, so the shallow-marine class paints
+ * over it in draw order, and it in turn is painted over by corrections at 800.
+ * It is not placed on the native shelf's 400 m shell, where it would be a
+ * second depth-writing surface coplanar with the shelf and interleave with it.
  */
 export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[] = Object.freeze([
   Object.freeze({ surfaceClass: "shelf" as const,
     shellOffsetMetres: CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
     renderOrder: 1, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: true }),
+  // Restored pre-collision margin crust. It shares the 700 m shell with
+  // palaeo-shallow-marine and writes no depth, so the two are separated by draw
+  // order alone and the shallow-marine class paints over it; the one
+  // depth-writing class below, the native shelf at 400 m, is cleared by 457.41 m.
+  Object.freeze({ surfaceClass: "correction-shelf" as const,
+    shellOffsetMetres: CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
+    renderOrder: 1.1, writesDepth: false, visibleInNativeMode: true, visibleInPalaeoMode: true }),
   Object.freeze({ surfaceClass: "palaeo-shallow-marine" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
     renderOrder: 1.2, writesDepth: false, visibleInNativeMode: false, visibleInPalaeoMode: true }),
@@ -244,7 +270,12 @@ export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[]
 export const CAO_FOUNDATION_SURFACE_PRECEDENCE: readonly CaoFoundationSurfaceClass[] =
   Object.freeze(CAO_FOUNDATION_SURFACE_SHELLS.map((shell) => shell.surfaceClass));
 
-/** Classes a "is this land, rather than water of any depth" question accepts. */
+/**
+ * Classes a "is this land, rather than water of any depth" question accepts.
+ * `correction-shelf` is deliberately absent: a restored pre-collision margin is
+ * crust of unmapped depth and answering "land" for it would be the exact
+ * over-claim the class exists to prevent.
+ */
 export const CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES: readonly CaoFoundationSurfaceClass[] =
   Object.freeze(["land", "corrections", "palaeo-land", "palaeo-mountain"]);
 
@@ -257,11 +288,18 @@ export function caoFoundationSurfaceShell(
   return shell;
 }
 
-export function caoFoundationShellOffsetMetres(batchId: string, declared?: string): number {
+export function caoFoundationShellOffsetMetres(
+  batchId: string,
+  declared?: string,
+  nativePrecedence = false,
+): number {
   const appearance = caoFoundationBatchAppearance(batchId, declared);
-  // The batch id alone cannot say whether a land-appearance batch is a
-  // correction, and it does not need to: corrections share the land shell.
-  return caoFoundationSurfaceShell(appearance).shellOffsetMetres;
+  // A land-appearance correction shares the land shell, so the batch id alone
+  // answers for it. A shelf-appearance correction does not: it is lifted off the
+  // native shelf shell onto its own class, so the precedence flag has to be
+  // passed or the strip would be placed 300 m too low, inside the shelf.
+  return caoFoundationSurfaceShell(
+    caoFoundationSurfaceClass(appearance, nativePrecedence)).shellOffsetMetres;
 }
 
 /**

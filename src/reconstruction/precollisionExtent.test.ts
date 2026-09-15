@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { expandInternedPackageDocument } from "./packageIntern";
 import { decodePalaeoCoastlineClassCatalog } from "./palaeoRings";
-import { GREATER_INDIA_CHART_ID, GREATER_INDIA_EVIDENCE_LINE } from "./caoDomain";
+import {
+  GREATER_INDIA_CHART_ID, GREATER_INDIA_EVIDENCE_LINE,
+  RESTORED_COLLISION_MARGIN_CORRECTION_ID,
+} from "./caoDomain";
 import { sources } from "../data/sources";
 
 /**
@@ -12,19 +15,23 @@ import { sources } from "../data/sources";
  * Himalaya - it ships a `Greater India` feature 1,341 km wider than the present
  * Indian outline at 85 E, and retires it at 10 Ma - and does not answer it for
  * the Alps or the Caledonides, which are built out of present-day crust tiles.
+ * Those two are answered by charts we author: the restored pre-collision
+ * margins of `data/corrections/restored-margins/`, on the lower plate of each
+ * collision, retired as the model closes the room for them.
  *
  * `docs/research/palaeo-coastlines-collision-shortening.md` is the memo and
  * `...-collision-shortening.json` the measured record; `scripts/research/
  * validate_precollision_extent.py` re-derives the record from the pinned Cao
- * model. Neither of those reads the *shipped package*, so neither notices if a
- * package refresh drops Greater India, re-dates its lifecycle, or shrinks it.
- * That is this file's job: it reads the bytes a browser downloads and holds them
- * against the record the memo argues from.
+ * model with the restored margins included. Neither of those reads the *shipped
+ * package*, so neither notices if a package refresh drops Greater India,
+ * re-dates its lifecycle, or shrinks it. That is this file's job: it reads the
+ * bytes a browser downloads and holds them against the record the memo argues
+ * from.
  *
- * Two of the three verdicts are recorded failures and stay that way until the
- * restored Alpine and Caledonide margins of Phase 11 land. A recorded failure is
- * not a red test; a failure that quietly became a pass, or a pass that quietly
- * became a failure, is.
+ * All three verdicts now pass. A pass that quietly became a failure, a verdict
+ * that stopped following the numbers beside it, or an Alpine or Caledonide row
+ * that passes on the model's own crust rather than on a restored margin, is the
+ * defect this file guards.
  */
 
 const packageRoot = resolve("public/data/reconstruction/cao-v2.4");
@@ -45,6 +52,11 @@ interface CollisionRecord {
     readonly modelExtentKm: number;
     readonly minimumKm: number;
     readonly shortfallKm: number | null;
+    /** What the model's own crust reaches, without any restored margin. */
+    readonly nativeModelExtentKm?: number;
+    readonly source?: string;
+    readonly at66N?: { readonly modelExtentKm: number; readonly minimumKm: number;
+      readonly shortfallKm: number | null };
   };
   readonly model: Record<string, unknown>;
 }
@@ -57,6 +69,12 @@ interface ShorteningRecord {
     readonly charts: Record<string, ChartRecord>;
   };
   readonly collisions: Record<string, CollisionRecord>;
+  readonly restoredMargins: {
+    readonly correctionId: string;
+    readonly strips: number;
+    readonly areaKm2: Record<string, number>;
+    readonly conjugateMarginExtentKm: Record<string, number>;
+  };
   readonly palaeoLayer: {
     readonly boundGround: Record<string, Record<string,
       { pieces: number; bboxDeg: [number, number, number, number] } | null>>;
@@ -130,16 +148,27 @@ describe("pre-collision continental extent in the shipped package", () => {
       expect(india.verdict.modelExtentKm).toBeGreaterThanOrEqual(india.literature.minimumKm);
       expect(india.verdict.verdict).toBe("pass");
 
-      // Adria and Baltica are recorded failures. A record that quietly turned
-      // either into a pass without the package changing is the defect this
-      // guards: the verdict has to follow the numbers next to it.
+      // Adria and Baltica pass only because of the restored margins. Both halves
+      // are held: the recorded extent clears the literature minimum, and the
+      // model's *own* crust still does not - so a record that dropped the
+      // restored margin and kept the verdict cannot stay green.
+      const restored = record.restoredMargins;
+      expect(restored.correctionId).toBe(RESTORED_COLLISION_MARGIN_CORRECTION_ID);
+      expect(restored.strips).toBe(15);
       for (const key of ["adria-europe", "baltica-laurentia"]) {
         const collision = record.collisions[key]!;
-        expect(collision.verdict.modelExtentKm).toBeLessThan(collision.literature.minimumKm);
-        expect(collision.verdict.verdict).toBe("fail");
-        expect(collision.verdict.shortfallKm).toBeCloseTo(
-          collision.literature.minimumKm - collision.verdict.modelExtentKm, 1);
+        expect(collision.verdict.modelExtentKm)
+          .toBeGreaterThanOrEqual(collision.literature.minimumKm);
+        expect(collision.verdict.verdict).toBe("pass");
+        expect(collision.verdict.shortfallKm).toBeNull();
+        expect(collision.verdict.nativeModelExtentKm)
+          .toBeLessThan(collision.literature.minimumKm);
+        expect(collision.verdict.source).toContain("restored");
       }
+      // The Caledonide companion minimum at 66 N, which the modern Atlantic
+      // shelf missed by 108 km, is met by the restored margin too.
+      expect(record.collisions["baltica-laurentia"]!.verdict.at66N!.modelExtentKm)
+        .toBeGreaterThanOrEqual(record.collisions["baltica-laurentia"]!.verdict.at66N!.minimumKm);
     });
 
   it("still binds palaeo-coastline ground to India, Adria and Baltica", async () => {
