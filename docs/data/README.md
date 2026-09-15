@@ -105,6 +105,37 @@ because an off-schedule source record appears in every interval it overlaps. The
 runtime decodes the rings in a worker, ear-clips each piece with its holes and
 refines every edge to at most 1° of arc before drawing.
 
+Every source record is cookie-cut by the present-day Cao 2024 static partitions
+and each cut piece is node-reduced on its own, which used to leave the two copies
+of a shared edge displaced from one another: a hairline through which the darker
+crust, or the bare sphere, showed at closest zoom. Each piece of a record cut
+into more than one is therefore grown back across its seams — by at least
+`seamBufferKilometres` (1.5 km) and by `seamBufferToleranceMultiple` (1.25) times
+its own reduction tolerance where that is larger — and clipped to the record it
+came from, so neighbours overlap instead of gapping. Same-class overdraw is
+invisible; the clip means the record's own outline never moves. A record whose
+pieces still leave a hole inside that outline afterwards is emitted unsimplified
+(`retainReason: seam-gap`). The overlap the buffer adds is the same ground
+counted twice, so it is declared per interval as
+`seamOverlapAreaSquareKilometres` and every area ratio subtracts it; both
+parameters live in `data/corrections/palaeo-coastlines/simplification.json` and
+`palaeo_coastlines_qc.py` reports the residual seam width per class.
+
+A cut piece rides the plate of the partition that owns it unless its own
+`PLATEID1` has an override entry, and an override applies when the piece's
+centroid and at least half its area lie inside that plate's one declared
+footprint. Every override plate applies to every class, because a frame conflict
+belongs to the plate rather than to the class drawn on it. Whatever the binding,
+a piece the binding would carry more than **1,000 km** from its own `PLATEID1`
+position at the interval mid-age is **dropped and counted**
+(`droppedFrameConflictSquareKilometres`), never drawn: past that distance the
+partition binding is not an approximation of the source frame, it is a different
+place on Earth. Measured 2026-09-15, before this rule four Qiangtang (616) and
+Tarim (601) mountain pieces and one landmass piece were bound to India and drawn
+6,474–6,837 km from where Cao 2017 puts them, 46 % of the mountain area over
+India at 94–81 Ma. The 250 km frame-conflict flag still marks the pieces that
+remain.
+
 Each piece is posed by the plate its catalog binding names, resolved against the
 shared motion palette by the normative `palaeo-binding-entry-v1` rule: a North
 Sea restoration entry first, then the eight recovery plates that never fall back

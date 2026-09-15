@@ -44227,9 +44227,9 @@
    "toleranceKilometres": 75.0,
    "driftToleranceKilometres": 5.0,
    "measuredSeparationKilometres": {
-    "65.4": 58.0,
-    "65.6": 60.6,
-    "65.8": 40.4,
+    "65.4": 56.1,
+    "65.6": 57.5,
+    "65.8": 45.5,
     "66.0": 19.7
    },
    "staticPartitionSeamDeg": [
@@ -44252,7 +44252,8 @@
    ],
    "reason": "The Cao 2024 static partitions over Iceland are plate 102 (Greenland) in the west and 301 (Eurasia) in the east, so the palaeo compiler cuts the island on that seam, while the regional Iceland material correction cuts it on the exact shared 101/301 mid-ocean-ridge subsegments. Plates 101 and 102 are measured co-moving to 0.0 km over 0-29 Ma, so the risk is the seam LINE, not the rotations: the two halves of Iceland are carried apart by 210 km by 11 Ma, and ground assigned to the wrong half moves with the wrong plate.",
    "measurement": "MEASURED, and it is not agreement. On the four latitudes where both constructions cut through outcrop - 65.4 to 66.0 N - the palaeo 102/301 seam lies 19.7 to 60.6 km EAST of the correction's 101/301 seam. Between 64.6 and 65.2 N the static-partition seam falls inside the neovolcanic gap, where there is no Tertiary outcrop to cut at all, while the ridge line does cut the outcrop; north of 66.0 and south of 65.4 neither cuts it. The declared tolerance is therefore 75 km, set from the measurement rather than from a hope: it is inside the 60 km spatial uncertainty this contract declares for 11-2 and the 100 km for 20-11, and it is larger than Cao's own ~30 km coastline tolerance, which is the part a reader has to be told. Each latitude's separation is pinned above and may not drift by more than 5 km, so the gate catches a change in either construction instead of asserting an agreement that does not exist.",
-   "consequence": "Iceland's western and eastern halves are drawn on plates that separate with age, and the palaeo land and the gold material outcrop are split on lines up to 61 km apart. At 11 Ma, where the relative displacement reaches 210 km, a 61 km strip of ground rides the opposite plate in one layer from the other. Both layers already declare model inference for every non-modern Iceland pose, and this is one of the reasons."
+   "consequence": "Iceland's western and eastern halves are drawn on plates that separate with age, and the palaeo land and the gold material outcrop are split on lines up to 61 km apart. At 11 Ma, where the relative displacement reaches 210 km, a 61 km strip of ground rides the opposite plate in one layer from the other. Both layers already declare model inference for every non-modern Iceland pose, and this is one of the reasons.",
+   "measuredSeparationNote": "Re-pinned 2026-09-15 after the seam buffer landed. The compiler now grows every piece of a multi-piece record back across its cookie-cut seams before node reduction, so the palaeo 102/301 cut through Iceland sits further east than it did on unbuffered pieces: 65.4 N moved 58.0 -> 56.1 km, 65.6 N 60.6 -> 57.5, 65.8 N 40.4 -> 45.5 and 66.0 N 19.7 -> 19.7. The disagreement this check exists to record is unchanged in kind and still well inside the 75 km tolerance; only the buffer moved the numbers, and they are re-pinned rather than the drift tolerance widened."
   },
   "acceptanceAges": {
    "reason": "The contract's acceptance ages, from the memo's section 5.3 step 9. Each must select the interval named beside it under the half-open (toAgeMa, fromAgeMa] rule the runtime uses (palaeoIntervalCoversAge). Two corrections to the memo's list are pinned here rather than left to be rediscovered: 2.01 and 11.01 Ma are the EXCLUSIVE young bounds of 11-2 and 20-11, so they select nothing and no Iceland land is drawn at either; the youngest age each interval actually covers is the next representable one up. The two negatives are the ages at which nothing here may draw - 1.9 Ma is younger than the whole Cao band, where the layer falls back to today's composition and Iceland is drawn by the native charts, and 20.1 Ma is the interval before this contract starts.",

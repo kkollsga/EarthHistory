@@ -3,6 +3,10 @@
  "configId": "palaeo-coastlines-simplification-v1",
  "pinnedAt": "2026-09-15",
  "method": "shapely Douglas-Peucker with preserve_topology=True, applied per cut piece after the cookie-cut and before int16 quantisation",
+ "seamBufferKilometres": 1.5,
+ "seamBufferToleranceMultiple": 1.25,
+ "seamBufferToleranceReason": "The overlap has to survive the node reduction that follows it. Douglas-Peucker can move each side of a seam by up to its own tolerance, so a buffer smaller than that tolerance re-opens the gap: measured at a flat 1.5 km the worst interior gap in the 166-146 Ma payload was still 0.80 km on lm and 1.72 km on sm. Each piece is therefore grown by this multiple of its own tolerance where that exceeds seamBufferKilometres - 2.78 km at the 0.02 degree baseline, 6.95 km for shallow marine at 0.05 degrees - and the floor applies to everything else.",
+ "seamBufferReason": "A source record that straddles a partition boundary is cookie-cut into pieces that share an exact edge, and each piece is then node-reduced on its own. Douglas-Peucker runs over the whole ring, so the two copies of the shared edge come back displaced and the hairline between them shows the darker crust, or the sphere, at closest zoom. Every piece of a multi-piece record is therefore grown by this distance and clipped back to the record it was cut from, so the neighbours overlap instead of gapping. Same-class overdraw is invisible; the clip means the record's own outline never moves and the growth can only happen at a seam. The buffer runs in a local equirectangular frame (longitude scaled by the cosine of the piece's latitude) so the distance is the same east-west and north-south. The overlap it adds is measured per piece, declared per interval as seamOverlapAreaSquareKilometres, and subtracted by the area-preservation gate rather than the gate being widened.",
  "areaClasses": [
   {
    "minimumAreaSquareKilometres": 0,

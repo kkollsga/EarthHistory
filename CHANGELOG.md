@@ -392,6 +392,65 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- Ship the Last Glacial Maximum state as **exposed shelf only**. The payload
+  carried the whole `>= -120 m` mask inside each crop rectangle, so the
+  palaeo-land shell re-tinted Germany, France, Norway and Britain — ground that
+  was already dry — and the rectangle edge showed on screen as a hard tonal seam
+  running straight across northern Europe: pale `(216,216,190)` inside the box
+  against present-day `(203,208,172)` outside it, along a dead-flat 240 px line.
+  The derivation now subtracts present-day land (the pinned Natural Earth 1:50m
+  admin-0 land the observed-land omission correction already uses, eroded 1.5 km
+  so the shelf still laps over the modern coast and no hairline opens along it),
+  and the layer draws only what the lowstand added: 695,747 km2 in the North Sea
+  box, 2,347,446 on the Sunda shelf and 1,696,055 in Beringia. London and the
+  north German plain are new witnesses — present-day land, and nothing the LGM
+  payload draws — beside Dogger Bank, which is still exposed shelf.
+- Close the cookie-cut seams between pieces of one source record. Each record is
+  cut by the present-day static partitions and every piece is node-reduced on its
+  own, which left the two copies of a shared edge displaced and a hairline
+  through which the darker crust, or the bare sphere, showed at closest zoom (one
+  is visible as a 106 px dark line inside an otherwise uniform palaeo-land field
+  in the 170 Ma review capture). Every piece of a multi-piece record is now grown
+  back across its seams — at least 1.5 km, or 1.25 times its own reduction
+  tolerance where that is larger — and clipped to the record it came from, so
+  neighbours overlap instead of gapping while the record's own outline never
+  moves. A record that still leaves a hole inside that outline is emitted
+  unsimplified. The overlap is the same ground counted twice, so it is declared
+  per interval and every area ratio subtracts it.
+- Stop drawing ground thousands of kilometres from where its own source record
+  puts it. Four Qiangtang (616) and Tarim (601) mountain pieces and one landmass
+  piece were bound to India by the partition rule and drawn 6,474-6,837 km away —
+  46 % of the mountain area over India at 94-81 Ma — because the override
+  footprint test required a whole piece to fit and neither 601 nor 606 had a
+  mountain entry at all. Every override plate now applies to every class on one
+  footprint per plate; a piece is rebound by `PLATEID1` when its centroid and at
+  least half its area lie inside that footprint; and any piece the binding would
+  carry more than 1,000 km from its `PLATEID1` position is dropped and counted
+  rather than drawn. The 250 km frame-conflict flag still marks what remains.
+- Draw a map in the 10 kyr seam between two adjacent published intervals. The
+  schedule is contiguous in intent - `29-20` is followed by `20-11` - but the
+  exclusive young bound is written 0.01 Ma above the next interval's inclusive
+  oldest age, so the ages in `(20, 20.01]` were covered by neither rule at all of
+  the 23 interval boundaries. The age domain still said the layer was inside the
+  Cao band, no interval was ever selected, nothing was published, and the mode
+  latched at "loading" with the globe drawn as if the layer were off for the rest
+  of the session, because only an age change wakes the pump. Scrubbing to exactly
+  20 Ma reproduced it every time: the timeline's own round-trip lands a hair
+  above 20. An age in a seam now takes the older interval whose padding created
+  it, and the real 1.98 Myr gap below the Cao band - where there is genuinely no
+  map - is excluded by the seam's declared width.
+- Recover the palaeo-coastline layer from a refused publication instead of
+  latching it at "loading". Every trip out of the published age domain cleared
+  the palaeo publication, and each clear handed the bounded GPU retirement owner
+  a resource it declined; the publisher kept the declined bytes in its ledger
+  forever, so after about a dozen interval changes in one page the next
+  publication no longer fitted its 512 KiB budget. The scene then drew nothing
+  while the pump, believing its own bookkeeping, never asked again. A declined
+  retirement is now disposed and leaves the ledger (a device-loss failure still
+  does not), the scene reports a refused publication to the owner of the
+  interval, and the pump drops the interval it is not showing and asks again,
+  bounded, before it reports an error.
+- Keep the opened map key clear of the floating chapter card at 390x844.
 - Draw the Middle Jurassic Scottish landmass as land instead of as water of
   unknown depth. At 170 Ma the present-day point (-3, 58.8) rendered in the
   crust blue that means "no class is mapped here" while the Moray Firth 90 km

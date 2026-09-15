@@ -11,7 +11,13 @@ Method:
 
 1. read the crops pinned by ``palaeo_coastlines_lgm_acquire.py`` and verify
    every raster against the sha256 in its manifest;
-2. build the boolean mask ``surface >= -120`` on the source 1 arc-minute grid;
+2. build the boolean mask ``surface >= -120`` on the source 1 arc-minute grid, and
+   **subtract present-day land** from it. The layer ships the *exposed shelf*
+   only: the ground the lowstand added to the coastline, never the ground that
+   is dry today. Present-day land is the same pinned Natural Earth 1:50m
+   admin-0 land the observed-land omission correction uses, eroded by
+   ``MODERN_LAND_OVERLAP_KM`` so the shelf still laps 1.5 km over the modern
+   coast and no sliver of sphere opens along it;
 3. polygonise the mask on **cell boundaries** — maximal axis-aligned rectangles
    of set cells, unioned. No contour interpolation is invented between two
    source cells, so every vertex of the raw polygon lies on a real grid line;
@@ -30,15 +36,18 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-from shapely.geometry import MultiPolygon, Polygon, box, mapping
-from shapely.ops import unary_union
+import shapefile
+from shapely.geometry import MultiPolygon, Polygon, box, mapping, shape
+from shapely.ops import transform, unary_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palaeo_coastlines_audit as audit  # noqa: E402
@@ -46,8 +55,17 @@ import palaeo_coastlines_lgm_acquire as acquire  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[2]
+POOL = ROOT.parent / "EarthHistory-data/palaeomap-study"
 STORE = acquire.STORE
 CONTRACT = ROOT / "data/corrections/palaeo-coastlines/lgm"
+
+# Present-day land, pinned. This is the same archive and the same digest the
+# observed-land omission correction reads (`regional_observed_land_omission_
+# compile.py`), so "today's land" means one thing across the project.
+NE_ARCHIVE = POOL / "verification/regional-iceland-correction-v1/source-inputs/ne_50m_admin_0_countries.zip"
+NE_STEM = "ne_50m_admin_0_countries"
+NE_VERSION = "5.1.1"
+NE_PINNED = (799734, "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139")
 
 LOWSTAND_DATUM_M = -120.0
 LGM_OLDEST_MA = 0.0265
@@ -55,6 +73,12 @@ LGM_YOUNGEST_EXCLUSIVE_MA = 0.0195
 MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
 SIMPLIFY_DEGREES = 0.02
 COORDINATE_DECIMALS = 4
+# How far the exposed shelf is allowed to lap over present-day land. Present-day
+# land is eroded by this much before it is subtracted, so the shipped shelf and
+# the native land polygons overlap instead of leaving a hairline of bare sphere
+# along the modern coastline. Same-class overdraw is invisible; a gap is not.
+MODERN_LAND_OVERLAP_KM = 1.5
+EARTH_RADIUS_KM = 6371.0088
 
 # One entry per named footprint; a footprint may be covered by several crops
 # (Beringia spans the antimeridian and is therefore two).
@@ -80,8 +104,16 @@ FOOTPRINTS = {
 WITNESSES = (
     ("dogger-bank", 2.5, 54.7, "north-sea", True,
      "Dogger Bank: subaerial at the lowstand, a shallow bank today"),
-    ("london", -0.1, 51.5, "north-sea", True,
-     "London: present-day land, unchanged by a sea-level lowstand"),
+    ("london", -0.1, 51.5, "north-sea", False,
+     "London: dry land today, so it is not exposed shelf and this layer ships nothing "
+     "there; the native present-day land keeps drawing it"),
+    ("north-german-plain", 10.0, 53.0, "north-sea", False,
+     "Schleswig-Holstein: dry land today, inside the crop rectangle, and the reason the "
+     "footprint edge used to show as a tonal seam across Germany"),
+    ("borneo-interior", 114.0, 0.5, "sundaland", False,
+     "central Borneo: dry land today, not shelf the lowstand exposed"),
+    ("alaska-interior", -155.0, 65.0, "beringia", False,
+     "interior Alaska: dry land today, not part of the land bridge this layer adds"),
     ("sunda-shelf", 108.0, 2.0, "sundaland", True,
      "central Sunda shelf between Sumatra, Borneo and the Malay peninsula"),
     ("bering-land-bridge", -170.0, 65.0, "beringia", True,
@@ -118,6 +150,20 @@ REFERENCES = [
                        "contour is taken from"),
         "claimOrInference": ("the elevations are the source's own measurement and model; "
                              "reading them as a palaeo-shoreline is EarthHistory's inference"),
+    },
+    {
+        "sourceId": "natural-earth-countries-50m",
+        "citation": ("Natural Earth 2022. 1:50m Cultural Vectors, Admin 0 - Countries, "
+                     "version 5.1.1. Public domain."),
+        "url": ("https://www.naturalearthdata.com/downloads/50m-cultural-vectors/"
+                "50m-admin-0-countries-2/"),
+        "year": 2022,
+        "constrains": ("present-day land: it is subtracted from the -120 m mask so this layer "
+                       "ships the exposed shelf only. The same pinned archive and digest the "
+                       "observed-land omission correction uses"),
+        "claimOrInference": ("the land polygons are the source's own generalised present-day "
+                             "coastline; subtracting them, and the 1.5 km erosion that keeps "
+                             "the shelf lapping over them, is EarthHistory's method"),
     },
     {
         "sourceId": "lambeck-2014-sea-level",
@@ -215,6 +261,9 @@ LIMITATIONS = [
     " is not removed, and the present-day sea bed is not the lowstand land surface",
     "regional: only the southern/central North Sea, the Sunda shelf and Beringia are drawn;"
     " every other coastline at this age falls back to the present-day composition",
+    "exposed shelf only: present-day land is subtracted (Natural Earth 1:50m, eroded 1.5 km so"
+    " the two overlap), so this state adds coastline to today's composition and never re-draws"
+    " the ground that is dry now",
     "rivers, lakes, estuaries and the Doggerland landscape mapped by seismic survey are not"
     " represented at all",
 ]
@@ -233,6 +282,77 @@ def read_crop(store: Path, record: dict) -> np.ndarray:
     values = acquire.decode_tiff(raster, tuple(record["bounds"]),
                                  record["width"], record["height"])
     return np.asarray(values, dtype=np.float64).reshape(record["height"], record["width"])
+
+
+def polygonal(geometry):
+    """Only the polygonal parts of a geometry, made valid."""
+    if geometry.is_empty:
+        return Polygon()
+    if not geometry.is_valid:
+        geometry = geometry.buffer(0)
+    parts = audit.polygon_parts(geometry)
+    if not parts:
+        return Polygon()
+    return parts[0] if len(parts) == 1 else MultiPolygon(parts)
+
+
+def load_present_day_land():
+    """The pinned Natural Earth 1:50m admin-0 land polygons, unioned.
+
+    The same archive, digest and embedded version the observed-land omission
+    correction pins, so "present-day land" is one dataset across the project.
+    """
+    raw = NE_ARCHIVE.read_bytes()
+    size, digest = NE_PINNED
+    if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
+        raise SystemExit(f"{NE_ARCHIVE.name}: pinned {size} B / {digest} but the stored archive "
+                         f"is {len(raw)} B / {hashlib.sha256(raw).hexdigest()}")
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        if archive.read(f"{NE_STEM}.VERSION.txt").decode("ascii").strip() != NE_VERSION:
+            raise SystemExit("Natural Earth embedded version changed")
+        reader = shapefile.Reader(
+            shp=io.BytesIO(archive.read(f"{NE_STEM}.shp")),
+            shx=io.BytesIO(archive.read(f"{NE_STEM}.shx")),
+            dbf=io.BytesIO(archive.read(f"{NE_STEM}.dbf")),
+            encoding="utf-8",
+        )
+        parts = []
+        for record in reader.iterShapes():
+            geometry = polygonal(shape(record.__geo_interface__))
+            if not geometry.is_empty:
+                parts.append(geometry)
+    if len(parts) < 200:
+        raise SystemExit("Natural Earth country inventory changed")
+    return polygonal(unary_union(parts))
+
+
+def eroded_land_for_crop(land, bounds, overlap_km: float):
+    """Present-day land near one crop, eroded by ``overlap_km``.
+
+    The erosion runs in a local equirectangular frame (longitude scaled by
+    cos(centre latitude)) so the inward offset is the same distance in both
+    directions rather than three times larger east-west at 63 N. Land is taken
+    from one degree beyond the crop so the crop's own rectangle edge never
+    behaves like a coastline: a footprint boundary that cuts through Germany
+    must subtract all of Germany there, not erode a strip of it into "shelf".
+    """
+    west, south, east, north = bounds
+    window = box(max(west - 1.0, -180.0), max(south - 1.0, -90.0),
+                 min(east + 1.0, 180.0), min(north + 1.0, 90.0))
+    local = polygonal(land.intersection(window))
+    inside = polygonal(land.intersection(box(west, south, east, north)))
+    inside_km2 = audit.area_km2(inside) if not inside.is_empty else 0.0
+    if local.is_empty:
+        return local, inside_km2
+    centre_latitude = math.radians((south + north) / 2.0)
+    scale = max(math.cos(centre_latitude), 1e-6)
+    degrees = overlap_km / (math.radians(1.0) * EARTH_RADIUS_KM)
+    flattened = transform(lambda x, y, z=None: (x * scale, y), local)
+    shrunk = flattened.buffer(-degrees, join_style=2)
+    if shrunk.is_empty:
+        return Polygon(), inside_km2
+    restored = transform(lambda x, y, z=None: (x / scale, y), shrunk)
+    return polygonal(restored), inside_km2
 
 
 def mask_rectangles(mask: np.ndarray, bounds, width: int, height: int) -> list:
@@ -346,6 +466,7 @@ def main() -> None:
     arguments = parser.parse_args()
     manifest = load_manifest(arguments.store)
     crops = {record["id"]: record for record in manifest["outputs"]}
+    present_day_land = load_present_day_land()
 
     features = []
     footprint_reports = {}
@@ -353,44 +474,46 @@ def main() -> None:
     crop_reports = []
     for footprint_id, footprint in FOOTPRINTS.items():
         pieces = []
-        exposed_km2 = 0.0
-        modern_land_km2 = 0.0
+        lgm_km2 = 0.0
+        present_km2 = 0.0
         sub_window: dict[str, dict] = {}
         for crop_id in footprint["crops"]:
             record = crops[crop_id]
             grid = read_crop(arguments.store, record)
             mask = grid >= LOWSTAND_DATUM_M
-            modern = grid >= 0.0
             rectangles = mask_rectangles(mask, tuple(record["bounds"]),
                                          record["width"], record["height"])
             merged = unary_union(rectangles)
-            crop_parts, report = cleaned_parts(merged, SIMPLIFY_DEGREES)
+            # The layer ships the exposed shelf only. Present-day land is
+            # subtracted, eroded by MODERN_LAND_OVERLAP_KM so the two overlap.
+            eroded, present_in_crop = eroded_land_for_crop(
+                present_day_land, tuple(record["bounds"]), MODERN_LAND_OVERLAP_KM)
+            exposed = polygonal(merged.difference(eroded)) if not eroded.is_empty else merged
+            crop_parts, report = cleaned_parts(exposed, SIMPLIFY_DEGREES)
             pieces.extend(crop_parts)
             raw_km2 = audit.area_km2(merged)
-            modern_raw = unary_union(mask_rectangles(modern, tuple(record["bounds"]),
-                                                     record["width"], record["height"]))
-            modern_km2 = audit.area_km2(modern_raw)
-            exposed_km2 += raw_km2 - modern_km2
-            modern_land_km2 += modern_km2
+            exposed_km2 = audit.area_km2(exposed)
+            lgm_km2 += raw_km2
+            present_km2 += present_in_crop
             window_id, window_bounds, window_note = NAMED_SUB_WINDOWS[footprint_id]
             clip = box(*window_bounds)
-            sub_land = audit.area_km2(merged.intersection(clip))
-            sub_modern = audit.area_km2(modern_raw.intersection(clip))
+            sub_lgm = audit.area_km2(merged.intersection(clip))
+            sub_exposed = audit.area_km2(exposed.intersection(clip))
             sub_window[window_id] = {
                 "bounds": list(window_bounds), "note": window_note,
-                "landSquareKilometres": round(
-                    sub_window.get(window_id, {}).get("landSquareKilometres", 0.0)
-                    + sub_land, 1),
+                "lgmLandSquareKilometres": round(
+                    sub_window.get(window_id, {}).get("lgmLandSquareKilometres", 0.0)
+                    + sub_lgm, 1),
                 "exposedShelfSquareKilometres": round(
                     sub_window.get(window_id, {}).get("exposedShelfSquareKilometres", 0.0)
-                    + sub_land - sub_modern, 1),
+                    + sub_exposed, 1),
             }
             crop_reports.append({
                 "crop": crop_id, "footprint": footprint_id,
                 "rectangles": len(rectangles),
-                "rawLandSquareKilometres": round(raw_km2, 1),
-                "modernLandSquareKilometres": round(modern_km2, 1),
-                "exposedShelfSquareKilometres": round(raw_km2 - modern_km2, 1),
+                "lgmLandSquareKilometres": round(raw_km2, 1),
+                "presentDayLandSquareKilometres": round(present_in_crop, 1),
+                "exposedShelfSquareKilometres": round(exposed_km2, 1),
                 **{key: (round(value, 3) if isinstance(value, float) else value)
                    for key, value in report.items()},
             })
@@ -402,9 +525,13 @@ def main() -> None:
                        for part in parts)
         footprint_reports[footprint_id] = {
             "pieces": len(parts), "vertices": vertices,
-            "landSquareKilometres": round(area, 1),
-            "modernLandSquareKilometres": round(modern_land_km2, 1),
-            "exposedShelfSquareKilometres": round(exposed_km2, 1),
+            # `exposedShelfSquareKilometres` is what ships: the area of the
+            # rings in the GeoJSON beside this report. The other two are the
+            # unsubtracted lowstand mask and the present-day land taken out of
+            # it, kept so the subtraction can be audited.
+            "exposedShelfSquareKilometres": round(area, 1),
+            "lgmLandSquareKilometres": round(lgm_km2, 1),
+            "presentDayLandSquareKilometres": round(present_km2, 1),
             "namedSubWindow": sub_window,
         }
         features.append({
@@ -415,8 +542,8 @@ def main() -> None:
                 "bounds": footprint["bounds"],
                 "crossesAntimeridian": bool(footprint.get("crossesAntimeridian")),
                 "crops": footprint["crops"],
-                "landSquareKilometres": round(area, 1),
-                "exposedShelfSquareKilometres": round(exposed_km2, 1),
+                "exposedShelfSquareKilometres": round(area, 1),
+                "lgmLandSquareKilometres": round(lgm_km2, 1),
             },
             "geometry": mapping(MultiPolygon(parts) if len(parts) != 1 else parts[0]),
         })
@@ -465,9 +592,23 @@ def main() -> None:
             "id": "etopo-2022-eustatic-lowstand-contour-v1",
             "description": ("boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the "
                             "source grid, polygonised on cell boundaries as maximal rectangles, "
-                            f"unioned, parts below {MIN_PIECE_KM2:g} km2 dropped, simplified at "
-                            f"{SIMPLIFY_DEGREES} degrees with topology preserved, coordinates "
-                            f"rounded to {COORDINATE_DECIMALS} decimals"),
+                            "unioned, present-day Natural Earth 1:50m land eroded by "
+                            f"{MODERN_LAND_OVERLAP_KM:g} km and subtracted so only the exposed "
+                            f"shelf remains, parts below {MIN_PIECE_KM2:g} km2 dropped, "
+                            f"simplified at {SIMPLIFY_DEGREES} degrees with topology preserved, "
+                            f"coordinates rounded to {COORDINATE_DECIMALS} decimals"),
+            "presentDayLandSubtracted": {
+                "sourceId": "natural-earth-countries-50m",
+                "dataset": NE_ARCHIVE.name,
+                "version": NE_VERSION,
+                "bytes": NE_PINNED[0],
+                "sha256": NE_PINNED[1],
+                "overlapKilometres": MODERN_LAND_OVERLAP_KM,
+                "reason": ("the layer ships the ground the lowstand added to the coastline, "
+                           "never the ground that is dry today; present-day land is eroded "
+                           "before the subtraction so the shelf laps over the modern coast "
+                           "and no hairline of bare sphere opens along it"),
+            },
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
             "simplifyDegrees": SIMPLIFY_DEGREES,
             "coordinateDecimals": COORDINATE_DECIMALS,

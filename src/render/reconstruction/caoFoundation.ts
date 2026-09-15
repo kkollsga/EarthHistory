@@ -278,6 +278,13 @@ export function caoFoundationShellOffsetMetres(batchId: string, declared?: strin
  * that it separates from `palaeo-land` by hue rather than by lightness:
  * CIE76 dE 21.1 against the olive, 56.7 against the shallow-marine teal.
  */
+/**
+ * The opaque globe sphere every surface class is drawn over. It is the bottom
+ * of the stacking contract: nothing in `CAO_FOUNDATION_SURFACE_SHELLS` may draw
+ * before it, or the sphere would paint over the class above it.
+ */
+export const CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER = 0;
+
 export const CAO_FOUNDATION_DEFAULT_BASE_COLORS:
 Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>> = Object.freeze({
   land: Object.freeze([0.45, 0.55, 0.3] as const),

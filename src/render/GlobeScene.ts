@@ -32,6 +32,7 @@ import {
 } from "./globeGuides";
 import { setInspectionLightPosition } from "./inspectionLight";
 import {
+  CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER,
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
   type CaoFoundationSurfaceHit,
@@ -442,19 +443,22 @@ function createCaoGpuRetirementOwner(
  * interval at a time, so it replaces static geometry where the native instance
  * never may.
  *
- * Measured 2026-09-15 over the promoted `lm`+`sm` set: the worst interval
- * (29-20 Ma) refines to 300,697 vertices and 483,487 triangles, whose retained
- * source copies and tracked GPU buffers come to about 19 MiB. That is 1.87x the
- * compiler's own triangle estimate, because this runtime bisects conformingly
- * while the compiler models each triangle alone; the 1 degree edge bound is the
- * chord-sag contract and cannot be relaxed to bring it down. One resource and
- * 32 MiB of retirement cover a single interval swap; the publication ledger is
- * a palette and per-chart pose table only.
+ * Measured 2026-09-15 over the promoted `lm`+`sm`+`m` set, after the cookie-cut
+ * seam buffer and the 1,000 km frame-conflict drop: the worst interval refines
+ * to 393,375 vertices and 605,192 triangles (the promoted manifest's own
+ * reservation), against 300,697 / 483,487 before the seam buffer. The limits
+ * below keep about a quarter of headroom over that, as they did before. The
+ * refined counts are roughly 1.9x the compiler's own triangle estimate, because
+ * this runtime bisects conformingly while the compiler models each triangle
+ * alone; the 1 degree edge bound is the chord-sag contract and cannot be relaxed
+ * to bring it down. One resource and 40 MiB of retirement cover a single
+ * interval swap; the publication ledger is a palette and per-chart pose table
+ * only.
  */
 const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
   maxBatches: 64,
-  maxVertices: 380_000,
-  maxTriangles: 580_000,
+  maxVertices: 500_000,
+  maxTriangles: 760_000,
   maxRetainedSourceBytes: 30 * 1024 * 1024,
   maxPublicationBytes: 512 * 1024,
   maxSpatialIndexBytes: 512 * 1024,
@@ -538,6 +542,7 @@ export class GlobeScene {
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
   private publishedPalaeoIntervalId: string | null = null;
+  private palaeoPublicationFailureReason: string | null = null;
   private palaeoStaticIntervalId: string | null = null;
   private palaeoIntervalSourceBytes = 0;
   /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
@@ -668,7 +673,7 @@ export class GlobeScene {
     }));
     this.globeMesh.castShadow = true;
     this.globeMesh.receiveShadow = true;
-    this.globeMesh.renderOrder = 0;
+    this.globeMesh.renderOrder = CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER;
     this.cloudMesh = new THREE.Mesh(this.makeCloudGeometry(), new THREE.MeshStandardMaterial({
       color: 0xdde7e8, transparent: true, opacity: 0.34, roughness: 0.94,
       depthWrite: false, alphaTest: 0.025,
@@ -949,6 +954,7 @@ export class GlobeScene {
       }
       const diagnostics = this.caoPalaeoRenderer.publish(
         preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration);
+      this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
       this.palaeoStaticIntervalId = interval.intervalId;
       this.palaeoIntervalSourceBytes = interval.activeSourceBytes;
@@ -965,10 +971,22 @@ export class GlobeScene {
       // `palaeoPublication.test.ts`, where the throw is the assertion.
       this.clearPalaeoPublication();
       this.updatePalaeoDomainVisibility();
-      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+      this.palaeoPublicationFailureReason =
         error instanceof Error ? error.message : "palaeo-coastline publication failed";
+      this.renderer.domElement.dataset.caoPalaeoFallbackReason =
+        this.palaeoPublicationFailureReason;
       return null;
     }
+  }
+
+  /**
+   * Why the last prepared interval was refused, for the owner that still holds
+   * it. A refused publication is the layer's one silent failure mode: nothing
+   * is on screen, the lease is still held elsewhere, and only the holder can
+   * decide to ask again.
+   */
+  palaeoFallbackReason(): string {
+    return this.palaeoPublicationFailureReason ?? "";
   }
 
   /**

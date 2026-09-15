@@ -32,6 +32,12 @@ export interface GlobeViewProps {
   caoWithheld?: boolean;
   /** One prepared Cao 2017 map interval, or null while the mode is off or falling back. */
   palaeoInterval?: PreparedCaoPalaeoInterval | null;
+  /**
+   * Called with the scene's own reason when a prepared interval is handed over
+   * and the scene refuses to publish it. Without it the owner of the interval
+   * keeps believing the map is on screen when nothing is.
+   */
+  onPalaeoPublicationFailed?: (reason: string) => void;
   /** Re-pose of the published interval at a new age inside the same map. */
   palaeoFrame?: CaoPalaeoIntervalFrame | null;
   /** Verified EHPT bytes; the scene decodes them against its own segment count. */
@@ -57,6 +63,7 @@ export function GlobeView({
   caoMotionFrame = null,
   caoWithheld = false,
   palaeoInterval = null,
+  onPalaeoPublicationFailed,
   palaeoFrame = null,
   palaeoToneBytes = null,
   palaeoToneTableIndex = -1,
@@ -232,8 +239,15 @@ export function GlobeView({
         if (sceneRef.current === null) palaeoInterval?.release();
       };
     }
-    scene.setPreparedPalaeoInterval(palaeoInterval);
+    const published = scene.setPreparedPalaeoInterval(palaeoInterval);
+    if (palaeoInterval !== null && published === null) {
+      onPalaeoPublicationFailed?.(scene.palaeoFallbackReason()
+        || "palaeo-coastline publication failed");
+    }
     return undefined;
+    // `onPalaeoPublicationFailed` is a stable ref callback; re-running this
+    // effect on its identity would re-publish the same interval.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [palaeoInterval]);
 
   useEffect(() => {

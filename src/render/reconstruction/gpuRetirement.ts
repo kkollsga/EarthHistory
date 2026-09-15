@@ -62,6 +62,17 @@ interface RetirementEntry {
   error: unknown | null;
 }
 
+/**
+ * The owner declined the resource and never took ownership of it.
+ *
+ * This is categorically different from a retirement that was accepted and then
+ * failed: nothing was scheduled on the resource's behalf, so the caller still
+ * owns it and must dispose it. A publisher that keeps refused bytes in its
+ * ledger forever spends its publication budget on resources nobody holds, and
+ * the next publication it refuses latches the layer.
+ */
+export class GpuRetirementRefusedError extends Error {}
+
 /** Bounded owner for resources submitted before a publication swap. */
 export class GpuRetirementOwner {
   private readonly pending = new Map<RetirableGpuResource, RetirementEntry>();
@@ -85,11 +96,13 @@ export class GpuRetirementOwner {
     }
     if (!Number.isFinite(resource.byteLength) || resource.byteLength < 0
         || this.pending.has(resource)) {
-      return Promise.reject(new Error("invalid or duplicate GPU retirement resource"));
+      return Promise.reject(new GpuRetirementRefusedError(
+        "invalid or duplicate GPU retirement resource"));
     }
     if (this.pending.size + 1 > this.maxPendingResources
         || this.pendingBytes() + resource.byteLength > this.maxPendingBytes) {
-      return Promise.reject(new Error("GPU retirement backpressure bound exceeded"));
+      return Promise.reject(new GpuRetirementRefusedError(
+        "GPU retirement backpressure bound exceeded"));
     }
     let resolveEntry!: () => void;
     let rejectEntry!: (error: unknown) => void;

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractId": "lgm-lowstand-v1",
   "title": "Last Glacial Maximum lowstand state (eustatic, regional)",
-  "compiledUtc": "2026-09-15T12:08:03.607876+00:00",
+  "compiledUtc": "2026-09-15T15:58:41.862203+00:00",
   "intervalId": "lgm",
   "oldestMa": 0.0265,
   "youngestExclusiveMa": 0.0195,
@@ -19,16 +19,26 @@
   "frame": "present-day WGS84, like the Cao et al. (2017) source polygons",
   "method": {
     "id": "etopo-2022-eustatic-lowstand-contour-v1",
-    "description": "boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the source grid, polygonised on cell boundaries as maximal rectangles, unioned, parts below 25 km2 dropped, simplified at 0.02 degrees with topology preserved, coordinates rounded to 4 decimals",
+    "description": "boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the source grid, polygonised on cell boundaries as maximal rectangles, unioned, present-day Natural Earth 1:50m land eroded by 1.5 km and subtracted so only the exposed shelf remains, parts below 25 km2 dropped, simplified at 0.02 degrees with topology preserved, coordinates rounded to 4 decimals",
+    "presentDayLandSubtracted": {
+      "sourceId": "natural-earth-countries-50m",
+      "dataset": "ne_50m_admin_0_countries.zip",
+      "version": "5.1.1",
+      "bytes": 799734,
+      "sha256": "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139",
+      "overlapKilometres": 1.5,
+      "reason": "the layer ships the ground the lowstand added to the coastline, never the ground that is dry today; present-day land is eroded before the subtraction so the shelf laps over the modern coast and no hairline of bare sphere opens along it"
+    },
     "minimumPieceSquareKilometres": 25.0,
     "simplifyDegrees": 0.02,
     "coordinateDecimals": 4
   },
   "evidence": {
     "status": "derived-from-published-source",
-    "editorial": "EarthHistory modification after noaa-etopo-2022, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
+    "editorial": "EarthHistory modification after noaa-etopo-2022, natural-earth-countries-50m, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
     "sourceIds": [
       "noaa-etopo-2022",
+      "natural-earth-countries-50m",
       "lambeck-2014-sea-level",
       "clark-lgm-2009",
       "coles-1998-doggerland",
@@ -44,6 +54,7 @@
     "ice sheets are not drawn: ground under the Fennoscandian, British-Irish and Laurentide ice sheets is shown as exposed land, which it was not",
     "ETOPO 2022 is modern bathymetry: sediment deposited, eroded and reworked since the LGM is not removed, and the present-day sea bed is not the lowstand land surface",
     "regional: only the southern/central North Sea, the Sunda shelf and Beringia are drawn; every other coastline at this age falls back to the present-day composition",
+    "exposed shelf only: present-day land is subtracted (Natural Earth 1:50m, eroded 1.5 km so the two overlap), so this state adds coastline to today's composition and never re-draws the ground that is dry now",
     "rivers, lakes, estuaries and the Doggerland landscape mapped by seismic survey are not represented at all"
   ],
   "regional": {
@@ -159,11 +170,11 @@
   "measurements": {
     "footprints": {
       "north-sea": {
-        "pieces": 19,
-        "vertices": 1532,
-        "landSquareKilometres": 1398252.4,
-        "modernLandSquareKilometres": 739277.3,
-        "exposedShelfSquareKilometres": 658202.8,
+        "pieces": 38,
+        "vertices": 2307,
+        "exposedShelfSquareKilometres": 695746.7,
+        "lgmLandSquareKilometres": 1397480.1,
+        "presentDayLandSquareKilometres": 741252.7,
         "namedSubWindow": {
           "doggerland-southern-north-sea": {
             "bounds": [
@@ -173,17 +184,17 @@
               57.0
             ],
             "note": "the southern North Sea plain between England, the Netherlands, north-west Germany and Denmark",
-            "landSquareKilometres": 477875.5,
-            "exposedShelfSquareKilometres": 310949.6
+            "lgmLandSquareKilometres": 477875.5,
+            "exposedShelfSquareKilometres": 310998.2
           }
         }
       },
       "sundaland": {
-        "pieces": 133,
-        "vertices": 3409,
-        "landSquareKilometres": 4085716.8,
-        "modernLandSquareKilometres": 1829334.9,
-        "exposedShelfSquareKilometres": 2256842.2,
+        "pieces": 139,
+        "vertices": 4770,
+        "exposedShelfSquareKilometres": 2347445.5,
+        "lgmLandSquareKilometres": 4086177.0,
+        "presentDayLandSquareKilometres": 1775968.6,
         "namedSubWindow": {
           "sunda-shelf-core": {
             "bounds": [
@@ -193,17 +204,17 @@
               8.0
             ],
             "note": "the Sunda shelf between Sumatra, the Malay peninsula, Borneo and Java",
-            "landSquareKilometres": 2832081.8,
-            "exposedShelfSquareKilometres": 1541979.6
+            "lgmLandSquareKilometres": 2832081.8,
+            "exposedShelfSquareKilometres": 1590961.7
           }
         }
       },
       "beringia": {
-        "pieces": 14,
-        "vertices": 1383,
-        "landSquareKilometres": 3641313.9,
-        "modernLandSquareKilometres": 2002844.4,
-        "exposedShelfSquareKilometres": 1638056.1,
+        "pieces": 19,
+        "vertices": 2711,
+        "exposedShelfSquareKilometres": 1696055.1,
+        "lgmLandSquareKilometres": 3640900.5,
+        "presentDayLandSquareKilometres": 1977936.7,
         "namedSubWindow": {
           "bering-land-bridge": {
             "bounds": [
@@ -213,8 +224,8 @@
               70.0
             ],
             "note": "the eastern half of the Bering land bridge, Chukchi to Norton Sound",
-            "landSquareKilometres": 1002946.1,
-            "exposedShelfSquareKilometres": 646261.3
+            "lgmLandSquareKilometres": 1002946.1,
+            "exposedShelfSquareKilometres": 673412.2
           }
         }
       }
@@ -224,67 +235,67 @@
         "crop": "north-sea",
         "footprint": "north-sea",
         "rectangles": 2715,
-        "rawLandSquareKilometres": 1397480.1,
-        "modernLandSquareKilometres": 739277.3,
-        "exposedShelfSquareKilometres": 658202.8,
-        "partsIn": 177,
-        "droppedBeforeSimplify": 156,
-        "droppedBeforeSimplifyKm2": 643.78,
-        "droppedAfterSimplify": 2,
-        "droppedAfterSimplifyKm2": 47.09,
-        "holesDropped": 290,
-        "holesDroppedKm2": 1375.556
+        "lgmLandSquareKilometres": 1397480.1,
+        "presentDayLandSquareKilometres": 741252.7,
+        "exposedShelfSquareKilometres": 695530.1,
+        "partsIn": 234,
+        "droppedBeforeSimplify": 191,
+        "droppedBeforeSimplifyKm2": 806.498,
+        "droppedAfterSimplify": 5,
+        "droppedAfterSimplifyKm2": 108.893,
+        "holesDropped": 215,
+        "holesDroppedKm2": 1112.604
       },
       {
         "crop": "sundaland",
         "footprint": "sundaland",
         "rectangles": 4946,
-        "rawLandSquareKilometres": 4086177.0,
-        "modernLandSquareKilometres": 1829334.9,
-        "exposedShelfSquareKilometres": 2256842.2,
-        "partsIn": 343,
-        "droppedBeforeSimplify": 203,
-        "droppedBeforeSimplifyKm2": 1707.727,
-        "droppedAfterSimplify": 7,
-        "droppedAfterSimplifyKm2": 141.19,
-        "holesDropped": 210,
-        "holesDroppedKm2": 1592.291
+        "lgmLandSquareKilometres": 4086177.0,
+        "presentDayLandSquareKilometres": 1775968.6,
+        "exposedShelfSquareKilometres": 2347387.3,
+        "partsIn": 369,
+        "droppedBeforeSimplify": 218,
+        "droppedBeforeSimplifyKm2": 1745.838,
+        "droppedAfterSimplify": 12,
+        "droppedAfterSimplifyKm2": 240.908,
+        "holesDropped": 206,
+        "holesDroppedKm2": 1590.727
       },
       {
         "crop": "beringia-west",
         "footprint": "beringia",
         "rectangles": 605,
-        "rawLandSquareKilometres": 1270258.4,
-        "modernLandSquareKilometres": 942677.1,
-        "exposedShelfSquareKilometres": 327581.2,
-        "partsIn": 12,
-        "droppedBeforeSimplify": 9,
-        "droppedBeforeSimplifyKm2": 49.68,
+        "lgmLandSquareKilometres": 1270258.4,
+        "presentDayLandSquareKilometres": 935344.3,
+        "exposedShelfSquareKilometres": 345566.5,
+        "partsIn": 17,
+        "droppedBeforeSimplify": 11,
+        "droppedBeforeSimplifyKm2": 50.795,
         "droppedAfterSimplify": 0,
         "droppedAfterSimplifyKm2": 0.0,
-        "holesDropped": 31,
-        "holesDroppedKm2": 211.163
+        "holesDropped": 28,
+        "holesDroppedKm2": 177.768
       },
       {
         "crop": "beringia-east",
         "footprint": "beringia",
         "rectangles": 1803,
-        "rawLandSquareKilometres": 2370642.1,
-        "modernLandSquareKilometres": 1060167.3,
-        "exposedShelfSquareKilometres": 1310474.9,
-        "partsIn": 75,
-        "droppedBeforeSimplify": 64,
-        "droppedBeforeSimplifyKm2": 307.109,
+        "lgmLandSquareKilometres": 2370642.1,
+        "presentDayLandSquareKilometres": 1042592.4,
+        "exposedShelfSquareKilometres": 1349856.0,
+        "partsIn": 79,
+        "droppedBeforeSimplify": 66,
+        "droppedBeforeSimplifyKm2": 317.323,
         "droppedAfterSimplify": 0,
         "droppedAfterSimplifyKm2": 0.0,
-        "holesDropped": 148,
-        "holesDroppedKm2": 669.483
+        "holesDropped": 137,
+        "holesDroppedKm2": 644.734
       }
     ]
   },
   "literatureComparison": {
-    "northSeaFootprintExposedShelfSquareKilometres": 658202.8,
-    "doggerlandSubWindowExposedShelfSquareKilometres": 310949.6,
+    "northSeaFootprintExposedShelfSquareKilometres": 695746.7,
+    "doggerlandSubWindowExposedShelfSquareKilometres": 310998.2,
     "sturt2013SubmergedNorthSeaZoneSquareKilometres": 127422,
     "note": "Sturt et al. 2013 model 127,422 km2 of the North Sea zone submerged across the Holocene, a different quantity over a different window and under glacial isostatic adjustment; it is quoted as an order-of-magnitude anchor, not as agreement.",
     "sourceId": "sturt-2013-inundation"
@@ -305,10 +316,40 @@
       "lon": -0.1,
       "lat": 51.5,
       "footprint": "north-sea",
-      "expectLand": true,
-      "land": true,
+      "expectLand": false,
+      "land": false,
       "pass": true,
-      "note": "London: present-day land, unchanged by a sea-level lowstand"
+      "note": "London: dry land today, so it is not exposed shelf and this layer ships nothing there; the native present-day land keeps drawing it"
+    },
+    {
+      "id": "north-german-plain",
+      "lon": 10.0,
+      "lat": 53.0,
+      "footprint": "north-sea",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "Schleswig-Holstein: dry land today, inside the crop rectangle, and the reason the footprint edge used to show as a tonal seam across Germany"
+    },
+    {
+      "id": "borneo-interior",
+      "lon": 114.0,
+      "lat": 0.5,
+      "footprint": "sundaland",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "central Borneo: dry land today, not shelf the lowstand exposed"
+    },
+    {
+      "id": "alaska-interior",
+      "lon": -155.0,
+      "lat": 65.0,
+      "footprint": "beringia",
+      "expectLand": false,
+      "land": false,
+      "pass": true,
+      "note": "interior Alaska: dry land today, not part of the land bridge this layer adds"
     },
     {
       "id": "sunda-shelf",
@@ -371,6 +412,14 @@
       "claimOrInference": "the elevations are the source's own measurement and model; reading them as a palaeo-shoreline is EarthHistory's inference"
     },
     {
+      "sourceId": "natural-earth-countries-50m",
+      "citation": "Natural Earth 2022. 1:50m Cultural Vectors, Admin 0 - Countries, version 5.1.1. Public domain.",
+      "url": "https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-0-countries-2/",
+      "year": 2022,
+      "constrains": "present-day land: it is subtracted from the -120 m mask so this layer ships the exposed shelf only. The same pinned archive and digest the observed-land omission correction uses",
+      "claimOrInference": "the land polygons are the source's own generalised present-day coastline; subtracting them, and the 1.5 km erosion that keeps the shelf lapping over them, is EarthHistory's method"
+    },
+    {
       "sourceId": "lambeck-2014-sea-level",
       "citation": "Lambeck, K., Rouby, H., Purcell, A., Sun, Y. and Sambridge, M. 2014. Sea level and global ice volumes from the Last Glacial Maximum to the Holocene. PNAS 111, 15296-15303.",
       "url": "https://doi.org/10.1073/pnas.1411762111",
@@ -428,7 +477,7 @@
   ],
   "payload": {
     "path": "lgm-lowstand-v1.geojson",
-    "bytes": 107752,
-    "sha256": "d0ea558730a5b85157cedcd74967bb698dba3ebfa8642c68cded9ae6d8023aac"
+    "bytes": 172225,
+    "sha256": "d292906763448b582e58407ebe1725913febb66497020466db6b0dbe0ffa2754"
   }
 }

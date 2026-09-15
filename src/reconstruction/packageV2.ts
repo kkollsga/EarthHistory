@@ -399,8 +399,8 @@ const PALAEO_SURFACE_CLASS_IDS: readonly PalaeoCoastlineSurfaceClassId[] = Objec
  * 513,878 triangles at the 1 degree refinement; these bounds keep about 13 %
  * over that, the same headroom the two-class set carried.
  */
-const PALAEO_MAX_INTERVAL_VERTICES = 380_000;
-const PALAEO_MAX_INTERVAL_TRIANGLES = 580_000;
+const PALAEO_MAX_INTERVAL_VERTICES = 500_000;
+const PALAEO_MAX_INTERVAL_TRIANGLES = 760_000;
 const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
 
 export function validatePalaeoCoastlineAssets(

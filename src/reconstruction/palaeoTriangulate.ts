@@ -54,8 +54,8 @@ export const PALAEO_MAX_EDGE_DEGREES = 1;
  * contract and cannot be relaxed, so the ceilings were raised to cover the
  * measurement with about 20 % headroom instead.
  */
-export const PALAEO_TRIANGULATION_MAX_VERTICES = 380_000;
-export const PALAEO_TRIANGULATION_MAX_TRIANGLES = 580_000;
+export const PALAEO_TRIANGULATION_MAX_VERTICES = 500_000;
+export const PALAEO_TRIANGULATION_MAX_TRIANGLES = 760_000;
 
 /** The reference implementation's own bound on conforming refinement rounds. */
 const MAX_REFINEMENT_ROUNDS = 32;

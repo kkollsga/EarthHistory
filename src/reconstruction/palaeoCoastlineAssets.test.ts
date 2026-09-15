@@ -221,7 +221,13 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     expect(covers(2.5, 54.7), "Dogger Bank").toBe(true);
     expect(covers(108, 2), "Sunda shelf").toBe(true);
     expect(covers(-170, 65), "Bering land bridge").toBe(true);
-    expect(covers(-0.1, 51.5), "London, unchanged present-day land").toBe(true);
+    // The layer ships the exposed shelf only: present-day land is subtracted, so
+    // London is not in this payload at all and the native land keeps drawing it.
+    // Before that subtraction the LGM shell re-tinted every already-emergent
+    // coast inside the crop rectangles and the rectangle edge showed as a hard
+    // tonal seam across northern Europe.
+    expect(covers(-0.1, 51.5), "London, dry land today").toBe(false);
+    expect(covers(10, 53), "north German plain, dry land today").toBe(false);
     expect(covers(4, 58.5), "Norwegian Trench").toBe(false);
     // Outside the three footprints the layer draws nothing and the present-day
     // composition stays on screen.
@@ -371,7 +377,7 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     expect(catalog.intervals).toHaveLength(25);
     const record = catalog.intervals.find((interval) => interval.intervalId === "179-166")!;
     const prepared = preparePalaeoRingPayload(await payloadBuffer("m", record.payload.url),
-      { maxEdgeDegrees: 1, maxVertices: 380_000, maxTriangles: 580_000 });
+      { maxEdgeDegrees: 1, maxVertices: 500_000, maxTriangles: 760_000 });
     const { referenceDirections, indices } = prepared.geometry;
     const covers = (longitude: number, latitude: number) => {
       const direction = lonLat(longitude, latitude);

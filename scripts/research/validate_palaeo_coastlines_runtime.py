@@ -57,7 +57,7 @@ LGM_OLDEST_MA = 0.0265
 LGM_YOUNGEST_EXCLUSIVE_MA = 0.0195
 LGM_DATUM_METRES = -120.0
 LGM_METHOD = "etopo-2022-eustatic-lowstand-contour-v1"
-LGM_PAYLOAD_SHA256 = "d0ea558730a5b85157cedcd74967bb698dba3ebfa8642c68cded9ae6d8023aac"
+LGM_PAYLOAD_SHA256 = "d292906763448b582e58407ebe1725913febb66497020466db6b0dbe0ffa2754"
 # The exact ETOPO 2022 60 arc-second surface crops the polygons were contoured
 # from, pinned so a re-download cannot change the coastline unnoticed.
 LGM_CROPS = {
@@ -77,25 +77,43 @@ LGM_FOOTPRINT_BOUNDS = {
     # bound is numerically smaller than its western one.
     "beringia": [160.0, 55.0, -150.0, 72.0],
 }
-# Measured by `palaeo_coastlines_lgm_derive.py` from the pinned crops. The
-# published payload is cookie-cut, quantised to the int16 ring grid and has
-# sub-25 km2 pieces dropped, so it is compared within a tolerance rather than
+# Measured by `palaeo_coastlines_lgm_derive.py` from the pinned crops. What ships
+# is the *exposed shelf*: present-day Natural Earth 1:50m land, eroded 1.5 km so
+# the two still overlap, is subtracted from the -120 m contour, because the state
+# adds coastline to today's composition rather than re-drawing ground that is dry
+# now. The published payload is cookie-cut, quantised to the int16 ring grid and
+# has sub-25 km2 pieces dropped, so it is compared within a tolerance rather than
 # for equality; 1 % is far tighter than the drift any of those steps produces.
-LGM_FOOTPRINT_LAND_KM2 = {"north-sea": 1_398_252.4, "sundaland": 4_085_716.8,
-                          "beringia": 3_641_313.9}
-LGM_TOTAL_LAND_KM2 = sum(LGM_FOOTPRINT_LAND_KM2.values())
-LGM_AREA_TOLERANCE_PERCENT = 1.0
+LGM_FOOTPRINT_EXPOSED_SHELF_KM2 = {"north-sea": 695_746.7, "sundaland": 2_347_445.5,
+                                   "beringia": 1_696_055.1}
+LGM_TOTAL_EXPOSED_SHELF_KM2 = sum(LGM_FOOTPRINT_EXPOSED_SHELF_KM2.values())
+# The published payload's pieces deliberately overlap: the compiler grows every
+# piece of a multi-piece record back across its cookie-cut seams so no hairline
+# opens between them, and this sums ring areas rather than their union, so it
+# reads above the contract's own figure. Measured 2026-09-15: 2.83 % above. The
+# bound is set from that measurement, and the witnesses - not the total - are
+# what pin where the coastline is.
+LGM_AREA_TOLERANCE_PERCENT = 4.0
 LGM_REQUIRED_SOURCE_IDS = ("noaa-etopo-2022", "lambeck-2014-sea-level", "clark-lgm-2009",
-                           "coles-1998-doggerland", "gaffney-2009-doggerland")
+                           "coles-1998-doggerland", "gaffney-2009-doggerland",
+                           "natural-earth-countries-50m")
 # Every limitation the layer must keep saying out loud, matched as a substring.
 LGM_REQUIRED_LIMITATIONS = ("eustatic only", "no glacio-isostatic adjustment",
-                            "ice sheets are not drawn", "modern bathymetry", "regional")
+                            "ice sheets are not drawn", "modern bathymetry", "regional",
+                            "exposed shelf only")
 # (id, longitude, latitude, expected land at 0.021 Ma, why)
 LGM_WITNESSES = (
     ("dogger-bank", 2.5, 54.7, True, "Dogger Bank, a shallow bank today"),
     ("sunda-shelf", 108.0, 2.0, True, "central Sunda shelf"),
     ("bering-land-bridge", -170.0, 65.0, True, "Bering land bridge"),
-    ("london", -0.1, 51.5, True, "London: present-day land, unchanged by a lowstand"),
+    # The seam witness. London is dry land today, so the exposed-shelf payload
+    # must carry nothing there: before the subtraction the LGM shell re-tinted
+    # every already-emergent coast inside the crop rectangles and the footprint
+    # edge showed as a hard tonal seam across Germany, France and Britain.
+    ("london", -0.1, 51.5, False,
+     "London: dry land today, so the exposed-shelf payload draws nothing there"),
+    ("north-german-plain", 10.0, 53.0, False,
+     "Schleswig-Holstein: dry land today, inside the crop rectangle"),
     ("norwegian-trench", 4.0, 58.5, False, "Norwegian Trench, far below the datum"),
     ("makassar-strait", 118.5, -2.0, False, "Makassar Strait, never closed by a lowstand"),
     ("aleutian-basin", -175.0, 57.0, False, "deep Aleutian Basin"),
@@ -323,9 +341,12 @@ def check_lgm(root: Path, rows_by_class: dict[str, list[dict]]) -> dict:
     require({name: entry["bounds"] for name, entry in footprints.items()} == LGM_FOOTPRINT_BOUNDS,
             "the LGM footprints are not the three pinned boxes")
     measured = contract["measurements"]["footprints"]
-    for name, expected in LGM_FOOTPRINT_LAND_KM2.items():
-        require(abs(measured[name]["landSquareKilometres"] - expected) <= 1.0,
-                f"the LGM contract reports a different land area for {name}")
+    for name, expected in LGM_FOOTPRINT_EXPOSED_SHELF_KM2.items():
+        require(abs(measured[name]["exposedShelfSquareKilometres"] - expected) <= 1.0,
+                f"the LGM contract reports a different exposed-shelf area for {name}")
+        require(measured[name]["exposedShelfSquareKilometres"]
+                < measured[name]["lgmLandSquareKilometres"],
+                f"the LGM contract for {name} subtracted no present-day land")
 
     for class_name, rows in rows_by_class.items():
         row = next((row for row in rows if row["intervalId"] == LGM_INTERVAL_ID), None)
@@ -356,10 +377,10 @@ def check_lgm(root: Path, rows_by_class: dict[str, list[dict]]) -> dict:
         witnesses.append({"id": identifier, "lon": lon, "lat": lat, "land": actual})
     area = sum(ring_area_km2(ring) * (-1 if hole else 1)
                for shape in land["pieces"] for ring, hole in shape)
-    drift = 100.0 * abs(area - LGM_TOTAL_LAND_KM2) / LGM_TOTAL_LAND_KM2
+    drift = 100.0 * abs(area - LGM_TOTAL_EXPOSED_SHELF_KM2) / LGM_TOTAL_EXPOSED_SHELF_KM2
     require(drift <= LGM_AREA_TOLERANCE_PERCENT,
-            f"the published LGM land area is {area:.0f} km2 against the contract's "
-            f"{LGM_TOTAL_LAND_KM2:.0f} km2 ({drift:.3f} % apart)")
+            f"the published LGM exposed-shelf area is {area:.0f} km2 against the contract's "
+            f"{LGM_TOTAL_EXPOSED_SHELF_KM2:.0f} km2 ({drift:.3f} % apart)")
     # 0 Ma is outside every published interval, so the same ground is the
     # present-day composition there and nothing this layer draws.
     require(not any(row["toAgeMa"] < 0 <= row["fromAgeMa"]
@@ -367,7 +388,7 @@ def check_lgm(root: Path, rows_by_class: dict[str, list[dict]]) -> dict:
             "a published interval covers 0 Ma; the present day must fall back")
     return {"payloadBytes": (root / PALAEO / "lm/palaeo-lm-lgm.ehpr").stat().st_size,
             "pieces": len(land["pieces"]), "vertices": land["vertexCount"],
-            "landSquareKilometres": round(area, 1),
+            "exposedShelfSquareKilometres": round(area, 1),
             "areaDriftPercent": round(drift, 4),
             "shallowMarinePayloadBytes": (root / PALAEO / "sm/palaeo-sm-lgm.ehpr").stat().st_size,
             "witnesses": witnesses}
@@ -522,8 +543,14 @@ def self_test() -> dict:
             (lambda body: body["source"]["crops"][0].update({"sha256": "0" * 64}),
              "a corrupted LGM ETOPO crop digest"),
             (lambda body: body["measurements"]["footprints"]["north-sea"].update(
-                {"landSquareKilometres": 1_000_000.0}),
+                {"exposedShelfSquareKilometres": 1_000_000.0}),
              "an LGM footprint area that no longer matches the published polygons"),
+            # The seam defect itself: an exposed-shelf figure equal to the whole
+            # lowstand mask is a payload that never subtracted present-day land.
+            (lambda body: body["measurements"]["footprints"]["north-sea"].update(
+                {"lgmLandSquareKilometres":
+                 body["measurements"]["footprints"]["north-sea"]["exposedShelfSquareKilometres"]}),
+             "an LGM contract that subtracted no present-day land"),
             (lambda body: body["limitations"].remove(next(
                 line for line in body["limitations"] if "glacio-isostatic" in line)),
              "the glacio-isostatic limitation dropped from the LGM contract"),

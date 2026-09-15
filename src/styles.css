@@ -138,10 +138,13 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .stage-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 61% 44%, transparent 0 34%, rgba(2, 6, 8, .025) 58%, rgba(2, 6, 8, .34) 100%), linear-gradient(90deg, rgba(2, 6, 8, .36), transparent 28%, transparent 82%, rgba(2, 6, 8, .24)); }
 .surface-info { position: absolute; z-index: 5; right: 14px; bottom: 14px; color: var(--muted); }
 /* Closed, the key is a small pill that must stay under the chapter panel. Open,
-   its panel is the width of a phone screen and reaches the header, so at 390x844
-   the collapsed chapter card (.context-panel, z-index 10) covered the key's own
-   heading and first swatches. The open panel outranks the chapter card and stays
-   below the timeline (15) and header (20), which it never reaches. */
+   its panel is the width of a phone screen and reaches the header. Raising it
+   above the chapter card (.context-panel, z-index 10) is not enough and never
+   was: the key lives inside .globe-stage, which has its own z-index and is
+   therefore its own stacking context, so this value only orders the key against
+   its siblings inside the stage. On a phone the card is removed from the layout
+   while the key is open (see the 720px block below), which is the only rule that
+   keeps the two off each other's pixels. */
 .surface-info[open] { z-index: 12; }
 .surface-info summary {
   display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 11px; border: 1px solid rgba(154, 199, 210, .28);
@@ -472,6 +475,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
   .surface-info { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
   .surface-info summary { min-height: 44px; padding: 0 12px; }
   .surface-info-panel { width: calc(100vw - 16px); max-height: calc(100vh - var(--header-height) - var(--timeline-height) - 66px); }
+  /* 390 px leaves no room for both. While the key is open the chapter card is
+     removed from the layout rather than painted over: an open key that covers
+     half a card is less readable than one that covers none of it, and the card
+     comes straight back when the key closes. */
+  .atlas-shell[data-map-key-open="true"] .context-panel { display: none; }
   /* The palaeo block adds its swatches, a legend and three sentences to a key
      that already fills a phone panel, so the phone tightens the spacing first
      and only then scrolls. */

@@ -253,10 +253,23 @@ export default function App() {
   const [palaeoToneBytes, setPalaeoToneBytes] = useState<Uint8Array | null>(null);
   const [palaeoLoading, setPalaeoLoading] = useState(false);
   const [palaeoError, setPalaeoError] = useState<string | null>(null);
+  // The open map key is the width of a phone screen. The chapter card floats over
+  // the same pixels there, and no z-index reaches it: the key lives inside the
+  // globe stage, which is its own stacking context. The card is taken out of the
+  // layout instead, which is also the only answer that keeps both readable at
+  // 390 px.
+  const [mapKeyOpen, setMapKeyOpen] = useState(false);
   /** Sign of the last age step; +1 is scrubbing towards older ages. */
   const palaeoAgeDirectionRef = useRef(0);
   const palaeoLastAgeRef = useRef(initial.age);
   const palaeoPumpRef = useRef<{ pump(): void } | null>(null);
+  // The scene reports a publication it refused. Until it did, the pump believed
+  // its own bookkeeping, short-circuited on an interval that was never on
+  // screen, and left the layer latched at "loading" for the rest of the session.
+  const palaeoPublishFailedRef = useRef<((reason: string) => void) | null>(null);
+  const handlePalaeoPublicationFailed = useCallback((reason: string) => {
+    palaeoPublishFailedRef.current?.(reason);
+  }, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
@@ -656,7 +669,13 @@ export default function App() {
       serial: 0,
       frameSerial: 0,
       prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
+      // Consecutive recoveries attempted for one interval. A publication that
+      // keeps failing is a real defect and must end in a visible error, not in
+      // a request loop.
+      recoveries: 0,
+      recoveringIntervalId: "",
     };
+    const MAXIMUM_PALAEO_RECOVERIES = 2;
 
     // Scrubbing inside one published map is a pose change, not a new map: the
     // interval owns the static geometry, so the frame is retargeted onto the
@@ -706,6 +725,10 @@ export default function App() {
         return;
       }
       const intervalId = PALAEO_MAP_INTERVALS[index]!.id;
+      if (intervalId !== state.recoveringIntervalId) {
+        state.recoveringIntervalId = intervalId;
+        state.recoveries = 0;
+      }
       if (palaeoPreparedRef.current?.intervalId === intervalId) {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
@@ -753,7 +776,18 @@ export default function App() {
         state.inFlight = false;
         setPalaeoLoading(false);
         if (error instanceof DOMException && error.name === "AbortError") {
-          if (requestedAgeRef.current !== targetAgeMa) pump();
+          // An abort at an age that has not moved still leaves the layer with
+          // nothing on screen, and nothing else will wake the pump: the age
+          // effect is the only trigger. Re-arm, bounded, so a genuinely dead
+          // interval ends in a visible error rather than an invisible latch.
+          if (requestedAgeRef.current !== targetAgeMa) {
+            pump();
+          } else if (state.recoveries < MAXIMUM_PALAEO_RECOVERIES) {
+            state.recoveries += 1;
+            pump();
+          } else {
+            setPalaeoError("Cao 2017 map interval request was aborted repeatedly");
+          }
           return;
         }
         setPalaeoError(error instanceof Error ? error.message
@@ -761,12 +795,34 @@ export default function App() {
       });
     };
 
+    // The scene refused to publish. The prepared interval the pump is holding is
+    // not on screen, so the pump must stop believing it is: dropping it turns
+    // the next pump back into a real request instead of the short-circuit that
+    // latched the layer at "loading".
+    const publishFailed = (reason: string) => {
+      if (state.disposed) return;
+      const previous = palaeoPreparedRef.current;
+      palaeoPreparedRef.current = null;
+      if (previous !== null) previous.release();
+      setPalaeoPrepared(null);
+      setPalaeoFrame(null);
+      if (state.recoveries >= MAXIMUM_PALAEO_RECOVERIES) {
+        setPalaeoLoading(false);
+        setPalaeoError(reason);
+        return;
+      }
+      state.recoveries += 1;
+      pump();
+    };
+
     palaeoPumpRef.current = { pump };
+    palaeoPublishFailedRef.current = publishFailed;
     pump();
     return () => {
       state.disposed = true;
       if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
       if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
+      if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
       palaeoPreparedRef.current?.release();
       palaeoPreparedRef.current = null;
       setPalaeoPrepared(null);
@@ -1266,7 +1322,7 @@ export default function App() {
   const scenarioLike = caoAgeDomainMa ? chapter.ageMa > caoAgeDomainMa[1] : chapter.ageMa > PHANEROZOIC_MAX_MA;
 
   return (
-    <main className="atlas-shell">
+    <main className="atlas-shell" data-map-key-open={mapKeyOpen}>
       <header className="site-header">
         <button className="brand" type="button" onClick={() => changeAge(0)} aria-label="Earth History, return to today">
           <span className="brand-orbit" aria-hidden="true"><span /></span>
@@ -1341,6 +1397,7 @@ export default function App() {
           caoMotionFrame={currentCaoMotionFrame}
           caoWithheld={caoLoadError !== null}
           palaeoInterval={palaeoPrepared}
+          onPalaeoPublicationFailed={handlePalaeoPublicationFailed}
           palaeoFrame={palaeoFrame}
           palaeoToneBytes={palaeoToneBytes}
           palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
@@ -1367,7 +1424,11 @@ export default function App() {
             <button type="button" onClick={() => setSnapshot(editorialSnapshotForAge(ageMa))}>Try again</button>
           </div>
         )}
-        <details className="surface-info" data-status={surfaceInfoState}>
+        <details
+          className="surface-info"
+          data-status={surfaceInfoState}
+          onToggle={(event) => setMapKeyOpen(event.currentTarget.open)}
+        >
           <summary aria-label={`Open map key. ${surfaceInfoSummary}. Cao reconstruction ${foundationStatus}.`}>
             <Info size={14} aria-hidden="true" />
             <span className="surface-status-dot" aria-hidden="true" />
@@ -1410,11 +1471,11 @@ export default function App() {
                 )}
                 {palaeoIntervalDetached && (
                   <p className="surface-info-note">Exposed shelf is the ETOPO 2022 present-day surface
-                    at or above &minus;120&nbsp;m, inside the southern and central North Sea, the Sunda
-                    shelf and Beringia only. It is drawn over today&rsquo;s land, which stays visible:
-                    every other coastline at this age is the present-day one. No glacio-isostatic
-                    adjustment, no ice sheets, and modern bathymetry with post-glacial sediment still
-                    in place.</p>
+                    at or above &minus;120&nbsp;m with today&rsquo;s land subtracted, inside the southern
+                    and central North Sea, the Sunda shelf and Beringia only. It is drawn beside
+                    today&rsquo;s land, which stays visible: every other coastline at this age is the
+                    present-day one. No glacio-isostatic adjustment, no ice sheets, and modern
+                    bathymetry with post-glacial sediment still in place.</p>
                 )}
                 {palaeoFallback && (
                   <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">

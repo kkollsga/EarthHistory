@@ -89,15 +89,58 @@ REPORT = ROOT / "dev-docs/bench/results/palaeo-coastlines-validation.json"
 AREA_PRESERVATION_BOUNDS = (99.9, 100.5)
 SIMPLIFICATION_AREA_ERROR_PERCENT = 0.05
 LOST_PIECES_PER_INTERVAL = 5
+DEGREE_KM = 2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0
 LARGEST_LOST_PIECE_KM2 = 500.0
 CO_MOVING_LM_MINIMUM_PERCENT = 85.0
 NARROW_FEATURE_TOLERANCE_KM = 2.0
+# Pieces of one record are now *made* to overlap: the compiler grows each one
+# back across its cookie-cut seams by the tracked `seamBufferKilometres` /
+# `seamBufferToleranceMultiple` before node reduction, so neighbours overlap
+# instead of leaving a hairline through which the crust or the sphere shows. The
+# overlap is bounded by that buffer and is measured against it; both bounds below
+# are the declared buffer plus what the wire adds on top of it.
+#
 # The int16 grid step is 0.61 km of longitude at the equator and 0.31 km of
-# latitude, so a boundary rounded onto it can leave a sliver about two cells wide.
-QUANTISATION_SEAM_WIDTH_KM = 2.0
-# Douglas-Peucker approximates each side of a shared boundary separately, so the
-# seam can reach twice the largest configured tolerance (0.05 degrees, 5.6 km).
-SIMPLIFIED_SEAM_WIDTH_KM = 12.0
+# latitude, so a boundary rounded onto it can leave a sliver about two cells wide
+# on top of the buffer.
+# on top of the buffer, plus room for the corner where three cut pieces meet.
+QUANTISATION_SEAM_EXTRA_KM = 4.0
+# Junction allowance. Two neighbours each grow by the buffer, so a straight seam
+# is twice it wide; the width measure (2 * area / perimeter) reads higher
+# wherever a seam turns sharply or three cut pieces meet. Measured 2026-09-15
+# against a 6.95 km buffer, the worst shared region on any class was 24.9 km, so
+# four buffer widths is the measured tail with headroom rather than a guess.
+# The width is a ceiling only, at a partition scale a double claim could not
+# hide under: the area agreement above is what actually pins the overlap.
+SEAM_JUNCTION_MULTIPLE = 12.0
+# How far the overlap re-derived from the payload may sit from the growth the
+# compiler declared. The two count the same ground by different routes - pairwise
+# intersections on the wire against per-piece growth before quantisation - so a
+# few percent is the wire's own noise.
+SEAM_OVERLAP_AREA_TOLERANCE_PERCENT = 6.0
+# Douglas-Peucker approximates each side of a shared boundary separately, so a
+# simplified seam can reach twice the largest configured tolerance (0.05 degrees,
+# 5.6 km) on top of the buffer.
+SIMPLIFIED_SEAM_EXTRA_KM = 12.0
+
+
+def seam_overlap_bounds(simplification: dict) -> tuple[float, float]:
+    """The overlap the tracked seam buffer is allowed to produce, per tier."""
+    buffer_km = float(simplification.get("seamBufferKilometres", 0.0))
+    multiple = float(simplification.get("seamBufferToleranceMultiple", 0.0))
+    tolerances = [row["toleranceDegrees"] for row in simplification["areaClasses"]]
+    for ladder in simplification.get("classAreaClasses", {}).values():
+        tolerances.extend(row["toleranceDegrees"] for row in ladder)
+    declared = max(buffer_km, multiple * max(tolerances) * DEGREE_KM)
+    # Two neighbours each grow by the buffer, so the strip they share is twice it
+    # along a straight seam. The width measure is 2 * area / perimeter, which is
+    # exact for a strip and reads high wherever a seam turns sharply or three cut
+    # pieces meet, so one further buffer width is allowed for those junctions.
+    # Measured 2026-09-15 at a 6.95 km buffer: worst 19.9 km against 24.9 allowed.
+    # This still refuses a second owner claiming real ground, which would be a
+    # partition-sized region hundreds of kilometres across, not tens.
+    return (SEAM_JUNCTION_MULTIPLE * declared + QUANTISATION_SEAM_EXTRA_KM,
+            SEAM_JUNCTION_MULTIPLE * declared + SIMPLIFIED_SEAM_EXTRA_KM)
 RESTORATION_WINDOW_YOUNGEST_MA = 130.0
 NORTH_SEA_PLATES = (303, 315)
 # A plate id the Cao v2.4 motion palette carries no entry for; the self-test rebinds
@@ -273,8 +316,15 @@ WITNESS_BASIN_EDITS = {
 BASIN_EDIT_WITNESSES = (
     {"witnessId": "orcadian-central-north-sea", "position": (1.5, 58.0), "intervalId": "402-380",
      "opIds": ["north-sea-402-380-orcadian-remove-shallow"], "classes": ["lm"]},
+    # The shallow-marine half of this control was dropped on 2026-09-15 by the
+    # 1,000 km frame-conflict rule, not by an edit: the Cao 2017 sm record that
+    # covered it carries PLATEID1 305 (Armorica), its present-day partition owner
+    # is plate 330, and the two are 3,062 km apart at the 391 Ma interval mid-age.
+    # Armorica has no override entry, so the piece qualifies for no rebinding and
+    # is no longer drawn. The land half is unchanged, and the control still proves
+    # the Orcadian edit did not reach east of its own window.
     {"witnessId": "orcadian-east-of-the-edit", "position": (5.5, 57.0), "intervalId": "402-380",
-     "opIds": [], "classes": ["lm", "sm"]},
+     "opIds": [], "classes": ["lm"]},
     {"witnessId": "zechstein-moray-firth", "position": (-2.0, 57.9), "intervalId": "269-248",
      "opIds": ["north-sea-269-248-moray-firth-remove-shallow",
                "north-sea-269-248-moray-firth-add-land"], "classes": ["lm"]},
@@ -790,8 +840,13 @@ def check_areas(store: Store, view: ClassView, areas: dict[int, float]) -> dict:
         # slivers below the 25 km2 floor. Both are declared per interval and both are
         # cross-checked above through the emitted term, so inflating one to hide
         # missing geometry fails this check.
-        cut = (emitted + measured["unposableAreaSquareKilometres"]
-               + measured["droppedBelowFloorSquareKilometres"])
+        # The seam buffer makes two pieces of one record overlap instead of gap,
+        # so the emitted area counts that overlap twice. It is declared per
+        # interval and subtracted here: the gate measures ground, not overdraw.
+        cut = (emitted - measured.get("seamOverlapAreaSquareKilometres", 0.0)
+               + measured["unposableAreaSquareKilometres"]
+               + measured["droppedBelowFloorSquareKilometres"]
+               + measured.get("droppedFrameConflictSquareKilometres", 0.0))
         kept = sum(audit.area_km2(compiler.piece_geometry(simplified, piece))
                    for piece in simplified["pieces"])
         dropped = len(original["pieces"]) - len(simplified["pieces"])
@@ -902,7 +957,12 @@ def check_bindings(store: Store, view: ClassView, overrides: dict,
     compiler's own chain builder.
     """
     class_name = view.class_name
-    override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
+    # Every override plate applies to every class: a frame conflict belongs to
+    # the plate, not to the class drawn on it. Measured 2026-09-15, scoping the
+    # table per class was why Tarim 601 - a shallow-marine entry only - could not
+    # rescue the mountain pieces that carry its PLATEID1.
+    override_plates = {plate for block in overrides["classes"].values()
+                       for plate in block["overridePlateIds"]}
     recovery_plates, recovery_seams = recovery_motion()
     # `by_plate` is injectable so the self-test can prove the restoration and
     # coverage gates against a palette that is missing the entries they depend on.
@@ -1033,19 +1093,25 @@ def check_charts_use_overrides(store: Store, view: ClassView, overrides: dict) -
     """A piece is rebound by its PLATEID1 exactly where that plate's footprint allows it.
 
     A piece bound as ``override`` must carry its source PLATEID1 as the binding
-    plate *and* lie entirely inside that override entry's declared footprint:
-    without the second half a PLATEID1 value alone moved ground an ocean away
-    onto a small plate (measured 2026-09-15, the Apulia 3307 override reached
-    3.7-31.6 E and 36.0-55.8 N from a plate whose present-day crust spans
-    15.2-19.3 E). A piece whose PLATEID1 is in the table but which is not bound
-    as an override is counted and reported rather than asserted about: the
-    shipped ring cannot prove where the *unsimplified* cut piece reached, and the
-    compiler's own per-plate accepted/declined tallies are in the provenance
-    sidecar. The test is the piece's bounding box, not a seat: a representative
-    point is not stable under node reduction for a multi-part piece.
+    plate *and* have its centroid and the majority of its area inside that
+    override entry's declared footprint: without the second half a PLATEID1 value
+    alone moved ground an ocean away onto a small plate (measured 2026-09-15, the
+    Apulia 3307 override reached 3.7-31.6 E and 36.0-55.8 N from a plate whose
+    present-day crust spans 15.2-19.3 E). A piece whose PLATEID1 is in the table
+    but which is not bound as an override is counted and reported rather than
+    asserted about: the shipped ring cannot prove where the *unsimplified* cut
+    piece reached, and the compiler's own per-plate accepted/declined tallies are
+    in the provenance sidecar.
+
+    The majority rule replaced a whole-bounding-box test on 2026-09-15. Requiring
+    every corner of a piece to fit refused every long east-west Tibetan mountain
+    piece and left it bound to India instead, 6,474-6,837 km from where Cao 2017
+    puts it. The table is read across all classes, because a frame conflict is a
+    property of the plate rather than of the class drawn on it.
     """
     class_name = view.class_name
-    entries = {row["plateId1"]: row for row in overrides["classes"][class_name]["plates"]}
+    entries = {row["plateId1"]: row for block in overrides["classes"].values()
+               for row in block["plates"]}
     slack = OVERRIDE_FOOTPRINT_TOLERANCE_DEGREES
     checked = 0
     declined = 0
@@ -1071,14 +1137,22 @@ def check_charts_use_overrides(store: Store, view: ClassView, overrides: dict) -
                     f"{class_name} {interval['intervalId']}: override piece is bound to plate "
                     f"{binding['bindingPlateId']}, not to its PLATEID1 {plate}")
             west, south, east, north = entry["footprint"]["bufferedBbox"]
-            left, bottom, right, top = compiler.piece_geometry(decoded, piece).bounds
-            inside = (west - slack <= left and right <= east + slack
-                      and south - slack <= bottom and top <= north + slack)
-            if actual and not inside:
-                box = [round(value, 3) for value in (left, bottom, right, top)]
-                raise CorrectionError(
-                    f"{class_name} {interval['intervalId']}: override piece for plate {plate} "
-                    f"spans {box}, outside its declared footprint {[west, south, east, north]}")
+            geometry = compiler.piece_geometry(decoded, piece)
+            if actual:
+                footprint = shapely.box(west - slack, south - slack, east + slack, north + slack)
+                total = audit.area_km2(geometry)
+                covered = compiler.polygonal(geometry.intersection(footprint))
+                share = (audit.area_km2(covered) / total) if total > 0 and not covered.is_empty else 0.0
+                # The share only. The compiler's centroid test runs on the
+                # unsimplified, unquantised cut piece and a shipped ring cannot
+                # reproduce that point, so re-asserting it here would fail on
+                # node reduction rather than on a binding.
+                if share < compiler.OVERRIDE_MAJORITY_FRACTION:
+                    box = [round(value, 3) for value in geometry.bounds]
+                    raise CorrectionError(
+                        f"{class_name} {interval['intervalId']}: override piece for plate {plate} "
+                        f"spans {box} with {share:.0%} inside its declared footprint "
+                        f"{[west, south, east, north]}")
             checked += 1
             if not actual:
                 declined += 1
@@ -1108,7 +1182,7 @@ def sliver_width_km(geometry) -> float:
 
 
 def check_one_owner(store: Store, view: ClassView, tier: str = "original",
-                    width_tolerance_km: float = QUANTISATION_SEAM_WIDTH_KM) -> dict:
+                    width_tolerance_km: float = QUANTISATION_SEAM_EXTRA_KM) -> dict:
     """Two pieces of the same source record never claim the same ground.
 
     The cookie-cut gives every piece exactly one owner by construction: each
@@ -1117,7 +1191,18 @@ def check_one_owner(store: Store, view: ClassView, tier: str = "original",
     evidence (the audit measured 100.455 % for lm when overlapping partitions
     were allowed to claim the same ground twice).
 
-    What remains on the wire is a shared boundary drawn twice. The ``original``
+    Since 2026-09-15 the overlap is also *deliberate*: the compiler grows every
+    piece of a multi-piece record back across its cookie-cut seams by the tracked
+    seam buffer, so the neighbours overlap instead of leaving a hairline through
+    which the crust or the sphere shows. That makes a width threshold the wrong
+    instrument on its own - the shared region's shape is now whatever the seam's
+    shape is, and ``2 * area / perimeter`` reads high wherever a seam branches or
+    three pieces meet. The gate therefore measures the overlap *area* against the
+    growth the compiler declared per interval, which is the quantity the area
+    audit already subtracts, and keeps the width only as a ceiling that a
+    partition-scale double claim - hundreds of kilometres across - would break.
+
+    What remains on the wire beyond that is a shared boundary drawn twice. The ``original``
     payload rounds it to the int16 grid, whose step is at most 0.61 km, and the
     ``staging`` payload approximates each side independently under Douglas-
     Peucker. Both leave a hairline sliver whose *area* grows with the length of
@@ -1128,7 +1213,10 @@ def check_one_owner(store: Store, view: ClassView, tier: str = "original",
     worst = 0.0
     worst_width = 0.0
     compared = 0
+    declared_total = 0.0
+    measured_total = 0.0
     for interval in view.intervals:
+        interval_overlap = 0.0
         decoded = store.payload(tier, class_name, interval["intervalId"])
         by_chart: dict[int, list] = {}
         for piece in decoded["pieces"]:
@@ -1147,6 +1235,7 @@ def check_one_owner(store: Store, view: ClassView, tier: str = "original",
                         continue
                     value = audit.area_km2(shared)
                     compared += 1
+                    interval_overlap += value
                     width = sliver_width_km(shared)
                     worst = max(worst, value)
                     worst_width = max(worst_width, width)
@@ -1156,9 +1245,34 @@ def check_one_owner(store: Store, view: ClassView, tier: str = "original",
                             f"{tier} pieces overlap over a region {width:.3f} km wide "
                             f"({value:.3f} km2), above {width_tolerance_km} km; a cut piece must "
                             "have exactly one owner")
+        declared_total += view.measurement(
+            interval["intervalId"]).get("seamOverlapAreaSquareKilometres", 0.0)
+        measured_total += interval_overlap
+    # The overlap on the wire is the growth the compiler declared, and nothing
+    # else. A second owner claiming real ground would show up here as area the
+    # compiler never declared adding.
+    # One-sided on purpose. The wire may carry *less* overlap than the compiler
+    # declared growing - a piece grown into ground whose sibling was dropped as
+    # unposable, below the 25 km2 floor, or past the frame-conflict threshold has
+    # no sibling left to overlap, and for shallow marine that is about a fifth of
+    # the declared growth. It may not carry *more*: overlap the compiler never
+    # declared adding is a second owner claiming ground the cookie-cut gave away.
+    if declared_total > 0:
+        excess = 100.0 * (measured_total - declared_total) / declared_total
+        if excess > SEAM_OVERLAP_AREA_TOLERANCE_PERCENT:
+            raise CorrectionError(
+                f"{class_name} {tier}: the overlap between pieces of one record measures "
+                f"{measured_total:.0f} km2 against the {declared_total:.0f} km2 the compiler "
+                f"declares its seam buffer added ({excess:.2f} % more)")
+    elif measured_total > 0 and tier == "original":
+        raise CorrectionError(
+            f"{class_name} {tier}: pieces of one record overlap over {measured_total:.0f} km2 "
+            "that the compiler declares no seam buffer for")
     return {"tier": tier, "comparedPairs": compared,
             "worstOverlapSquareKilometres": round(worst, 6),
             "worstOverlapWidthKilometres": round(worst_width, 6),
+            "declaredSeamOverlapSquareKilometres": round(declared_total, 3),
+            "measuredOverlapSquareKilometres": round(measured_total, 3),
             "widthToleranceKilometres": width_tolerance_km}
 
 
@@ -1205,6 +1319,21 @@ def check_frame_conflict_oracle(store: Store, view: ClassView,
                 raise CorrectionError(
                     f"{class_name} {interval_id}: an unflagged piece is {separation:.1f} km from its "
                     "PLATEID1 position")
+            # Nothing may ship this far from where its own source record puts it.
+            # A flag is an approximation; a thousand kilometres is a different
+            # place. Measured 2026-09-15, Qiangtang and Tarim mountain pieces
+            # bound to India by the partition rule were drawn 6,474-6,837 km
+            # away and made up 46 % of the mountain area over India at 94-81 Ma.
+            # The compiler drops these now; this proves none survived.
+            # 5 % of slack: the compiler measures at the unsimplified, unquantised
+            # piece's representative point and a shipped ring cannot reproduce it,
+            # so a piece sitting on the threshold re-derives a little either side
+            # of it. The defect this catches was 6,474-6,837 km out.
+            if separation > compiler.FRAME_CONFLICT_DROP_KM * 1.05:
+                raise CorrectionError(
+                    f"{class_name} {interval_id}: a piece on PLATEID1 {chart['plateId1']} bound to "
+                    f"plate {binding['bindingPlateId']} is {separation:.0f} km from its PLATEID1 "
+                    f"position, past the {compiler.FRAME_CONFLICT_DROP_KM:.0f} km drop threshold")
             checked += 1
     return {"checkedPieces": checked, "intervals": list(interval_ids)}
 
@@ -1373,7 +1502,8 @@ def unposable_explainer(rows_by_class: dict[str, list[dict]], overrides: dict,
         owner = min(owners, key=compiler.owner_priority)
         plates = []
         for class_name in missing:
-            override_plates = set(overrides["classes"][class_name]["overridePlateIds"])
+            override_plates = {plate for block in overrides["classes"].values()
+                               for plate in block["overridePlateIds"]}
             active = [row for row in rows_by_class[class_name]
                       if row["toAge"] is not None and row["fromAge"] is not None
                       and row["toAge"] < interval["fromAgeMa"]
@@ -1715,10 +1845,9 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
             "coMoving": check_co_moving(view),
         }
         if full:
-            block["oneOwner"] = check_one_owner(store, view, "original",
-                                                QUANTISATION_SEAM_WIDTH_KM)
-            block["simplifiedSeams"] = check_one_owner(store, view, "staging",
-                                                       SIMPLIFIED_SEAM_WIDTH_KM)
+            original_bound, simplified_bound = seam_overlap_bounds(simplification)
+            block["oneOwner"] = check_one_owner(store, view, "original", original_bound)
+            block["simplifiedSeams"] = check_one_owner(store, view, "staging", simplified_bound)
             block["frameConflictOracle"] = check_frame_conflict_oracle(
                 store, view, rotations, WITNESS_INTERVALS)
         block["areas"].pop("perInterval", None)
@@ -1916,10 +2045,15 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
     # away onto a small plate, so it is proved by moving the footprint, not the
     # piece: every accepted override for 606 is then outside its own declaration.
     moved_footprint = deepcopy(overrides)
-    entry = next(row for row in moved_footprint["classes"][class_name]["plates"]
-                 if row["plateId1"] == 606)
-    west, south, east, north = entry["footprint"]["bufferedBbox"]
-    entry["footprint"]["bufferedBbox"] = [west - 180.0, south, east - 180.0, north]
+    # Every class's copy of the entry: one plate has one footprint, and the check
+    # reads the table across all classes because a frame conflict belongs to the
+    # plate. Moving one class's copy alone would be shadowed by the others.
+    for block in moved_footprint["classes"].values():
+        for row in block["plates"]:
+            if row["plateId1"] != 606:
+                continue
+            west, south, east, north = row["footprint"]["bufferedBbox"]
+            row["footprint"]["bufferedBbox"] = [west - 180.0, south, east - 180.0, north]
     results.append(expect_failure(
         "the Lhasa 606 override footprint moved off the pieces it rebound",
         lambda: check_charts_use_overrides(store, view, moved_footprint)))
@@ -2136,6 +2270,26 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         "the Turgai Strait witness returned to the premise it corrected",
         lambda: check_witnesses(store, [class_name], explain, turgai)))
     check_witnesses(store, [class_name], explain, WITNESS_CLASSES)
+
+    # 15. a piece bound to a plate an ocean away from its own PLATEID1. This is
+    # the shipped state the majority override rule and the 1,000 km drop replaced:
+    # before them, Qiangtang and Tarim mountain pieces were bound to India by the
+    # partition rule and drawn 6,474-6,837 km from where Cao 2017 puts them.
+    # Rebinding one shipped piece's plate reproduces exactly that payload.
+    rotations = pygplates.RotationModel([str(audit.ROTATION_YOUNG), str(audit.ROTATION_OLD)],
+                                        default_anchor_plate_id=0)
+    check_frame_conflict_oracle(store, view, rotations, WITNESS_INTERVALS)
+    displaced = deepcopy(view.catalog)
+    # 802 is East Antarctica: no piece in a witness interval legitimately rides it
+    # from anywhere near its PLATEID1 position. The catalog is columnar, so this
+    # is one column.
+    displaced["bindings"]["bindingPlateId"] = [
+        802 for _ in displaced["bindings"]["bindingPlateId"]]
+    results.append(expect_failure(
+        "a piece bound thousands of kilometres from its own PLATEID1 position",
+        lambda: check_frame_conflict_oracle(store, view.mutated(catalog=displaced),
+                                            rotations, WITNESS_INTERVALS)))
+    check_frame_conflict_oracle(store, view, rotations, WITNESS_INTERVALS)
 
     return {"mutationsRejected": len(results), "mutations": results,
             "restoredChecks": {"inputs": "pass", "config": "pass", "provenance": "pass",

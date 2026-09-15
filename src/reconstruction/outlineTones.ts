@@ -9,7 +9,7 @@
  * the result and picks the interval a requested age belongs to.
  */
 
-import { palaeoIntervalCoversAge } from "./palaeoRings";
+import { palaeoIntervalCoversAge, palaeoIntervalSeamCoversAge } from "./palaeoRings";
 import type { EvidenceStatus } from "../data";
 
 /** `EHPT` — EarthHistory palaeo tone tables. */
@@ -326,8 +326,17 @@ export function selectPalaeoInterval(
   intervals: readonly PalaeoMapInterval[],
   ageMa: number,
 ): number {
-  return intervals.findIndex((interval) =>
+  const covering = intervals.findIndex((interval) =>
     palaeoIntervalCoversAge(ageMa, interval.oldestMa, interval.youngestMa));
+  if (covering >= 0) return covering;
+  // The published schedule leaves a 0.01 Ma seam above every exclusive young
+  // bound. It is not a gap in the maps, only in the arithmetic, and an age
+  // inside it must still select the map it belongs to.
+  for (let index = 0; index + 1 < intervals.length; index += 1) {
+    if (palaeoIntervalSeamCoversAge(ageMa, intervals[index]!.youngestMa,
+      intervals[index + 1]!.oldestMa)) return index;
+  }
+  return -1;
 }
 
 /** The published interval name, e.g. `94–81 Ma`, or the LGM state's own name. */

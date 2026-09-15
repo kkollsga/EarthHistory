@@ -1,3 +1,5 @@
+import { GpuRetirementRefusedError } from "./gpuRetirement";
+
 export type PublicationStage = "preview" | "settled";
 
 export interface OwnedPrototypeResources {
@@ -30,6 +32,7 @@ export class AtomicPrototypePublisher<TResources extends OwnedPrototypeResources
   private staged: PrototypePublication<TResources> | null = null;
   private readonly retiring = new Set<TResources>();
   private readonly failedRetirements = new Map<TResources, unknown>();
+  private refusedRetirements = 0;
 
   begin(requestId: string): PublicationToken {
     if (!requestId) throw new Error("publication requestId must be non-empty");
@@ -92,6 +95,11 @@ export class AtomicPrototypePublisher<TResources extends OwnedPrototypeResources
       + [...this.retiring].reduce((sum, resources) => sum + resources.byteLength, 0);
   }
 
+  /** Retirements the bounded owner declined, disposed here instead. */
+  refusedRetirementCount(): number {
+    return this.refusedRetirements;
+  }
+
   retirementFailures(): readonly unknown[] {
     return Object.freeze([...this.failedRetirements.values()]);
   }
@@ -124,6 +132,18 @@ export class AtomicPrototypePublisher<TResources extends OwnedPrototypeResources
         this.failedRetirements.delete(resources);
       },
       (error: unknown) => {
+        if (error instanceof GpuRetirementRefusedError) {
+          // The owner declined the resources, so nothing was ever scheduled on
+          // their behalf and this publisher still owns them: it disposes them
+          // and drops them from the ledger. Keeping them would spend the
+          // publication budget on resources nobody holds, and the layer would
+          // latch the next time it tried to publish.
+          this.retiring.delete(resources);
+          this.failedRetirements.delete(resources);
+          this.refusedRetirements += 1;
+          resources.disposeUnsubmitted();
+          return;
+        }
         // An indeterminate device allocation remains in the byte ledger until
         // an owning device-loss policy explicitly releases the publisher.
         this.failedRetirements.set(resources, error);

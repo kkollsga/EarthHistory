@@ -165,16 +165,35 @@ the static partitions after the two wide partition polygons are split there.
 Every piece has exactly one owner: the cookie-cut subtracts each partition from
 what is left before the next one claims it, and the measured cut-to-source area
 ratio is 100.0000 % for all three classes (the audit measured 100.455 % for `lm`
-when overlapping partitions were allowed to claim the same ground twice). What
-survives on the wire is the shared boundary drawn twice — once for each
-neighbour. The `original` payload rounds both copies onto the int16 grid and the
-`simplified` payload approximates each of them separately, so two pieces of the
-same source record can overlap in a hairline sliver. Measured across all 24
-intervals (`dev-docs/bench/results/palaeo-coastlines-validation.json`), the widest
-such sliver in an `original` payload is 0.26 km (`lm` and `sm`) and 0.20 km (`m`);
-in a `simplified` payload it is 3.12 km (`lm`), 8.24 km (`sm`, which is reduced at
-0.05°) and 1.82 km (`m`). A renderer that draws both neighbours opaquely will not
-see it; one that blends them may show a seam of that width.
+when overlapping partitions were allowed to claim the same ground twice).
+
+The cut pieces of one record are then **made to overlap on purpose.** Each piece
+is node-reduced on its own, and Douglas-Peucker runs over the whole ring, so the
+two copies of a shared edge came back displaced from one another: measured before
+this rule, a `simplified` payload's two neighbours gapped by up to 3.12 km
+(`lm`), 8.24 km (`sm`, reduced at 0.05°) and 1.82 km (`m`), and the hairline
+between them showed the darker crust — or the bare sphere — at closest zoom. So
+after the cookie-cut and before any node reduction the compiler grows every piece
+of a multi-piece record outward by at least `seamBufferKilometres` (1.5 km), and
+by `seamBufferToleranceMultiple` (1.25) times its own reduction tolerance where
+that is larger, then clips the result back to the record it was cut from.
+Neighbours now overlap instead of gapping; the clip means the record's own
+outline never moves and the growth can only happen at a seam. A record whose
+pieces still leave a hole inside that outline after reduction is emitted
+unsimplified (`retainReason: "seam-gap"`; 10 records across the three classes).
+
+Both parameters are tracked in
+`data/corrections/palaeo-coastlines/simplification.json`. The overlap the buffer
+adds is the same ground counted twice, so it is declared per interval as
+`seamOverlapAreaSquareKilometres`; every area ratio subtracts it, and
+`palaeo_coastlines_correction.py` re-derives the overlap from the payload and
+refuses more of it than the compiler declared. Measured across all 25 intervals
+after the change (`dev-docs/bench/results/palaeo-coastlines-qc.json`), the worst
+remaining interior gap between two pieces of one record is 0.62 km (`lm`),
+2.43 km (`sm`) and 0.81 km (`m`), over 12, 125 and 3 gap components against
+2,986 / 2,823 / 2,227 multi-piece records. The widest shared region — the
+overlap, not a gap — is 13.7 km (`lm`), 42.5 km (`sm`) and 12.8 km (`m`); it is
+same-class overdraw and is invisible.
 
 ## Class catalog
 
@@ -262,14 +281,33 @@ carried the palette chain.
   `data/corrections/palaeo-coastlines/overrides.json` carries a `footprint`:
   the bounding box of that plate's present-day Cao 2024 static partitions,
   buffered by a stated 500 km, which is twice the 250 km frame-conflict
-  threshold. A cut piece is rebound by `PLATEID1` only if the whole piece fits
-  inside that box; anything further away keeps the partition binding and is
-  counted as a declined override in the provenance sidecar. Without the
-  footprint a plate id alone moved ground an ocean away: measured 2026-09-15,
-  the Apulia (3307) override was rebinding shallow-marine pieces spanning
-  3.7-31.6 E and 36.0-55.8 N onto a plate whose whole present-day crust is
-  15.2-19.3 E, 39.6-41.9 N. The footprint turned 3,545 of 9,934 eligible `sm`
-  pieces, 413 of 1,287 `lm` and 440 of 985 `m` back to partition binding.
+  threshold. A cut piece is rebound by `PLATEID1` when its centroid and at least
+  half its area lie inside that box; anything further away keeps the partition
+  binding and is counted as a declined override in the provenance sidecar.
+  Without the footprint a plate id alone moved ground an ocean away: measured
+  2026-09-15, the Apulia (3307) override was rebinding shallow-marine pieces
+  spanning 3.7-31.6 E and 36.0-55.8 N onto a plate whose whole present-day crust
+  is 15.2-19.3 E, 39.6-41.9 N.
+
+  Two rules replaced a whole-bounding-box test on 2026-09-15. **Every override
+  plate applies to every class**, on that plate's one footprint, because a frame
+  conflict is a property of the plate rather than of the class drawn on it; and
+  the test is the majority rule above rather than requiring every corner of a
+  piece to fit. Before them, four Qiangtang (616) and Tarim (601) mountain pieces
+  and one landmass piece were bound to India by the partition rule and drawn
+  6,474-6,837 km from where Cao 2017 puts them — 46 % of the mountain area over
+  India at 94-81 Ma — because 616's entry declined every long east-west Tibetan
+  piece and 601 and 606 had no mountain entry at all.
+
+  **Beyond 1,000 km nothing is drawn.** Whatever the binding, a piece the binding
+  would carry more than `FRAME_CONFLICT_DROP_KM` from its own `PLATEID1` position
+  at the interval mid-age is dropped and counted as
+  `droppedFrameConflictSquareKilometres` rather than posed: past that distance the
+  partition binding is not an approximation of the source frame, it is a
+  different place on Earth. Measured over the published schedule, that is 1.20 %
+  of `lm` source area (775 pieces), 6.17 % of `sm` (2,870) and 2.98 % of `m`
+  (504). The 250 km frame-conflict flag still marks the pieces that remain, and
+  `palaeo_coastlines_correction.py` re-derives the rule from the payload.
 - `partitionPlateId` is the Cao 2024 static partition that owns the ground. The
   runtime uses it for the piece's fragment identity; it is not the motion plate
   when an override applies.

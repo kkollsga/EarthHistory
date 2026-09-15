@@ -846,6 +846,10 @@ test("returns the Cao 2024 composition when the palaeo layer is switched off", a
 });
 
 test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", async ({ page }) => {
+  // Six interval loads in one page, each allowed 30 s of its own: the file-level
+  // 45 s budget was never enough for the sum and only passed while every load
+  // was warm.
+  test.setTimeout(180_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./#age=94&layers=borders,guides,palaeoCoastlines");
@@ -872,7 +876,8 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await waitForCao(page);
   await openSurfaceInfo(page);
   await expect(page.getByTestId("palaeo-map-key")).toBeVisible();
-  await expect(page.getByText("Coastline map interval: 94\u201381 Ma (Cao et al. 2017)")).toBeVisible();
+  await expect(page.getByTestId("palaeo-interval-line"))
+    .toHaveText("Cao et al. (2017) map interval 94\u201381 Ma");
   await expect(page.getByText(/minimum land \/ maximum flooding recorded anywhere in that bin/)).toBeVisible();
   await expect(page.getByText(/Cao 2024 continental crust, depth unmapped/)).toBeVisible();
   await expect(page.getByText(/Light grey outline · over shallow or deep sea/)).toBeVisible();
@@ -880,12 +885,12 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await expect(page.getByTestId("timeline-interval-marks").locator(".interval-mark"))
     .toHaveCount(24);
 
-  // Only the classes this build publishes get a swatch. The mountain class is
-  // compiled and validated offline but deferred out of the budget, so a row for
-  // it would name evidence no interval carries.
+  // Only the classes this build publishes get a swatch, and all three do since
+  // the mountain class shipped: withholding it painted emergent orogen as crust
+  // of unmapped depth.
   await expect(page.getByText("Palaeo land", { exact: true })).toBeVisible();
   await expect(page.getByText("Palaeo shallow sea", { exact: true })).toBeVisible();
-  await expect(page.getByText("Palaeo mountain", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Palaeo mountain", { exact: true })).toBeVisible();
 
   // Nothing in the key is left below the fold with no way to reach it: the
   // panel takes the height the stage leaves it, and scrolls the remainder.
@@ -987,6 +992,185 @@ test("leaves the palaeo layer off in a link written before it existed", async ({
   await expect(page.getByTestId("palaeo-map-key")).toHaveCount(0);
   await expect(page.getByTestId("timeline-interval-marks")).toHaveCount(0);
   await expect(page.getByText(/Continental shelf context; ancient water depth unknown/)).toBeVisible();
+});
+
+/** Six wheel steps in, the framing the closest-zoom review captures use. */
+async function zoomToClosest(page: Page) {
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to zoom into");
+  // Zoom is anchored on the cursor, so it sits exactly where `at=` centred the
+  // site: the ground under the pointer is the ground still under it afterwards.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let step = 0; step < 6; step += 1) {
+    await page.mouse.wheel(0, -240);
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(600);
+}
+
+/**
+ * Pixels that read as water, crust or the bare sphere while almost every pixel
+ * around them reads as land, and the largest run of them.
+ *
+ * Every land-like tone the globe draws - native land, corrections, palaeo-land,
+ * palaeo-mountain - is warm: red is at least as strong as blue once the ACES
+ * curve and the sRGB transfer have run. Every class *below* them is cold: the
+ * shelf, palaeo-shallow-marine and the ocean sphere all render with blue well
+ * ahead of red. A real coastline is a long cold region whose pixels have cold
+ * neighbours; a cold pixel in an otherwise warm neighbourhood is a lower class
+ * showing through a higher one - a cookie-cut seam, a sliver, or a shell
+ * interpenetration - wherever on the globe it happens to be.
+ *
+ * Counting the whole canvas rather than a window means the measurement does not
+ * depend on where the camera put a named place.
+ */
+async function isolatedColdPixels(page: Page) {
+  const screenshot = await globe(page).screenshot();
+  return page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("stacking census canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const { width, height } = bitmap;
+    const pixels = context.getImageData(0, 0, width, height).data;
+    const cold = new Uint8Array(width * height);
+    let coldTotal = 0;
+    let warmTotal = 0;
+    for (let index = 0; index < width * height; index += 1) {
+      const offset = index * 4;
+      const red = pixels[offset]!;
+      const blue = pixels[offset + 2]!;
+      if (blue - red > 20) { cold[index] = 1; coldTotal += 1; } else if (red - blue > 10) warmTotal += 1;
+    }
+    let isolated = 0;
+    let longestRun = 0;
+    for (let y = 1; y < height - 1; y += 1) {
+      let run = 0;
+      for (let x = 1; x < width - 1; x += 1) {
+        const index = y * width + x;
+        if (!cold[index]) { run = 0; continue; }
+        let warmNeighbours = 0;
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            if (dx === 0 && dy === 0) continue;
+            if (!cold[index + dy * width + dx]) warmNeighbours += 1;
+          }
+        }
+        if (warmNeighbours >= 7) {
+          isolated += 1;
+          run += 1;
+          longestRun = Math.max(longestRun, run);
+        } else run = 0;
+      }
+    }
+    bitmap.close();
+    return { isolated, longestRun, coldTotal, warmTotal, pixels: width * height };
+  }, screenshot.toString("base64"));
+}
+
+async function probeClass(page: Page, longitude: number, latitude: number) {
+  return page.evaluate(([lon, lat]) =>
+    window.__earthHistorySurfaceProbe?.(lon, lat) ?? "no-probe", [longitude, latitude]);
+}
+
+// The stacking contract, checked where it can actually fail: at the closest zoom
+// the review captures use, on three overlapping sites, one per pair of classes
+// that share ground. Deep sea and shelf are at the bottom, then shallow marine,
+// then corrections, then palaeo-land, then palaeo-mountain; nothing lower may
+// show through anything higher. `caoFoundation.test.ts` asserts the shells and
+// the draw order; this asserts the pixels they produce.
+for (const site of [
+  { id: "mountain over land", age: 90, at: "68.61,-32.34", probe: [85, 29] as const,
+    expected: "palaeo-mountain",
+    why: "Tethyan Himalaya: the mountain class drawn over the land class" },
+  { id: "land over shallow sea", age: 170, at: "23.48,41.98", probe: [-4, 57] as const,
+    expected: "palaeo-land",
+    why: "the Scottish Middle Jurassic landmass inside the North Sea shallow sea" },
+  { id: "LGM shelf over shallow sea", age: 0.021, at: "3,57", probe: [3, 57] as const,
+    expected: "palaeo-land",
+    why: "the exposed central North Sea shelf at the lowstand" },
+]) {
+  test(`draws no lower class inside the higher one: ${site.id}`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`./#age=${site.age}&layers=borders,guides,palaeoCoastlines&at=${site.at}`);
+    await waitForCao(page);
+    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+      { timeout: 30_000 }).toBe("on");
+    expect(await probeClass(page, site.probe[0], site.probe[1]), site.why).toBe(site.expected);
+    await zoomToClosest(page);
+    const census = await isolatedColdPixels(page);
+    // The frame must actually show both classes, or the measurement is vacuous.
+    expect(census.warmTotal, `${site.id}: no land-like pixels in frame`).toBeGreaterThan(20_000);
+    expect(census.coldTotal, `${site.id}: no lower-class pixels in frame`).toBeGreaterThan(2_000);
+    // A cookie-cut hairline is a long run of cold pixels in a warm field: the
+    // 170 Ma review capture carried one 106 px long. Bound the run, not just the
+    // count, because a handful of scattered antialiasing pixels is not a seam.
+    expect(census.longestRun,
+      `${site.id}: ${census.isolated} isolated cold pixels, longest run ${census.longestRun}`)
+      .toBeLessThanOrEqual(12);
+  });
+}
+
+test("reaches the LGM interval after a long scrub through the Cao band", async ({ page }) => {
+  // One page, many intervals. The defect this covers only appeared after a dozen
+  // interval changes: every trip out of the published domain cleared the palaeo
+  // publication, each clear handed the bounded GPU retirement owner a resource it
+  // refused, and the refused bytes stayed in the publisher's ledger forever until
+  // the next publication no longer fit. The layer then latched at "loading" with
+  // the globe drawn as if it were off, because the pump believed its own
+  // bookkeeping and never asked again.
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+
+  // Thirteen Cao 2017 intervals, one after another in the same page. The gap
+  // ages between them are what tear the publication down.
+  const ages = [90, 75, 60, 45, 30, 20, 12, 8, 5, 3, 120, 170, 250];
+  for (const age of ages) {
+    await setContinuousAge(page, age);
+    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+      { timeout: 30_000, message: `palaeo-coastline mode at ${age} Ma` }).toBe("on");
+    expect(await globe(page).getAttribute("data-cao-palaeo-fallback-reason"),
+      `a refused publication at ${age} Ma`).toBe("");
+  }
+
+  await setContinuousAge(page, 0.021);
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-band", "lgm");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 10_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "lgm");
+  // The discriminator: a refused publication names itself here, and an empty
+  // string is the only reading that says nothing refused it.
+  expect(await globe(page).getAttribute("data-cao-palaeo-fallback-reason")).toBe("");
+});
+
+test("keeps the open map key clear of the chapter card on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./#age=170&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await openSurfaceInfo(page);
+  const panel = await page.locator(".surface-info-panel").boundingBox();
+  const chapter = await page.locator(".context-panel").boundingBox();
+  expect(panel).not.toBeNull();
+  // 390 px leaves no room for both: the open key is the width of the screen and
+  // reaches most of its height, so the chapter card may not occupy any of the
+  // same pixels. Either it is not laid out at all, or it is somewhere else.
+  if (chapter !== null) {
+    const intersects = panel!.x < chapter.x + chapter.width
+      && chapter.x < panel!.x + panel!.width
+      && panel!.y < chapter.y + chapter.height
+      && chapter.y < panel!.y + panel!.height;
+    expect(intersects, "the open map key overlaps the chapter card").toBe(false);
+  }
 });
 
 test("keeps the palaeo map key compact on a phone", async ({ page }) => {

@@ -811,11 +811,62 @@ export function palaeoIntervalCoversAge(
   return Number.isFinite(ageMa) && ageMa > youngestExclusiveMa && ageMa <= oldestMa;
 }
 
+/**
+ * The 0.01 Ma an interval's exclusive young bound sits above its neighbour's
+ * inclusive old bound.
+ *
+ * The published schedule is contiguous in intent - `29-20` is followed by
+ * `20-11` - but the exclusive bound is written as `20.01` while the next
+ * interval's oldest age is `20`, so the ages in `(20, 20.01]` are covered by
+ * neither. Measured 2026-09-15 at exactly 20 Ma, where the slider's own
+ * round-trip lands a hair above 20: the age domain said the layer was inside the
+ * Cao band, no interval was selected, nothing was ever published, and the mode
+ * latched at `loading` with the globe drawn as if the layer were off - for the
+ * rest of the session, because only an age change wakes the pump. The seam is
+ * one part in two thousand of the interval it belongs to, so an age inside it
+ * takes the older interval whose padding created it rather than no map at all.
+ */
+export const PALAEO_INTERVAL_BOUND_PADDING_MA = 0.01;
+
+/**
+ * True where `ageMa` falls in the seam between two *adjacent* published
+ * intervals: above the younger one's inclusive oldest age and at or below the
+ * older one's exclusive youngest age, with no more than the padding between
+ * them.
+ *
+ * The width test is what keeps this from swallowing a real gap. The detached
+ * LGM state sits 1.98 Myr below the Cao band's youngest bound, and that gap is
+ * a statement - there is no map there - not an arithmetic seam.
+ */
+export function palaeoIntervalSeamCoversAge(
+  ageMa: number,
+  olderYoungestExclusiveMa: number,
+  youngerOldestMa: number,
+): boolean {
+  return Number.isFinite(ageMa)
+    && olderYoungestExclusiveMa > youngerOldestMa
+    // The bounds are decimal literals, so the subtraction lands a few ulps either
+    // side of the padding; 1e-6 Ma is a thousand years, far below anything the
+    // schedule distinguishes.
+    && olderYoungestExclusiveMa - youngerOldestMa <= PALAEO_INTERVAL_BOUND_PADDING_MA + 1e-6
+    && ageMa > youngerOldestMa
+    && ageMa <= olderYoungestExclusiveMa;
+}
+
 /** The published interval covering an age, using the same `(TOAGE, FROMAGE]` rule as a piece. */
 export function selectPalaeoCatalogInterval(
   catalog: PalaeoCoastlineClassCatalog,
   ageMa: number,
 ): PalaeoCoastlineIntervalRecord | null {
-  return catalog.intervals.find((interval) =>
-    palaeoIntervalCoversAge(ageMa, interval.fromAgeMa, interval.toAgeMa)) ?? null;
+  const covering = catalog.intervals.find((interval) =>
+    palaeoIntervalCoversAge(ageMa, interval.fromAgeMa, interval.toAgeMa));
+  if (covering) return covering;
+  // No interval covers an age in the 0.01 Ma seam between two adjacent ones, and
+  // a seam must not leave the layer with no map to draw.
+  for (let index = 0; index + 1 < catalog.intervals.length; index += 1) {
+    const older = catalog.intervals[index]!;
+    if (palaeoIntervalSeamCoversAge(ageMa, older.toAgeMa,
+      catalog.intervals[index + 1]!.fromAgeMa)) return older;
+  }
+  return null;
 }

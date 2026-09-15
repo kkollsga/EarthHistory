@@ -9,7 +9,7 @@
  ],
  "geometryAsset": {
   "bytes": 75332,
-  "sha256": "7bcbe320f6ae0d8dc3b668bfbda8896c9147cebdb8760805fc5311f0f456d98b",
+  "sha256": "5f0e79d9b477d85de73836c541290f7c47849c81047a9cc2d77da44e427eda8c",
   "url": "outline-tones.ehpt"
  },
  "headerBytes": 32,
@@ -17,900 +17,900 @@
   {
    "classes": {
     "lm": {
-     "bytes": 103898,
-     "estimatedTriangles": 90041,
+     "bytes": 100366,
+     "estimatedTriangles": 90888,
      "path": "lm/palaeo-lm-402-380.ehpr",
-     "pieces": 850,
-     "sha256": "8afb704f91435fcaf845e4d48278bdce73eabb615c07313e9ff2c72a2bad33d4",
-     "vertices": 22905
+     "pieces": 797,
+     "sha256": "35b32d203621e44a41e3528f64d1e6d7028ba949be56c8d0d8d023962f7adce4",
+     "vertices": 22222
     },
     "m": {
-     "bytes": 20156,
-     "estimatedTriangles": 8644,
+     "bytes": 15874,
+     "estimatedTriangles": 7587,
      "path": "m/palaeo-m-402-380.ehpr",
-     "pieces": 152,
-     "sha256": "772a8107866a1c1f2ea698e0ce811ba624e148135235f44e5fd6ba6c67e0b2a2",
-     "vertices": 4488
+     "pieces": 132,
+     "sha256": "d47d8e615ad8317936519db1101c87b26ec3248acfd00ef208384f1a4901ca2a",
+     "vertices": 3488
     },
     "sm": {
-     "bytes": 150350,
-     "estimatedTriangles": 98202,
+     "bytes": 127416,
+     "estimatedTriangles": 91329,
      "path": "sm/palaeo-sm-402-380.ehpr",
-     "pieces": 1304,
-     "sha256": "088492cd869c3505cb73c2bb26d3e10deee62410823f0e833d2f992575636acc",
-     "vertices": 32926
+     "pieces": 1063,
+     "sha256": "7df356646e2bb9d20dea2ea54aae274f043831fe3f8e5f560a070e8fefa33859",
+     "vertices": 28054
     }
    },
    "detached": false,
-   "estimatedTriangles": 196887,
+   "estimatedTriangles": 189804,
    "intervalId": "402-380",
    "midAgeMa": 391.005,
    "oldestAgeMa": 402.0,
    "tableIndex": 0,
-   "vertices": 60319,
+   "vertices": 53764,
    "youngestAgeMa": 380.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 103114,
-     "estimatedTriangles": 87822,
+     "bytes": 100790,
+     "estimatedTriangles": 88156,
      "path": "lm/palaeo-lm-380-359.ehpr",
-     "pieces": 828,
-     "sha256": "14b972c4809775827357c4e0e35a47a882a88fb3a311630516394bba5ef57eb5",
-     "vertices": 22796
+     "pieces": 783,
+     "sha256": "cfe12b77f93879ecd77f43d3145eff840e67c91ab44537deabf215c6ba99dd12",
+     "vertices": 22383
     },
     "m": {
-     "bytes": 19806,
-     "estimatedTriangles": 7784,
+     "bytes": 13516,
+     "estimatedTriangles": 6203,
      "path": "m/palaeo-m-380-359.ehpr",
-     "pieces": 160,
-     "sha256": "f611c6887f23ecbf2c93839c2b0cc6b9b9b80b0fcad4f529a7fafa6754c4e679",
-     "vertices": 4375
+     "pieces": 137,
+     "sha256": "da100534e4d0ee8be3b10ebbf3e22bd52d6857babad3498030b69f802991a7cc",
+     "vertices": 2883
     },
     "sm": {
-     "bytes": 142908,
-     "estimatedTriangles": 102161,
+     "bytes": 120848,
+     "estimatedTriangles": 95492,
      "path": "sm/palaeo-sm-380-359.ehpr",
-     "pieces": 1227,
-     "sha256": "8b80c767ef4067cadaaa61e57b5813f244de3f2902465cce9f5f82a849324271",
-     "vertices": 31333
+     "pieces": 997,
+     "sha256": "396554c1c9a91914d9f2bd3eb33f5384197cc22e48f81a2cefa7ef80f410f629",
+     "vertices": 26641
     }
    },
    "detached": false,
-   "estimatedTriangles": 197767,
+   "estimatedTriangles": 189851,
    "intervalId": "380-359",
    "midAgeMa": 369.505,
    "oldestAgeMa": 380.0,
    "tableIndex": 1,
-   "vertices": 58504,
+   "vertices": 51907,
    "youngestAgeMa": 359.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 107850,
-     "estimatedTriangles": 79082,
+     "bytes": 102608,
+     "estimatedTriangles": 78693,
      "path": "lm/palaeo-lm-359-338.ehpr",
-     "pieces": 826,
-     "sha256": "dfa037fbbb3976231e8642ea91d872053f037caf6f4a39a20e1af09f57ffe9ac",
-     "vertices": 23998
+     "pieces": 769,
+     "sha256": "87feef8bf4d24cea22b54f91deb605edb5429a918cdc43622333948d16c4097b",
+     "vertices": 22897
     },
     "m": {
-     "bytes": 25958,
-     "estimatedTriangles": 10279,
+     "bytes": 24422,
+     "estimatedTriangles": 10073,
      "path": "m/palaeo-m-359-338.ehpr",
-     "pieces": 201,
-     "sha256": "5911fe738d5c42c1b215e7dc6629494f73974129ccbdcaa30b3c4aca2e5cccae",
-     "vertices": 5762
+     "pieces": 188,
+     "sha256": "b269c4d269e9074200c7ec7460923fdfef6d6206a859910796b28b95f5c07f3e",
+     "vertices": 5426
     },
     "sm": {
-     "bytes": 118836,
-     "estimatedTriangles": 76661,
+     "bytes": 101742,
+     "estimatedTriangles": 70701,
      "path": "sm/palaeo-sm-359-338.ehpr",
-     "pieces": 1089,
-     "sha256": "5ef6e647a4efc9282fc05a8ae224089c69d01c76e4f66a8d06958b1a6bc6378d",
-     "vertices": 25833
+     "pieces": 901,
+     "sha256": "b275314ddd7646b90bba775278f9fd2c36078b97fb719b0a3707016993261142",
+     "vertices": 22227
     }
    },
    "detached": false,
-   "estimatedTriangles": 166022,
+   "estimatedTriangles": 159467,
    "intervalId": "359-338",
    "midAgeMa": 348.505,
    "oldestAgeMa": 359.0,
    "tableIndex": 2,
-   "vertices": 55593,
+   "vertices": 50550,
    "youngestAgeMa": 338.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 112566,
-     "estimatedTriangles": 85208,
+     "bytes": 107736,
+     "estimatedTriangles": 85650,
      "path": "lm/palaeo-lm-338-323.ehpr",
-     "pieces": 880,
-     "sha256": "3c8a679249e4824a296dde51af2921c130c3f1d3172020dbc23310c624705b41",
-     "vertices": 24985
+     "pieces": 824,
+     "sha256": "49d44f46b373a22256929813c00ec590ad1ae23e657c5ab1787bc30261948f73",
+     "vertices": 23986
     },
     "m": {
-     "bytes": 26846,
-     "estimatedTriangles": 11396,
+     "bytes": 24258,
+     "estimatedTriangles": 10960,
      "path": "m/palaeo-m-338-323.ehpr",
-     "pieces": 229,
-     "sha256": "186cf4c679f9b5a148cf16ff7f80f1d7a1dae73d25f2d8bf3cb4f18bb52a98e6",
-     "vertices": 5883
+     "pieces": 206,
+     "sha256": "6629e85c40366795d18d80244d222e73569ea724a24ae69862c729eb89fdf0fd",
+     "vertices": 5319
     },
     "sm": {
-     "bytes": 135864,
-     "estimatedTriangles": 81420,
+     "bytes": 119210,
+     "estimatedTriangles": 78410,
      "path": "sm/palaeo-sm-338-323.ehpr",
-     "pieces": 1222,
-     "sha256": "de377b64bea3033b93b36c196117596fe2be140a3d80e1aab195387f5feee932",
-     "vertices": 29587
+     "pieces": 1040,
+     "sha256": "e0e0ba20fee0ce776c29eb062b16237b91db409a0012adc5b566066e784b0c89",
+     "vertices": 26085
     }
    },
    "detached": false,
-   "estimatedTriangles": 178024,
+   "estimatedTriangles": 175020,
    "intervalId": "338-323",
    "midAgeMa": 330.505,
    "oldestAgeMa": 338.0,
    "tableIndex": 3,
-   "vertices": 60455,
+   "vertices": 55390,
    "youngestAgeMa": 323.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 85880,
-     "estimatedTriangles": 63616,
+     "bytes": 88930,
+     "estimatedTriangles": 66348,
      "path": "lm/palaeo-lm-323-296.ehpr",
-     "pieces": 652,
-     "sha256": "34774e25ddaebb69ddb2df77cbddf7aea1fb09596304d0b093cbe39264d7ed06",
-     "vertices": 19127
+     "pieces": 644,
+     "sha256": "8db5af9818863189b7b900ecf1b23eafe524a38467f5f163e022dffab9714065",
+     "vertices": 19918
     },
     "m": {
-     "bytes": 35582,
-     "estimatedTriangles": 13654,
+     "bytes": 33850,
+     "estimatedTriangles": 13165,
      "path": "m/palaeo-m-323-296.ehpr",
-     "pieces": 283,
-     "sha256": "806afac135ea221ab76444beaae0a96c3fe84d50054a23948a40cefa84992255",
-     "vertices": 7867
+     "pieces": 264,
+     "sha256": "9d1b9652ace2b2ff771747ecab934de45f902b7efdcd854fa80e39eb613de7e4",
+     "vertices": 7502
     },
     "sm": {
-     "bytes": 124592,
-     "estimatedTriangles": 70881,
+     "bytes": 110720,
+     "estimatedTriangles": 70070,
      "path": "sm/palaeo-sm-323-296.ehpr",
-     "pieces": 1110,
-     "sha256": "a833cb6b396fc499c596f18d507939281e6fa91a87368fe99c859e740993b9c6",
-     "vertices": 27162
+     "pieces": 943,
+     "sha256": "018af366b158a0672ebdbd326e441b76d9f7d89c913bfe90f197c21b58d14b83",
+     "vertices": 24298
     }
    },
    "detached": false,
-   "estimatedTriangles": 148151,
+   "estimatedTriangles": 149583,
    "intervalId": "323-296",
    "midAgeMa": 309.505,
    "oldestAgeMa": 323.0,
    "tableIndex": 4,
-   "vertices": 54156,
+   "vertices": 51718,
    "youngestAgeMa": 296.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 110900,
-     "estimatedTriangles": 77553,
+     "bytes": 110880,
+     "estimatedTriangles": 79686,
      "path": "lm/palaeo-lm-296-285.ehpr",
-     "pieces": 935,
-     "sha256": "a5a3b506cf232fac4b3a93b73529b1688c4c8cb748f81a25afa89b85660ab93c",
-     "vertices": 24365
+     "pieces": 914,
+     "sha256": "5e18f12f3a4406d03de60d4bf8201bf042014bed27dbfa9c2a9f1fb95a8abf19",
+     "vertices": 24442
     },
     "m": {
-     "bytes": 31832,
-     "estimatedTriangles": 14315,
+     "bytes": 30626,
+     "estimatedTriangles": 14314,
      "path": "m/palaeo-m-296-285.ehpr",
-     "pieces": 302,
-     "sha256": "ae5998ba7407b6cfeb7ec3e51e416e14a53012e601bd1e09faa908eeaa9ab3ce",
-     "vertices": 6862
+     "pieces": 285,
+     "sha256": "09974956423f4255ea5744b8bdbac3c9a93618a756309e5efa984c618f0fce6a",
+     "vertices": 6625
     },
     "sm": {
-     "bytes": 92530,
-     "estimatedTriangles": 57995,
+     "bytes": 81766,
+     "estimatedTriangles": 55853,
      "path": "sm/palaeo-sm-296-285.ehpr",
-     "pieces": 882,
-     "sha256": "b332ab0817ec29c0e93294a1dfaf124912bc0819ec3187b30c934bb2286b30d9",
-     "vertices": 19971
+     "pieces": 740,
+     "sha256": "55ebf1e179288ac15c8b1346146cd6e39ca8d59e63edc194ffed043147df6259",
+     "vertices": 17787
     }
    },
    "detached": false,
-   "estimatedTriangles": 149863,
+   "estimatedTriangles": 149853,
    "intervalId": "296-285",
    "midAgeMa": 290.505,
    "oldestAgeMa": 296.0,
    "tableIndex": 5,
-   "vertices": 51198,
+   "vertices": 48854,
    "youngestAgeMa": 285.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 118840,
-     "estimatedTriangles": 108292,
+     "bytes": 104258,
+     "estimatedTriangles": 100607,
      "path": "lm/palaeo-lm-285-269.ehpr",
-     "pieces": 984,
-     "sha256": "6af401bc2b9decbbacd47822a10ead671a1b51690ce58214f7ac8f8562f2ce31",
-     "vertices": 26193
+     "pieces": 852,
+     "sha256": "c748fc1245a9ed0f253a818e996f5c45396c8cb52cb8880d987fa29912bc95a3",
+     "vertices": 23025
     },
     "m": {
-     "bytes": 15296,
-     "estimatedTriangles": 8649,
+     "bytes": 14412,
+     "estimatedTriangles": 8607,
      "path": "m/palaeo-m-285-269.ehpr",
-     "pieces": 179,
-     "sha256": "09f83d37c02b7cb9f90d53f9b19165bc0eaea908d7b3f2a694edaac963619f8f",
-     "vertices": 3180
+     "pieces": 165,
+     "sha256": "bb49fa91e7ca765c43d0078d06f890638e7e2ab4fe6ec8cd8926782a496b3e13",
+     "vertices": 3008
     },
     "sm": {
-     "bytes": 77920,
-     "estimatedTriangles": 50038,
+     "bytes": 67520,
+     "estimatedTriangles": 49515,
      "path": "sm/palaeo-sm-285-269.ehpr",
-     "pieces": 803,
-     "sha256": "15b452e75fb1df07d7696f25e3336a23dbcdc6086e907ffff72d03e6550b33f9",
-     "vertices": 16625
+     "pieces": 672,
+     "sha256": "8a6b449b8f27dcc929936a164d47af0da469280121d0b360417ac320bb8fe03b",
+     "vertices": 14492
     }
    },
    "detached": false,
-   "estimatedTriangles": 166979,
+   "estimatedTriangles": 158729,
    "intervalId": "285-269",
    "midAgeMa": 277.005,
    "oldestAgeMa": 285.0,
    "tableIndex": 6,
-   "vertices": 45998,
+   "vertices": 40525,
    "youngestAgeMa": 269.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 116334,
-     "estimatedTriangles": 97522,
+     "bytes": 115842,
+     "estimatedTriangles": 100426,
      "path": "lm/palaeo-lm-269-248.ehpr",
-     "pieces": 921,
-     "sha256": "5bee7a80f1b970e83a203fe079ed1347a74bc69276e827cdcb5344dcb8233f21",
-     "vertices": 25769
+     "pieces": 908,
+     "sha256": "8491b99ef087d85cd33047af19d93645b813daec219147d93ba01e5802e5f049",
+     "vertices": 25703
     },
     "m": {
-     "bytes": 31648,
-     "estimatedTriangles": 15604,
+     "bytes": 29764,
+     "estimatedTriangles": 15219,
      "path": "m/palaeo-m-269-248.ehpr",
-     "pieces": 319,
-     "sha256": "05c0ad4b2cc99a24f6861c5dac61422cbdb5dc9075f0384a4ed4d62b8a4b7127",
-     "vertices": 6762
+     "pieces": 296,
+     "sha256": "1cdbe3ac0ea80d36f6317238b7e80edd01b33564058e9878ee3f23ec98f39061",
+     "vertices": 6377
     },
     "sm": {
-     "bytes": 103996,
-     "estimatedTriangles": 61069,
+     "bytes": 91488,
+     "estimatedTriangles": 59294,
      "path": "sm/palaeo-sm-269-248.ehpr",
-     "pieces": 941,
-     "sha256": "ad4cf5d13758e9b1dd10632548245c5fee85fb98c7e2ea6acdc668a671369aa2",
-     "vertices": 22614
+     "pieces": 825,
+     "sha256": "d09760fd9348eadd9739a6928e01966c39002b4c987a50d031439b552c32e069",
+     "vertices": 19905
     }
    },
    "detached": false,
-   "estimatedTriangles": 174195,
+   "estimatedTriangles": 174939,
    "intervalId": "269-248",
    "midAgeMa": 258.505,
    "oldestAgeMa": 269.0,
    "tableIndex": 7,
-   "vertices": 55145,
+   "vertices": 51985,
    "youngestAgeMa": 248.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 126522,
-     "estimatedTriangles": 118638,
+     "bytes": 125864,
+     "estimatedTriangles": 121540,
      "path": "lm/palaeo-lm-248-224.ehpr",
-     "pieces": 939,
-     "sha256": "56a65ef4a46acfa372ae427d7dec76e6cf4c4012e74f104bf1421e5ce9767208",
-     "vertices": 28254
+     "pieces": 919,
+     "sha256": "b892aaafd4c60f511268bf0ec4ad38cae726e3277ed4f6f218f1e650c0d1f947",
+     "vertices": 28170
     },
     "m": {
-     "bytes": 15846,
-     "estimatedTriangles": 5678,
+     "bytes": 15942,
+     "estimatedTriangles": 5814,
      "path": "m/palaeo-m-248-224.ehpr",
-     "pieces": 163,
-     "sha256": "defb320e483c36cab93704663e7193d08bbed8f370c29fcee2e98ef59ccea084",
-     "vertices": 3372
+     "pieces": 160,
+     "sha256": "6f3a8b61e8d9f95265d776ca6fe602a2ec78970e98119e04d8fb083249ca1110",
+     "vertices": 3407
     },
     "sm": {
-     "bytes": 104418,
-     "estimatedTriangles": 55055,
+     "bytes": 90076,
+     "estimatedTriangles": 50925,
      "path": "sm/palaeo-sm-248-224.ehpr",
-     "pieces": 982,
-     "sha256": "75b45a2c3573b13f7252119f9c7e3ef9fdd34e9cae1ceeaf7e867afb81a35caf",
-     "vertices": 22593
+     "pieces": 810,
+     "sha256": "b3f6be0724363059425dbb10eefcdc3b0342eea2e48dbee68d65b8c3e7ccde34",
+     "vertices": 19631
     }
    },
    "detached": false,
-   "estimatedTriangles": 179371,
+   "estimatedTriangles": 178279,
    "intervalId": "248-224",
    "midAgeMa": 236.005,
    "oldestAgeMa": 248.0,
    "tableIndex": 8,
-   "vertices": 54219,
+   "vertices": 51208,
    "youngestAgeMa": 224.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 123950,
-     "estimatedTriangles": 120090,
+     "bytes": 129472,
+     "estimatedTriangles": 129578,
      "path": "lm/palaeo-lm-224-203.ehpr",
-     "pieces": 936,
-     "sha256": "96d4812f23ff9e3b59eb534fd572fcbd31bb30fddc8898170087da97bfa21c61",
-     "vertices": 27604
+     "pieces": 915,
+     "sha256": "3502f0da00db7dbf1eb79681e6bcb3e83b73c31c0ffde733837dd04545707751",
+     "vertices": 29069
     },
     "m": {
-     "bytes": 13454,
-     "estimatedTriangles": 4502,
+     "bytes": 13590,
+     "estimatedTriangles": 4634,
      "path": "m/palaeo-m-224-203.ehpr",
-     "pieces": 160,
-     "sha256": "c193f3ab41036671b53a5aa4ab1761235604a5287c5145693191d801a2ac2056",
-     "vertices": 2786
+     "pieces": 157,
+     "sha256": "1fb61663a3ef1bd303e81dfcfc59460ed30c5788448e8aad23e239b6ab757633",
+     "vertices": 2831
     },
     "sm": {
-     "bytes": 111242,
-     "estimatedTriangles": 51303,
+     "bytes": 101370,
+     "estimatedTriangles": 51356,
      "path": "sm/palaeo-sm-224-203.ehpr",
-     "pieces": 1122,
-     "sha256": "81f3ed7e4ba7ddcf9d4d80fec52412d298bba4d61c0298dde36684bd8de94c0e",
-     "vertices": 23755
+     "pieces": 986,
+     "sha256": "a74f697ea06f35e5f12f9a3d7c11029b5290619e34fb493a5aa2127301a6e1d7",
+     "vertices": 21790
     }
    },
    "detached": false,
-   "estimatedTriangles": 175895,
+   "estimatedTriangles": 185568,
    "intervalId": "224-203",
    "midAgeMa": 213.505,
    "oldestAgeMa": 224.0,
    "tableIndex": 9,
-   "vertices": 54145,
+   "vertices": 53690,
    "youngestAgeMa": 203.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 133224,
-     "estimatedTriangles": 113242,
+     "bytes": 130372,
+     "estimatedTriangles": 115285,
      "path": "lm/palaeo-lm-203-179.ehpr",
-     "pieces": 999,
-     "sha256": "94654bb431fd9687e18d7abae24f0f9966c5bedfb2302e053cbd4d488d515366",
-     "vertices": 29710
+     "pieces": 952,
+     "sha256": "adff9c0684f667664a0d4a29c56b471aaeac5615d349ef72d66de9d576476b0f",
+     "vertices": 29174
     },
     "m": {
-     "bytes": 19382,
-     "estimatedTriangles": 7214,
+     "bytes": 18374,
+     "estimatedTriangles": 7023,
      "path": "m/palaeo-m-203-179.ehpr",
-     "pieces": 174,
-     "sha256": "5a9a65e77a3dd80f3014353eeb1a86fcf008cd9f995821f320e8450a84c55799",
-     "vertices": 4211
+     "pieces": 163,
+     "sha256": "0e859f2d1958aa8370e794468c9634c59cd01bb8adb064ee4e5a2b7ea437cfea",
+     "vertices": 4001
     },
     "sm": {
-     "bytes": 128264,
-     "estimatedTriangles": 68849,
+     "bytes": 115906,
+     "estimatedTriangles": 67425,
      "path": "sm/palaeo-sm-203-179.ehpr",
-     "pieces": 1188,
-     "sha256": "7e34dee49e07322299f14a8e4360ee77300b5bd9ab0b99f8182da07913466df8",
-     "vertices": 27804
+     "pieces": 1027,
+     "sha256": "e519708c1ee535c9640ff25e7e4be790f1148a4fa7a3458dc10b73b5de167dc6",
+     "vertices": 25297
     }
    },
    "detached": false,
-   "estimatedTriangles": 189305,
+   "estimatedTriangles": 189733,
    "intervalId": "203-179",
    "midAgeMa": 191.005,
    "oldestAgeMa": 203.0,
    "tableIndex": 10,
-   "vertices": 61725,
+   "vertices": 58472,
    "youngestAgeMa": 179.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 133654,
-     "estimatedTriangles": 109413,
+     "bytes": 133214,
+     "estimatedTriangles": 112152,
      "path": "lm/palaeo-lm-179-166.ehpr",
-     "pieces": 1087,
-     "sha256": "c8ee9c7a01a6dcff0465c255c4e8ca7d1e0cef0d4fd59d5f79ed3d9591f24638",
-     "vertices": 29504
+     "pieces": 1062,
+     "sha256": "c6bae0ff3a3c18dd90231db85f2aa359554644c25565a1c93d0f3c06a1b08a7e",
+     "vertices": 29494
     },
     "m": {
-     "bytes": 38922,
-     "estimatedTriangles": 11084,
+     "bytes": 37722,
+     "estimatedTriangles": 10736,
      "path": "m/palaeo-m-179-166.ehpr",
-     "pieces": 474,
-     "sha256": "7ac67ddce77b8dee1875d7ea96117e87003efb0cd6a3a51675777650db86ebbd",
-     "vertices": 8036
+     "pieces": 455,
+     "sha256": "fae88d1f138eb2b6634dae14581ed780c15b5457fb21b9aaf87de830b20b6eee",
+     "vertices": 7804
     },
     "sm": {
-     "bytes": 114852,
-     "estimatedTriangles": 65842,
+     "bytes": 110400,
+     "estimatedTriangles": 67639,
      "path": "sm/palaeo-sm-179-166.ehpr",
-     "pieces": 1153,
-     "sha256": "afbd573f7c1ba12d0c78acb3127132506de76d505222cb18d34280108e92d977",
-     "vertices": 24565
+     "pieces": 1069,
+     "sha256": "a392cfb7841ce045131d1c481b9a835acfd05e56b22579a353ab9766fd5b8115",
+     "vertices": 23755
     }
    },
    "detached": false,
-   "estimatedTriangles": 186339,
+   "estimatedTriangles": 190527,
    "intervalId": "179-166",
    "midAgeMa": 172.505,
    "oldestAgeMa": 179.0,
    "tableIndex": 11,
-   "vertices": 62105,
+   "vertices": 61053,
    "youngestAgeMa": 166.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 158674,
-     "estimatedTriangles": 113510,
+     "bytes": 157034,
+     "estimatedTriangles": 115805,
      "path": "lm/palaeo-lm-166-146.ehpr",
-     "pieces": 1282,
-     "sha256": "f6f906db659b285dbe379697cde673a777b9ca3b1a861ef30254b3c5302e2f81",
-     "vertices": 35028
+     "pieces": 1255,
+     "sha256": "2429117691bced7b6ba6670d8b6495cb5b505ec4b1e3f2cf940026f2ad5188f3",
+     "vertices": 34726
     },
     "m": {
-     "bytes": 52598,
-     "estimatedTriangles": 17602,
+     "bytes": 51502,
+     "estimatedTriangles": 17778,
      "path": "m/palaeo-m-166-146.ehpr",
-     "pieces": 541,
-     "sha256": "17b8b17f11467f0ffc02d88ae5d2353a1e71336f340092bdfa00ae8ef2f6fdae",
-     "vertices": 11198
+     "pieces": 510,
+     "sha256": "cccb02911280ed12467ce1a9bd827e3b33d1a8dafad412f2108375ef1c973afa",
+     "vertices": 11037
     },
     "sm": {
-     "bytes": 161586,
-     "estimatedTriangles": 81440,
+     "bytes": 153618,
+     "estimatedTriangles": 82987,
      "path": "sm/palaeo-sm-166-146.ehpr",
-     "pieces": 1480,
-     "sha256": "a0f7b586691c3206d7cb9fd176d8e77565b3f75cbcdfeafff8023e7afeee8b46",
-     "vertices": 35011
+     "pieces": 1366,
+     "sha256": "4466ec18912b2506b37d4fb1b4d86f179237006962f852d80f3a877c6dd867c0",
+     "vertices": 33454
     }
    },
    "detached": false,
-   "estimatedTriangles": 212552,
+   "estimatedTriangles": 216570,
    "intervalId": "166-146",
    "midAgeMa": 156.005,
    "oldestAgeMa": 166.0,
    "tableIndex": 12,
-   "vertices": 81237,
+   "vertices": 79217,
    "youngestAgeMa": 146.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 153254,
-     "estimatedTriangles": 115250,
+     "bytes": 148262,
+     "estimatedTriangles": 116500,
      "path": "lm/palaeo-lm-146-135.ehpr",
-     "pieces": 1210,
-     "sha256": "bf85dbcf67e901b668025ce4500229ecfc238ce0a9cba97e21183b1f7b5d9d69",
-     "vertices": 33957
+     "pieces": 1152,
+     "sha256": "790b1a13672611e712637cc4060bf9afce05cce51e7a9be956a0bd926a4e9397",
+     "vertices": 32930
     },
     "m": {
-     "bytes": 46974,
-     "estimatedTriangles": 17396,
+     "bytes": 45438,
+     "estimatedTriangles": 17198,
      "path": "m/palaeo-m-146-135.ehpr",
-     "pieces": 467,
-     "sha256": "cd1fe96e0794e159519cd9b3bb07a4994080afa162c02bb97000a85884d5628c",
-     "vertices": 10055
+     "pieces": 437,
+     "sha256": "8712247359d86a5bca84fa7be01ef095146861b7613e11e75e194cea3f8336e3",
+     "vertices": 9781
     },
     "sm": {
-     "bytes": 141758,
-     "estimatedTriangles": 69042,
+     "bytes": 129458,
+     "estimatedTriangles": 66663,
      "path": "sm/palaeo-sm-146-135.ehpr",
-     "pieces": 1358,
-     "sha256": "ba6e92615c853bc27ca57b82a322401c50d48d1e6709ea82ead3b698d3f71d7b",
-     "vertices": 30564
+     "pieces": 1213,
+     "sha256": "0ad4a70a4942fe7dd8ee16a04f5238ebdd3bb53664086ec9f94dd1a8f649ba18",
+     "vertices": 28015
     }
    },
    "detached": false,
-   "estimatedTriangles": 201688,
+   "estimatedTriangles": 200361,
    "intervalId": "146-135",
    "midAgeMa": 140.505,
    "oldestAgeMa": 146.0,
    "tableIndex": 13,
-   "vertices": 74576,
+   "vertices": 70726,
    "youngestAgeMa": 135.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 159656,
-     "estimatedTriangles": 117030,
+     "bytes": 160838,
+     "estimatedTriangles": 119911,
      "path": "lm/palaeo-lm-135-117.ehpr",
-     "pieces": 1317,
-     "sha256": "69a1d64924a7a02125f129f98334fddb4dd7fdcf527d54f6ab107f51d449b521",
-     "vertices": 35171
+     "pieces": 1314,
+     "sha256": "14102f4d135048e28aa701e98a2e98abacf85cbc6cbb913beb51db8f13378a91",
+     "vertices": 35492
     },
     "m": {
-     "bytes": 53496,
-     "estimatedTriangles": 19094,
+     "bytes": 53980,
+     "estimatedTriangles": 19984,
      "path": "m/palaeo-m-135-117.ehpr",
-     "pieces": 576,
-     "sha256": "952c5b604d0bbc29cff7bc0e9feabb31e58e23f57aa33ca729af33cbcb7f8399",
-     "vertices": 11294
+     "pieces": 543,
+     "sha256": "bfc01e024093e156517086f976a29679127053ddf5ac025ecbad8c7f3d6f3dd5",
+     "vertices": 11535
     },
     "sm": {
-     "bytes": 129086,
-     "estimatedTriangles": 61363,
+     "bytes": 125050,
+     "estimatedTriangles": 63797,
      "path": "sm/palaeo-sm-135-117.ehpr",
-     "pieces": 1221,
-     "sha256": "041131793ec41c9a96f1dc7ec7b20531b316cd917fc8ede841b1113688efead7",
-     "vertices": 27866
+     "pieces": 1153,
+     "sha256": "ddaaf49071e46e7b1559ba14ea075984e2b703e138e0a93d3a408602499a479e",
+     "vertices": 27116
     }
    },
    "detached": false,
-   "estimatedTriangles": 197487,
+   "estimatedTriangles": 203692,
    "intervalId": "135-117",
    "midAgeMa": 126.005,
    "oldestAgeMa": 135.0,
    "tableIndex": 14,
-   "vertices": 74331,
+   "vertices": 74143,
    "youngestAgeMa": 117.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 151552,
-     "estimatedTriangles": 107552,
+     "bytes": 152958,
+     "estimatedTriangles": 110675,
      "path": "lm/palaeo-lm-117-94.ehpr",
-     "pieces": 1240,
-     "sha256": "66c3d886641faedea289f9237cdac459154d83ba77c3b5feb775fb77d7b59c9d",
-     "vertices": 33417
+     "pieces": 1212,
+     "sha256": "57919731064197fb341520529b1576fc6e7972481737c91e549c8a1e1c268d9d",
+     "vertices": 33871
     },
     "m": {
-     "bytes": 67082,
-     "estimatedTriangles": 22729,
+     "bytes": 66988,
+     "estimatedTriangles": 23084,
      "path": "m/palaeo-m-117-94.ehpr",
-     "pieces": 730,
-     "sha256": "1edbea04ea3b1c59ce1462613a99ab51b164a8f36bc99ed1bec5973b743585f4",
-     "vertices": 14150
+     "pieces": 703,
+     "sha256": "9531b98e3e802549f0f993fc5f45affd6b2e8ed5b29f3210337bbee35958278e",
+     "vertices": 14225
     },
     "sm": {
-     "bytes": 146170,
-     "estimatedTriangles": 78573,
+     "bytes": 142630,
+     "estimatedTriangles": 80131,
      "path": "sm/palaeo-sm-117-94.ehpr",
-     "pieces": 1387,
-     "sha256": "0be69b1b82800f73614343584679945ba5c5bee05b716d59b6d0ea6a9e2eb071",
-     "vertices": 31539
+     "pieces": 1282,
+     "sha256": "8531a4458ae73416b36aaa5f13fbc7e7b621eb01858264d3a7ac717c18f5b1a9",
+     "vertices": 31051
     }
    },
    "detached": false,
-   "estimatedTriangles": 208854,
+   "estimatedTriangles": 213890,
    "intervalId": "117-94",
    "midAgeMa": 105.505,
    "oldestAgeMa": 117.0,
    "tableIndex": 15,
-   "vertices": 79106,
+   "vertices": 79147,
    "youngestAgeMa": 94.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 137308,
-     "estimatedTriangles": 97674,
+     "bytes": 136966,
+     "estimatedTriangles": 99670,
      "path": "lm/palaeo-lm-94-81.ehpr",
-     "pieces": 1141,
-     "sha256": "b4522a13814ee21747c25da38bb1d5eb630730d71987f524648c3c58787aa1b9",
-     "vertices": 30214
+     "pieces": 1123,
+     "sha256": "07297fd166496095e4c625a45f724ac8d160d13e2e21b80945b11a08fc1756f9",
+     "vertices": 30206
     },
     "m": {
-     "bytes": 60508,
-     "estimatedTriangles": 23683,
+     "bytes": 59434,
+     "estimatedTriangles": 23649,
      "path": "m/palaeo-m-94-81.ehpr",
-     "pieces": 639,
-     "sha256": "ff7d147f18e3d5c3267264a240f07754ef7613dd15f8c71ea6604ef0fef4c3a7",
-     "vertices": 12830
+     "pieces": 612,
+     "sha256": "bee8f88c75e8e245a8fb24b1117d79c51a054523e69e7c6be8c11709a375f1ee",
+     "vertices": 12663
     },
     "sm": {
-     "bytes": 166652,
-     "estimatedTriangles": 108285,
+     "bytes": 160118,
+     "estimatedTriangles": 109605,
      "path": "sm/palaeo-sm-94-81.ehpr",
-     "pieces": 1486,
-     "sha256": "e391089b966fb6ca15116da23f4aa0dde13c059c1c5721db23facd70a6cc52d4",
-     "vertices": 36277
+     "pieces": 1404,
+     "sha256": "1473f7d684b56087c99f651737e74303d222e79f6554aba19cdeda4e1b933e0a",
+     "vertices": 34976
     }
    },
    "detached": false,
-   "estimatedTriangles": 229642,
+   "estimatedTriangles": 232924,
    "intervalId": "94-81",
    "midAgeMa": 87.505,
    "oldestAgeMa": 94.0,
    "tableIndex": 16,
-   "vertices": 79321,
+   "vertices": 77845,
    "youngestAgeMa": 81.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 141542,
-     "estimatedTriangles": 101943,
+     "bytes": 139526,
+     "estimatedTriangles": 103656,
      "path": "lm/palaeo-lm-81-58.ehpr",
-     "pieces": 1139,
-     "sha256": "2da2c55d3d1ec5b70702183ffaba55f4706f4022bdb9fda4b38f389518afa501",
-     "vertices": 31259
+     "pieces": 1122,
+     "sha256": "e51bf4a5ddf57d7cbbb5467e852d47acda5ce60ece5b6e2423b51a918b8a4ba3",
+     "vertices": 30829
     },
     "m": {
-     "bytes": 74318,
-     "estimatedTriangles": 30617,
+     "bytes": 74684,
+     "estimatedTriangles": 31139,
      "path": "m/palaeo-m-81-58.ehpr",
-     "pieces": 808,
-     "sha256": "c54f2bc89c80ddc74a3a4c5b03c75d5e45f578e0dda1b40efb3ca38503be8a9a",
-     "vertices": 15694
+     "pieces": 792,
+     "sha256": "42f25f447c80ec93be1692302852613f03d1f074eb0eae4613f635dacc347d7d",
+     "vertices": 15847
     },
     "sm": {
-     "bytes": 180242,
-     "estimatedTriangles": 101872,
+     "bytes": 175420,
+     "estimatedTriangles": 105726,
      "path": "sm/palaeo-sm-81-58.ehpr",
-     "pieces": 1593,
-     "sha256": "c4be8c197bc67a74d2ae7c865a1b07d72f9aca41a13475434ca5141d9589519d",
-     "vertices": 39291
+     "pieces": 1548,
+     "sha256": "d58158c268b909842470f115a18762c85f0afe61d05379310f318a4ab923189a",
+     "vertices": 38284
     }
    },
    "detached": false,
-   "estimatedTriangles": 234432,
+   "estimatedTriangles": 240521,
    "intervalId": "81-58",
    "midAgeMa": 69.505,
    "oldestAgeMa": 81.0,
    "tableIndex": 17,
-   "vertices": 86244,
+   "vertices": 84960,
    "youngestAgeMa": 58.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 163650,
-     "estimatedTriangles": 121278,
+     "bytes": 161522,
+     "estimatedTriangles": 123047,
      "path": "lm/palaeo-lm-58-49.ehpr",
-     "pieces": 1251,
-     "sha256": "2094aab5f1437bae27f05e9493fd3d95c398578c61252fa08606f6da40a16580",
-     "vertices": 36396
+     "pieces": 1230,
+     "sha256": "d59f538a2258d1af3adbfc47282d09cf1fa9cac82ed182c921bf9aa198ba5282",
+     "vertices": 35955
     },
     "m": {
-     "bytes": 72778,
-     "estimatedTriangles": 28564,
+     "bytes": 71622,
+     "estimatedTriangles": 28395,
      "path": "m/palaeo-m-58-49.ehpr",
-     "pieces": 777,
-     "sha256": "4ee9c69adb1938098a2a9129f256dce771afbb7c526a7944d6246b474a307079",
-     "vertices": 15400
+     "pieces": 737,
+     "sha256": "c842b67c18cf7751437480a9807410ab9c4838c9700d549a066db52009b358f0",
+     "vertices": 15259
     },
     "sm": {
-     "bytes": 177438,
-     "estimatedTriangles": 95303,
+     "bytes": 179582,
+     "estimatedTriangles": 100316,
      "path": "sm/palaeo-sm-58-49.ehpr",
-     "pieces": 1527,
-     "sha256": "434b9082a2d021b446292f1180f3e101b4790b8dfcd4ac99196f4de636489292",
-     "vertices": 38820
+     "pieces": 1482,
+     "sha256": "41ac31de101dccdfd19256da5de9c7ee6dd87493103d985fd4d7d5dbb68c73a4",
+     "vertices": 39562
     }
    },
    "detached": false,
-   "estimatedTriangles": 245145,
+   "estimatedTriangles": 251758,
    "intervalId": "58-49",
    "midAgeMa": 53.505,
    "oldestAgeMa": 58.0,
    "tableIndex": 18,
-   "vertices": 90616,
+   "vertices": 90776,
    "youngestAgeMa": 49.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 170324,
-     "estimatedTriangles": 122198,
+     "bytes": 169410,
+     "estimatedTriangles": 124859,
      "path": "lm/palaeo-lm-49-37.ehpr",
-     "pieces": 1277,
-     "sha256": "32371462b228b05aa8480d80cd9696d315244c9aaccac3f1e62c0044cc7aa811",
-     "vertices": 37961
+     "pieces": 1245,
+     "sha256": "a1b5d909d87445f7ac93b5f9bffd6fc122394b6f61cc4e1f14dd4b8de1888b22",
+     "vertices": 37858
     },
     "m": {
-     "bytes": 73382,
-     "estimatedTriangles": 26520,
+     "bytes": 73484,
+     "estimatedTriangles": 26566,
      "path": "m/palaeo-m-49-37.ehpr",
-     "pieces": 783,
-     "sha256": "868c5a33eb20b7a63165935b4616a38705795332e4b03aaec5b1ea141e1dafda",
-     "vertices": 15535
+     "pieces": 759,
+     "sha256": "422a7c438806008512681aea73fbf69131149b7bef97a140b2017a84050371b7",
+     "vertices": 15650
     },
     "sm": {
-     "bytes": 197494,
-     "estimatedTriangles": 100013,
+     "bytes": 190462,
+     "estimatedTriangles": 101940,
      "path": "sm/palaeo-sm-49-37.ehpr",
-     "pieces": 1705,
-     "sha256": "7b06e02de599fb6e61b9f738a8839257b0027101370000935bb5dcc7a6fa0fa6",
-     "vertices": 43176
+     "pieces": 1646,
+     "sha256": "fe23598070ecbdfdceefc5ffd95831f0a57a5c88f175c5feda8980709d3bf553",
+     "vertices": 41678
     }
    },
    "detached": false,
-   "estimatedTriangles": 248731,
+   "estimatedTriangles": 253365,
    "intervalId": "49-37",
    "midAgeMa": 43.005,
    "oldestAgeMa": 49.0,
    "tableIndex": 19,
-   "vertices": 96672,
+   "vertices": 95186,
    "youngestAgeMa": 37.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 188644,
-     "estimatedTriangles": 122505,
+     "bytes": 193600,
+     "estimatedTriangles": 127772,
      "path": "lm/palaeo-lm-37-29.ehpr",
-     "pieces": 1510,
-     "sha256": "95564c5ec5fb0ded6780a70f1cdd4f9390699152f944cf14a19ff032b0f39fec",
-     "vertices": 41707
+     "pieces": 1506,
+     "sha256": "bd32467cf40ad15308b7041e9bb9d9de93b79ec31c5da51ecc339f20f94e5b95",
+     "vertices": 42973
     },
     "m": {
-     "bytes": 91146,
-     "estimatedTriangles": 32485,
+     "bytes": 92866,
+     "estimatedTriangles": 33401,
      "path": "m/palaeo-m-37-29.ehpr",
-     "pieces": 968,
-     "sha256": "707b68ed7dea32dea53cf52922276c37d2b6f08ac3b19366eb3cce59905c6811",
-     "vertices": 19311
+     "pieces": 963,
+     "sha256": "07fb0fffd771f3a3d47a76fb8983e8dd6ec3b565bdc35f4a275a2c8f747d7647",
+     "vertices": 19768
     },
     "sm": {
-     "bytes": 191134,
-     "estimatedTriangles": 92160,
+     "bytes": 186626,
+     "estimatedTriangles": 96039,
      "path": "sm/palaeo-sm-37-29.ehpr",
-     "pieces": 1697,
-     "sha256": "f1dd01946cd7999aadb816e6de9dce38597b4423ecb77c3402d5812c803f64cd",
-     "vertices": 41593
+     "pieces": 1648,
+     "sha256": "bc4d0e52d3516202522e10d2668391c2c9bdcd7e060c3ed0fb8630a6cee3b98e",
+     "vertices": 40695
     }
    },
    "detached": false,
-   "estimatedTriangles": 247150,
+   "estimatedTriangles": 257212,
    "intervalId": "37-29",
    "midAgeMa": 33.005,
    "oldestAgeMa": 37.0,
    "tableIndex": 20,
-   "vertices": 102611,
+   "vertices": 103436,
    "youngestAgeMa": 29.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 182164,
-     "estimatedTriangles": 141789,
+     "bytes": 194846,
+     "estimatedTriangles": 182546,
      "path": "lm/palaeo-lm-29-20.ehpr",
-     "pieces": 1443,
-     "sha256": "d12127ba3ff6d6427bfd74f621853edc49f27a4db34fd39900283bda91667923",
-     "vertices": 40339
+     "pieces": 1428,
+     "sha256": "1adce26ea8ec7fe09397c2ac7b2ffae7609d62c1ed5e629156d9d4a177238e62",
+     "vertices": 43571
     },
     "m": {
-     "bytes": 84946,
-     "estimatedTriangles": 29152,
+     "bytes": 84852,
+     "estimatedTriangles": 29467,
      "path": "m/palaeo-m-29-20.ehpr",
-     "pieces": 935,
-     "sha256": "d8bd410c6c6978b3e809f9699356e1c885aa8ae17aade31cb7d9ca27f158b1a0",
-     "vertices": 17892
+     "pieces": 912,
+     "sha256": "c0836079015a411191f50add964fa6d2b796c451f4126f604af2d722879a161a",
+     "vertices": 17955
     },
     "sm": {
-     "bytes": 186978,
-     "estimatedTriangles": 86110,
+     "bytes": 183232,
+     "estimatedTriangles": 90583,
      "path": "sm/palaeo-sm-29-20.ehpr",
-     "pieces": 1733,
-     "sha256": "baeeeeb33bed1c3de77ee29db8f773b2b16fb45e85ba7efa13347619b354c89d",
-     "vertices": 40425
+     "pieces": 1665,
+     "sha256": "dbf9f2b601cef54f15c5234488abe37d0a51bdaf0d90cec0d9ced10276997b5e",
+     "vertices": 39781
     }
    },
    "detached": false,
-   "estimatedTriangles": 257051,
+   "estimatedTriangles": 302596,
    "intervalId": "29-20",
    "midAgeMa": 24.505,
    "oldestAgeMa": 29.0,
    "tableIndex": 21,
-   "vertices": 98656,
+   "vertices": 101307,
    "youngestAgeMa": 20.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 180330,
-     "estimatedTriangles": 115033,
+     "bytes": 181812,
+     "estimatedTriangles": 117174,
      "path": "lm/palaeo-lm-20-11.ehpr",
-     "pieces": 1403,
-     "sha256": "0ccebfca44df4e7003d3fdcaa97406bcfbb6cbb945bf669f46161f2487ac88b2",
-     "vertices": 39887
+     "pieces": 1402,
+     "sha256": "3a22d3af9f951cdf6ae42b0e796820f39735cc447a215c0ff5269f284afbc352",
+     "vertices": 40279
     },
     "m": {
-     "bytes": 103274,
-     "estimatedTriangles": 36805,
+     "bytes": 105670,
+     "estimatedTriangles": 38192,
      "path": "m/palaeo-m-20-11.ehpr",
      "pieces": 1090,
-     "sha256": "13988ba8934584c7b03c0e52be39e62d7cfdfb0ee11534213be441298b81a2ac",
-     "vertices": 21890
+     "sha256": "0d727437342903ad4c3ba9a3140dcea7a859f1a133cd8de10ad2a9a1d84edbd1",
+     "vertices": 22496
     },
     "sm": {
-     "bytes": 176024,
-     "estimatedTriangles": 79249,
+     "bytes": 172774,
+     "estimatedTriangles": 83551,
      "path": "sm/palaeo-sm-20-11.ehpr",
-     "pieces": 1548,
-     "sha256": "743c51a7b9dbec2aff4ddc6931b9d87faf9ee91334f96fd25588bd5acbddcb7a",
-     "vertices": 38288
+     "pieces": 1499,
+     "sha256": "5d8dab9df0a1d50fdcfe29df2c3e4b9fd4cc1a0a7e3d23c6bbd35276d9c84b56",
+     "vertices": 37712
     }
    },
    "detached": false,
-   "estimatedTriangles": 231087,
+   "estimatedTriangles": 238917,
    "intervalId": "20-11",
    "midAgeMa": 15.505,
    "oldestAgeMa": 20.0,
    "tableIndex": 22,
-   "vertices": 100065,
+   "vertices": 100487,
    "youngestAgeMa": 11.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 198542,
-     "estimatedTriangles": 121155,
+     "bytes": 200966,
+     "estimatedTriangles": 125047,
      "path": "lm/palaeo-lm-11-2.ehpr",
-     "pieces": 1474,
-     "sha256": "2cf96284745b22e8cf07e3fb2dc8c143eb75d1c9f1679079bd55e920aaae6988",
-     "vertices": 44083
+     "pieces": 1483,
+     "sha256": "19e453237230fd8439512aa68718ab1cbb795aa9c310ee886bf8b79567e618c2",
+     "vertices": 44677
     },
     "m": {
-     "bytes": 97496,
-     "estimatedTriangles": 33608,
+     "bytes": 100172,
+     "estimatedTriangles": 34558,
      "path": "m/palaeo-m-11-2.ehpr",
-     "pieces": 1041,
-     "sha256": "2190a27e7208df68ed2f9d9a172fa4620798eee838bbd60089d173143317937c",
-     "vertices": 20624
+     "pieces": 1044,
+     "sha256": "964f43e6e0eeb308213a2ab253810c24798cdd5ac5866c88c7fd52ef034362a2",
+     "vertices": 21290
     },
     "sm": {
-     "bytes": 181114,
-     "estimatedTriangles": 76333,
+     "bytes": 184310,
+     "estimatedTriangles": 81146,
      "path": "sm/palaeo-sm-11-2.ehpr",
-     "pieces": 1513,
-     "sha256": "d810b613df25192b636428665cbc4e398db7f4653c640bbf16ae024548455fea",
-     "vertices": 39528
+     "pieces": 1516,
+     "sha256": "f5e4420f2c500009d97fa53c2d9375e749157b30342cf851c6803a834a9f82d6",
+     "vertices": 40371
     }
    },
    "detached": false,
-   "estimatedTriangles": 231096,
+   "estimatedTriangles": 240751,
    "intervalId": "11-2",
    "midAgeMa": 6.505,
    "oldestAgeMa": 11.0,
    "tableIndex": 23,
-   "vertices": 104235,
+   "vertices": 106338,
    "youngestAgeMa": 2.01,
    "youngestExclusive": true
   },
   {
    "classes": {
     "lm": {
-     "bytes": 40746,
-     "estimatedTriangles": 16343,
+     "bytes": 50648,
+     "estimatedTriangles": 13667,
      "path": "lm/palaeo-lm-lgm.ehpr",
-     "pieces": 272,
-     "sha256": "b7c053db7ac498d37451811941c70aa6d1f628b6da7fef1dfff73a3fad0b1913",
-     "vertices": 9168
+     "pieces": 284,
+     "sha256": "b946c1a4c5cd9d69330a3fc386fb95ae13922aef8552d9fde3c2d6e56b453854",
+     "vertices": 11552
     },
     "m": {
      "bytes": 32,
@@ -930,12 +930,12 @@
     }
    },
    "detached": true,
-   "estimatedTriangles": 16343,
+   "estimatedTriangles": 13667,
    "intervalId": "lgm",
    "midAgeMa": 0.023,
    "oldestAgeMa": 0.0265,
    "tableIndex": 24,
-   "vertices": 9168,
+   "vertices": 11552,
    "youngestAgeMa": 0.0195,
    "youngestExclusive": true
   }
@@ -951,163 +951,163 @@
  "observedCoreSha256": "236c968c7db3d6b7fb11d8dec37438319bd07f0b516e1f098c2dac8ddc5f5734",
  "perInterval": [
   {
-   "darkSegments": 4916,
+   "darkSegments": 4834,
    "detached": false,
    "fromAgeMa": 402.0,
    "inactiveSegments": 2835,
    "intervalId": "402-380",
-   "lightDeepSegments": 395,
-   "lightShelfSegments": 3899,
+   "lightDeepSegments": 296,
+   "lightShelfSegments": 4080,
    "toAgeMa": 380.01
   },
   {
-   "darkSegments": 5002,
+   "darkSegments": 4937,
    "detached": false,
    "fromAgeMa": 380.0,
    "inactiveSegments": 2835,
    "intervalId": "380-359",
-   "lightDeepSegments": 396,
-   "lightShelfSegments": 3812,
+   "lightDeepSegments": 294,
+   "lightShelfSegments": 3979,
    "toAgeMa": 359.01
   },
   {
-   "darkSegments": 4970,
+   "darkSegments": 4846,
    "detached": false,
    "fromAgeMa": 359.0,
    "inactiveSegments": 2799,
    "intervalId": "359-338",
-   "lightDeepSegments": 395,
-   "lightShelfSegments": 3881,
+   "lightDeepSegments": 305,
+   "lightShelfSegments": 4095,
    "toAgeMa": 338.01
   },
   {
-   "darkSegments": 5430,
+   "darkSegments": 5379,
    "detached": false,
    "fromAgeMa": 338.0,
    "inactiveSegments": 2733,
    "intervalId": "338-323",
-   "lightDeepSegments": 403,
-   "lightShelfSegments": 3479,
+   "lightDeepSegments": 312,
+   "lightShelfSegments": 3621,
    "toAgeMa": 323.01
   },
   {
-   "darkSegments": 4643,
+   "darkSegments": 4542,
    "detached": false,
    "fromAgeMa": 323.0,
    "inactiveSegments": 2211,
    "intervalId": "323-296",
-   "lightDeepSegments": 451,
-   "lightShelfSegments": 4740,
+   "lightDeepSegments": 352,
+   "lightShelfSegments": 4940,
    "toAgeMa": 296.01
   },
   {
-   "darkSegments": 5877,
+   "darkSegments": 5813,
    "detached": false,
    "fromAgeMa": 296.0,
    "inactiveSegments": 2171,
    "intervalId": "296-285",
-   "lightDeepSegments": 453,
-   "lightShelfSegments": 3544,
+   "lightDeepSegments": 340,
+   "lightShelfSegments": 3721,
    "toAgeMa": 285.01
   },
   {
-   "darkSegments": 6252,
+   "darkSegments": 5918,
    "detached": false,
    "fromAgeMa": 285.0,
    "inactiveSegments": 2112,
    "intervalId": "285-269",
-   "lightDeepSegments": 457,
-   "lightShelfSegments": 3224,
+   "lightDeepSegments": 343,
+   "lightShelfSegments": 3672,
    "toAgeMa": 269.01
   },
   {
-   "darkSegments": 6351,
+   "darkSegments": 6296,
    "detached": false,
    "fromAgeMa": 269.0,
    "inactiveSegments": 2112,
    "intervalId": "269-248",
-   "lightDeepSegments": 454,
-   "lightShelfSegments": 3128,
+   "lightDeepSegments": 341,
+   "lightShelfSegments": 3296,
    "toAgeMa": 248.01
   },
   {
-   "darkSegments": 6812,
+   "darkSegments": 6871,
    "detached": false,
    "fromAgeMa": 248.0,
    "inactiveSegments": 1620,
    "intervalId": "248-224",
-   "lightDeepSegments": 476,
-   "lightShelfSegments": 3137,
+   "lightDeepSegments": 351,
+   "lightShelfSegments": 3203,
    "toAgeMa": 224.01
   },
   {
-   "darkSegments": 7014,
+   "darkSegments": 7052,
    "detached": false,
    "fromAgeMa": 224.0,
    "inactiveSegments": 1585,
    "intervalId": "224-203",
-   "lightDeepSegments": 485,
-   "lightShelfSegments": 2961,
+   "lightDeepSegments": 352,
+   "lightShelfSegments": 3056,
    "toAgeMa": 203.01
   },
   {
-   "darkSegments": 6307,
+   "darkSegments": 6344,
    "detached": false,
    "fromAgeMa": 203.0,
    "inactiveSegments": 1568,
    "intervalId": "203-179",
-   "lightDeepSegments": 488,
-   "lightShelfSegments": 3682,
+   "lightDeepSegments": 348,
+   "lightShelfSegments": 3785,
    "toAgeMa": 179.01
   },
   {
-   "darkSegments": 6503,
+   "darkSegments": 6547,
    "detached": false,
    "fromAgeMa": 179.0,
    "inactiveSegments": 1568,
    "intervalId": "179-166",
-   "lightDeepSegments": 486,
-   "lightShelfSegments": 3488,
+   "lightDeepSegments": 358,
+   "lightShelfSegments": 3572,
    "toAgeMa": 166.01
   },
   {
-   "darkSegments": 6352,
+   "darkSegments": 6374,
    "detached": false,
    "fromAgeMa": 166.0,
    "inactiveSegments": 1485,
    "intervalId": "166-146",
-   "lightDeepSegments": 496,
-   "lightShelfSegments": 3712,
+   "lightDeepSegments": 366,
+   "lightShelfSegments": 3820,
    "toAgeMa": 146.01
   },
   {
-   "darkSegments": 6810,
+   "darkSegments": 6835,
    "detached": false,
    "fromAgeMa": 146.0,
    "inactiveSegments": 1194,
    "intervalId": "146-135",
-   "lightDeepSegments": 511,
-   "lightShelfSegments": 3530,
+   "lightDeepSegments": 376,
+   "lightShelfSegments": 3640,
    "toAgeMa": 135.01
   },
   {
-   "darkSegments": 7071,
+   "darkSegments": 7119,
    "detached": false,
    "fromAgeMa": 135.0,
    "inactiveSegments": 1109,
    "intervalId": "135-117",
-   "lightDeepSegments": 526,
-   "lightShelfSegments": 3339,
+   "lightDeepSegments": 381,
+   "lightShelfSegments": 3436,
    "toAgeMa": 117.01
   },
   {
-   "darkSegments": 6330,
+   "darkSegments": 6383,
    "detached": false,
    "fromAgeMa": 117.0,
    "inactiveSegments": 995,
    "intervalId": "117-94",
-   "lightDeepSegments": 540,
-   "lightShelfSegments": 4180,
+   "lightDeepSegments": 394,
+   "lightShelfSegments": 4273,
    "toAgeMa": 94.01
   },
   {
@@ -1116,78 +1116,78 @@
    "fromAgeMa": 94.0,
    "inactiveSegments": 964,
    "intervalId": "94-81",
-   "lightDeepSegments": 542,
-   "lightShelfSegments": 4747,
+   "lightDeepSegments": 392,
+   "lightShelfSegments": 4897,
    "toAgeMa": 81.01
   },
   {
-   "darkSegments": 6190,
+   "darkSegments": 6207,
    "detached": false,
    "fromAgeMa": 81.0,
    "inactiveSegments": 879,
    "intervalId": "81-58",
-   "lightDeepSegments": 546,
-   "lightShelfSegments": 4430,
+   "lightDeepSegments": 382,
+   "lightShelfSegments": 4577,
    "toAgeMa": 58.01
   },
   {
-   "darkSegments": 6987,
+   "darkSegments": 7029,
    "detached": false,
    "fromAgeMa": 58.0,
    "inactiveSegments": 785,
    "intervalId": "58-49",
-   "lightDeepSegments": 551,
-   "lightShelfSegments": 3722,
+   "lightDeepSegments": 402,
+   "lightShelfSegments": 3829,
    "toAgeMa": 49.01
   },
   {
-   "darkSegments": 6909,
+   "darkSegments": 6951,
    "detached": false,
    "fromAgeMa": 49.0,
    "inactiveSegments": 596,
    "intervalId": "49-37",
-   "lightDeepSegments": 562,
-   "lightShelfSegments": 3978,
+   "lightDeepSegments": 408,
+   "lightShelfSegments": 4090,
    "toAgeMa": 37.01
   },
   {
-   "darkSegments": 7524,
+   "darkSegments": 7606,
    "detached": false,
    "fromAgeMa": 37.0,
    "inactiveSegments": 527,
    "intervalId": "37-29",
-   "lightDeepSegments": 573,
-   "lightShelfSegments": 3421,
+   "lightDeepSegments": 427,
+   "lightShelfSegments": 3485,
    "toAgeMa": 29.01
   },
   {
-   "darkSegments": 8254,
+   "darkSegments": 8330,
    "detached": false,
    "fromAgeMa": 29.0,
    "inactiveSegments": 448,
    "intervalId": "29-20",
-   "lightDeepSegments": 570,
-   "lightShelfSegments": 2773,
+   "lightDeepSegments": 424,
+   "lightShelfSegments": 2843,
    "toAgeMa": 20.01
   },
   {
-   "darkSegments": 7613,
+   "darkSegments": 7698,
    "detached": false,
    "fromAgeMa": 20.0,
    "inactiveSegments": 382,
    "intervalId": "20-11",
-   "lightDeepSegments": 580,
-   "lightShelfSegments": 3470,
+   "lightDeepSegments": 428,
+   "lightShelfSegments": 3537,
    "toAgeMa": 11.01
   },
   {
-   "darkSegments": 7970,
+   "darkSegments": 8060,
    "detached": false,
    "fromAgeMa": 11.0,
    "inactiveSegments": 336,
    "intervalId": "11-2",
-   "lightDeepSegments": 577,
-   "lightShelfSegments": 3162,
+   "lightDeepSegments": 424,
+   "lightShelfSegments": 3225,
    "toAgeMa": 2.01
   },
   {

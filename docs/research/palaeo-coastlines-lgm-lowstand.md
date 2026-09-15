@@ -19,9 +19,23 @@ below present, and shelf shallower than that was therefore above water. Inside
 the southern and central North Sea, the Sunda shelf and Beringia, this is what
 that implies for present-day bathymetry.
 
-**Not claimed.** Six limitations ship with the layer, appear in the map key and
-are asserted by the validator; dropping any of the first four turns the gate
-red.
+**What ships is the exposed shelf only.** Present-day land is subtracted from
+the contour, so the layer draws the ground the lowstand *added* to the coastline
+and never re-draws ground that is dry today. That is a correction made
+2026-09-15: before it the payload carried the whole `>= -120 m` mask inside each
+crop rectangle, the palaeo-land shell re-tinted Germany, France, Norway and
+Britain at its own tone, and the rectangle edge showed on screen as a hard
+tonal seam running straight across northern Europe (measured in the round-3
+review captures: pale `(216,216,190)` inside the box against present-day
+`(203,208,172)` outside it, a one-pixel butt-joint along a dead-flat 240 px
+line). Present-day land is the pinned Natural Earth 1:50m admin-0 land the
+observed-land omission correction already uses, eroded by **1.5 km** before the
+subtraction so the shelf still laps over the modern coastline and no hairline of
+bare sphere opens along it.
+
+**Not claimed.** Seven limitations ship with the layer, appear in the map key and
+are asserted by the validator; dropping any of the first four, or the
+exposed-shelf line, turns the gate red.
 
 | Limitation | Why |
 |---|---|
@@ -30,6 +44,7 @@ red.
 | ice sheets are not drawn | ground under the Fennoscandian, British–Irish and Laurentide ice sheets is shown as exposed land, which it was not |
 | ETOPO 2022 is modern bathymetry | post-LGM sediment is not removed; the present-day sea bed is not the lowstand land surface. Coles 1998 says this directly: present-day North Sea relief "does not provide a sound guide" to the former landscape |
 | regional | three footprints; every other coastline at this age is the present-day one |
+| exposed shelf only | present-day land is subtracted, so the state adds coastline to today's composition and never re-draws ground that is dry now |
 | no rivers, lakes or estuaries | the Doggerland landscape mapped by seismic survey (Gaffney et al. 2009) is not reproducible from a contour |
 
 Its epistemic status is **synthesis** at every age in its window: measured
@@ -88,9 +103,19 @@ globe draws.
    cells, unioned. No contour position is interpolated between two source
    cells, so every vertex of the raw polygon lies on a real grid line and the
    geometry cannot claim precision the 1 arc-minute grid does not have;
-4. drop parts below 25 km² (the pipeline's floor everywhere else), simplify at
+4. subtract present-day land — the pinned Natural Earth 1:50m admin-0 land
+   (version 5.1.1, sha256 `5fed4333…`), clipped to one degree beyond the crop so
+   the crop's own rectangle edge never behaves like a coastline, and eroded by
+   1.5 km in a local equirectangular frame so the shelf and the modern land
+   overlap rather than meet;
+5. drop parts below 25 km² (the pipeline's floor everywhere else), simplify at
    0.02° with topology preserved, drop again, round to 4 decimals;
-5. write `lgm-lowstand-v1.geojson` (107,752 bytes) and its manifest.
+6. write `lgm-lowstand-v1.geojson` (172,225 bytes) and its manifest.
+
+The erosion removes present-day islands narrower than about 3 km entirely, so a
+handful of small modern islands remain inside the shipped rings. That is a
+deliberate over-claim of a few tens of km² against the alternative of a visible
+gap at every modern coastline.
 
 The compiler then treats the result exactly like a Cao source record: cookie-cut
 by the present-day Cao 2024 static partitions with one owner per piece, bound to
@@ -101,21 +126,26 @@ derivation already measured.
 
 ## 5. Measured areas
 
-| Footprint | LGM land | of which present-day land | exposed shelf |
+Only the last column ships. "Present-day land" is Natural Earth 1:50m inside the
+footprint; the exposed shelf is the area of the rings actually written, after the
+1.5 km erosion, the 25 km² floor and the 0.02° reduction, so it is not exactly
+the difference of the other two columns.
+
+| Footprint | LGM land (unsubtracted) | present-day land | **exposed shelf (shipped)** |
 |---|---|---|---|
-| North Sea box (−6…12 E, 49…62 N) | 1,398,252 km² | 739,277 km² | **658,203 km²** |
-| Sunda box (95…120 E, −10…12 N) | 4,085,717 km² | 1,829,335 km² | **2,256,842 km²** |
-| Beringia box (160 E…−150 E, 55…72 N) | 3,641,314 km² | 2,002,844 km² | **1,638,056 km²** |
-| total | 9,125,283 km² | 4,571,457 km² | 4,553,101 km² |
+| North Sea box (−6…12 E, 49…62 N) | 1,397,480 km² | 741,253 km² | **695,747 km²** |
+| Sunda box (95…120 E, −10…12 N) | 4,086,177 km² | 1,775,969 km² | **2,347,446 km²** |
+| Beringia box (160 E…−150 E, 55…72 N) | 3,640,901 km² | 1,977,937 km² | **1,696,055 km²** |
+| total | 9,124,558 km² | 4,495,159 km² | **4,739,247 km²** |
 
 The footprint boxes are far larger than the landscapes the literature names, so
 one named sub-window per footprint is measured beside them:
 
 | Sub-window | Bounds | LGM land | exposed shelf |
 |---|---|---|---|
-| southern North Sea plain ("Doggerland") | −2…9 E, 51…57 N | 477,876 km² | **310,950 km²** |
-| Sunda shelf core | 99…118 E, −6…8 N | 2,832,082 km² | 1,541,980 km² |
-| eastern Bering land bridge | −180…−160 E, 60…70 N | 1,002,946 km² | 646,261 km² |
+| southern North Sea plain ("Doggerland") | −2…9 E, 51…57 N | 477,876 km² | **310,998 km²** |
+| Sunda shelf core | 99…118 E, −6…8 N | 2,832,082 km² | 1,590,962 km² |
+| eastern Bering land bridge | −180…−160 E, 60…70 N | 1,002,946 km² | 673,412 km² |
 
 **Comparison with the literature, and its limits.** Sturt et al. 2013 [6] model
 **127,422 km²** submerged in the North Sea zone across the Holocene. That is a
@@ -128,15 +158,15 @@ that drowned parts of Doggerland earlier than eustasy alone would. The two
 numbers are the same order of magnitude and are not evidence of agreement. No
 figure in Coles 1998 or Gaffney et al. 2009 is used as a target.
 
-The published payload measures 9,125,322 km² against the contract's 9,125,283
-km² — 0.0004 % apart after cookie-cutting, the 25 km² floor and int16
-quantisation. 111 km² was dropped as 19 sub-floor slivers.
+The published payload is compared against the contract's shipped exposed-shelf
+total, 4,739,247 km², inside a 1 % tolerance that absorbs cookie-cutting, the
+25 km² floor and int16 quantisation.
 
 ## 6. What ships
 
 | Item | Value |
 |---|---|
-| landmass payload | `lm/palaeo-lm-lgm.ehpr`, 40,746 bytes, 272 pieces, 389 rings, 9,168 vertices |
+| landmass payload | `lm/palaeo-lm-lgm.ehpr`; exposed shelf only, 196 contract pieces and 9,788 contract vertices before cookie-cutting |
 | shallow-marine payload | `sm/palaeo-sm-lgm.ehpr`, **32 bytes** — a header and nothing else |
 | interval index | 24, the 25th and last row of both class catalogs, declared in `detachedIntervalIds` |
 | triangles at 1° | 16,343 estimated; far below every other interval |
@@ -180,7 +210,10 @@ triangulated mesh by `palaeoCoastlineAssets.test.ts`.
 | Dogger Bank | 2.5 E, 54.7 N | land | a shallow bank today, a hill then |
 | Sunda shelf | 108 E, 2 N | land | the exposed shelf between Sumatra, Borneo and the peninsula |
 | Bering land bridge | −170 E, 65 N | land | the land bridge itself |
-| London | −0.1 E, 51.5 N | land | present-day land, unchanged by a lowstand |
+| London | −0.1 E, 51.5 N | **neither** | dry land today, so the exposed-shelf payload carries nothing there; the native present-day land keeps drawing it. This is the witness for the footprint-seam correction |
+| North German plain | 10 E, 53 N | **neither** | dry land today, inside the crop rectangle: the ground whose re-tinting made the rectangle edge visible |
+| Borneo interior | 114 E, 0.5 N | neither | dry land today, not shelf the lowstand exposed |
+| Interior Alaska | −155 E, 65 N | neither | dry land today, not part of the land bridge this layer adds |
 | Norwegian Trench | 4 E, 58.5 N | not land | −254 m, far below the datum |
 | Makassar Strait | 118.5 E, −2 N | not land | never closed by a lowstand (Hall 2009 [7]) |
 | Aleutian Basin | −175 E, 57 N | not land | deep ocean south of the shelf break |
@@ -220,5 +253,6 @@ The northern North Sea is shallower than 120 m over most of its area.
 8. Gaffney V., Fitch S., Smith D. 2009. Europe's Lost World: the Rediscovery of Doggerland. CBA Research Report 160, Council for British Archaeology, York. No DOI; two ISBNs circulate in published reviews.
 
 All eight are citation-only except [1], whose derivative rings are what the
-layer ships. No figure, map plate or coordinate list from [2]–[8] is traced,
-digitised or redistributed.
+layer ships, and the Natural Earth 1:50m admin-0 land (public domain, "made with
+Natural Earth") that is subtracted from them. No figure, map plate or coordinate
+list from [2]–[8] is traced, digitised or redistributed.

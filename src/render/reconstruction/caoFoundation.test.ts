@@ -36,6 +36,7 @@ import {
   CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES,
   CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES,
   CAO_FOUNDATION_SURFACE_PRECEDENCE,
+  CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER,
   CAO_FOUNDATION_SURFACE_SHELLS,
   caoFoundationSurfaceClassVisible,
   CaoFoundationSurfaceRenderer,
@@ -1397,6 +1398,51 @@ describe("Cao foundation renderer boundary", () => {
           `${upper.surfaceClass} over ${lower.surfaceClass}`)
           .toBeGreaterThan(lower.shellOffsetMetres);
       }
+    }
+  });
+
+  it("orders the LGM composition so nothing lower overdraws something higher", () => {
+    // The `lgm` band is the one composition that draws the native stack and the
+    // palaeo stack at the same time: `caoPalaeoModeState` keeps
+    // `nativeSurfaceMode` at "native" there, because hiding today's land to show
+    // three footprints of exposed shelf would blank every coastline on Earth.
+    //
+    // That is also the one composition where a *lower* class draws *later*:
+    // native land is renderOrder 2 at the 800 m shell, and the palaeo classes it
+    // must not paint over are renderOrder 1.7 and 1.8 at 1,300 and 1,600 m. Draw
+    // order cannot protect them, so depth must: the higher class has to write
+    // depth and clear the lower one by more than the 1 degree chord sag.
+    const sag = 6_371_000 * (1 - Math.cos((0.5 * Math.PI) / 180));
+    const lgmComposition = CAO_FOUNDATION_SURFACE_SHELLS.filter((shell) =>
+      shell.visibleInNativeMode || shell.visibleInPalaeoMode);
+    expect(lgmComposition.map((shell) => shell.surfaceClass)).toEqual([
+      "shelf", "palaeo-shallow-marine", "corrections", "palaeo-land", "palaeo-mountain", "land"]);
+
+    const lateAndLower: string[] = [];
+    for (const upper of lgmComposition) {
+      for (const lower of lgmComposition) {
+        // `lower` sits on a lower shell than `upper` but is drawn afterwards,
+        // so draw order alone would let it paint over the class in front of it.
+        if (lower.renderOrder <= upper.renderOrder
+            || lower.shellOffsetMetres >= upper.shellOffsetMetres) continue;
+        lateAndLower.push(`${lower.surfaceClass}>${upper.surfaceClass}`);
+        expect(upper.writesDepth,
+          `${lower.surfaceClass} draws after ${upper.surfaceClass} and only depth can stop it`)
+          .toBe(true);
+        expect(upper.shellOffsetMetres - sag,
+          `${upper.surfaceClass} must clear ${lower.surfaceClass} by more than the chord sag`)
+          .toBeGreaterThan(lower.shellOffsetMetres);
+      }
+    }
+    // Exactly the two palaeo classes native land is drawn after and under.
+    expect(lateAndLower.sort()).toEqual(["land>palaeo-land", "land>palaeo-mountain"]);
+
+    // Nothing that does not write depth may be the only thing standing between a
+    // higher class and a later-drawn lower one, and the opaque sphere the whole
+    // stack sits on is below every shell and drawn first.
+    expect(CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES).toBeGreaterThan(0);
+    for (const shell of lgmComposition) {
+      expect(shell.renderOrder).toBeGreaterThan(CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER);
     }
   });
 

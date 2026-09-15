@@ -169,9 +169,14 @@ describe("palaeo outline tone tables (EHPT v1)", () => {
     // 380.01 exclusive, so 380 itself is the first age of 380-359.
     expect(at(380)).toBe("380-359");
     expect(at(380.02)).toBe("402-380");
-    // The 10 kyr the source leaves between two intervals belongs to neither,
-    // and is answered as a gap rather than assigned to the nearest map.
-    expect(at(380.005)).toBeNull();
+    // The 10 kyr between two adjacent intervals is covered by neither rule, and
+    // used to be answered as a gap. It is not a gap in the maps, only in the
+    // arithmetic of the exclusive bound, and answering it as one latched the
+    // layer at "loading" for the rest of the session: nothing was ever published
+    // and only an age change wakes the pump. It now takes the older interval
+    // whose padding created it.
+    expect(at(380.005)).toBe("402-380");
+    expect(at(20.005)).toBe("29-20");
     // Inside an interval, including the witnesses the audit probed.
     expect(at(90)).toBe("94-81");
     expect(at(260)).toBe("269-248");

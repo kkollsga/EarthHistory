@@ -132,6 +132,67 @@ def pair_pieces(original: dict, simplified: dict) -> tuple[list[tuple[dict, dict
     return pairs, lost
 
 
+# How far inside a record's own outline a gap has to lie before it counts as a
+# seam rather than the ordinary erosion node reduction leaves along a coastline.
+# The largest tolerance any class uses is 0.05 degrees, so 0.08 is comfortably
+# past what the outer boundary can lose.
+SEAM_INTERIOR_MARGIN_DEGREES = 0.08
+# Gap components smaller than this are below the resolution the measurement can
+# distinguish from Boolean noise.
+SEAM_MINIMUM_GAP_KM2 = 0.05
+
+
+def measure_seams(original: dict, simplified: dict, pairs: list) -> dict:
+    """Gaps left between pieces of one record after independent node reduction.
+
+    The compiler grows every piece of a multi-piece record back across its
+    cookie-cut seams (``seamBufferKilometres``) so the neighbours overlap. This
+    measures whether that survived: for each record, ground the cut pieces cover
+    that no simplified piece covers, deeper inside the record than the outer
+    boundary's own erosion can reach. A component's width is estimated as
+    ``2 * area / perimeter``, exact for a long thin strip, which is what a seam
+    gap is. A record with no such component has a seam width of zero or less -
+    the neighbours overlap - and nothing lower can show through it.
+    """
+    # Only the pieces that survived to the simplified payload are compared. A
+    # piece the pose rules dropped - unposable, or carried past the frame-conflict
+    # drop threshold - leaves a real hole in its record by design, and counting
+    # that as a node-reduction seam would measure the wrong thing.
+    by_chart_original: dict[int, list] = {}
+    by_chart_simplified: dict[int, list] = {}
+    for source_piece, kept_piece in pairs:
+        by_chart_original.setdefault(source_piece["chartIndex"], []).append(
+            compile_module.piece_geometry(original, source_piece))
+        by_chart_simplified.setdefault(kept_piece["chartIndex"], []).append(
+            compile_module.piece_geometry(simplified, kept_piece))
+    records = 0
+    components = 0
+    worst = 0.0
+    gap_area = 0.0
+    for chart, pieces in by_chart_original.items():
+        if len(pieces) < 2:
+            continue
+        records += 1
+        record = compile_module.polygonal(unary_union(pieces))
+        covered = compile_module.polygonal(unary_union(by_chart_simplified.get(chart, [])))
+        if covered.is_empty:
+            continue
+        interior = record.buffer(-SEAM_INTERIOR_MARGIN_DEGREES)
+        if interior.is_empty:
+            continue
+        for part in compile_module.polygon_parts(
+                compile_module.polygonal(interior.difference(covered))):
+            area = audit.area_km2(part)
+            if area < SEAM_MINIMUM_GAP_KM2 or not part.length:
+                continue
+            components += 1
+            gap_area += area
+            worst = max(worst, 2.0 * part.area / part.length * DEGREE_KM)
+    return {"multiPieceRecords": records, "interiorGapComponents": components,
+            "interiorGapSquareKilometres": round(gap_area, 4),
+            "worstSeamWidthKilometres": round(worst, 4)}
+
+
 def measure_interval(store: Path, class_name: str, interval: dict,
                      transects: list[dict]) -> tuple[dict, list[dict]]:
     original, simplified = load_pair(store, class_name, interval["intervalId"])
@@ -206,6 +267,7 @@ def measure_interval(store: Path, class_name: str, interval: dict,
         "worstPieceAreaErrorPercent": round(
             max((abs(row["areaErrorPercent"]) for row in rows), default=0.0), 6),
         "narrowFeatureWitnesses": witness_rows,
+        "seams": measure_seams(original, simplified, pairs),
     }
     return summary, rows
 
@@ -424,6 +486,10 @@ def run(store: Path, classes: list[str], overlays: bool) -> dict:
                     max(summary["worstHausdorffDegrees"] for summary in summaries), 6),
                 "worstHausdorffKilometresUpperBound": round(
                     max(summary["worstHausdorffKilometresUpperBound"] for summary in summaries), 4),
+                "worstSeamWidthKilometres": round(
+                    max(summary["seams"]["worstSeamWidthKilometres"] for summary in summaries), 4),
+                "interiorSeamGapComponents": sum(
+                    summary["seams"]["interiorGapComponents"] for summary in summaries),
             },
         }
     witness_worst: dict[str, dict] = {}

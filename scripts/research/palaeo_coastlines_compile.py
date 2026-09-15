@@ -61,6 +61,7 @@ import numpy as np
 import pygplates
 import shapely
 from shapely.geometry import MultiPolygon, Polygon, shape
+from shapely.ops import transform as shapely_transform, unary_union
 from shapely.strtree import STRtree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -71,6 +72,8 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "data/corrections/palaeo-coastlines"
 PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 STORE = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastlines"
+
+DEGREE_KM = 2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0
 
 FORMAT_ID = "EHPR"
 FORMAT_VERSION = 1
@@ -117,6 +120,20 @@ LAT_SCALE = 32767.0 / 90.0
 
 MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
 FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
+# Beyond this the partition binding is not an approximation of the source frame,
+# it is a different place on Earth. A piece carried further than this from its
+# own PLATEID1 position, with no override entry to justify it, is dropped and
+# counted rather than drawn.
+FRAME_CONFLICT_DROP_KM = 1000.0
+# A piece is rebound by PLATEID1 when its centroid and at least this share of its
+# area lie inside that plate's declared footprint.
+OVERRIDE_MAJORITY_FRACTION = 0.5
+# How far inside a record's own outline a gap must lie before it counts as a
+# cookie-cut seam rather than the ordinary erosion node reduction leaves along a
+# coastline. The largest tolerance any class starts from is 0.05 degrees.
+SEAM_INTERIOR_MARGIN_DEGREES = 0.08
+# Gap components smaller than this are Boolean noise, not a visible hairline.
+SEAM_MINIMUM_GAP_KM2 = 0.05
 RESTORATION_PREFIX = "restoration-"
 RECOVERY_PREFIX = "native-recovery-plate-"
 # The editorial line every basin-edited chart carries, and the prefix each
@@ -189,6 +206,9 @@ LGM_LIMITATIONS = (
     "Glacial Maximum is not removed, so the present-day sea bed is not the lowstand land surface",
     "regional: only the southern and central North Sea, the Sunda shelf and Beringia are drawn, "
     "and every other coastline at this age keeps the present-day composition",
+    "exposed shelf only: present-day land (Natural Earth 1:50m, eroded 1.5 km so the two "
+    "overlap) is subtracted from the contour, so this interval adds coastline to today's "
+    "composition and never re-draws ground that is dry now",
 )
 LGM_INTERVAL_LIMITATION = (
     "the LGM lowstand interval is not a Cao et al. (2017) map interval; it is 2 Myr younger than "
@@ -360,6 +380,7 @@ def validate_overrides(overrides: dict) -> dict:
     15.2-19.3 E, 39.6-41.9 N. Returned per class as ``plateId -> bbox``; a cut
     piece outside its plate's bbox keeps the partition binding.
     """
+    shared: dict[int, tuple[float, float, float, float]] = {}
     resolved: dict[str, dict[int, tuple[float, float, float, float]]] = {}
     for class_name, block in overrides["classes"].items():
         listed = block["overridePlateIds"]
@@ -382,9 +403,22 @@ def validate_overrides(overrides: dict) -> dict:
                 raise CompileError(f"{class_name} override {plate}: malformed footprint bbox")
             if not isinstance(footprint.get("bufferKilometres"), (int, float)):
                 raise CompileError(f"{class_name} override {plate}: no stated footprint buffer")
-            footprints[plate] = tuple(float(value) for value in box)
+            bounds = tuple(float(value) for value in box)
+            if shared.setdefault(plate, bounds) != bounds:
+                raise CompileError(
+                    f"override plate {plate} declares two different footprints; one plate has "
+                    "one present-day crust extent, whatever class rides it")
+            footprints[plate] = bounds
         resolved[class_name] = footprints
-    return resolved
+    # A PLATEID1 conflict is a property of the plate, not of the class drawn on
+    # it. Measured 2026-09-15: four `m` pieces and one `lm` piece whose PLATEID1
+    # is Qiangtang 616 or Tarim 601 were bound to India 501 by the partition
+    # rule and drawn 6,474-6,837 km from their own source position, because 601
+    # had no `m` entry and 616's entry declined them. Every class now sees every
+    # override plate, on that plate's one footprint.
+    every = {"__all__": dict(shared)}
+    every.update(resolved)
+    return every
 
 
 def validate_basin(basin: dict, interval_ids: set[str]) -> None:
@@ -814,6 +848,83 @@ def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tu
             dropped_area += value
             dropped_pieces += 1
     return pieces, dropped_area, dropped_pieces
+
+
+def seam_gap_inside(entries: list[dict]) -> bool:
+    """Whether a record's simplified pieces leave a hole inside its own outline.
+
+    The record is the union of its cut pieces; the coverage is the union of what
+    node reduction left of them. Ground inside the record that no simplified
+    piece covers, deeper in than the outer boundary's own erosion can reach, is a
+    cookie-cut seam that re-opened - the hairline through which the darker crust,
+    or the sphere, shows at closest zoom.
+    """
+    try:
+        record = polygonal(unary_union([entry["original"] for entry in entries]))
+        covered = polygonal(unary_union([entry["simplified"] for entry in entries]))
+        if record.is_empty or covered.is_empty:
+            return False
+        interior = record.buffer(-SEAM_INTERIOR_MARGIN_DEGREES)
+        if interior.is_empty:
+            return False
+        missing = polygonal(interior.difference(covered))
+    except shapely.errors.GEOSException:
+        # A Boolean that will not run is not evidence of a gap; the piece keeps
+        # its node reduction and the quality-control harness measures the result.
+        return False
+    return any(area_km2(part) >= SEAM_MINIMUM_GAP_KM2 for part in polygon_parts(missing))
+
+
+def expand_over_seam(piece, record, kilometres: float):
+    """Grow one cut piece back across its cookie-cut seams, and nowhere else.
+
+    A record that straddles a partition boundary is cut into pieces that share an
+    exact edge, and then each piece is node-reduced on its own. Douglas-Peucker
+    runs over the whole ring, so the two copies of the shared edge come back
+    displaced from one another and the hairline between them shows the darker
+    crust - or the sphere - at closest zoom.
+
+    Growing each piece by a declared distance and clipping the result to the
+    *record it was cut from* makes the neighbours overlap instead of gapping.
+    Same-class overdraw is invisible; the clip means the record's own outline
+    never moves and the growth can only happen where a seam is. The area the
+    overlap adds is measured per piece and declared per interval, and the
+    area-preservation gate subtracts it rather than being widened.
+    """
+    if kilometres <= 0 or piece.is_empty:
+        return piece, 0.0
+    point = piece.representative_point()
+    scale = max(math.cos(math.radians(point.y)), 1e-6)
+    degrees = kilometres / (math.radians(1.0) * audit.EARTH_RADIUS_KM)
+    try:
+        flattened = shapely_transform(lambda x, y, z=None: (x * scale, y), piece)
+        # Mitre joins, limit 2. Bevel keeps every corner inside the offset
+        # distance but costs two vertices per corner instead of one: measured
+        # 2026-09-15 it added 1.3 MiB across the three classes and pushed the
+        # renderer reservation 46 % over its declared limits. The overlap the
+        # mitre adds at a corner is bounded and is gated by area, not by width.
+        grown = flattened.buffer(degrees, join_style=2, mitre_limit=2.0)
+        if grown.is_empty:
+            return piece, 0.0
+        restored = shapely_transform(lambda x, y, z=None: (x / scale, y), grown)
+        expanded = polygonal(polygonal(restored).union(piece).intersection(record))
+    except shapely.errors.GEOSException:
+        # A planar Boolean on a densified spherical ring can hand back a side
+        # location conflict. The piece is then shipped as it was cut: a seam that
+        # stays open is a defect to report, never a reason to ship a broken ring.
+        return piece, 0.0
+    if expanded.is_empty:
+        return piece, 0.0
+    before = area_km2(piece)
+    after = area_km2(expanded)
+    # The buffer may only add ground. Anything that lost area, or that broke one
+    # component into several, is a Boolean accident rather than a wider piece and
+    # is discarded. Growing two components until they touch and merge is not:
+    # that is the same ground with fewer rings, and refusing it left exactly the
+    # large multi-part pieces whose seams stayed open unbuffered.
+    if after < before or len(polygon_parts(expanded)) > len(polygon_parts(piece)):
+        return piece, 0.0
+    return expanded, max(after - before, 0.0)
 
 
 # --------------------------------------------------------------------------
@@ -1702,7 +1813,11 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             geometries[row["index"]] = record_polygon(row, densify=True)
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
-    override_footprints = dict(overrides.get(class_name, {}))
+    # Every override plate, whatever class this is: the conflict belongs to the
+    # plate. `overrides[class_name]` is kept only to report which entries this
+    # class's own table declared.
+    override_footprints = dict(overrides.get("__all__", overrides.get(class_name, {})))
+    class_declared_plates = set(overrides.get(class_name, {}))
     override_plates = set(override_footprints)
     override_declined_pieces: Counter[int] = Counter()
     override_applied_pieces: Counter[int] = Counter()
@@ -1710,6 +1825,12 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     protected_boxes = [shapely.box(*window["bbox"])
                        for window in simplification["protectedWindows"]]
 
+    seam_buffer_km = float(simplification.get("seamBufferKilometres", 0.0))
+    seam_tolerance_multiple = float(simplification.get("seamBufferToleranceMultiple", 0.0))
+    seam_overlap_pieces = 0
+    seam_buffer_maximum_km = 0.0
+    seam_retained_records = 0
+    seam_retry_records = 0
     source_area = 0.0
     cut_area = 0.0
     dropped_area = 0.0
@@ -1734,14 +1855,68 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         # reduction; running Douglas-Peucker over it a second time would move a
         # coastline the derivation already measured and reported.
         pre_simplified = bool(row.get("preSimplified"))
-        for index, piece, piece_area in pieces:
-            cut_area += piece_area
-            protected = pre_simplified or any(piece.intersects(box) for box in protected_boxes)
-            simplified, meta = simplify_piece(piece, piece_area, simplification, protected)
-            entries.append({"partitionIndex": index, "original": piece, "simplified": simplified,
-                            "areaSquareKilometres": piece_area,
-                            "simplifiedAreaSquareKilometres": meta["areaSquareKilometres"],
-                            "simplification": meta})
+        # A record that came back in one piece has no internal seam, so it is
+        # never grown: the buffer exists only to close the gap between two pieces
+        # of the same record that were cut apart and reduced independently.
+        multi_piece = len(pieces) > 1
+
+        def build(extra_kilometres: float) -> list[dict]:
+            built: list[dict] = []
+            for index, piece, piece_area in pieces:
+                # The overlap has to survive the node reduction that follows it:
+                # each side of a seam can recede by its own tolerance, so a buffer
+                # smaller than that tolerance re-opens the gap. The floor is the
+                # declared distance; the piece's own tolerance raises it where the
+                # class or the piece's area class reduces harder.
+                seam_kilometres = max(
+                    seam_buffer_km, extra_kilometres,
+                    seam_tolerance_multiple * tolerance_for(piece_area, simplification) * DEGREE_KM,
+                ) if multi_piece else 0.0
+                grown, overlap = expand_over_seam(piece, geometry, seam_kilometres)
+                grown_area = piece_area
+                if overlap > 0.0:
+                    grown_area = area_km2(grown)
+                protected = pre_simplified or any(grown.intersects(box) for box in protected_boxes)
+                simplified, meta = simplify_piece(grown, grown_area, simplification, protected)
+                built.append({"partitionIndex": index, "original": grown, "simplified": simplified,
+                              "areaSquareKilometres": grown_area,
+                              "seamOverlapSquareKilometres": overlap,
+                              "seamBufferKilometres": seam_kilometres,
+                              "simplifiedAreaSquareKilometres": meta["areaSquareKilometres"],
+                              "simplification": meta})
+            return built
+
+        entries = build(0.0)
+        if multi_piece and seam_buffer_km > 0 and seam_gap_inside(entries):
+            # `simplify_component` escalates its tolerance for a piece over the
+            # vertex cap, past the tolerance the buffer was sized from, and then
+            # the overlap is spent and the neighbours gap again. Re-grow this one
+            # record from the tolerance that was actually used before giving up on
+            # its node reduction altogether.
+            used = max((entry["simplification"]["toleranceDegrees"] for entry in entries),
+                       default=0.0)
+            retry = seam_tolerance_multiple * used * DEGREE_KM
+            if retry > max(entry["seamBufferKilometres"] for entry in entries) * 1.001:
+                seam_retry_records += 1
+                entries = build(retry)
+            if seam_gap_inside(entries):
+                # A visible hairline that shows the crust or the sphere through the
+                # surface is worse than the nodes this record would have saved.
+                for entry in entries:
+                    entry["simplified"] = entry["original"]
+                    entry["simplifiedAreaSquareKilometres"] = entry["areaSquareKilometres"]
+                    entry["simplification"] = dict(
+                        entry["simplification"], toleranceDegrees=0.0, retained=True,
+                        retainReason="seam-gap",
+                        areaSquareKilometres=entry["areaSquareKilometres"],
+                        retainReasons={"seam-gap": len(polygon_parts(entry["original"]))})
+                seam_retained_records += 1
+        for entry in entries:
+            if entry["seamOverlapSquareKilometres"] > 0.0:
+                seam_overlap_pieces += 1
+                seam_buffer_maximum_km = max(seam_buffer_maximum_km,
+                                             entry["seamBufferKilometres"])
+            cut_area += entry["areaSquareKilometres"]
         cuts[row["index"]] = entries
 
     # interned tables
@@ -1807,6 +1982,9 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     unposable_area = 0.0
     unposable_pieces = 0
     unposable_plates: dict[int, float] = defaultdict(float)
+    dropped_conflict_area = 0.0
+    dropped_conflict_pieces = 0
+    dropped_conflict_plates: dict[int, float] = defaultdict(float)
     co_moving = {"near": 0.0, "mid": 0.0, "far": 0.0}
     restoration_bound_pieces = 0
     seam_crossing_pieces = 0
@@ -1828,8 +2006,11 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         shelf_entries: list[tuple[int, object]] = []
         interval_source_area = 0.0
         interval_cut_area = 0.0
+        interval_seam_overlap = 0.0
         interval_unposable_area = 0.0
         interval_unposable_pieces = 0
+        interval_conflict_area = 0.0
+        interval_conflict_pieces = 0
         interval_below_floor_area = 0.0
         interval_below_floor_pieces = 0
         interval_simplified_area = 0.0
@@ -1850,6 +2031,11 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                 lgm_evidence_record(row["lgmSourceIds"], row["lgmEditorial"]) if row.get("lgm")
                 else evidence_record(class_name, basin_references, bool(basin_references)))
             for entry in cuts.get(row["index"], []):
+                # Accumulated for every piece, whatever bucket it lands in: an
+                # unposable piece carries its seam overlap into the unposable
+                # area exactly as an emitted one carries it into the emitted
+                # area, and the ratio subtracts both.
+                interval_seam_overlap += entry.get("seamOverlapSquareKilometres", 0.0)
                 partition = partitions[entry["partitionIndex"]]
                 owner = partition["plateId"]
                 source_plate = row["plateId1"]
@@ -1861,12 +2047,17 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     # own declared footprint (overrides.json). Everything else
                     # keeps the partition binding and is counted as declined.
                     west, south, east, north = override_footprints[source_plate]
-                    # The whole piece has to fit, not just a seat: a seat is not
-                    # stable under node reduction for a multi-part piece, and a
-                    # piece that reaches outside the footprint is exactly the
-                    # case the footprint exists to refuse.
-                    left, bottom, right, top = entry["original"].bounds
-                    if west <= left and right <= east and south <= bottom and top <= north:
+                    # Majority rule. Requiring the whole piece to fit refused
+                    # every long east-west Tibetan mountain piece and left it
+                    # bound to India instead; requiring only a seat would let a
+                    # sliver claim a plate. A piece belongs to the plate its
+                    # centroid and most of its ground lie on.
+                    footprint = shapely.box(west, south, east, north)
+                    inside = polygonal(entry["original"].intersection(footprint))
+                    centroid = entry["original"].representative_point()
+                    covered = (area_km2(inside) / entry["areaSquareKilometres"]
+                               if entry["areaSquareKilometres"] > 0 and not inside.is_empty else 0.0)
+                    if covered >= OVERRIDE_MAJORITY_FRACTION and footprint.contains(centroid):
                         binding_plate = source_plate
                         flags |= FLAG_PLATEID1_OVERRIDE
                         override_applied_pieces[source_plate] += 1
@@ -1882,6 +2073,28 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     unposable_plates[binding_plate] += entry["areaSquareKilometres"]
                     interval_unposable_area += entry["areaSquareKilometres"]
                     interval_unposable_pieces += 1
+                    continue
+                # How far the binding carries this ground from where its own
+                # source record puts it, measured before anything is counted.
+                probe_point = entry["original"].representative_point()
+                probe = pygplates.PointOnSphere(probe_point.y, probe_point.x)
+                separation = audit.great_circle_km(
+                    rotation(interval["midAgeMa"], binding_plate) * probe,
+                    rotation(interval["midAgeMa"], source_plate) * probe) \
+                    if source_plate is not None else 0.0
+                if separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
+                    # Ground drawn thousands of kilometres from where its own
+                    # PLATEID1 puts it is not a flagged approximation, it is a
+                    # different place. Measured 2026-09-15: Qiangtang and Tarim
+                    # mountain pieces bound to India were drawn 6,474-6,837 km
+                    # away and made up 46 % of the mountain area over India at
+                    # 94-81 Ma. A piece this far out with no override to justify
+                    # it is dropped and counted, never drawn.
+                    dropped_conflict_area += entry["areaSquareKilometres"]
+                    dropped_conflict_pieces += 1
+                    dropped_conflict_plates[source_plate] += entry["areaSquareKilometres"]
+                    interval_conflict_area += entry["areaSquareKilometres"]
+                    interval_conflict_pieces += 1
                     continue
                 segments, motion_gaps = binding_result
                 if motion_gaps:
@@ -1904,11 +2117,6 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     interval_retained += 1
                     for reason, hits in entry["simplification"].get("retainReasons", {}).items():
                         interval_retain_reasons[reason] = interval_retain_reasons.get(reason, 0) + hits
-                point = entry["original"].representative_point()
-                probe = pygplates.PointOnSphere(point.y, point.x)
-                separation = audit.great_circle_km(
-                    rotation(interval["midAgeMa"], binding_plate) * probe,
-                    rotation(interval["midAgeMa"], source_plate) * probe) if source_plate is not None else 0.0
                 bucket = ("near" if separation < audit.CO_MOVING_NEAR_KM
                           else "mid" if separation <= FRAME_CONFLICT_KM else "far")
                 co_moving[bucket] += entry["areaSquareKilometres"]
@@ -1964,14 +2172,23 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "sourceRecords": len(selected),
             "sourceAreaSquareKilometres": round(interval_source_area, 3),
             "emittedAreaSquareKilometres": round(interval_cut_area, 3),
+            # The declared overlap the seam buffer added to `emitted`. It is not
+            # new ground: it is the same ground counted twice where two pieces of
+            # one record are made to overlap instead of gap. Every area ratio
+            # measured against the source subtracts it.
+            "seamOverlapAreaSquareKilometres": round(interval_seam_overlap, 3),
             "cutAreaSquareKilometres": round(
-                interval_cut_area + interval_unposable_area + interval_below_floor_area, 3),
+                interval_cut_area - interval_seam_overlap + interval_unposable_area
+                + interval_below_floor_area + interval_conflict_area, 3),
             "unposableAreaSquareKilometres": round(interval_unposable_area, 3),
             "unposablePieces": interval_unposable_pieces,
+            "droppedFrameConflictSquareKilometres": round(interval_conflict_area, 3),
+            "droppedFrameConflictPieces": interval_conflict_pieces,
             "droppedBelowFloorSquareKilometres": round(interval_below_floor_area, 3),
             "droppedBelowFloorPieces": interval_below_floor_pieces,
             "areaRatioPercent": round(
-                100.0 * (interval_cut_area + interval_unposable_area + interval_below_floor_area)
+                100.0 * (interval_cut_area - interval_seam_overlap + interval_unposable_area
+                         + interval_below_floor_area + interval_conflict_area)
                 / interval_source_area, 4) if interval_source_area else 0.0,
             "simplifiedAreaSquareKilometres": round(interval_simplified_area, 3),
             "simplificationAreaErrorPercent": round(area_error, 5),
@@ -2012,6 +2229,13 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "cookieCut": ("every source ring is cut by the present-day Cao 2024 static partitions; "
                           "overlapping partitions are resolved so each piece has exactly one owner, "
                           "the smaller partition polygon claiming the shared ground first"),
+            "seamBuffer": (f"each piece of a record that was cut into more than one is grown by "
+                           f"at least {seam_buffer_km:g} km, and by "
+                           f"{seam_tolerance_multiple:g} times its own node-reduction tolerance "
+                           "where that is larger, then clipped back to the record, so neighbours "
+                           "overlap instead of gapping after independent node reduction; the "
+                           "record's own outline never moves and the overlap area is declared "
+                           "per interval as seamOverlapAreaSquareKilometres"),
             "densification": f"great-circle samples every {audit.DENSIFY_DEGREES} degree before any planar Boolean",
             "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
@@ -2036,6 +2260,20 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                 sum(row["unposableAreaSquareKilometres"] for row in per_interval), 3),
             "droppedBelowFloorSquareKilometres": round(
                 sum(row["droppedBelowFloorSquareKilometres"] for row in per_interval), 3),
+            "droppedFrameConflictSquareKilometres": round(
+                sum(row["droppedFrameConflictSquareKilometres"] for row in per_interval), 3),
+            "droppedFrameConflictPieces": dropped_conflict_pieces,
+            "droppedFrameConflictKilometres": FRAME_CONFLICT_DROP_KM,
+            "droppedFrameConflictPlateIds": {str(plate): round(area, 3) for plate, area
+                                             in sorted(dropped_conflict_plates.items())},
+            "seamOverlapAreaSquareKilometres": round(
+                sum(row["seamOverlapAreaSquareKilometres"] for row in per_interval), 3),
+            "seamBufferKilometres": seam_buffer_km,
+            "seamBufferToleranceMultiple": seam_tolerance_multiple,
+            "seamBufferMaximumKilometres": round(seam_buffer_maximum_km, 4),
+            "seamOverlapPieces": seam_overlap_pieces,
+            "seamRetainedUnsimplifiedRecords": seam_retained_records,
+            "seamRegrownRecords": seam_retry_records,
             "areaRatioPercent": round(
                 100.0 * sum(row["cutAreaSquareKilometres"] for row in per_interval)
                 / sum(row["sourceAreaSquareKilometres"] for row in per_interval), 4)
@@ -2062,6 +2300,12 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             },
             "overrideBoundPieces": override_bound_pieces,
             "overridePlateIds": sorted(override_plates),
+            "overridePlateIdsDeclaredByThisClass": sorted(class_declared_plates),
+            "overrideMajorityFraction": OVERRIDE_MAJORITY_FRACTION,
+            "overrideRule": ("a piece is rebound by PLATEID1 when its centroid and at least "
+                             f"{OVERRIDE_MAJORITY_FRACTION:.0%} of its area lie inside that "
+                             "plate's one declared footprint; every override plate applies to "
+                             "every class, because a frame conflict belongs to the plate"),
             # Per plate: pieces the footprint accepted, pieces it turned back to
             # partition binding, and the footprint they were tested against.
             "overrideFootprints": {
