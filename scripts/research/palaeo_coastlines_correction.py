@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import struct
 import sys
 import time
@@ -141,15 +142,93 @@ WITNESS_CLASSES = {
     # either way - must not move silently.
     "nordland-ridge-crest": ((10.902, 66.925), {"11-2": ["sm"]}),
     "loppa-high-crest": ((20.546, 72.057), {"248-224": ["sm"], "20-11": ["lm"]}),
+
+    # ---------------------------------------------------------------- inland seas
+    # docs/research/palaeo-coastlines-inland-sea-checks.md section 15.1, in its own
+    # order. Every row is a CLASS SET measured from the shipped payloads, not an
+    # `sm` membership test: three of the memo's findings - the Tunguska overlap,
+    # the Pebas land reading and the Turgai correction - are invisible to a
+    # membership test and only a set can hold them. The memo's 23rd row,
+    # `wis-axis-peak` at (-100, 45) in 94-81, is the existing
+    # `western-interior-seaway` row above and is kept rather than duplicated.
+    "wis-west-shore": ((-110.0, 40.0), {"94-81": ["sm"]}),
+    "wis-east-shore": ((-94.0, 40.0), {"94-81": ["lm"]}),
+    "wis-boreal-corridor": ((-117.0, 60.0), {"94-81": ["sm"]}),
+    "wis-boreal-closed": ((-117.0, 60.0), {"81-58": ["lm"]}),
+    "wis-absent": ((-100.0, 45.0), {"58-49": ["lm"]}),
+    "sundance-wyoming": ((-108.0, 44.0), {"166-146": ["sm"]}),
+    "sundance-morrison": ((-108.0, 44.0), {"146-135": ["lm"]}),
+    "mississippi-embayment": ((-90.0, 34.0), {"81-58": ["sm"]}),
+    "illinois-basin-kaskaskia": ((-90.0, 40.0), {"380-359": ["sm"]}),
+    # The two most important rows in the table. Western Amazonia must not become
+    # shallow marine: that would assert the contested marine reading of the Pebas
+    # system over the published lacustrine one, and the layer has no lake class.
+    "pebas-land": ((-72.0, -4.0), {"20-11": ["lm"]}),
+    "pebas-land-acre": ((-70.0, -2.0), {"11-2": ["lm"]}),
+    "paranense-entre-rios": ((-58.0, -33.0), {"20-11": ["sm"]}),
+    # Today's negative control and a known mismatch at once: the Laguna Paiva
+    # transgression is absent from the map at 29-20 and the only source for it is
+    # one unpublished thesis, so the state is recorded rather than edited.
+    "paranense-pre-tep": ((-58.0, -33.0), {"29-20": ["lm"]}),
+    "sergipe-albian": ((-37.0, -10.0), {"117-94": ["sm"]}),
+    "araripe-albian": ((-40.0, -7.0), {"117-94": ["sm"]}),
+    "amazonas-devonian": ((-60.0, -4.0), {"402-380": ["sm"]}),
+    "west-siberian-eocene": ((75.0, 60.0), {"49-37": ["sm"]}),
+    "west-siberian-closed": ((75.0, 60.0), {"37-29": ["lm"]}),
+    # The correction the inland-sea memo exists for. The `turgai-strait` row above
+    # samples only intervals in which the strait is dry, and that was read as
+    # proving it is never open; it is an open, connected marine corridor at 81-58,
+    # 58-49 and 49-37 and closes at 37-29.
+    "turgai-open": ((65.0, 52.0), {"58-49": ["sm"]}),
+    "turgai-open-second": ((63.0, 50.0), {"49-37": ["sm"]}),
+    "turgai-closed": ((65.0, 52.0), {"37-29": ["lm"]}),
+    "tunguska-devonian": ((100.0, 62.0), {"402-380": ["lm", "sm"]}),
+
+    # ------------------------------------------------- North Sea structural elements
+    # docs/research/palaeo-coastlines-north-sea-structural-elements.md section 5.1.
+    # Nine of the sixteen are NEGATIVE witnesses: they record a state that memo
+    # decided not to change, so a later change has to be deliberate. Three rows
+    # move with an operation and carry a WITNESS_BASIN_EDITS entry below.
+    "ringkobing-fyn-permian-barrier": ((4.874, 56.243), {"285-269": ["lm"]}),
+    "ringkobing-fyn-early-jurassic-submarine": ((4.874, 56.243), {"203-179": ["sm"]}),
+    "ringkobing-fyn-late-jurassic-emergent": ((4.874, 56.243), {"166-146": ["lm", "sm"]}),
+    # The memo measured this row as ["lm"] against the shipped lm+sm pair, before
+    # the mountain class shipped; the same ground also carries `m`, and the row
+    # states what the source holds rather than what two of its three classes held.
+    "mid-north-sea-high-permian-barrier": ((1.0, 55.0), {"285-269": ["lm", "m"]}),
+    "mid-north-sea-high-aptian-albian": ((1.0, 55.0), {"117-94": ["sm"]}),
+    "utsira-high-zechstein": ((2.533, 58.807), {"269-248": ["sm"]}),
+    "jaeren-high-chalk-sea": ((2.415, 57.612), {"94-81": ["sm"]}),
+    # The stop on the Jaeren High operation: Ryazanian macrofossils in well 7/7-2
+    # ON the high mean it must not be extended back into 146-135.
+    "jaeren-high-ryazanian-marine": ((2.415, 57.612), {"146-135": ["sm"]}),
+    # The same Campanian submergence at an element 18.0 km across, below Cao's own
+    # ~30 km coastline tolerance: the row exists to record that the mismatch is
+    # known and deliberately unedited.
+    "forties-montrose-high-chalk-sea": ((1.311, 57.471), {"94-81": ["sm"]}),
+    "central-graben-axis-chalk": ((1.611, 57.079), {"94-81": ["sm"]}),
+    "tail-end-graben-late-jurassic": ((4.492, 56.091), {"166-146": ["lm", "sm"]}),
+    "east-shetland-platform-crest-mid-jurassic": ((0.200, 59.625), {"179-166": ["sm"]}),
+    "east-shetland-platform-chalk": ((0.200, 59.625), {"94-81": ["sm"]}),
+    "fladen-ground-spur-late-jurassic": ((0.854, 58.918), {"166-146": ["sm"]}),
+    # The Late Jurassic footwall archipelago is deliberately not drawn - 26 of 43
+    # elements are below the class floor - and these two make that a decision
+    # rather than an accident.
+    "tampen-spur-synrift": ((2.492, 61.542), {"166-146": ["sm"]}),
+    "sogn-graben-synrift": ((3.487, 61.769), {"166-146": ["sm"]}),
 }
 # Every interval the audit table, the narrow-feature transects and the tone
-# index are checked at. The four original intervals span the schedule; the eight
-# added in 2026-09-15's second North Sea round are the ones the cited edits
-# touch, plus the Neogene pair the mid-Norway and Barents witnesses need. A
-# witness that does not name an interval is simply not checked there, so this
-# tuple can grow without re-measuring every row.
-WITNESS_INTERVALS = ("402-380", "269-248", "248-224", "179-166", "166-146", "146-135",
-                     "135-117", "94-81", "58-49", "49-37", "20-11", "11-2")
+# index are checked at. A witness that does not name an interval is simply not
+# checked there, so this tuple can grow without re-measuring every row. It has
+# grown three times: the four original intervals span the schedule, the second
+# North Sea round added the eight its cited edits touch plus the Neogene pair the
+# mid-Norway and Barents witnesses need, and the inland-sea and structural-element
+# memos added the eight that carry their rows. The Palaeogene entries are the
+# reason the "Turgai is land in every interval" premise survived as long as it
+# did: the strait is dry in all four of the original intervals.
+WITNESS_INTERVALS = ("402-380", "380-359", "285-269", "269-248", "248-224",
+                     "203-179", "179-166", "166-146", "146-135", "135-117", "117-94",
+                     "94-81", "81-58", "58-49", "49-37", "37-29", "29-20", "20-11", "11-2")
 
 # A cited basin edit is allowed to move a witness, but only where the contract
 # says so. Each row names the witness the edit moves, the operation that moves
@@ -162,6 +241,28 @@ WITNESS_BASIN_EDITS = {
         "classes": ["lm"],
         "reason": "the Middle Devonian Orcadian Basin is lacustrine and alluvial land, not an "
                   "epicontinental sea; the shallow-marine class is removed and the landmass kept",
+    },
+    ("jaeren-high-chalk-sea", "94-81"): {
+        "opId": "north-sea-135-81-jaeren-high-add-land",
+        "classes": ["lm"],
+        "reason": "the Hidra Formation onlaps the flanks of the Jaeren High and chalk reached it "
+                  "only in the early Campanian, so the high is an island through this bin rather "
+                  "than the shallow sea Cao paints over the whole Central Graben",
+    },
+    ("tail-end-graben-late-jurassic", "166-146"): {
+        "opId": "north-sea-166-94-central-graben-depocentre-remove-land",
+        "classes": ["sm"],
+        "reason": "Cao overlaps its own landmass polygon on its own shallow-marine polygon over "
+                  "the Danish Central Graben depocentre and the landmass wins the draw order, so "
+                  "the Farsund Formation kitchen rendered as dry ground; the land is removed and "
+                  "the shallow-marine class Cao already carries is what remains",
+    },
+    ("fladen-ground-spur-late-jurassic", "166-146"): {
+        "opId": "north-sea-166-146-fladen-ground-spur-add-land",
+        "classes": ["lm"],
+        "reason": "the Fladen Ground Spur 'likely formed a positive structure throughout the "
+                  "Jurassic'; on the NSTA/BGS-DECC outline it is 43.9 km across, above Cao's own "
+                  "coastline tolerance, so it can be drawn as the low-relief land it was",
     },
 }
 
@@ -285,6 +386,73 @@ BASIN_EDIT_WITNESSES = (
      "opIds": [], "classes": ["sm"]},
     {"witnessId": "utsira-shelf", "position": (2.0, 59.5), "intervalId": "20-11",
      "opIds": [], "classes": ["sm"]},
+
+    # ------------------------------- North Sea structural elements, 2026-09-15
+    # docs/research/palaeo-coastlines-north-sea-structural-elements.md section 5.2.
+    # Four of its five proposed operations are built; the fifth (the East Shetland
+    # Platform in the Late Jurassic) is in the contract's notes.leftAlone because
+    # it rests on absence of section and has no licensed outline of its own.
+    {"witnessId": "jaeren-high-island", "position": (2.4, 57.6), "intervalId": "94-81",
+     "opIds": ["north-sea-135-81-jaeren-high-remove-shallow",
+               "north-sea-135-81-jaeren-high-add-land"], "classes": ["lm"]},
+    # The graben beside it must stay marine whatever happens to the high.
+    {"witnessId": "jaeren-high-graben-control", "position": (1.6, 57.0), "intervalId": "94-81",
+     "opIds": [], "classes": ["sm"]},
+    {"witnessId": "central-graben-depocentre-farsund", "position": (4.4, 56.3),
+     "intervalId": "166-146",
+     "opIds": ["north-sea-166-94-central-graben-depocentre-remove-land"], "classes": ["sm"]},
+    {"witnessId": "mid-north-sea-high-jurassic", "position": (1.0, 55.5), "intervalId": "166-146",
+     "opIds": ["north-sea-166-117-mid-north-sea-high-remove-shallow",
+               "north-sea-166-117-mid-north-sea-high-add-land"], "classes": ["lm"]},
+    # The corridor along the Central Graben where it transects the high is left
+    # marine on purpose; the operation stops at 3.2 E and this control holds it.
+    {"witnessId": "mid-north-sea-high-graben-corridor", "position": (3.6, 55.5),
+     "intervalId": "166-146", "opIds": [], "classes": ["sm"]},
+    {"witnessId": "fladen-ground-spur-early-jurassic", "position": (0.9, 58.75),
+     "intervalId": "203-179",
+     "opIds": ["north-sea-203-179-fladen-ground-spur-remove-shallow",
+               "north-sea-203-179-fladen-ground-spur-add-land"], "classes": ["lm"]},
+    {"witnessId": "fladen-ground-spur-jurassic", "position": (0.9, 58.75), "intervalId": "166-146",
+     "opIds": ["north-sea-166-146-fladen-ground-spur-remove-shallow",
+               "north-sea-166-146-fladen-ground-spur-add-land"], "classes": ["lm"]},
+    {"witnessId": "fladen-ground-spur-west-control", "position": (-0.2, 58.75),
+     "intervalId": "166-146", "opIds": [], "classes": ["sm"]},
+
+    # ------------------------------------------------------- Iceland, 2026-09-15
+    # docs/research/palaeo-coastlines-iceland-ne-atlantic.md section 5. Cao draws
+    # no land over Iceland at either interval; the contract draws the mapped
+    # Tertiary outcrop at 11-2 and its three oldest flanks at 20-11. The mountain
+    # class stays in the expected sets because Cao maps the island as mountain and
+    # the rows have to state what the source holds.
+    {"witnessId": "iceland-vestfirdir-plateau", "position": (-22.9, 65.75), "intervalId": "11-2",
+     "opIds": ["iceland-11-2-tertiary-plateau-add-land",
+               "iceland-11-2-tertiary-plateau-remove-shallow"], "classes": ["lm", "m"]},
+    {"witnessId": "iceland-vestfirdir-oldest-flank", "position": (-22.9, 65.75),
+     "intervalId": "20-11",
+     "opIds": ["iceland-20-11-oldest-flanks-add-land",
+               "iceland-20-11-oldest-flanks-remove-shallow"], "classes": ["lm", "m"]},
+    # The Eastfjords at 20-11 are the clearest case in the contract: before the
+    # edit the point carried no shipped class at all, so the globe drew unmapped
+    # crust over 13-14 Ma subaerial lavas.
+    {"witnessId": "iceland-eastfjords-oldest-flank", "position": (-14.6, 65.0),
+     "intervalId": "20-11",
+     "opIds": ["iceland-20-11-oldest-flanks-add-land",
+               "iceland-20-11-oldest-flanks-remove-shallow"], "classes": ["lm"]},
+    {"witnessId": "iceland-trollaskagi-oldest-flank", "position": (-18.4, 65.7),
+     "intervalId": "20-11",
+     "opIds": ["iceland-20-11-oldest-flanks-add-land",
+               "iceland-20-11-oldest-flanks-remove-shallow"], "classes": ["lm"]},
+    {"witnessId": "iceland-snaefellsnes-plateau", "position": (-22.3, 64.85),
+     "intervalId": "11-2",
+     "opIds": ["iceland-11-2-tertiary-plateau-add-land",
+               "iceland-11-2-tertiary-plateau-remove-shallow"], "classes": ["lm", "m"]},
+    # Outside the three lobes: the 20-11 operation must not grow to the whole
+    # outcrop, because no published age places this ground before 11 Ma.
+    {"witnessId": "iceland-snaefellsnes-20-11-control", "position": (-22.3, 64.85),
+     "intervalId": "20-11", "opIds": [], "classes": ["sm", "m"]},
+    # And no Iceland land at all in the interval before the contract starts.
+    {"witnessId": "iceland-absent-before-20-ma", "position": (-19.6, 63.6), "intervalId": "29-20",
+     "opIds": [], "classes": []},
 )
 
 
@@ -1056,7 +1224,8 @@ def class_union(store: Store, class_name: str, interval_id: str, window=None):
     return compiler.polygonal(unary_union(geometries))
 
 
-def check_witnesses(store: Store, classes: list[str], explain=None) -> dict:
+def check_witnesses(store: Store, classes: list[str], explain=None,
+                    witnesses: dict | None = None) -> dict:
     """The compiled payloads reproduce the audit's class table at every witness.
 
     A class the audit measured may legitimately be absent where the compiler
@@ -1066,11 +1235,12 @@ def check_witnesses(store: Store, classes: list[str], explain=None) -> dict:
     source records, the static partitions and the palette; an absence it cannot
     explain is a defect.
     """
+    witnesses = WITNESS_CLASSES if witnesses is None else witnesses
     rows = []
     explained = []
     for interval_id in WITNESS_INTERVALS:
         unions = {name: class_union(store, name, interval_id) for name in classes}
-        for witness, (position, expected_by_interval) in WITNESS_CLASSES.items():
+        for witness, (position, expected_by_interval) in witnesses.items():
             source_expected = expected_by_interval.get(interval_id)
             if source_expected is None:
                 continue
@@ -1233,6 +1403,191 @@ def unposable_explainer(rows_by_class: dict[str, list[dict]], overrides: dict,
     return explain
 
 
+ICELAND_BASIN_ID = "iceland"
+ICELAND_CORRECTION_GEOMETRY = ROOT / "data/corrections/iceland/iceland-surface-material-v1.geojson"
+ICELAND_CORRECTION_CLASS = "gold"
+
+
+def _parallel_segments(geometry, line):
+    pieces = geometry.intersection(line)
+    if pieces.is_empty:
+        return []
+    return [part for part in getattr(pieces, "geoms", [pieces])
+            if part.geom_type == "LineString"]
+
+
+def _seam_longitude(west_geometry, east_geometry, latitude: float,
+                    window: tuple, abutment_degrees: float) -> float | None:
+    """Where the two plate halves are cut apart on one parallel, or None.
+
+    A seam crossing is a pair of ground segments - one on each plate - that ABUT
+    on the parallel. Taking the eastern limit of all western ground and the
+    western limit of all eastern ground instead would measure the gap between two
+    separate lobes wherever the parallel misses the cut, and Iceland has exactly
+    that: the Tertiary outcrop is absent along the neovolcanic zones, which is
+    also roughly where the partition seam runs. ``abutment_degrees`` is the widest
+    gap still read as one cut, and it has to allow for the int16 quantisation and
+    the per-piece simplification of the two cut edges.
+    """
+    line = LineString([(window[0], latitude), (window[2], latitude)])
+    best = None
+    for west in _parallel_segments(west_geometry, line):
+        for east in _parallel_segments(east_geometry, line):
+            gap = east.bounds[0] - west.bounds[2]
+            if -1e-9 <= gap <= abutment_degrees and (best is None or gap < best[1]):
+                best = ((west.bounds[2] + east.bounds[0]) / 2.0, gap)
+    return None if best is None else best[0]
+
+
+def check_iceland_seam(store: Store, classes: list[str], basins: list[dict]) -> dict:
+    """The Iceland contract's own two checks, from its notes.seamCheck.
+
+    The palaeo compiler cuts Iceland on the Cao 2024 static-partition seam - plate
+    102 (Greenland) west, 301 (Eurasia) east - while the regional Iceland material
+    correction cuts it on the exact shared 101/301 mid-ocean-ridge subsegments.
+    Plates 101 and 102 are measured co-moving to 0.0 km over 0-29 Ma, so the risk
+    is the seam LINE and not the rotations: the two halves separate by 210 km by
+    11 Ma, and ground assigned to the wrong half moves with the wrong plate.
+
+    Two assertions, both read from the tracked contract rather than from constants
+    here: every compiled piece that lies wholly inside the contract window binds
+    to one of the declared partition plates, and each latitude's measured
+    separation matches the value the contract pins. The contract does NOT claim
+    the two seams agree - they are 19.7 to 60.6 km apart - so this gate detects
+    drift in either construction rather than asserting an agreement.
+    """
+    basin = next((row for row in basins if row["basinId"] == ICELAND_BASIN_ID), None)
+    if basin is None:
+        return {"status": "not declared", "reason": "no iceland basin contract is tracked"}
+    spec = basin["notes"]["seamCheck"]
+    allowed = set(spec["partitionPlateIds"])
+    window = tuple(basin["window"]["bbox"])
+    window_box = shapely.box(*window)
+    tolerance_km = float(spec["toleranceKilometres"])
+    drift_km = float(spec["driftToleranceKilometres"])
+    abutment = float(spec["abutmentToleranceDeg"])
+    pinned = spec["measuredSeparationKilometres"]
+
+    by_plate: dict[int, list] = {}
+    checked_pieces = 0
+    for class_name in classes:
+        partitions = store.catalog(class_name)["bindings"]["partitionPlateId"]
+        for interval_id in basin["intervals"]:
+            decoded = store.payload("staging", class_name, interval_id)
+            for piece in decoded["pieces"]:
+                geometry = compiler.piece_geometry(decoded, piece)
+                if geometry.is_empty or not window_box.contains(geometry):
+                    continue
+                plate = int(partitions[piece["bindingIndex"]])
+                if plate not in allowed:
+                    raise CorrectionError(
+                        f"iceland: a {class_name} piece in {interval_id} binds to partition "
+                        f"{plate}; the contract declares {sorted(allowed)}")
+                checked_pieces += 1
+                if class_name == "lm":
+                    by_plate.setdefault(plate, []).append(geometry)
+    if checked_pieces == 0:
+        raise CorrectionError("iceland: the contract is tracked but no compiled piece lies "
+                              "inside its window")
+    west_id, east_id = sorted(allowed)
+    if west_id not in by_plate or east_id not in by_plate:
+        raise CorrectionError(
+            f"iceland: the compiled landmass carries ground on only one of plates {west_id} "
+            f"and {east_id}, so the seam cannot be measured")
+    palaeo_west = unary_union(by_plate[west_id])
+    palaeo_east = unary_union(by_plate[east_id])
+
+    collection = json.loads(ICELAND_CORRECTION_GEOMETRY.read_text())
+    correction: dict[int, list] = {}
+    for feature in collection["features"]:
+        if feature["properties"].get("sourceClass") != ICELAND_CORRECTION_CLASS:
+            continue
+        correction.setdefault(int(feature["properties"]["plateId"]), []).append(
+            compiler.polygonal(shapely.geometry.shape(feature["geometry"])))
+    if len(correction) != 2:
+        raise CorrectionError("iceland: the material correction no longer splits the gold "
+                              "outcrop across exactly two plates")
+    correction_west_id, correction_east_id = sorted(correction)
+    correction_west = unary_union(correction[correction_west_id])
+    correction_east = unary_union(correction[correction_east_id])
+
+    sweep = spec["latitudeSweepDeg"]
+    latitudes = []
+    latitude = float(sweep["from"])
+    while latitude <= float(sweep["to"]) + 1e-9:
+        latitudes.append(round(latitude, 2))
+        latitude += float(sweep["stepDeg"])
+    rows = []
+    worst = 0.0
+    for latitude in latitudes:
+        palaeo = _seam_longitude(palaeo_west, palaeo_east, latitude, window, abutment)
+        reference = _seam_longitude(correction_west, correction_east, latitude, window, abutment)
+        key = f"{latitude:.1f}"
+        if palaeo is None or reference is None:
+            if key in pinned:
+                raise CorrectionError(
+                    f"iceland seam at {key} N: the contract pins {pinned[key]} km but one of the "
+                    "two constructions no longer cuts outcrop on this parallel")
+            continue
+        kilometres = abs(palaeo - reference) * (
+            2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0) * math.cos(math.radians(latitude))
+        worst = max(worst, kilometres)
+        if kilometres > tolerance_km:
+            raise CorrectionError(
+                f"iceland seam at {key} N: the palaeo {west_id}/{east_id} cut is at "
+                f"{palaeo:.3f} E and the material correction's {correction_west_id}/"
+                f"{correction_east_id} cut at {reference:.3f} E, {kilometres:.1f} km apart, "
+                f"above the contract's {tolerance_km} km tolerance")
+        if key not in pinned:
+            raise CorrectionError(
+                f"iceland seam at {key} N: both constructions now cut outcrop here "
+                f"({kilometres:.1f} km apart) and the contract pins no value for it")
+        if abs(kilometres - float(pinned[key])) > drift_km:
+            raise CorrectionError(
+                f"iceland seam at {key} N: {kilometres:.1f} km, and the contract pins "
+                f"{pinned[key]} km")
+        rows.append({"latitudeDeg": latitude, "palaeoSeamDeg": round(palaeo, 4),
+                     "correctionSeamDeg": round(reference, 4),
+                     "separationKilometres": round(kilometres, 2)})
+    if len(rows) < int(spec["minimumComparedLatitudes"]):
+        raise CorrectionError(
+            f"iceland: only {len(rows)} latitudes cut outcrop on both constructions; the "
+            f"contract requires {spec['minimumComparedLatitudes']}")
+    if len(rows) != len(pinned):
+        raise CorrectionError(
+            f"iceland: {len(rows)} latitudes compared against {len(pinned)} pinned values")
+    return {"checkedPieces": checked_pieces, "toleranceKilometres": tolerance_km,
+            "worstSeparationKilometres": round(worst, 2), "rows": rows}
+
+
+def check_basin_acceptance_ages(basins: list[dict], intervals: list[dict]) -> dict:
+    """Every acceptance age a contract declares selects the interval it names.
+
+    A contract can name the ages its operations are meant to be visible at; this
+    resolves each one through the same half-open ``(toAge, fromAge]`` rule the
+    runtime uses. ``None`` means the age falls outside the whole published band,
+    where the layer falls back to today's composition.
+    """
+    rows = []
+    for basin in basins:
+        declared = basin.get("notes", {}).get("acceptanceAges")
+        if not declared:
+            continue
+        for age, expected in declared["ages"]:
+            selected = [row["intervalId"] for row in intervals
+                        if row["toAgeMa"] < age <= row["fromAgeMa"]]
+            if len(selected) > 1:
+                raise CorrectionError(
+                    f"basin {basin['basinId']}: age {age} Ma selects {selected}")
+            found = selected[0] if selected else None
+            if found != expected:
+                raise CorrectionError(
+                    f"basin {basin['basinId']}: age {age} Ma selects {found!r}, and the contract "
+                    f"declares {expected!r}")
+            rows.append({"basinId": basin["basinId"], "ageMa": age, "intervalId": found})
+    return {"checkedAges": len(rows), "rows": rows}
+
+
 def check_narrow_features(store: Store, classes: list[str], config: dict) -> dict:
     """Narrow-feature width change between the original and the shipped payloads."""
     tolerance = config.get("narrowFeatureToleranceKilometres", NARROW_FEATURE_TOLERANCE_KM)
@@ -1372,6 +1727,8 @@ def validate(store: Store, classes: list[str], full: bool = True) -> dict:
     result["witnesses"] = check_witnesses(store, classes, explain)
     result["basinEditWitnesses"] = check_basin_edit_witnesses(
         store, classes, basins, rows_by_class, views[classes[0]].intervals)
+    result["icelandSeam"] = check_iceland_seam(store, classes, basins)
+    result["acceptanceAges"] = check_basin_acceptance_ages(basins, views[classes[0]].intervals)
     result["narrowFeatures"] = check_narrow_features(store, classes, simplification)
     result["outlineTones"] = check_tone_tables(store, classes)
     result["status"] = "pass"
@@ -1664,9 +2021,16 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         f"{class_name} {edited_interval} payload shifted off its basin edit",
         lambda: check_basin_edit_witnesses(unedited_store, [class_name], basins,
                                            rows_by_class, view.intervals)))
+    # The operation may live in any tracked contract, so it is removed by id from
+    # every one of them rather than from `basins[0]`: that index stopped being the
+    # North Sea when the Iceland contract was added and sorted before it.
     dropped_op = deepcopy(basins)
-    dropped_op[0]["ops"] = [op for op in dropped_op[0]["ops"]
-                            if op["opId"] != edited["opIds"][0]]
+    for basin in dropped_op:
+        basin["ops"] = [op for op in basin["ops"] if op["opId"] != edited["opIds"][0]]
+    if sum(len(basin["ops"]) for basin in dropped_op) == \
+            sum(len(basin["ops"]) for basin in basins):
+        raise CorrectionError(
+            f"self-test: {edited['opIds'][0]} is not in any tracked contract")
     results.append(expect_failure(
         "a basin edit witness whose operation was deleted from the contract",
         lambda: check_basin_edit_witnesses(store, [class_name], dropped_op,
@@ -1703,6 +2067,75 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
         lambda: check_tone_tables(store.with_override("staging/outline-tones.ehpt", truncated_tones),
                                   [class_name])))
     check_tone_tables(store, [class_name])
+
+    # 11. the Iceland contract's own two checks. The seam gate does NOT assert
+    # that the palaeo 102/301 cut and the material correction's 101/301 cut agree
+    # - they are 19.7 to 60.6 km apart - so what has to be proven failable is the
+    # drift detector and the partition-plate assertion, not an agreement.
+    iceland = next((basin for basin in basins if basin["basinId"] == ICELAND_BASIN_ID), None)
+    if iceland is None:
+        raise CorrectionError("self-test: no iceland basin contract is tracked")
+    check_iceland_seam(store, [class_name], basins)
+    moved_seam = deepcopy(basins)
+    for basin in moved_seam:
+        if basin["basinId"] == ICELAND_BASIN_ID:
+            pinned = basin["notes"]["seamCheck"]["measuredSeparationKilometres"]
+            first = sorted(pinned)[0]
+            pinned[first] = float(pinned[first]) + 25.0
+    results.append(expect_failure(
+        "an Iceland seam separation that no longer matches the pinned measurement",
+        lambda: check_iceland_seam(store, [class_name], moved_seam)))
+    narrowed_plates = deepcopy(basins)
+    for basin in narrowed_plates:
+        if basin["basinId"] == ICELAND_BASIN_ID:
+            basin["notes"]["seamCheck"]["partitionPlateIds"] = [102, 999999]
+    results.append(expect_failure(
+        "an Iceland piece binding to a partition the contract does not declare",
+        lambda: check_iceland_seam(store, [class_name], narrowed_plates)))
+    tightened = deepcopy(basins)
+    for basin in tightened:
+        if basin["basinId"] == ICELAND_BASIN_ID:
+            basin["notes"]["seamCheck"]["toleranceKilometres"] = 10.0
+    results.append(expect_failure(
+        "an Iceland seam tolerance tightened below the measured separation",
+        lambda: check_iceland_seam(store, [class_name], tightened)))
+    check_iceland_seam(store, [class_name], basins)
+
+    # 12. an acceptance age that no longer selects the interval it names. 2.01 and
+    # 11.01 Ma are the exclusive young bounds of `11-2` and `20-11`; a contract
+    # that claimed either was covered would promise land at an age the layer draws
+    # none at.
+    check_basin_acceptance_ages(basins, view.intervals)
+    mis_aged = deepcopy(basins)
+    for basin in mis_aged:
+        if basin["basinId"] == ICELAND_BASIN_ID:
+            basin["notes"]["acceptanceAges"]["ages"] = [[2.01, "11-2"], [12.0, "20-11"]]
+    results.append(expect_failure(
+        "an acceptance age claiming the exclusive young bound is covered",
+        lambda: check_basin_acceptance_ages(mis_aged, view.intervals)))
+    check_basin_acceptance_ages(basins, view.intervals)
+
+    # 13. the whole Iceland contract deleted. Its basin-edit witnesses name its
+    # operations, so removing the contract has to turn them red rather than let
+    # the four Iceland rows quietly stop being checked.
+    without_iceland = [deepcopy(basin) for basin in basins
+                       if basin["basinId"] != ICELAND_BASIN_ID]
+    results.append(expect_failure(
+        "the whole Iceland basin contract deleted while its witnesses remain",
+        lambda: check_basin_edit_witnesses(store, [class_name], without_iceland,
+                                           rows_by_class, view.intervals)))
+    check_basin_edit_witnesses(store, [class_name], basins, rows_by_class, view.intervals)
+
+    # 14. a structural-element witness moved off what the memo measured. The
+    # Turgai row is the one the inland-sea memo exists for: the strait is an open
+    # marine corridor at 58-49 Ma, and the premise it replaced said it was land in
+    # every interval.
+    turgai = deepcopy(WITNESS_CLASSES)
+    turgai["turgai-open"] = (WITNESS_CLASSES["turgai-open"][0], {"58-49": ["lm"]})
+    results.append(expect_failure(
+        "the Turgai Strait witness returned to the premise it corrected",
+        lambda: check_witnesses(store, [class_name], explain, turgai)))
+    check_witnesses(store, [class_name], explain, WITNESS_CLASSES)
 
     return {"mutationsRejected": len(results), "mutations": results,
             "restoredChecks": {"inputs": "pass", "config": "pass", "provenance": "pass",

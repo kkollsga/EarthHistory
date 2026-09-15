@@ -26,3 +26,29 @@ export function caoDisplayCheckpointAgesMa(
   if (oldestMa > denseUntil) ages.add(oldestMa);
   return [...ages].sort((left, right) => left - right);
 }
+
+/**
+ * The one pre-collision crust feature the Cao 2024 v2.4 model carries: `Greater
+ * India based on Gibbons et al. (2015) Gondwana Research`, plate 501, alive from
+ * 600 Ma and **retired at 10 Ma** — the model's own statement that this crust was
+ * consumed. It reaches 1,341 km north of the model's own present Indian outline
+ * at 85 E, which is the only one of three collision budgets the model meets;
+ * `docs/research/palaeo-coastlines-collision-shortening.md` measures all three,
+ * and `scripts/research/validate_precollision_extent.py` re-derives them.
+ *
+ * The id is the chart the browser actually downloads, so the map key can gate
+ * its evidence line on the chart being posed rather than on the age.
+ */
+export const GREATER_INDIA_CHART_ID =
+  "cao-continent:GPlates-66e2d112-6f76-43ca-9708-15deea4317c0:870:0";
+
+/**
+ * What the map key says while that chart is on screen. Three rules behind the
+ * wording: name the model rather than the map (evidence status is model-output,
+ * never observed); say crust rather than land, because the palaeo layer draws
+ * this ground as shallow sea; and carry the published spread, which is a factor
+ * of five and unresolved.
+ */
+export const GREATER_INDIA_EVIDENCE_LINE =
+  "Greater India crust · model inference after Gibbons et al. (2015); published "
+  + "spread ~600–3,000 km; removed from the model at 10 Ma";

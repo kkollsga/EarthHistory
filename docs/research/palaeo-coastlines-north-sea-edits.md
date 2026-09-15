@@ -5,12 +5,13 @@ Research and compile date: 2026-09-15. Contract:
 [palaeo-coastlines-literature.md](palaeo-coastlines-literature.md) (what the
 publications say) and
 [palaeo-coastlines-cao2017.md](palaeo-coastlines-cao2017.md) (what the source
-is). Four targeted records feed the Jurassic, Cretaceous and Palaeogene operations:
+is). Five targeted records feed the Jurassic, Cretaceous and Palaeogene operations:
 [palaeo-coastlines-north-sea-middle-jurassic.md](palaeo-coastlines-north-sea-middle-jurassic.md),
 [palaeo-coastlines-north-sea-eocene-shetland.md](palaeo-coastlines-north-sea-eocene-shetland.md),
-[palaeo-coastlines-north-sea-formation-checks.md](palaeo-coastlines-north-sea-formation-checks.md)
+[palaeo-coastlines-north-sea-formation-checks.md](palaeo-coastlines-north-sea-formation-checks.md),
+[palaeo-coastlines-norwegian-shelf-checks.md](palaeo-coastlines-norwegian-shelf-checks.md)
 and
-[palaeo-coastlines-norwegian-shelf-checks.md](palaeo-coastlines-norwegian-shelf-checks.md).
+[palaeo-coastlines-north-sea-structural-elements.md](palaeo-coastlines-north-sea-structural-elements.md).
 This record says what was measured, what was changed, and what was left
 alone.
 
@@ -70,7 +71,7 @@ Cao's **mountain** class, which EarthHistory compiles and validates but does not
 publish, so with `lm` and `sm` alone it reaches the browser as unmapped crust.
 That operation restates Cao's own classification in a class we ship.
 
-## The twenty operations
+## The twenty-nine operations
 
 Areas are **measured** by the compiler during the run, inside the contract
 window and restricted to the operation's own interval. "dissolved" is the change
@@ -100,14 +101,24 @@ one quoted here.
 | 18 | 58–49 | `…-58-49-shetland-platform-add-land` | land added | +14,652 | 75 km | as 17, without the NSTA sheet |
 | 19 | 49–37 | `…-49-37-shetland-platform-remove-shallow` | shallow removed | −25,987 | 75 km | Anell et al. 2012; Jones et al. 2003; Mudge 2015; Kjennerud & Gillmore 2003; Platt & Cartwright 1998; Condon et al. 1992; Sodir GRID FM; Sodir FRIGG FM; Luzinski et al. 2022; NSTA NNS/ESP |
 | 20 | 49–37 | `…-49-37-shetland-platform-add-land` | land added | +29,292 | 75 km | as 19, without the NSTA sheet |
+| 21 | 135–117, 117–94, 94–81 | `…-135-81-jaeren-high-remove-shallow` | shallow removed | −3,671 | 60 km | Gatliff et al. 1994; Sodir CROMER KNOLL GP; Janssen et al. 2022; Sodir structural elements |
+| 22 | 135–117, 117–94, 94–81 | `…-135-81-jaeren-high-add-land` | land added | +3,497 | 60 km | as 21 |
+| 23 | 166–146, 146–135, 135–117, 117–94 | `…-166-94-central-graben-depocentre-remove-land` | land removed | −3,581 | 60 km | Sodir FARSUND FM; Møller & Rasmussen 2003; Rawson & Riley 1982; Sodir structural elements |
+| 24 | 166–146, 146–135, 135–117 | `…-166-117-mid-north-sea-high-remove-shallow` | shallow removed | −35,010 | 75 km | Monaghan et al. 2015; Callomon 2003; Johannessen 2003; Møller & Rasmussen 2003; Cameron et al. 1992; BGS/DECC geological basins |
+| 25 | 166–146, 146–135, 135–117 | `…-166-117-mid-north-sea-high-add-land` | land added | +26,397 | 75 km | as 24 |
+| 26 | 203–179 | `…-203-179-fladen-ground-spur-remove-shallow` | shallow removed | −4,934 | 60 km | Quirie et al. 2020; Johnson et al. 1993; BGS/DECC geological basins |
+| 27 | 203–179 | `…-203-179-fladen-ground-spur-add-land` | land added | +4,934 | 60 km | as 26 |
+| 28 | 166–146 | `…-166-146-fladen-ground-spur-remove-shallow` | shallow removed | −4,934 | 60 km | as 26 |
+| 29 | 166–146 | `…-166-146-fladen-ground-spur-add-land` | land added | +4,934 | 60 km | as 26 |
 
-Totals, **measured**: **+113,050 km² net landmass** (165,739 added by five
-`add-land` operations, 32,689 removed by three `remove-land` operations) and
-**−195,578 km² net shallow marine** (208,743 removed, 13,165 added), across
-eight of the twenty-four intervals. A land addition is smaller than its own
+Totals, **measured**: **+149,231 km² net landmass** (185,501 added by nine
+`add-land` operations, 36,269 removed by four `remove-land` operations) and
+**−244,125 km² net shallow marine** (257,291 removed, 13,166 added), across
+eleven of the twenty-four intervals. A land addition is smaller than its own
 polygon wherever Cao already carried land there — operation 18 adds 14,652 km²
 inside a 32,229 km² outline because roughly half of the Shetland Platform was
-already land at 58–49 Ma.
+already land at 58–49 Ma, and operation 25 adds 26,397 km² of ground inside a
+34,738 km² outline for the same reason.
 
 ### What the second round (2026-09-15) changed
 
@@ -161,6 +172,69 @@ memos:
   retrieved source places a Palaeogene shoreline anywhere between 0°E and 1.2°E,
   and the schema carries one figure per operation, so it states the worst edge
   and the rationale says which edge that is.
+
+### What the third round (2026-09-15) added: the structural elements
+
+Operations 21–29 come from
+[palaeo-coastlines-north-sea-structural-elements.md](palaeo-coastlines-north-sea-structural-elements.md),
+which asked a different question from the two formation memos: **at the crest of
+a named structural element, and in the basin beside it, does the shipped map say
+land, shallow sea, both, or neither — and does that match the element's published
+emergence history?** Two measurements decided what could be built at all.
+
+- **Measured: 26 of the 43 Norwegian-sector elements and 10 of the 19 UK-sector
+  ones have an inscribed diameter below Cao's own ~30 km coastline tolerance.**
+  Most of the North Sea's named highs cannot be drawn in this model.
+- **Measured: across the twelve intervals from 166–146 to 11–2 Ma, 27 of the 43
+  elements carry the shallow-marine class and nothing else at every one of
+  them.** High and graben are the same colour at every age; there is no
+  archipelago and no post-Jurassic structural relief on this map.
+
+Five operations were proposed and **four were built**. The **Jæren High**
+(21–22) is drawn as an island through the Early and Late Cretaceous on the BGS
+central North Sea report's "these intrabasinal upland areas were not submerged
+until much later in the Cretaceous" and "Chalk sedimentation extended over the Jæren High, probably
+during the early Campanian"; it stops short of 146–135 because Janssen et al.
+(2022) record Ryazanian macrofossils in well 7/7-2 *on* the high. The **eastern
+Central Graben depocentre** (23) is a removal only — the Tail End Graben, Søgne
+Basin and Gertrud Graben rendered as dry ground through Farsund Formation time
+because Cao overlaps its own landmass on its own shallow-marine polygon there,
+the same defect the second round fixed three times over. The **Mid North Sea
+High** (24–25) is the best-sourced of the five, with four independent
+publications putting it above water from the Middle Jurassic until the
+Aptian–Albian; its outline is the one published as text and convertible without
+reading a figure — BGS CR/15/124's Quadrants 35–39, 1.00 °W to 4.00 °E, 55.00 to
+56.00 °N — with a southward feather to 54.7 °N, the English coastal strip west of
+1 °W excluded, and the operation stopping at 3.2 °E so the marine corridor along
+the Central Graben stays as Cao drew it. It declares 75 km rather than 60 km
+because the NSTA, EGDI/NAGTEC and BGS renderings of the high genuinely disagree.
+The **Fladen Ground Spur** (26–29) is two pairs rather than one, because the
+sources constrain 203–179 and 166–146 and the map already draws the spur as land
+at 179–166 between them; it uses the NSTA/BGS-DECC outline, on which the element
+is 43.9 km across, and not the Sodir "Falden Ground Spur" polygon, which is a
+quarter of the area and below the class floor. An independent third rendering,
+EGDI/NAGTEC's, matches NSTA and not Sodir.
+
+**The fifth operation was declined.** The East Shetland Platform in the Late
+Jurassic rests on *absence of section* plus a statement of uplift and erosion —
+exactly the pair the Norwegian-shelf memo refused to convert into land for the
+Nordland Ridge — and it is the only one of the five with no licensed
+machine-readable outline of its own. It is in the contract's `notes.leftAlone`
+with its two witnesses instead.
+
+**Rights, and this round settled one.** The UK-sector extents come from the NSTA
+open-data layers, whose own item metadata carries **no licence string at all**
+and whose default user agreement grants non-commercial use only. The identical
+polygons are redistributed by the BGS in its 21CXRM Palaeozoic package under the
+**Open Government Licence v3.0**, with the required acknowledgement "Contains
+British Geological Survey materials ©NERC 2017" — measured this session by
+reading both shapefiles directly, the DECC and NSTA extents are the same
+polygons. The contract cites the BGS redistribution, not the NSTA portal. The
+Norwegian extents are the Sodir structural-elements layer, NLOD **1.0** per its
+Geonorge metadata record (the brief said 2.0; sodir.no returned 403 to every
+automated fetch, so 1.0 is cited until someone reads the page). Nothing from
+either is redistributed: only derived points, boxes and areas appear, and every
+emitted ring is EarthHistory's own coarse construction.
 
 ## What was deliberately left alone
 

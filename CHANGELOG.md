@@ -9,13 +9,13 @@ All notable changes to EarthHistory will be recorded here.
 - A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
   coast proxy with mapped palaeogeography for the 24 published map intervals
   from `402-380` to `11-2` Ma, plus the Last Glacial Maximum lowstand state. All
-  three Cao surface classes ship: 26,769 landmass pieces (3,418,479 bytes),
-  31,271 shallow-marine pieces (3,467,192 bytes) and 12,151 mountain pieces
-  (1,195,501 bytes), cut from 7,155, 13,395 and 4,789 Cao et al. (2017) source
+  three Cao surface classes ship: 26,796 landmass pieces (3,449,240 bytes),
+  31,271 shallow-marine pieces (3,493,033 bytes) and 12,151 mountain pieces
+  (1,195,909 bytes), cut from 7,155, 13,395 and 4,789 Cao et al. (2017) source
   records and the cited basin and lowstand contracts, plus three columnar class
-  catalogs and 25 country-outline tone tables (107,501 bytes for both files) —
-  8,188,673 bytes over 80 files, inside the 8.5 MiB budget `check-app-artifacts`
-  now enforces. `dist` is 51,455,724 bytes (49.07 MiB) against the unchanged
+  catalogs and 25 country-outline tone tables (107,504 bytes for both files) —
+  8,245,686 bytes over 80 files, inside the 8.5 MiB budget `check-app-artifacts`
+  now enforces. `dist` is 51,542,105 bytes (49.15 MiB) against the unchanged
   50 MiB ceiling.
 - The mechanism: the browser downloads polygon rings, not triangles. A published
   interval is one EHPR v1 payload per class — int16 lon/lat vertices, a 12-byte
@@ -70,7 +70,7 @@ All notable changes to EarthHistory will be recorded here.
   against the 1,172,814 the class needed. Every chart is deep-equal after
   expansion and the whole document is canonically equal; six deliberate
   mutations are proven red in both halves of the codec. `PALAEO_MAX_BYTES` rose
-  from 7 to 8.5 MiB, inside what was reclaimed, and `dist` keeps 973,076 bytes
+  from 7 to 8.5 MiB, inside what was reclaimed, and `dist` keeps 886,695 bytes
   of margin under the 50 MiB ceiling. Two further reclaims were measured and
   deliberately left untaken — mountain node reduction at 0.05 degrees (41,654
   bytes, 3.5 % of the class, for a real loss of boundary detail) and interning
@@ -90,11 +90,11 @@ All notable changes to EarthHistory will be recorded here.
   gap-free motion coverage is not drawn rather than posed on an invented
   rotation. The validator rejects an override piece outside its footprint, and
   an override entry with no footprint at all.
-- Twenty cited local modifications to the Cao 2017 polygons in the North Sea,
-  the first basin the plan's edit contract covers. In eight of the twenty-four
-  map intervals the source misstates the land-sea pattern at basin scale, and
-  113,050 km2 of landmass is added net and 195,578 km2 of shallow marine removed
-  net to fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
+- Twenty-nine cited local modifications to the Cao 2017 polygons in the North
+  Sea, the first basin the plan's edit contract covers. In eleven of the
+  twenty-four map intervals the source misstates the land-sea pattern at basin
+  scale, and 149,231 km2 of landmass is added net and 244,125 km2 of shallow
+  marine removed net to fix it: the Middle Devonian Orcadian Basin stops being an epicontinental sea
   and goes back to being a lake in a continent (402-380 Ma); the Moray Firth
   emerges in the Zechstein while the Central North Sea evaporite basin stays
   flooded (269-248); the East Shetland Platform and the Brent/Vestland delta
@@ -124,16 +124,17 @@ All notable changes to EarthHistory will be recorded here.
   the literature is citation-only: no figure, map plate or coordinate list is
   traced, digitised or redistributed, the two NSTA/OGA regional packages
   (Open Government Licence v3.0) are read as facies descriptions only, and the
-  only redistributed palaeogeographic geometry remains Cao et al. (2017). Six
+  only redistributed palaeogeographic geometry remains Cao et al. (2017). Nine
   interval groups are deliberately left untouched and the contract says why,
   including the Late Cretaceous platform flooding and the Forties provenance the
   literature memo flags as unsettled, the Late Jurassic rift seaways Cao already
   gets right, and the northern limit of the Zechstein Sea nothing retrieved
   places. The record is
-  `docs/research/palaeo-coastlines-north-sea-edits.md`, with four measured
+  `docs/research/palaeo-coastlines-north-sea-edits.md`, with five measured
   companions: the formation checks, the Middle Jurassic and Eocene Shetland
-  literature records, and the Norwegian shelf checks against the Norlex
-  lithostratigraphic wallchart and the Sodir formation charts. Two further
+  literature records, the Norwegian shelf checks against the Norlex
+  lithostratigraphic wallchart and the Sodir formation charts, and the
+  structural-element checks. Two further
   refinements come from those: the Brent rationale now says that 60 degrees
   30 minutes N bounds the *Vestland* system and not the Brent maximum (a delta
   *front* at about 61 degrees 30 minutes N that the operation deliberately does
@@ -153,6 +154,138 @@ All notable changes to EarthHistory will be recorded here.
   index are built from the shipped class list alone — which the promote script
   refuses to publish against a mismatch — so a segment is inked dark over the
   mountain class now that the class ships, and was not while it did not.
+- Nine of those twenty-nine operations are the **North Sea structural
+  elements**, and the two measurements behind them are the reason there are only
+  nine. Measured: 26 of the 43 Norwegian-sector elements and 10 of the 19
+  UK-sector ones have an inscribed diameter below Cao's own ~30 km coastline
+  tolerance, so most of the North Sea's named highs cannot be drawn in this
+  model at all; and across the twelve intervals from 166-146 to 11-2 Ma, 27 of
+  the 43 carry the shallow-marine class and nothing else at every one of them -
+  high and graben the same colour at every age, with no archipelago and no
+  post-Jurassic structural relief anywhere on the map. What changed: the Jaeren
+  High becomes an island through 135-117, 117-94 and 94-81 Ma and stops short of
+  146-135 because Ryazanian macrofossils were recovered from a well on the high
+  itself; the Tail End Graben, Sogne Basin and Gertrud Graben stop rendering as
+  dry ground through Farsund Formation time (166-146 to 117-94); the Mid North
+  Sea High is emergent from the Middle Jurassic until the Aptian-Albian
+  submergence four publications date (166-146 to 135-117); and the Fladen Ground
+  Spur is land at 203-179 and 166-146, the two intervals its sources constrain.
+  The Mid North Sea High operation is anchored on the one extent published as
+  text and convertible without reading a figure - Quadrants 35-39 - leaves the
+  marine corridor along the Central Graben as Cao drew it, and declares 75 km
+  rather than 60 km because the NSTA, EGDI/NAGTEC and BGS renderings of the high
+  genuinely disagree by up to two degrees. A fifth proposed operation, the East
+  Shetland Platform in the Late Jurassic, was declined and recorded with its
+  reason: it rests on absence of section plus a statement of uplift, the same
+  pair the Norwegian-shelf memo refused for the Nordland Ridge.
+- A **licence resolution** the UK-sector extents needed. The NSTA open-data
+  layers carry no `licenseInfo` string at all and NSTA's default user agreement
+  grants non-commercial use only; the identical polygons - measured this session
+  by reading both shapefiles directly - are redistributed by the British
+  Geological Survey in its 21CXRM Palaeozoic package under the Open Government
+  Licence v3.0 with the acknowledgement "Contains British Geological Survey
+  materials (c)NERC 2017". The contract cites the BGS redistribution. The
+  Norwegian extents are the Sodir structural-elements layer under NLOD 1.0, not
+  the 2.0 the brief assumed. Nothing from either is redistributed: only derived
+  points, boxes and areas appear, and every emitted ring stays EarthHistory's
+  own coarse construction.
+- An **`iceland` basin contract**, the second the layer carries, and the first
+  drawn from a national geological map rather than from prose. Cao 2017 draws no
+  land over Iceland at any map interval: the island and its shelf are shallow
+  marine at 20-11 and 11-2 Ma and absent before that, so the North Atlantic has
+  had no Iceland on this globe at any Neogene age. Four operations fix it. At
+  11-2 Ma the layer draws the dissolved `gold` class of the Natturufraedistofnun
+  Islands 1:600,000 bedrock map - "Basic and intermediate extrusive rocks with
+  ingercalated sediments. Upper Tertiary, older than 3.3 m.y." - 35,468 km2 of
+  present outcrop, against the about 36,000 km2 of Tertiary rocks Hardarson et
+  al. (2008) publish independently. At 20-11 Ma it draws the same outcrop
+  clipped to the three lobes the published radiometric ages place at or above
+  12-16 Ma: the NW peninsula, Trollaskagi and the Eastfjords, 22,212 km2. Each
+  add-land carries a paired remove-shallow over the identical ring, so the
+  evidence record stops asserting Cao's shallow-marine class under ground the
+  layer now calls land. The geometry is derived by
+  `scripts/research/palaeo_coastlines_iceland_ops.py` from the same pinned,
+  hashed CC BY 4.0 snapshot the regional Iceland material correction reads - so
+  the palaeo land and the `gold` outcrop cannot drift apart - and the script's
+  `--check` proves the tracked contract re-derives, with seven proven-red
+  mutations.
+- What the Iceland contract does not claim, and it is a long list because the
+  evidence is thin. The outcrop is a **minimum** footprint, not a reconstructed
+  coastline: erosion, burial, glacial excavation and subsidence all remove area,
+  so a defensible bracket runs from this 35,468 km2 to the 101,155 km2 modern
+  outline and the contract deliberately draws the minimum, with a hole down its
+  middle where the neovolcanic zones are excluded. No exposed Icelandic crust is
+  older than about 16 Ma, so the 16.3-20 Ma half of the 20-11 bin carries no
+  mapped land at all and that operation is a young-end statement only. The
+  3.3 Ma class boundary is the finest the source offers, 1.3 Myr older than the
+  bin's young bound. And the rigid two-plate pose closes the island to a maximum
+  at about 12 Ma and then re-opens it - past about 13 Ma the eastern half has
+  been carried through the western half and out the far side - which is why
+  every non-modern Iceland pose is model inference and never cited
+  reconstruction. The Jan Mayen microcontinent, the Faroes and the
+  Iceland-Faroe Ridge land bridge, an Icelandic LGM state and the shallow-marine
+  platform around the island are all recorded as deliberately left alone, with
+  their references and reasons.
+- A **seam gate** for Iceland that records a disagreement instead of asserting
+  agreement. The palaeo compiler cuts the island on the Cao 2024 static-partition
+  seam - plate 102 in the west, 301 in the east - while the material correction
+  cuts it on the exact shared 101/301 ridge subsegments; plates 101 and 102 are
+  measured co-moving to 0.0 km over 0-29 Ma, so the risk is the seam line, not
+  the rotations. Measured: on the four latitudes where both constructions cut
+  through outcrop, 65.4 to 66.0 N, the two seams are 19.7 to 60.6 km apart, and
+  between 64.6 and 65.2 N the partition seam falls inside the neovolcanic gap
+  where there is no Tertiary outcrop to cut at all. The contract pins each
+  separation and allows 5 km of drift, so the gate catches a change in either
+  construction; it does not pretend the two agree.
+- Thirty-nine new **validator witnesses**, and the premise one of them corrects.
+  Twenty-three come from a measurement of nine inland seas across North America,
+  South America and Siberia through all 24 intervals, and the most important
+  says that the **Turgai Strait is an open, connected marine corridor at 81-58,
+  58-49 and 49-37 Ma** and closes at 37-29. The plan had recorded it as land in
+  every interval and called restoring it the highest-value fix available; that
+  came from probing only the four intervals in which the strait is dry, and
+  `WITNESS_INTERVALS` now spans nineteen intervals rather than twelve so the
+  same blind spot cannot recur. Two more of those rows keep western Amazonia
+  drawn as land through the Neogene rather than as shallow marine, which would
+  assert the contested marine reading of the Pebas system over the published
+  lacustrine one. Sixteen come from the structural-element checks, nine of them
+  negative witnesses that record a state deliberately not changed - the Late
+  Jurassic footwall archipelago, the Forties-Montrose High, the Tampen Spur -
+  so that a later change has to be deliberate. Every row is a class SET rather
+  than a membership test, because three of the findings are invisible to a
+  membership test. `palaeo_coastlines_correction.py --self-test` now proves 33
+  mutations red, up from 27.
+- A **pre-collision extent gate**, `scripts/research/validate_precollision_extent.py`,
+  and the unit test `src/reconstruction/precollisionExtent.test.ts` beside it.
+  The product requirement is one sentence - enough continental land has to be
+  compacted to explain the height of the mountains - and a rigid plate model can
+  fail it silently. Measured against the published shortening budgets of three
+  collisions: India-Asia **passes**, because Cao 2024 ships a `Greater India
+  based on Gibbons et al. (2015) Gondwana Research` feature reaching 1,341 km
+  north of the model's own Indian outline at 85 E, against a 1,000 km minimum,
+  with a lifecycle that ends at 10 Ma - the model's own statement that the crust
+  was consumed. Adria-Europe **fails** by 140 km: the Alpine convergence is
+  inside the published range, 301 km since 35 Ma, but it closes a 316 km empty
+  seam without shortening a single square kilometre of crust. Baltica-Laurentia
+  **fails** by 18 km at 62 N and 108 km at 66 N, and the 122 km the model does
+  carry is modern Atlantic shelf rather than a restored Caledonian margin. The
+  two failures are pinned as failures, so the gate fails when a measurement
+  drifts or a verdict stops following the numbers beside it, not because the
+  model is short; restoring those two margins is designed in
+  `docs/research/palaeo-coastlines-restored-margins-design.md` and not shipped
+  here. `--record-only` runs in any checkout; the pyGPlates re-derivation of
+  sixteen transects, nineteen overlaps and twenty convergences runs where the
+  pinned environment exists and reports "not run" by name where it does not.
+  Ten mutations are proven red.
+- One map-key line for the crust that passes: "Greater India crust - model
+  inference after Gibbons et al. (2015); published spread ~600-3,000 km; removed
+  from the model at 10 Ma", shown only while that chart is actually posed. Three
+  rules behind the wording - name the model rather than the map, say crust
+  rather than land because the layer draws this ground as shallow sea, and carry
+  the spread, which is a factor of five and unresolved. Thirty-nine references
+  join `src/data/sources.ts` with it: the twenty behind the three shortening
+  budgets, eleven behind the structural-element operations, and eight behind the
+  Iceland contract.
 - One optional **Last Glacial Maximum lowstand state** inside the same layer, at
   26.5-19.5 ka: the first interval the layer carries that is not Cao et al.
   (2017) geometry at all. It is the NOAA ETOPO 2022 60 arc-second surface at or

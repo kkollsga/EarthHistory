@@ -4,7 +4,7 @@
  "title": "North Sea rift basin",
  "status": "edited",
  "pinnedAt": "2026-09-15",
- "description": "Basin edit contract for the North Sea. Twenty cited operations in eight Cao et al. (2017) map intervals: the Middle Devonian Orcadian Basin (402-380), the Zechstein-age Moray Firth (269-248), the Middle Jurassic East Shetland Platform, Brent/Vestland delta plain and the Scottish landmass Cao maps as mountain (179-166), the emergent Shetland Platform of the Palaeocene-Eocene (58-49) and Eocene (49-37), a cited Scottish landmass and three deep-water depocentres Cao overlaps with land in the Late Jurassic and Early Cretaceous (166-146, 146-135, 135-117). Every geometry is EarthHistory's own coarse construction constrained by the published descriptions named in each operation's references; no figure, map plate or coordinate list from any cited publication is traced, digitised or redistributed, and the emitted rings are derived from the Cao et al. (2017) polygons. The intervals this contract deliberately leaves alone, and why, are listed in notes.leftAlone.",
+ "description": "Basin edit contract for the North Sea. Twenty-nine cited operations in eleven Cao et al. (2017) map intervals: the Middle Devonian Orcadian Basin (402-380), the Zechstein-age Moray Firth (269-248), the Early Jurassic Fladen Ground Spur (203-179), the Middle Jurassic East Shetland Platform, Brent/Vestland delta plain and the Scottish landmass Cao maps as mountain (179-166), the Late Jurassic Scottish landmass, Fladen Ground Spur and Mid North Sea High with removals over the Viking Graben, Egersund Basin, Norwegian-Danish Basin and the eastern Central Graben depocentre (166-146 to 117-94), the Jaeren High island of the Early and Late Cretaceous (135-117 to 94-81), and the emergent Shetland Platform of the Palaeocene-Eocene (58-49) and Eocene (49-37). Every operation names its references; the compiler refuses one without them.",
  "window": {
   "bbox": [
    -5.0,
@@ -17,10 +17,13 @@
  "intervals": [
   "402-380",
   "269-248",
+  "203-179",
   "179-166",
   "166-146",
   "146-135",
   "135-117",
+  "117-94",
+  "94-81",
   "58-49",
   "49-37"
  ],
@@ -1051,6 +1054,561 @@
     "rawson-riley-1982-late-cimmerian"
    ],
    "claimOrInference": "the unbroken marine column and the isochronous Valhall base are the sources' claims; drawing them in the shallow-marine environment class, and the lens outline, are EarthHistory's own"
+  },
+  {
+   "opId": "north-sea-135-81-jaeren-high-remove-shallow",
+   "kind": "remove-shallow",
+   "intervalIds": [
+    "135-117",
+    "117-94",
+    "94-81"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       2.1,
+       57.2
+      ],
+      [
+       2.7,
+       57.32
+      ],
+      [
+       2.9,
+       57.62
+      ],
+      [
+       2.76,
+       57.9
+      ],
+      [
+       2.38,
+       58.0
+      ],
+      [
+       2.02,
+       57.82
+      ],
+      [
+       1.9,
+       57.5
+      ],
+      [
+       2.1,
+       57.2
+      ]
+     ]
+    ]
+   },
+   "rationale": "The paired removal for the Jaeren High add-land, over the identical ring and the identical three intervals. Land is drawn above shallow sea, so on screen the removal changes little; it exists so the evidence record stops asserting Cao's shallow-marine class under ground the cited sources say was an emergent intrabasinal upland until the early Campanian.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Gatliff et al. (1994), Sodir CROMER KNOLL GP and Janssen et al. (2022)",
+   "references": [
+    "gatliff-1994-central-north-sea",
+    "sodir-cromer-knoll-group",
+    "janssen-2022-danish-central-graben",
+    "sodir-structural-elements"
+   ]
+  },
+  {
+   "opId": "north-sea-135-81-jaeren-high-add-land",
+   "kind": "add-land",
+   "intervalIds": [
+    "135-117",
+    "117-94",
+    "94-81"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       2.1,
+       57.2
+      ],
+      [
+       2.7,
+       57.32
+      ],
+      [
+       2.9,
+       57.62
+      ],
+      [
+       2.76,
+       57.9
+      ],
+      [
+       2.38,
+       58.0
+      ],
+      [
+       2.02,
+       57.82
+      ],
+      [
+       1.9,
+       57.5
+      ],
+      [
+       2.1,
+       57.2
+      ]
+     ]
+    ]
+   },
+   "rationale": "Cao 2017 paints the Jaeren High and the Central Graben axis beside it the same shallow-marine colour at every Early and Late Cretaceous interval, so the high is invisible. The BGS central North Sea regional report states the opposite directly: 'Seismic interpretation indicates that the formation [Hidra Fm] onlaps the flanks of the Forties-Montrose and Jaeren highs; these intrabasinal upland areas were not submerged until much later in the Cretaceous', and 'Chalk sedimentation extended over the Jaeren High, probably during the early Campanian'. Sodir's CROMER KNOLL GP entry records the group as 'absent from the highest parts of the ... Jaeren High'. The operation therefore draws the high as an island through 135-117, 117-94 and 94-81 and removes the shallow-marine class from the same ring. Two stops are deliberate. It does NOT extend back into 146-135: Janssen et al. (2022) record Ryazanian macrofossils in well 7/7-2 ON the high, and a witness at that interval holds the line. And it does not reach the Forties-Montrose High 60 km west, whose submergence the same report dates but whose element is 18.0 km across - below Cao's own ~30 km coastline tolerance, so it is recorded as a limitation rather than drawn. The ring is EarthHistory's own coarse lens inside the published Sodir extent (about 1.9-2.9 E, 57.2-58.0 N, 3,800 km2, inscribed diameter 47 km), not a traced outline.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Gatliff et al. (1994), Sodir CROMER KNOLL GP and Janssen et al. (2022)",
+   "references": [
+    "gatliff-1994-central-north-sea",
+    "sodir-cromer-knoll-group",
+    "janssen-2022-danish-central-graben",
+    "sodir-structural-elements"
+   ]
+  },
+  {
+   "opId": "north-sea-166-94-central-graben-depocentre-remove-land",
+   "kind": "remove-land",
+   "intervalIds": [
+    "166-146",
+    "146-135",
+    "135-117",
+    "117-94"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       3.7,
+       55.9
+      ],
+      [
+       4.6,
+       55.9
+      ],
+      [
+       4.8,
+       56.3
+      ],
+      [
+       4.8,
+       56.9
+      ],
+      [
+       4.2,
+       56.9
+      ],
+      [
+       3.6,
+       56.3
+      ],
+      [
+       3.7,
+       55.9
+      ]
+     ]
+    ]
+   },
+   "rationale": "Cao overlaps one of its own landmass polygons on its own shallow-marine polygon over the eastern Central Graben, and the landmass wins the draw order, so the Tail End Graben, Sogne Basin and Gertrud Graben render as dry ground through Farsund Formation time and into the Early Cretaceous. The lithostratigraphy says the opposite: Sodir's FARSUND FM is 'Kimmeridgian to Volgian', 'mainly deposited in a low-energy marine environment' and 'present throughout the Central Graben but thin or absent over the Southern Vestland Arch and intra-basinal highs'; Moller & Rasmussen (2003) state that 'the Danish Central Graben was fully submerged and marine conditions prevailed'; and Rawson & Riley (1982) date an isochronous, conformable base to the Valhall Formation over most of the North Sea. This is a removal ONLY: the shallow-marine class is already present at all four intervals, so nothing is added and no coastline is invented. The ring is a coarse lens along the eastern Central Graben axis (about 3.6-4.8 E, 55.9-56.9 N) over three named Sodir elements, not a traced graben outline; Sodir maps the Tail End Graben only as its Norwegian-side sliver, and the operation covers the depocentre the three elements share rather than any one polygon.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Sodir FARSUND FM, Moller & Rasmussen (2003) and Rawson & Riley (1982)",
+   "references": [
+    "sodir-farsund-formation",
+    "moller-rasmussen-2003-danish-central-graben",
+    "rawson-riley-1982-late-cimmerian",
+    "sodir-structural-elements"
+   ]
+  },
+  {
+   "opId": "north-sea-166-117-mid-north-sea-high-remove-shallow",
+   "kind": "remove-shallow",
+   "intervalIds": [
+    "166-146",
+    "146-135",
+    "135-117"
+   ],
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -1.0,
+        55.0
+       ],
+       [
+        3.2,
+        55.0
+       ],
+       [
+        3.2,
+        56.0
+       ],
+       [
+        -1.0,
+        56.0
+       ],
+       [
+        -1.0,
+        55.0
+       ]
+      ]
+     ],
+     [
+      [
+       [
+        -0.5,
+        54.7
+       ],
+       [
+        2.0,
+        54.7
+       ],
+       [
+        2.0,
+        55.0
+       ],
+       [
+        -0.5,
+        55.0
+       ],
+       [
+        -0.5,
+        54.7
+       ]
+      ]
+     ]
+    ]
+   },
+   "rationale": "The paired removal for the Mid North Sea High add-land, over the identical rings and intervals, so the evidence record stops carrying Cao's shallow-marine claim under ground four publications place above water until the Aptian-Albian.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 75,
+   "editorial": "EarthHistory modification after Monaghan et al. (2015), Callomon (2003), Johannessen (2003) and Cameron et al. (1992)",
+   "references": [
+    "monaghan-2015-bgs-cr15124",
+    "callomon-2003-central-north-sea-dome",
+    "johannessen-2003-middle-jurassic",
+    "moller-rasmussen-2003-danish-central-graben",
+    "cameron-1992-southern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
+  },
+  {
+   "opId": "north-sea-166-117-mid-north-sea-high-add-land",
+   "kind": "add-land",
+   "intervalIds": [
+    "166-146",
+    "146-135",
+    "135-117"
+   ],
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        -1.0,
+        55.0
+       ],
+       [
+        3.2,
+        55.0
+       ],
+       [
+        3.2,
+        56.0
+       ],
+       [
+        -1.0,
+        56.0
+       ],
+       [
+        -1.0,
+        55.0
+       ]
+      ]
+     ],
+     [
+      [
+       [
+        -0.5,
+        54.7
+       ],
+       [
+        2.0,
+        54.7
+       ],
+       [
+        2.0,
+        55.0
+       ],
+       [
+        -0.5,
+        55.0
+       ],
+       [
+        -0.5,
+        54.7
+       ]
+      ]
+     ]
+    ]
+   },
+   "rationale": "The Mid North Sea High is the best-sourced emergent element in this memo and the map draws it as shallow sea at every Middle Jurassic to Early Cretaceous interval. Four independent publications put it above water through that window: Callomon (2003) names 'the emergent Central North Sea Dome', Johannessen (2003) 'a large positive area', Moller & Rasmussen (2003) exempt 'marginal areas of the Ringkobing-Fyn High and the Mid North Sea High' from the submergence they otherwise describe, and the BGS southern North Sea report has the high 'submerged for the first time' in the Aptian-Albian - which is why this operation stops at 135-117 and a witness at 117-94 holds that young end. The element is 96 km across, far above the class floor. Its outline is the one real weakness and the contract states it rather than hiding it: the NSTA layer calls itself 'generic geological boundaries' and reaches onshore north-east England, EGDI/NAGTEC draws the high a degree further south-east, and BGS CR/15/124 splits it into a PERMIAN high in Quadrants 35-39 and a Devono-Carboniferous high in Quadrants 34-36, two degrees apart. This operation draws the Permian high, on the one extent published as text and convertible without reading a figure - Quadrants 35-39, 1.00 W to 4.00 E, 55.00 to 56.00 N - with a southward feather to 54.7 N where the NSTA 'Mid North Sea High Area' reaches, excluding the English coastal strip west of 1 W, and stopping at 3.2 E so that the marine corridor along the Central Graben where it transects the high is left as Cao draws it. The declared uncertainty is 75 km rather than the 60 km the other operations use, because of that outline disagreement. One thing this operation deliberately does not do: at 179-166 the high is already not shallow sea - 305 of 564 probed points are unmapped crust, almost certainly the mountain class - and an add-land there was not traced back to the pinned archive, so it is not proposed.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 75,
+   "editorial": "EarthHistory modification after Monaghan et al. (2015), Callomon (2003), Johannessen (2003) and Cameron et al. (1992)",
+   "references": [
+    "monaghan-2015-bgs-cr15124",
+    "callomon-2003-central-north-sea-dome",
+    "johannessen-2003-middle-jurassic",
+    "moller-rasmussen-2003-danish-central-graben",
+    "cameron-1992-southern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
+  },
+  {
+   "opId": "north-sea-203-179-fladen-ground-spur-remove-shallow",
+   "kind": "remove-shallow",
+   "intervalIds": [
+    "203-179"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       0.62,
+       58.22
+      ],
+      [
+       1.1,
+       58.22
+      ],
+      [
+       1.35,
+       58.7
+      ],
+      [
+       1.35,
+       59.08
+      ],
+      [
+       1.02,
+       59.27
+      ],
+      [
+       0.72,
+       59.27
+      ],
+      [
+       0.45,
+       58.8
+      ],
+      [
+       0.45,
+       58.47
+      ],
+      [
+       0.62,
+       58.22
+      ]
+     ]
+    ]
+   },
+   "rationale": "The paired removal for the Early Jurassic Fladen Ground Spur add-land, over the identical ring, so the shallow-marine claim does not survive under ground the sources call a positive structure throughout the Jurassic.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Quirie et al. (2020) and Johnson et al. (1993)",
+   "references": [
+    "quirie-2020-fladen-ground-spur",
+    "johnson-1993-northern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
+  },
+  {
+   "opId": "north-sea-203-179-fladen-ground-spur-add-land",
+   "kind": "add-land",
+   "intervalIds": [
+    "203-179"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       0.62,
+       58.22
+      ],
+      [
+       1.1,
+       58.22
+      ],
+      [
+       1.35,
+       58.7
+      ],
+      [
+       1.35,
+       59.08
+      ],
+      [
+       1.02,
+       59.27
+      ],
+      [
+       0.72,
+       59.27
+      ],
+      [
+       0.45,
+       58.8
+      ],
+      [
+       0.45,
+       58.47
+      ],
+      [
+       0.62,
+       58.22
+      ]
+     ]
+    ]
+   },
+   "rationale": "Quirie et al. (2020) state that 'The Fladen Ground Spur likely formed a positive structure throughout the Jurassic' and describe 'a low-relief topographic spur with flora dominated by gymnosperm (e.g. conifer forests)', and the BGS northern North Sea report has the spur, like the East and North Shetland platforms, 'composed of Old Red Sandstone and Caledonian basement'. The map draws shallow sea over it at both 203-179 and 166-146. The element's size is what decides whether this can be drawn at all, and the two licensed outlines disagree by a factor of four: Sodir's 'Falden Ground Spur' polygon is 1,250 km2 and 22.0 km across, below Cao's own ~30 km coastline tolerance, while the NSTA/BGS-DECC 'Fladen Ground Spur' subarea is 5,336 km2 and 43.9 km across, above it. A third, independent rendering breaks the tie - the EGDI/NAGTEC layer, itself derived from an NPD shapefile, matches NSTA and not Sodir - so this operation uses the NSTA/BGS extent and says so. The ring is EarthHistory's own coarse spur inside about 0.4-1.4 E, 58.2-59.3 N, not a traced outline. It is two operations rather than one because 179-166 lies between the two intervals the sources constrain and the map already draws the spur as land there.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Quirie et al. (2020) and Johnson et al. (1993)",
+   "references": [
+    "quirie-2020-fladen-ground-spur",
+    "johnson-1993-northern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
+  },
+  {
+   "opId": "north-sea-166-146-fladen-ground-spur-remove-shallow",
+   "kind": "remove-shallow",
+   "intervalIds": [
+    "166-146"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       0.62,
+       58.22
+      ],
+      [
+       1.1,
+       58.22
+      ],
+      [
+       1.35,
+       58.7
+      ],
+      [
+       1.35,
+       59.08
+      ],
+      [
+       1.02,
+       59.27
+      ],
+      [
+       0.72,
+       59.27
+      ],
+      [
+       0.45,
+       58.8
+      ],
+      [
+       0.45,
+       58.47
+      ],
+      [
+       0.62,
+       58.22
+      ]
+     ]
+    ]
+   },
+   "rationale": "The paired removal for the Late Jurassic Fladen Ground Spur add-land, over the identical ring, for the same reason as its 203-179 twin.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Quirie et al. (2020) and Johnson et al. (1993)",
+   "references": [
+    "quirie-2020-fladen-ground-spur",
+    "johnson-1993-northern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
+  },
+  {
+   "opId": "north-sea-166-146-fladen-ground-spur-add-land",
+   "kind": "add-land",
+   "intervalIds": [
+    "166-146"
+   ],
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       0.62,
+       58.22
+      ],
+      [
+       1.1,
+       58.22
+      ],
+      [
+       1.35,
+       58.7
+      ],
+      [
+       1.35,
+       59.08
+      ],
+      [
+       1.02,
+       59.27
+      ],
+      [
+       0.72,
+       59.27
+      ],
+      [
+       0.45,
+       58.8
+      ],
+      [
+       0.45,
+       58.47
+      ],
+      [
+       0.62,
+       58.22
+      ]
+     ]
+    ]
+   },
+   "rationale": "Quirie et al. (2020) state that 'The Fladen Ground Spur likely formed a positive structure throughout the Jurassic' and describe 'a low-relief topographic spur with flora dominated by gymnosperm (e.g. conifer forests)', and the BGS northern North Sea report has the spur, like the East and North Shetland platforms, 'composed of Old Red Sandstone and Caledonian basement'. The map draws shallow sea over it at both 203-179 and 166-146. The element's size is what decides whether this can be drawn at all, and the two licensed outlines disagree by a factor of four: Sodir's 'Falden Ground Spur' polygon is 1,250 km2 and 22.0 km across, below Cao's own ~30 km coastline tolerance, while the NSTA/BGS-DECC 'Fladen Ground Spur' subarea is 5,336 km2 and 43.9 km across, above it. A third, independent rendering breaks the tie - the EGDI/NAGTEC layer, itself derived from an NPD shapefile, matches NSTA and not Sodir - so this operation uses the NSTA/BGS extent and says so. The ring is EarthHistory's own coarse spur inside about 0.4-1.4 E, 58.2-59.3 N, not a traced outline. It is two operations rather than one because 179-166 lies between the two intervals the sources constrain and the map already draws the spur as land there.",
+   "claimOrInference": "The emergence statements and the dates are claims of the sources; the ring, its coarse shape and the decision that this element is large enough for Cao's ~30 km coastline tolerance are EarthHistory inferences.",
+   "spatialUncertaintyKilometres": 60,
+   "editorial": "EarthHistory modification after Quirie et al. (2020) and Johnson et al. (1993)",
+   "references": [
+    "quirie-2020-fladen-ground-spur",
+    "johnson-1993-northern-north-sea",
+    "bgs-decc-offshore-geological-basins"
+   ]
   }
  ],
  "notes": {
@@ -1141,6 +1699,47 @@
      "anell-2012-cenozoic-north-sea",
      "jones-2003-eocene",
      "nsta-nns-east-shetland-platform-2018"
+    ]
+   },
+   {
+    "intervalIds": [
+     "166-146",
+     "146-135"
+    ],
+    "subject": "The East Shetland Platform in the Late Jurassic (structural-element operation B)",
+    "reason": "Proposed and declined. The case rests on ABSENCE OF SECTION - 'Permian, Triassic and Jurassic strata are generally absent across the East Shetland Platform' - plus a statement of uplift and eastward tilting during the Late Jurassic that shed clastics into the rift. That is exactly the pair the Norwegian-shelf memo refused to convert into land for the Nordland Ridge, and the same rule is applied here. It is also the only one of the five proposed structural-element operations with no licensed machine-readable outline of its own: it would extend the existing 179-166 platform rectangle south rather than draw a published extent, so its geometry would be EarthHistory's own inference on top of an evidential inference. The two East Shetland Platform witnesses are added instead, so the state is recorded and a later change has to be deliberate.",
+    "references": [
+     "johnson-1993-northern-north-sea",
+     "nsta-nns-east-shetland-platform-2018"
+    ]
+   },
+   {
+    "intervalIds": [
+     "166-146",
+     "146-135",
+     "135-117"
+    ],
+    "subject": "The Late Jurassic footwall archipelago and every element below the class floor",
+    "reason": "Measured: 26 of the 43 Norwegian-sector structural elements and 10 of the 19 UK-sector ones have an inscribed diameter below Cao's own ~30 km coastline tolerance, and the largest of the archipelago elements is 28.7 km. The named islands are smaller still - the Gullfaks crest, the NE Margarita Spur and a footwall island on the Josefine Ridge, whose whole element is 13.1 km across. The backstripped islands are model output at three named ages and the BGS northern North Sea report carries the counter-reading that they 'were short lived'. The Forties-Montrose High is the sharpest case: the sourced claim of first submergence in the late Campanian-Maastrichtian Tor Formation is strong and specific, and the element is 18.0 km across. All of these are witnessed, not edited. The Sorvestlandet High is large enough at 37.9 km but the only statement naming it is a reported hypothesis about provenance, not a claim of emergence; the West Central Shelf has a base-Cretaceous unconformity cutting out Jurassic strata, which is missing section, not a land surface.",
+    "references": [
+     "roberts-2019-northern-north-sea-bathymetry",
+     "johnson-1993-northern-north-sea",
+     "gatliff-1994-central-north-sea",
+     "sodir-structural-elements"
+    ]
+   },
+   {
+    "intervalIds": [
+     "269-248",
+     "224-203"
+    ],
+    "subject": "The Zechstein over the Mid North Sea and Ringkobing-Fyn highs, and the Ringkobing-Fyn High in the Rhaetian",
+    "reason": "Two unrepresentable cases. At 269-248 the BGS southern and central North Sea reports say the Zechstein sea flooded both highs, Sodir's ZECHSTEIN GP says the rocks are 'absent ... over the Mid North Sea and Ringkobing-Fyn highs', and local platform facies are described on their margins: the sources disagree, this contract does not adjudicate, and neither the current shallow-marine class nor a hypothetical landmass may be asserted. At 224-203 the bin holds both the early-Rhaetian exposure of the Ringkobing-Fyn High and the latest-Rhaetian flooding, and a maximum-transgression bin can only keep one - the same shape of problem as the Auk desert inside the Zechstein bin. The Early Permian emergent Mid North Sea High is a third: under the BGS reading it falls in 296-285/285-269, where the map already draws land and there is nothing to do, and under the modern Upper Rotliegend dating it falls inside 269-248 with the Zechstein that drowned it.",
+    "references": [
+     "cameron-1992-southern-north-sea",
+     "gatliff-1994-central-north-sea",
+     "tucker-1991-zechstein",
+     "peryt-2010-zechstein"
     ]
    }
   ],
@@ -1496,6 +2095,96 @@
    "constrains": "earliest Eocene East Shetland Platform catchments recycling a Permo-Triassic and Devonian cover with alluvial storage, reduced by sea-level rise",
    "claimOrInference": "claim of the source; that a low-relief coastal plain with alluvial storage is drawn as landmass is an EarthHistory coarsening",
    "note": "CC BY 4.0"
+  },
+  {
+   "sourceId": "gatliff-1994-central-north-sea",
+   "citation": "Gatliff, R W, Richards, P C, Smith, K, Graham, C C, McCormac, M, Smith, N J P, Long, D, Cameron, T D J, Evans, D, Stevenson, A G, Bulat, J, and Ritchie, J D. 1994. United Kingdom offshore regional report: the geology of the central North Sea. London: HMSO for the British Geological Survey. ISBN 0 11 884504 7.",
+   "url": "https://webapps.bgs.ac.uk/Memoirs/docs/B01846.html",
+   "year": 1994,
+   "constrains": "the Hidra Formation onlapping the flanks of the Forties-Montrose and Jaeren highs, which 'were not submerged until much later in the Cretaceous', and chalk sedimentation extending over the Jaeren High 'probably during the early Campanian'",
+   "claimOrInference": "claim of the source; NERC copyright, citation-only, no figure or map plate traced"
+  },
+  {
+   "sourceId": "cameron-1992-southern-north-sea",
+   "citation": "Cameron, T D J, Crosby, A, Balson, P S, Jeffery, D H, Lott, G K, Bulat, J, and Harrison, D J. 1992. United Kingdom offshore regional report: the geology of the southern North Sea. London: HMSO for the British Geological Survey. ISBN 0 11 884492 X.",
+   "url": "https://webapps.bgs.ac.uk/Memoirs/docs/B01848.html",
+   "year": 1992,
+   "constrains": "the Early Permian Mid North Sea and Ringkobing-Fyn highs separating the Northern and Southern Permian basins, and the Mid North Sea High 'submerged for the first time' in the Aptian-Albian, which is the young end of the Mid North Sea High operation",
+   "claimOrInference": "claim of the source; NERC copyright, citation-only, no figure or map plate traced"
+  },
+  {
+   "sourceId": "janssen-2022-danish-central-graben",
+   "citation": "Janssen, N. M. M., Bertelsen, F., Nielsen, L. H. and others. 2022. Ryazanian macrofossils from the Danish Central Graben. Netherlands Journal of Geosciences 101, e5.",
+   "url": "https://doi.org/10.1017/njg.2022.5",
+   "year": 2022,
+   "constrains": "Ryazanian macrofossils in well 7/7-2 on the Jaeren High, which is the stop that keeps the Jaeren High operation out of the 146-135 interval",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "moller-rasmussen-2003-danish-central-graben",
+   "citation": "Moller, J. J. and Rasmussen, E. S. 2003. Middle Jurassic-Early Cretaceous rifting of the Danish Central Graben. Geological Survey of Denmark and Greenland Bulletin 1, 247-264.",
+   "url": "https://doi.org/10.34194/geusb.v1.4654",
+   "year": 2003,
+   "constrains": "that 'the Danish Central Graben was fully submerged and marine conditions prevailed', with the exception of marginal areas of the Ringkobing-Fyn High and the Mid North Sea High",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "monaghan-2015-bgs-cr15124",
+   "citation": "Monaghan, A A, and others. 2015. Palaeozoic petroleum systems of the Central North Sea/Mid North Sea High. British Geological Survey Commissioned Report CR/15/124.",
+   "url": "https://nora.nerc.ac.uk/id/eprint/516766/1/CR15124.pdf",
+   "year": 2015,
+   "constrains": "the Permian Mid North Sea High 'situated in Quadrants 35-39', which is the one extent published as text and convertible without reading a figure, and its separation from the Devono-Carboniferous high in Quadrants 34-36",
+   "claimOrInference": "claim of the source for the quadrant statement; converting quadrants to a degree box against licensed quadrant geometry is an EarthHistory inference"
+  },
+  {
+   "sourceId": "callomon-2003-central-north-sea-dome",
+   "citation": "Callomon, J. H. 2003. The Middle Jurassic of western and northern Europe: its subdivisions, geochronology and correlations. Geological Survey of Denmark and Greenland Bulletin 1, 61-73.",
+   "url": "https://doi.org/10.34194/geusb.v1.4648",
+   "year": 2003,
+   "constrains": "'the emergent Central North Sea Dome' in the Middle Jurassic",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "johannessen-2003-middle-jurassic",
+   "citation": "Johannessen, P. N. 2003. Sedimentology and sequence stratigraphy of paralic and shallow marine Upper Jurassic sandstones in the northern Danish Central Graben. Geological Survey of Denmark and Greenland Bulletin 1, 367-402.",
+   "url": "https://doi.org/10.34194/geusb.v1.4678",
+   "year": 2003,
+   "constrains": "the Mid North Sea High as 'a large positive area' supplying the Danish Central Graben",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "quirie-2020-fladen-ground-spur",
+   "citation": "Quirie, A. K., Schofield, N., Hartley, A., Hole, M. J., Archer, S. G., Underhill, J. R., Watson, D. and Holford, S. P. 2020. Supereruptions and the Rattray Volcanic Province, Central North Sea. Journal of the Geological Society 177(4), 692-706.",
+   "url": "https://doi.org/10.1144/jgs2019-182",
+   "year": 2020,
+   "constrains": "that 'The Fladen Ground Spur likely formed a positive structure throughout the Jurassic' and was 'a low-relief topographic spur with flora dominated by gymnosperm (e.g. conifer forests)'",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "sodir-structural-elements",
+   "citation": "Norwegian Offshore Directorate (Sodir). Structural elements of the Norwegian shelf and adjacent areas, FactMaps layer 704, service version 3.5.0, APRX updated 24.09.2024; Geonorge record f1680c76-e328-48ec-afdc-78d822cd589b.",
+   "url": "https://www.sodir.no/en/facts/geology/structure-elements/",
+   "year": 2024,
+   "constrains": "the published extents of the Jaeren High, the Tail End Graben, the Sogne Basin and the Gertrud Graben, read as stated bounding extents and areas only",
+   "claimOrInference": "claim of the source for the extents; the rings drawn from them are EarthHistory's own coarse constructions",
+   "note": "Norsk lisens for offentlige data (NLOD) 1.0 per the Geonorge metadata record, with an attribution obligation; the brief said NLOD 2.0 and sodir.no returned 403 to every automated fetch, so NLOD 1.0 is cited until someone reads the page. No polygon from this layer is redistributed: only derived points, boxes and areas appear."
+  },
+  {
+   "sourceId": "sodir-cromer-knoll-group",
+   "citation": "Norwegian Offshore Directorate (Sodir). Lithostratigraphic chart, Cromer Knoll Group.",
+   "url": "https://factpages.sodir.no/en/strat/PageView/Litho/Groups",
+   "year": 2014,
+   "constrains": "that the Cromer Knoll Group is 'absent from the highest parts of the ... Jaeren High'",
+   "claimOrInference": "claim of the source"
+  },
+  {
+   "sourceId": "bgs-decc-offshore-geological-basins",
+   "citation": "British Geological Survey. DECC_OFF_Geological_Basins_Major.shp and DECC_OFF_Geological_Basins_Sub.shp, redistributed in the BGS 21CXRM Palaeozoic project package. Contains British Geological Survey materials (c)NERC 2017.",
+   "url": "http://nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+   "year": 2017,
+   "constrains": "the licensed extents of the Mid North Sea High Area and the Fladen Ground Spur subarea, measured this session as identical polygons to the NSTA open-data layers",
+   "claimOrInference": "claim of the source for the extents; the rings drawn from them are EarthHistory's own coarse constructions",
+   "note": "Open Government Licence v3.0 with the acknowledgement 'Contains British Geological Survey materials (c)NERC 2017'. Cited in preference to the NSTA portal, whose layer items carry no licence string at all and whose default user agreement grants non-commercial use only. No polygon is redistributed."
   }
  ],
  "opSchema": {

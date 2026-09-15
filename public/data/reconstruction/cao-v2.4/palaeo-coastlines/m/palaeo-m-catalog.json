@@ -2012,8 +2012,8 @@
    13711,
    17031,
    15817,
-   19298,
-   18118,
+   19331,
+   18195,
    0
   ],
   "bytes": [
@@ -2039,8 +2039,8 @@
    73382,
    91146,
    84946,
-   103158,
-   97204,
+   103274,
+   97496,
    32
   ],
   "collapsedRings": [
@@ -2094,8 +2094,8 @@
    26520,
    32485,
    29152,
-   36773,
-   33533,
+   36805,
+   33608,
    0
   ],
   "fromAgeMa": [
@@ -2283,8 +2283,8 @@
    "868c5a33eb20b7a63165935b4616a38705795332e4b03aaec5b1ea141e1dafda",
    "707b68ed7dea32dea53cf52922276c37d2b6f08ac3b19366eb3cce59905c6811",
    "d8bd410c6c6978b3e809f9699356e1c885aa8ae17aade31cb7d9ca27f158b1a0",
-   "c88b49a3a830c72f4d03b4bafc25ac7fb7e25c116a8665251cd1bf9ea23ceca4",
-   "4fcc2171dafaec1f42251b09211e3ed71f4f8ed7395f58f29f42e89e626f147f",
+   "13988ba8934584c7b03c0e52be39e62d7cfdfb0ee11534213be441298b81a2ac",
+   "2190a27e7208df68ed2f9d9a172fa4620798eee838bbd60089d173143317937c",
    "fb4064a327e2bb9e3ec847bd862a2d880c7fa4eb54118a22aea9e76abc829985"
   ],
   "toAgeMa": [
@@ -2337,8 +2337,8 @@
    15535,
    19311,
    17892,
-   21861,
-   20551,
+   21890,
+   20624,
    0
   ]
  },
@@ -2430,10 +2430,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-m-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 432868,
+  "bytes": 433937,
   "path": "provenance/palaeo-m-provenance.json",
   "records": 4787,
-  "sha256": "a609aaeeafeddc443765d218f0f2ae7d42d79accc3acede5877e3d6a90cead39",
+  "sha256": "571be08d572a37a57553c1d17cc7700598f76a8bc53275d472fd1528fceedbaf",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2
