@@ -28,6 +28,45 @@ export interface ReconstructionPackageManifestV2 {
   readonly motionPalette: MotionPaletteAsset;
   readonly checkpoints: readonly (PackageAsset & { readonly ageMa: number; readonly transitiveBytes: number })[];
   readonly materialCorrections?: { readonly id: string; readonly catalog: PackageAsset };
+  /** Optional Cao 2017 palaeogeography layer; absent means the mode has no assets. */
+  readonly palaeoCoastlines?: PalaeoCoastlineAssets;
+}
+
+export type PalaeoCoastlineSurfaceClassId = "lm" | "sm" | "m";
+
+export interface PalaeoCoastlineClassAsset {
+  readonly surfaceClass: PalaeoCoastlineSurfaceClassId;
+  /** `palaeo-<class>-catalog.json`; the per-interval payload files sit beside it. */
+  readonly catalog: PackageAsset;
+  /**
+   * Linear base colour of the class. Display height is not declared: the
+   * renderer's shell table owns the offset each palaeo class is drawn at, and a
+   * second height in the package would double it.
+   */
+  readonly baseColorRgb: readonly [number, number, number];
+}
+
+/**
+ * What the palaeo surface renderer instance and the artifact budget check are
+ * promised before any interval is fetched. `maxEdgeDegrees` is the chord-sag
+ * contract: above 1 degree a flat chord sinks further into the opaque globe
+ * than the shelf shell stands above it.
+ */
+export interface PalaeoCoastlineReservation {
+  readonly maxResidentSourceBytes: number;
+  readonly maxIntervalVertices: number;
+  readonly maxIntervalTriangles: number;
+  readonly maxEdgeDegrees: number;
+}
+
+export interface PalaeoCoastlineAssets {
+  readonly id: string;
+  /** The ages the 24 published map intervals cover; outside it the mode falls back. */
+  readonly ageDomainMa: ReconstructionAgeDomain;
+  readonly classes: readonly PalaeoCoastlineClassAsset[];
+  /** `outline-tones.json` and `outline-tones.ehpt`: the 24 country-outline tone tables. */
+  readonly outlineTones: { readonly catalog: PackageAsset; readonly binary: PackageAsset };
+  readonly reservation: PalaeoCoastlineReservation;
 }
 
 export type MaterialChartRole = "model-geography" | "country-reference" | "poi-anchor" | "focus-anchor";
@@ -351,6 +390,51 @@ function sameMotionBindingSignature(
     && left.every((value, index) => value === right[index]);
 }
 
+const PALAEO_SURFACE_CLASS_IDS: readonly PalaeoCoastlineSurfaceClassId[] = Object.freeze(["lm", "sm", "m"]);
+
+/** Ceilings of the palaeo surface renderer instance in `GlobeScene`. */
+const PALAEO_MAX_INTERVAL_VERTICES = 170_000;
+const PALAEO_MAX_INTERVAL_TRIANGLES = 300_000;
+const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
+
+export function validatePalaeoCoastlineAssets(
+  palaeo: PalaeoCoastlineAssets,
+  domain: ReconstructionAgeDomain,
+): void {
+  const ages = palaeo.ageDomainMa;
+  const reservation = palaeo.reservation;
+  if (!palaeo.id || !Number.isFinite(ages?.youngest) || !Number.isFinite(ages.oldest)
+      || ages.youngest < 0 || ages.youngest >= ages.oldest
+      || ages.youngest < domain.youngest || ages.oldest > domain.oldest
+      || !assetValid(palaeo.outlineTones?.catalog) || !assetValid(palaeo.outlineTones.binary)
+      || !Array.isArray(palaeo.classes) || palaeo.classes.length === 0
+      || palaeo.classes.length > PALAEO_SURFACE_CLASS_IDS.length) {
+    throw new Error("invalid Cao palaeo-coastline manifest section");
+  }
+  const declared = new Set<string>();
+  for (const entry of palaeo.classes) {
+    if (!PALAEO_SURFACE_CLASS_IDS.includes(entry.surfaceClass) || declared.has(entry.surfaceClass)
+        || !assetValid(entry.catalog) || !Array.isArray(entry.baseColorRgb)
+        || entry.baseColorRgb.length !== 3
+        || entry.baseColorRgb.some((channel: number) => !Number.isFinite(channel) || channel < 0 || channel > 1)) {
+      throw new Error("invalid Cao palaeo-coastline class asset");
+    }
+    declared.add(entry.surfaceClass);
+  }
+  if (!Number.isSafeInteger(reservation?.maxResidentSourceBytes)
+      || reservation.maxResidentSourceBytes <= 0
+      || reservation.maxResidentSourceBytes > PALAEO_MAX_RESIDENT_SOURCE_BYTES
+      || !Number.isSafeInteger(reservation.maxIntervalVertices)
+      || reservation.maxIntervalVertices <= 0
+      || reservation.maxIntervalVertices > PALAEO_MAX_INTERVAL_VERTICES
+      || !Number.isSafeInteger(reservation.maxIntervalTriangles)
+      || reservation.maxIntervalTriangles <= 0
+      || reservation.maxIntervalTriangles > PALAEO_MAX_INTERVAL_TRIANGLES
+      || !(reservation.maxEdgeDegrees > 0) || reservation.maxEdgeDegrees > 1) {
+    throw new Error("invalid Cao palaeo-coastline reservation");
+  }
+}
+
 export function validateReconstructionPackageManifestV2(manifest: ReconstructionPackageManifestV2): void {
   const domain = manifest.ageDomainMa;
   if (manifest.schemaVersion !== 2 || !manifest.packageId || !manifest.revision
@@ -376,6 +460,7 @@ export function validateReconstructionPackageManifestV2(manifest: Reconstruction
     }
     previous = checkpoint.ageMa;
   }
+  if (manifest.palaeoCoastlines) validatePalaeoCoastlineAssets(manifest.palaeoCoastlines, domain);
 }
 
 export function validateMaterialCorrectionCatalogV1(
