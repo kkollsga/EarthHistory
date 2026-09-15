@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { MaterialCorrectionCatalogV1 } from "../reconstruction/packageV2";
 import { sources } from "./sources";
 import { expandInternedPackageDocument } from "../reconstruction/packageIntern";
+import { decodePalaeoCoastlineClassCatalog } from "../reconstruction/palaeoRings";
 
 describe("scientific source catalog", () => {
   it("resolves every curated source identifier emitted by regional material corrections", () => {
@@ -13,6 +14,24 @@ describe("scientific source catalog", () => {
     expect(known.size).toBe(sources.length);
     for (const chart of catalog.charts) {
       for (const sourceId of chart.evidence.sourceIds) expect(known.has(sourceId)).toBe(true);
+    }
+  });
+
+  it("resolves every source identifier the published Cao 2017 class catalogs cite", () => {
+    // The map key and the Sources panel look these up by id, so a catalog that
+    // cited an id this table does not carry would put a limitation on screen
+    // with no reference under it.
+    const known = new Set(sources.map((source) => source.id));
+    for (const surfaceClass of ["lm", "sm"] as const) {
+      const catalog = decodePalaeoCoastlineClassCatalog(JSON.parse(readFileSync(
+        `public/data/reconstruction/cao-v2.4/palaeo-coastlines/${surfaceClass}/`
+        + `palaeo-${surfaceClass}-catalog.json`, "utf8")), surfaceClass);
+      expect(catalog.evidence.length).toBeGreaterThan(0);
+      for (const evidence of catalog.evidence) {
+        for (const sourceId of evidence.sourceIds) {
+          expect(known.has(sourceId), `${surfaceClass} cites ${sourceId}`).toBe(true);
+        }
+      }
     }
   });
 });

@@ -13,14 +13,15 @@ import {
   PALAEO_SURFACE_CLASS_APPEARANCES,
   PALAEO_SURFACE_CLASS_CODES,
   PALAEO_SURFACE_CLASS_NAMES,
+  decodePalaeoCoastlineClassCatalog,
   type PalaeoCoastlineClassCatalog,
   type PalaeoSurfaceClass,
 } from "../palaeoRings";
 
 const HEADER_BYTES = 32;
 const PIECE_BYTES = 12;
-const RING_BYTES = 4;
-const HOLE_BIT = 0x8000_0000;
+const RING_BYTES = 2;
+const HOLE_BIT = 0x8000;
 
 export type LonLat = readonly [number, number];
 
@@ -92,7 +93,7 @@ export function encodePalaeoRingPayload(options: PalaeoRingFixtureOptions): Arra
   for (const [index, ring] of rings.entries()) {
     const count = options.ringVertexCountOverride?.ringIndex === index
       ? options.ringVertexCountOverride.value : ring.lonLat.length;
-    view.setUint32(offset, (count & 0x7fff_ffff) | (ring.hole ? HOLE_BIT : 0), true);
+    view.setUint16(offset, (count & 0x7fff) | (ring.hole ? HOLE_BIT : 0), true);
     offset += RING_BYTES;
   }
   for (const [longitude, latitude] of vertices) {
@@ -107,14 +108,20 @@ export function encodePalaeoRingPayload(options: PalaeoRingFixtureOptions): Arra
 export interface PalaeoCatalogFixtureOptions {
   readonly surfaceClass?: PalaeoSurfaceClass;
   readonly catalogId?: string;
-  readonly entryId?: string;
+  /** The plate every fixture binding rides; `palaeo-binding-entry-v1` starts from it. */
+  readonly bindingPlateId?: number;
+  readonly chartCount?: number;
+  readonly recoveryPlateIds?: readonly number[];
+  readonly gapSets?: readonly (readonly { readonly youngestMa: number; readonly oldestMa: number;
+    readonly reason: "source-seam" }[])[];
+  readonly bindings?: readonly { readonly bindingPlateId: number; readonly partitionPlateId: number;
+    readonly kind: number; readonly gapSet: number }[];
   readonly lifecycles?: readonly { readonly youngestExclusiveMa: number; readonly oldestMa: number }[];
   readonly intervals?: readonly {
     readonly intervalId: string;
     readonly intervalIndex: number;
     readonly fromAgeMa: number;
     readonly toAgeMa: number;
-    readonly url: string;
     readonly bytes: number;
     readonly sha256: string;
     readonly pieces: number;
@@ -123,49 +130,94 @@ export interface PalaeoCatalogFixtureOptions {
   }[];
 }
 
-/** A minimal but fully valid class catalog; tests corrupt one field at a time. */
-export function palaeoClassCatalogFixture(
+/** Packs row objects into the columnar table shape a shipped catalog carries. */
+function packColumns(rows: readonly Record<string, unknown>[], columns: readonly string[]):
+Record<string, unknown> {
+  return { count: rows.length,
+    ...Object.fromEntries(columns.map((column) => [column, rows.map((row) => row[column])])) };
+}
+
+/**
+ * The document a build actually ships: schemaVersion 2, columnar, no chart
+ * table. Written from `docs/data/palaeo-coastlines-format.md` rather than from
+ * the decoder, so a test can corrupt any single field of it.
+ */
+export function palaeoClassCatalogDocumentFixture(
   options: PalaeoCatalogFixtureOptions = {},
-): PalaeoCoastlineClassCatalog {
+): Record<string, unknown> {
   const surfaceClass = options.surfaceClass ?? "lm";
-  const entryId = options.entryId ?? "plate-101-0-1800";
+  const bindingPlateId = options.bindingPlateId ?? 101;
+  const intervals = options.intervals ?? [{ intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402,
+    toAgeMa: 380, bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 3 }];
   return {
-    schemaVersion: 1,
-    catalogId: options.catalogId ?? `palaeo-coastlines-${surfaceClass}-v1`,
+    schemaVersion: 2,
+    encoding: "palaeo-class-catalog-columnar-v1",
+    catalogId: options.catalogId ?? `palaeo-coastlines-${surfaceClass}-v2`,
     class: surfaceClass,
     className: PALAEO_SURFACE_CLASS_NAMES[surfaceClass],
     appearance: PALAEO_SURFACE_CLASS_APPEARANCES[surfaceClass],
-    format: { magic: "EHPR", version: 1 },
+    format: { magic: "EHPR", version: 1, specification: "docs/data/palaeo-coastlines-format.md" },
+    paletteId: "cao-v2.4-shared-motion-v1",
+    lifecycleRule: "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
+    payloadNameTemplate: `palaeo-${surfaceClass}-<intervalId>.ehpr`,
+    maximumEdgeDegrees: 1,
+    chartCount: options.chartCount ?? 1,
+    provenance: { path: `provenance/palaeo-${surfaceClass}-provenance.json`, bytes: 1,
+      sha256: "b".repeat(64), records: 1, store: "offline only" },
     flagLimitations: {
       1: "drawn where its partition owner puts it while its own PLATEID1 disagrees by more than 250 km",
       2: "bound by the source PLATEID1 override rather than by the owner partition",
       4: "bound to a North Sea restoration palette entry",
       8: "the source record is off the published 24-interval schedule",
     },
-    charts: [{ sourceRecordIndex: 0, plateId1: 101, fromAgeMa: 402, toAgeMa: 380,
-      featureId: "GPlates-fixture", offSchedule: false, basinOpId: null }],
-    bindings: [{ paletteId: "cao-v2.4-shared-motion-v1", bindingPlateId: 101, partitionPlateId: 101,
-      bindingSource: "owner-partition",
-      entries: [{ entryId, validTimeMa: { youngest: 0, oldest: 1_800 } }] }],
-    evidence: [{ status: "classified-map-polygon", surfaceClass: PALAEO_SURFACE_CLASS_NAMES[surfaceClass],
+    entrySelection: {
+      rule: "palaeo-binding-entry-v1",
+      coverage: "youngestAgeMa <= ageMa <= oldestAgeMa",
+      tieBreak: "largest youngestAgeMa, then entryId",
+      preference: ["restoration-", "native-recovery-plate-", "correction-plate-", "plate-"],
+      correctionPreferenceAgeMa: 410,
+      restorationEntryIds: ["restoration-north-sea-plate-303-130-600",
+        "restoration-north-sea-plate-315-130-420"],
+      recoveryPlateIds: options.recoveryPlateIds ?? [626, 801],
+      recoveryFallback: "unposable",
+    },
+    bindingKinds: ["partition", "override", "restoration", "recovery"],
+    bindings: packColumns(options.bindings
+      ?? [{ bindingPlateId, partitionPlateId: bindingPlateId, kind: 0, gapSet: 0 }],
+      ["bindingPlateId", "partitionPlateId", "kind", "gapSet"]),
+    gapSets: options.gapSets ?? [[]],
+    evidence: [{ status: "classified-map-polygon",
+      surfaceClass: PALAEO_SURFACE_CLASS_NAMES[surfaceClass],
       appearance: PALAEO_SURFACE_CLASS_APPEARANCES[surfaceClass],
       method: "present-day-class-reattached-to-cao2024-partition-v1",
       sourceIds: ["cao-2017-paleogeography"],
       limitations: ["minimum land and maximum flooding mapped anywhere in the interval"] }],
-    lifecycles: options.lifecycles ?? [{ youngestExclusiveMa: 380, oldestMa: 402 }],
-    intervals: (options.intervals ?? [{ intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402,
-      toAgeMa: 380, url: "palaeo-lm-402-380.ehpr", bytes: 1, sha256: "a".repeat(64),
-      pieces: 1, rings: 1, vertices: 3 }]).map((interval) => ({
+    lifecycles: packColumns(
+      (options.lifecycles ?? [{ youngestExclusiveMa: 380, oldestMa: 402 }]) as unknown as Record<string, unknown>[],
+      ["youngestExclusiveMa", "oldestMa"]),
+    intervals: packColumns(intervals.map((interval) => ({
       intervalId: interval.intervalId,
       intervalIndex: interval.intervalIndex,
       fromAgeMa: interval.fromAgeMa,
       toAgeMa: interval.toAgeMa,
       midAgeMa: (interval.fromAgeMa + interval.toAgeMa) / 2,
-      simplified: { url: interval.url, bytes: interval.bytes, sha256: interval.sha256,
-        pieces: interval.pieces, rings: interval.rings, vertices: interval.vertices,
-        collapsedRings: 0 },
-      reservation: { vertices: interval.vertices, baseTriangles: interval.vertices - 2,
-        estimatedTrianglesAtOneDegree: interval.vertices * 8, maximumEdgeDegrees: 1 },
-    })),
+      bytes: interval.bytes,
+      sha256: interval.sha256,
+      pieces: interval.pieces,
+      rings: interval.rings,
+      vertices: interval.vertices,
+      collapsedRings: 0,
+      baseTriangles: interval.vertices - 2,
+      estimatedTrianglesAtOneDegree: interval.vertices * 8,
+    })), ["intervalId", "intervalIndex", "fromAgeMa", "toAgeMa", "midAgeMa", "bytes", "sha256",
+      "pieces", "rings", "vertices", "collapsedRings", "baseTriangles",
+      "estimatedTrianglesAtOneDegree"]),
   };
+}
+
+/** The same fixture expanded through the runtime decoder; tests corrupt one row at a time. */
+export function palaeoClassCatalogFixture(
+  options: PalaeoCatalogFixtureOptions = {},
+): PalaeoCoastlineClassCatalog {
+  return decodePalaeoCoastlineClassCatalog(palaeoClassCatalogDocumentFixture(options));
 }

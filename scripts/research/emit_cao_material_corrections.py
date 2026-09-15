@@ -974,6 +974,41 @@ def refresh_outer_manifest():
         "scope": "Iceland and the thirteen land-omission charts are observed modern land only at 0 Ma; all non-modern correction masks are material support with unknown exposure, palaeoshoreline and height",
         "outputs": correction_outputs,
     }
+    palaeo = package.get("palaeoCoastlines")
+    if palaeo is not None:
+        # The Cao 2017 palaeogeography set is its own dataset with its own
+        # licence, so it is declared as its own input rather than folded into the
+        # Cao 2024 foundation. Every promoted file is re-measured here, which is
+        # what keeps `promote_palaeo_coastlines.py` from being the only thing
+        # that ever writes these digests.
+        palaeo_root = PUBLIC / "palaeo-coastlines"
+        palaeo_paths = sorted(path for path in palaeo_root.rglob("*") if path.is_file())
+        if not palaeo_paths:
+            raise contract.CorrectionError(
+                "the package declares palaeoCoastlines but no files are published")
+        root_manifest["inputs"]["cao-2017-palaeogeography-v1"] = {
+            "record": "docs/research/palaeo-coastlines-cao2017.md",
+            "url": "https://www.earthbyte.org/webdav/ftp/Data_Collections/Cao_etal_2017_Paleogeography/",
+            "title": ("Cao et al. (2017) global palaeogeography, GPlates 2.3 package: landmass, "
+                      "shallow-marine and mountain polygons in present-day WGS84"),
+            "publicationOrVersionDate": "2017",
+            "retrievalDate": "2026-09-15",
+            "license": "CC BY 3.0",
+            "geographicBasis": ("present-day WGS84 polygons with PLATEID1, FROMAGE and TOAGE, cut by "
+                                "the present-day Cao et al. (2024) v2.4 static partitions"),
+            "evidenceRole": ("classified palaeogeographic map polygons for the 24 published intervals "
+                             "402-2 Ma; an interval records the minimum land and maximum flooding "
+                             "mapped anywhere in that bin, not a shoreline at one moment"),
+            "processing": ("EHPR v1 ring payloads, one per class per interval, with columnar class "
+                           "catalogs and 24 country-outline tone tables; the mountain class, the "
+                           "unsimplified payloads and the provenance sidecars stay offline"),
+            "outputs": [{"role": str(path.relative_to(palaeo_root)),
+                         "path": str(path.relative_to(ROOT)),
+                         "bytes": path.stat().st_size, "sha256": sha256(path)}
+                        for path in palaeo_paths],
+        }
+    elif "cao-2017-palaeogeography-v1" in root_manifest.get("inputs", {}):
+        del root_manifest["inputs"]["cao-2017-palaeogeography-v1"]
     root_manifest["retrievedAt"] = "2026-09-12"
     root_manifest["generatedBy"] = (
         "Cao layered coasts/continents foundation with source-native triangulation recovery, "

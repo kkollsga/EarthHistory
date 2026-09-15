@@ -65,6 +65,7 @@ from shapely.strtree import STRtree
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palaeo_coastlines_audit as audit  # noqa: E402
 import palaeo_coastlines_compile as compiler  # noqa: E402
+import validate_palaeo_coastlines_runtime as runtime_check  # noqa: E402
 
 
 ROOT = compiler.ROOT
@@ -1356,11 +1357,19 @@ def main() -> None:
     parser.add_argument("--store", type=Path, default=STORE)
     parser.add_argument("--classes", default="lm,sm,m")
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--runtime", action="store_true",
+                        help="check only the published bytes against both manifests; this half "
+                             "needs no pyGPlates environment and runs from `make check-corrections`")
     parser.add_argument("--quick", action="store_true",
                         help="skip the one-owner and frame-conflict oracles")
     parser.add_argument("--report", action="store_true",
                         help="write the validation record to dev-docs/bench/results")
     args = parser.parse_args()
+    if args.runtime:
+        # The published half of the contract; `validate_palaeo_coastlines_runtime`
+        # owns it so a checkout without pyGPlates can still gate what ships.
+        print(json.dumps(runtime_check.validate(), indent=1))
+        return
     classes = [name.strip() for name in args.classes.split(",") if name.strip()]
     store = Store(args.store)
     if getattr(args, "self_test"):

@@ -6,8 +6,8 @@ import { evaluateLifecycleSupport } from "./motion";
 import { decodeRequestedAgeMotionTile, selectRequestedAgeMotionTile,
   validateRequestedAgeMotionTileIndex, type RequestedAgeMotionTileIndex } from "./motionTiles";
 import {
+  decodePalaeoCoastlineClassCatalog,
   selectPalaeoCatalogInterval,
-  validatePalaeoCoastlineClassCatalog,
   validatePalaeoRingPayloadAgainstCatalog,
   type PalaeoCoastlineClassCatalog,
   type PalaeoCoastlineIntervalRecord,
@@ -598,8 +598,8 @@ export async function loadVerifiedPalaeoClassCatalogs(
   signal?: AbortSignal,
 ): Promise<readonly LoadedPalaeoClassCatalog[]> {
   const loaded = await Promise.all(palaeo.classes.map(async (entry) => {
-    const catalog = await verifiedJson<PalaeoCoastlineClassCatalog>(entry.catalog, fetcher, signal);
-    validatePalaeoCoastlineClassCatalog(catalog, entry.surfaceClass);
+    const document = await verifiedJson<unknown>(entry.catalog, fetcher, signal);
+    const catalog = decodePalaeoCoastlineClassCatalog(document, entry.surfaceClass);
     return Object.freeze({ surfaceClass: entry.surfaceClass, catalog: deepFreeze(catalog),
       asset: entry.catalog });
   }));
@@ -634,14 +634,14 @@ export async function loadVerifiedPalaeoIntervalClass(
 ): Promise<LoadedPalaeoIntervalClass> {
   const record = entry.catalog.intervals.find((interval) => interval.intervalId === intervalId);
   if (!record) throw new Error("palaeo-coastline interval absent from its class catalog");
-  const asset = palaeoPayloadAsset(entry.asset.url, record.simplified);
+  const asset = palaeoPayloadAsset(entry.asset.url, record.payload);
   const bytes = await loadVerifiedBytes(asset, fetcher, signal);
   if (signal?.aborted) throw new DOMException("palaeo-coastline interval load aborted", "AbortError");
   const prepared = await runner.run(bytes, { maxEdgeDegrees, ...limits }, signal);
   if (signal?.aborted) throw new DOMException("palaeo-coastline interval load aborted", "AbortError");
   validatePalaeoRingPayloadAgainstCatalog(prepared.metadata, entry.catalog, record);
   return Object.freeze({ surfaceClass: entry.surfaceClass, catalog: entry.catalog, record,
-    metadata: prepared.metadata, geometry: prepared.geometry, sourceBytes: record.simplified.bytes });
+    metadata: prepared.metadata, geometry: prepared.geometry, sourceBytes: record.payload.bytes });
 }
 
 export async function loadVerifiedPalaeoInterval(
@@ -805,7 +805,7 @@ export class CaoPalaeoIntervalStore {
 
   private assetBytes(intervalId: string): number {
     return this.catalogs.reduce((sum, entry) => sum + (entry.catalog.intervals
-      .find((interval) => interval.intervalId === intervalId)?.simplified.bytes ?? 0), 0);
+      .find((interval) => interval.intervalId === intervalId)?.payload.bytes ?? 0), 0);
   }
 
   private async waitForCapacity(signal?: AbortSignal): Promise<void> {

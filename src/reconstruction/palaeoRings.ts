@@ -15,9 +15,9 @@ const MAGIC = "EHPR";
 const VERSION = 1;
 const HEADER_BYTES = 32;
 const PIECE_BYTES = 12;
-const RING_BYTES = 4;
-const HOLE_BIT = 0x8000_0000;
-const RING_COUNT_MASK = 0x7fff_ffff;
+const RING_BYTES = 2;
+const HOLE_BIT = 0x8000;
+const RING_COUNT_MASK = 0x7fff;
 const SHA256 = /^[a-f0-9]{64}$/;
 
 /** int16 grid: `lon = value / 32767 * 180`, `lat = value / 32767 * 90`. */
@@ -163,7 +163,7 @@ export function decodePalaeoRingPayload(buffer: ArrayBuffer): DecodedPalaeoRingP
     if (consumedRings + pieceRingCount > ringCount) throw new Error("EHPR piece ring table overruns the file");
     const rings: PalaeoRingRecord[] = [];
     for (let ring = 0; ring < pieceRingCount; ring += 1) {
-      const packed = view.getUint32(ringOffset + RING_BYTES * (consumedRings + ring), true);
+      const packed = view.getUint16(ringOffset + RING_BYTES * (consumedRings + ring), true);
       const ringVertexCount = packed & RING_COUNT_MASK;
       const hole = (packed & HOLE_BIT) !== 0;
       if (ringVertexCount < 3) throw new Error("EHPR ring has fewer than three vertices");
@@ -239,8 +239,35 @@ readonly [number, number, number] {
 }
 
 // ---------------------------------------------------------------------------
-// class catalog
+// class catalog — schemaVersion 2, columnar
 // ---------------------------------------------------------------------------
+
+/**
+ * Every table in a shipped class catalog is an object of parallel arrays plus a
+ * `count`, not an array of objects: repeating six key names once per binding row
+ * was what the first shape of this document spent its megabytes on. The runtime
+ * expands them once, at catalog load, into the row objects the rest of the
+ * module works with.
+ */
+const CATALOG_SCHEMA_VERSION = 2;
+const CATALOG_ENCODING = "palaeo-class-catalog-columnar-v1";
+const BINDING_ENTRY_RULE = "palaeo-binding-entry-v1";
+const RESTORATION_PREFIX = "restoration-";
+const RECOVERY_PREFIX = "native-recovery-plate-";
+const CORRECTION_PREFIX = "correction-plate-";
+
+/**
+ * The 10 kyr step the Cao 2017 schedule leaves between a map's youngest bound
+ * and the next map's oldest bound (`402-380` ends at 380.01 Ma and `380-359`
+ * begins at 380). Two maps may abut exactly or be separated by that one step;
+ * anything wider is a band of ages with no map at all.
+ */
+const PALAEO_SCHEDULE_STEP_MA = 0.01;
+
+export interface PalaeoColumnarTable {
+  readonly count: number;
+  readonly [column: string]: unknown;
+}
 
 /** One interned `(TOAGE, FROMAGE]` window; pieces reference it by index. */
 export interface PalaeoCoastlineLifecycleRecord {
@@ -250,28 +277,45 @@ export interface PalaeoCoastlineLifecycleRecord {
   readonly oldestMa: number;
 }
 
-export interface PalaeoCoastlineChartRecord {
-  readonly sourceRecordIndex: number;
-  readonly plateId1: number | null;
-  readonly fromAgeMa: number;
-  readonly toAgeMa: number;
-  readonly featureId: string | null;
-  readonly offSchedule: boolean;
-  readonly basinOpId?: string | null;
+/**
+ * A declared discontinuity in the source rotation between a plate's recovery
+ * entries. Both ends are exclusive: the seam is the open window the rule
+ * resolves to nothing at, and it is disclosed rather than filled with the
+ * native motion `apply_cao_native_triangulation_repair` rejected.
+ */
+export interface PalaeoCoastlineMotionGap {
+  readonly youngestMa: number;
+  readonly oldestMa: number;
+  readonly reason: "source-seam";
 }
 
-export interface PalaeoCoastlineBindingEntry {
-  readonly entryId: string;
-  readonly validTimeMa: { readonly youngest: number; readonly oldest: number };
-}
+export type PalaeoCoastlineBindingKind = "partition" | "override" | "restoration" | "recovery";
 
 export interface PalaeoCoastlineBindingRecord {
-  readonly paletteId: string;
+  /** The plate the piece rides: the owner partition's, or a tracked `PLATEID1` override. */
   readonly bindingPlateId: number;
+  /** The Cao 2024 static partition that owns the ground; the piece's fragment identity. */
   readonly partitionPlateId: number;
-  readonly bindingSource: "owner-partition" | "source-plateid1-override";
-  /** Gap-free, oldest-to-youngest coverage of the binding plate's motion. */
-  readonly entries: readonly PalaeoCoastlineBindingEntry[];
+  /**
+   * Which branch of the selection rule the binding plate falls in. It is a
+   * declaration the runtime may cross-check, never an input: the selection is a
+   * function of the palette alone.
+   */
+  readonly kind: PalaeoCoastlineBindingKind;
+  readonly gapSetIndex: number;
+  readonly motionSupportGaps: readonly PalaeoCoastlineMotionGap[];
+}
+
+/** The constants of `palaeo-binding-entry-v1`, shipped so the rule is auditable. */
+export interface PalaeoCoastlineEntrySelection {
+  readonly rule: typeof BINDING_ENTRY_RULE;
+  readonly coverage: string;
+  readonly tieBreak: string;
+  readonly preference: readonly string[];
+  readonly correctionPreferenceAgeMa: number;
+  readonly restorationEntryIds: readonly string[];
+  readonly recoveryPlateIds: readonly number[];
+  readonly recoveryFallback: "unposable";
 }
 
 export interface PalaeoCoastlineEvidenceRecord {
@@ -292,7 +336,7 @@ export interface PalaeoCoastlinePayloadRecord {
   readonly pieces: number;
   readonly rings: number;
   readonly vertices: number;
-  readonly collapsedRings?: number;
+  readonly collapsedRings: number;
 }
 
 export interface PalaeoCoastlineIntervalRecord {
@@ -301,9 +345,8 @@ export interface PalaeoCoastlineIntervalRecord {
   readonly fromAgeMa: number;
   readonly toAgeMa: number;
   readonly midAgeMa: number;
-  readonly simplified: PalaeoCoastlinePayloadRecord;
-  /** The unsimplified set stays in the offline store and never ships. */
-  readonly original?: PalaeoCoastlinePayloadRecord;
+  /** The one shipped tier; the unsimplified `original` set stays offline. */
+  readonly payload: PalaeoCoastlinePayloadRecord;
   readonly reservation: {
     readonly vertices: number;
     readonly baseTriangles: number;
@@ -313,19 +356,186 @@ export interface PalaeoCoastlineIntervalRecord {
 }
 
 export interface PalaeoCoastlineClassCatalog {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: typeof CATALOG_SCHEMA_VERSION;
+  readonly encoding: typeof CATALOG_ENCODING;
   readonly catalogId: string;
   readonly class: PalaeoSurfaceClass;
   readonly className: string;
   readonly appearance: SpatialBatchSurfaceAppearanceV2;
   readonly format: { readonly magic: string; readonly version: number };
+  readonly paletteId: string;
+  /** `palaeo-<class>-<intervalId>.ehpr`; a payload url is derived, never listed. */
+  readonly payloadNameTemplate: string;
+  readonly maximumEdgeDegrees: number;
+  /**
+   * Rows in the offline sidecar's `charts` table: the only bound on a piece's
+   * `chartIndex`. The shipped catalog carries no chart table — a piece's source
+   * record identity lives in the sidecar — so the runtime groups pieces by
+   * source record with the index alone.
+   */
+  readonly chartCount: number;
   /** Verbatim limitation line for flag bits 1, 2, 4 and 8. */
   readonly flagLimitations: Readonly<Record<string, string>>;
-  readonly charts: readonly PalaeoCoastlineChartRecord[];
+  readonly entrySelection: PalaeoCoastlineEntrySelection;
+  readonly bindingKinds: readonly PalaeoCoastlineBindingKind[];
   readonly bindings: readonly PalaeoCoastlineBindingRecord[];
   readonly evidence: readonly PalaeoCoastlineEvidenceRecord[];
   readonly lifecycles: readonly PalaeoCoastlineLifecycleRecord[];
   readonly intervals: readonly PalaeoCoastlineIntervalRecord[];
+}
+
+const BINDING_KINDS: readonly PalaeoCoastlineBindingKind[] =
+  Object.freeze(["partition", "override", "restoration", "recovery"]);
+
+function expandColumns(table: unknown, columns: readonly string[], label: string): unknown[][] {
+  const record = table as PalaeoColumnarTable | undefined;
+  const count = record?.count;
+  if (!Number.isSafeInteger(count) || (count as number) < 0) {
+    throw new Error(`palaeo-coastline ${label} table has no row count`);
+  }
+  return columns.map((column) => {
+    const values = record![column];
+    // A column shorter than `count` would silently read `undefined` into a row
+    // the payload indices already point at.
+    if (!Array.isArray(values) || values.length !== count) {
+      throw new Error(`palaeo-coastline ${label} column ${column} disagrees with its row count`);
+    }
+    return values as unknown[];
+  });
+}
+
+function expandRows<T>(
+  table: unknown,
+  columns: readonly string[],
+  label: string,
+  build: (read: (column: string) => unknown) => T,
+): T[] {
+  const values = expandColumns(table, columns, label);
+  const count = (table as PalaeoColumnarTable).count;
+  const rows: T[] = [];
+  for (let index = 0; index < count; index += 1) {
+    rows.push(build((column) => values[columns.indexOf(column)]![index]));
+  }
+  return rows;
+}
+
+function payloadName(template: string, intervalId: string): string {
+  return template.replace("<intervalId>", intervalId);
+}
+
+/**
+ * Expands one shipped `palaeo-<class>-catalog.json` into the row tables the
+ * runtime indexes, then validates it.
+ *
+ * `expandInternedPackageDocument` passes the document through untouched — it
+ * carries none of `packageIntern.ts`'s markers — so this is the only place the
+ * columnar shape is understood.
+ */
+export function decodePalaeoCoastlineClassCatalog(
+  document: unknown,
+  surfaceClass?: PalaeoSurfaceClass,
+): PalaeoCoastlineClassCatalog {
+  const raw = document as Record<string, unknown>;
+  if (raw?.schemaVersion !== CATALOG_SCHEMA_VERSION || raw.encoding !== CATALOG_ENCODING) {
+    throw new Error("unsupported palaeo-coastline class catalog encoding");
+  }
+  const kinds = Array.isArray(raw.bindingKinds) ? raw.bindingKinds as PalaeoCoastlineBindingKind[] : [];
+  if (kinds.length !== BINDING_KINDS.length
+      || kinds.some((kind, index) => kind !== BINDING_KINDS[index])) {
+    throw new Error("palaeo-coastline catalog declares unknown binding kinds");
+  }
+  const gapSets = raw.gapSets;
+  if (!Array.isArray(gapSets) || gapSets.length === 0
+      || !Array.isArray(gapSets[0]) || gapSets[0].length !== 0) {
+    // `gapSets[0]` is always the empty set, so a binding that declares no seam
+    // costs one integer rather than an array.
+    throw new Error("palaeo-coastline catalog gap sets are missing their empty set");
+  }
+  const bindings = expandRows(raw.bindings,
+    ["bindingPlateId", "partitionPlateId", "kind", "gapSet"], "binding", (read) => {
+      const gapSetIndex = read("gapSet") as number;
+      const kindIndex = read("kind") as number;
+      if (!Number.isSafeInteger(gapSetIndex) || gapSetIndex < 0 || gapSetIndex >= gapSets.length
+          || !Number.isSafeInteger(kindIndex) || kindIndex < 0 || kindIndex >= kinds.length) {
+        throw new Error("palaeo-coastline binding row points outside its own tables");
+      }
+      const gaps = (gapSets[gapSetIndex] as PalaeoCoastlineMotionGap[]).map((gap) => {
+        if (!validAge(gap?.youngestMa) || !validAge(gap.oldestMa) || gap.oldestMa <= gap.youngestMa
+            || gap.reason !== "source-seam") {
+          throw new Error("palaeo-coastline binding declares an invalid source seam");
+        }
+        return Object.freeze({ youngestMa: gap.youngestMa, oldestMa: gap.oldestMa,
+          reason: "source-seam" as const });
+      });
+      return Object.freeze({
+        bindingPlateId: read("bindingPlateId") as number,
+        partitionPlateId: read("partitionPlateId") as number,
+        kind: kinds[kindIndex]!,
+        gapSetIndex,
+        motionSupportGaps: Object.freeze(gaps),
+      });
+    });
+  const lifecycles = expandRows(raw.lifecycles, ["youngestExclusiveMa", "oldestMa"],
+    "lifecycle", (read) => Object.freeze({
+      youngestExclusiveMa: read("youngestExclusiveMa") as number,
+      oldestMa: read("oldestMa") as number,
+    }));
+  const template = raw.payloadNameTemplate;
+  if (typeof template !== "string" || !template.includes("<intervalId>")) {
+    throw new Error("palaeo-coastline catalog has no payload name template");
+  }
+  const maximumEdgeDegrees = raw.maximumEdgeDegrees as number;
+  const intervals = expandRows(raw.intervals,
+    ["intervalId", "intervalIndex", "fromAgeMa", "toAgeMa", "midAgeMa", "bytes", "sha256",
+      "pieces", "rings", "vertices", "collapsedRings", "baseTriangles",
+      "estimatedTrianglesAtOneDegree"], "interval", (read) => {
+      const intervalId = read("intervalId") as string;
+      const vertices = read("vertices") as number;
+      return Object.freeze({
+        intervalId,
+        intervalIndex: read("intervalIndex") as number,
+        fromAgeMa: read("fromAgeMa") as number,
+        toAgeMa: read("toAgeMa") as number,
+        midAgeMa: read("midAgeMa") as number,
+        payload: Object.freeze({
+          url: payloadName(template, intervalId),
+          bytes: read("bytes") as number,
+          sha256: read("sha256") as string,
+          pieces: read("pieces") as number,
+          rings: read("rings") as number,
+          vertices,
+          collapsedRings: read("collapsedRings") as number,
+        }),
+        reservation: Object.freeze({
+          vertices,
+          baseTriangles: read("baseTriangles") as number,
+          estimatedTrianglesAtOneDegree: read("estimatedTrianglesAtOneDegree") as number,
+          maximumEdgeDegrees,
+        }),
+      });
+    });
+  const catalog = {
+    schemaVersion: CATALOG_SCHEMA_VERSION,
+    encoding: CATALOG_ENCODING,
+    catalogId: raw.catalogId as string,
+    class: raw.class as PalaeoSurfaceClass,
+    className: raw.className as string,
+    appearance: raw.appearance as SpatialBatchSurfaceAppearanceV2,
+    format: raw.format as PalaeoCoastlineClassCatalog["format"],
+    paletteId: raw.paletteId as string,
+    payloadNameTemplate: template,
+    maximumEdgeDegrees,
+    chartCount: raw.chartCount as number,
+    flagLimitations: raw.flagLimitations as Record<string, string>,
+    entrySelection: raw.entrySelection as PalaeoCoastlineEntrySelection,
+    bindingKinds: Object.freeze(kinds),
+    bindings: Object.freeze(bindings),
+    evidence: raw.evidence as PalaeoCoastlineEvidenceRecord[],
+    lifecycles: Object.freeze(lifecycles),
+    intervals: Object.freeze(intervals),
+  } as PalaeoCoastlineClassCatalog;
+  validatePalaeoCoastlineClassCatalog(catalog, surfaceClass);
+  return catalog;
 }
 
 function payloadRecordValid(record: PalaeoCoastlinePayloadRecord): boolean {
@@ -334,25 +544,41 @@ function payloadRecordValid(record: PalaeoCoastlinePayloadRecord): boolean {
     && Number.isSafeInteger(record.bytes) && record.bytes > 0 && SHA256.test(record.sha256)
     && Number.isSafeInteger(record.pieces) && record.pieces >= 0
     && Number.isSafeInteger(record.rings) && record.rings >= record.pieces
-    && Number.isSafeInteger(record.vertices) && record.vertices >= 3 * record.rings;
+    && Number.isSafeInteger(record.vertices) && record.vertices >= 3 * record.rings
+    && Number.isSafeInteger(record.collapsedRings) && record.collapsedRings >= 0;
 }
 
 /**
- * Validates one `palaeo-<class>-catalog.json`. The payloads carry indices; this
- * is the table they point at, so a catalog that fails here would let a piece
- * draw with someone else's evidence, binding or source record.
+ * Validates one expanded class catalog. The payloads carry indices; this is the
+ * table they point at, so a catalog that fails here would let a piece draw with
+ * someone else's evidence, binding or lifecycle.
  */
 export function validatePalaeoCoastlineClassCatalog(
   catalog: PalaeoCoastlineClassCatalog,
   surfaceClass?: PalaeoSurfaceClass,
 ): void {
-  if (catalog?.schemaVersion !== 1 || !catalog.catalogId
-      || !(catalog.class in PALAEO_SURFACE_CLASS_CODES)
+  if (catalog?.schemaVersion !== CATALOG_SCHEMA_VERSION || catalog.encoding !== CATALOG_ENCODING
+      || !catalog.catalogId || !(catalog.class in PALAEO_SURFACE_CLASS_CODES)
       || (surfaceClass !== undefined && catalog.class !== surfaceClass)
       || catalog.className !== PALAEO_SURFACE_CLASS_NAMES[catalog.class]
       || catalog.appearance !== PALAEO_SURFACE_CLASS_APPEARANCES[catalog.class]
-      || catalog.format?.magic !== MAGIC || catalog.format.version !== VERSION) {
+      || catalog.format?.magic !== MAGIC || catalog.format.version !== VERSION
+      || !catalog.paletteId
+      || !Number.isSafeInteger(catalog.chartCount) || catalog.chartCount <= 0
+      || catalog.chartCount > 0x1_0000
+      || !(catalog.maximumEdgeDegrees > 0) || catalog.maximumEdgeDegrees > 1) {
     throw new Error("invalid palaeo-coastline class catalog identity");
+  }
+  const selection = catalog.entrySelection;
+  if (selection?.rule !== BINDING_ENTRY_RULE || selection.recoveryFallback !== "unposable"
+      || !Number.isFinite(selection.correctionPreferenceAgeMa)
+      || !Array.isArray(selection.restorationEntryIds)
+      || !Array.isArray(selection.recoveryPlateIds)
+      || selection.recoveryPlateIds.some((plateId: number) => !Number.isInteger(plateId))
+      || !Array.isArray(selection.preference)
+      || selection.preference[0] !== RESTORATION_PREFIX
+      || selection.preference[1] !== RECOVERY_PREFIX) {
+    throw new Error("palaeo-coastline catalog does not declare palaeo-binding-entry-v1");
   }
   for (const bit of PALAEO_RING_LIMITATION_FLAGS) {
     const line = catalog.flagLimitations?.[String(bit)];
@@ -360,13 +586,12 @@ export function validatePalaeoCoastlineClassCatalog(
       throw new Error("palaeo-coastline catalog is missing a flag limitation line");
     }
   }
-  if (!Array.isArray(catalog.charts) || catalog.charts.length === 0
-      || !Array.isArray(catalog.bindings) || catalog.bindings.length === 0
+  if (!Array.isArray(catalog.bindings) || catalog.bindings.length === 0
       || !Array.isArray(catalog.evidence) || catalog.evidence.length === 0
       || !Array.isArray(catalog.lifecycles) || catalog.lifecycles.length === 0
       || !Array.isArray(catalog.intervals) || catalog.intervals.length === 0
       || catalog.intervals.length > PALAEO_INTERVAL_COUNT
-      || catalog.charts.length > 0x1_0000 || catalog.bindings.length > 0x1_0000
+      || catalog.bindings.length > 0x1_0000
       || catalog.evidence.length > 0x1_0000 || catalog.lifecycles.length > 0x1_0000) {
     throw new Error("palaeo-coastline catalog table is empty or exceeds its index width");
   }
@@ -379,35 +604,11 @@ export function validatePalaeoCoastlineClassCatalog(
       throw new Error("palaeo-coastline lifecycle record is reversed or empty");
     }
   }
-  for (const chart of catalog.charts) {
-    if (!Number.isSafeInteger(chart.sourceRecordIndex) || chart.sourceRecordIndex < 0
-        || (chart.plateId1 !== null && !Number.isInteger(chart.plateId1))
-        || !validAge(chart.fromAgeMa) || !validAge(chart.toAgeMa) || chart.fromAgeMa <= chart.toAgeMa
-        || typeof chart.offSchedule !== "boolean") {
-      throw new Error("invalid palaeo-coastline source chart record");
-    }
-  }
   for (const binding of catalog.bindings) {
-    if (!binding.paletteId || !Number.isInteger(binding.bindingPlateId)
-        || !Number.isInteger(binding.partitionPlateId)
-        || !["owner-partition", "source-plateid1-override"].includes(binding.bindingSource)
-        || !Array.isArray(binding.entries) || binding.entries.length === 0) {
+    if (!Number.isInteger(binding.bindingPlateId) || !Number.isInteger(binding.partitionPlateId)
+        || !BINDING_KINDS.includes(binding.kind)
+        || !Array.isArray(binding.motionSupportGaps)) {
       throw new Error("invalid palaeo-coastline motion binding record");
-    }
-    const entries = [...binding.entries].sort((left, right) =>
-      left.validTimeMa.youngest - right.validTimeMa.youngest);
-    for (const [index, entry] of entries.entries()) {
-      const window = entry.validTimeMa;
-      if (!entry.entryId || !validAge(window?.youngest) || !validAge(window.oldest)
-          || window.youngest > window.oldest) {
-        throw new Error("invalid palaeo-coastline motion binding entry");
-      }
-      const next = entries[index + 1];
-      // Gap-free: the compiler emits one continuous chain per binding, because a
-      // gap would drop the piece at ages the source record is still active at.
-      if (next && next.validTimeMa.youngest !== window.oldest) {
-        throw new Error("palaeo-coastline motion binding entries are not gap-free");
-      }
     }
   }
   for (const evidence of catalog.evidence) {
@@ -429,9 +630,9 @@ export function validatePalaeoCoastlineClassCatalog(
         || !validAge(interval.fromAgeMa) || !validAge(interval.toAgeMa)
         || interval.fromAgeMa <= interval.toAgeMa
         || !(interval.midAgeMa > interval.toAgeMa && interval.midAgeMa < interval.fromAgeMa)
-        || !payloadRecordValid(interval.simplified)
-        || (interval.original !== undefined && !payloadRecordValid(interval.original))
-        || reservation?.vertices !== interval.simplified.vertices
+        || !payloadRecordValid(interval.payload)
+        || !interval.payload.url.includes(interval.intervalId)
+        || reservation?.vertices !== interval.payload.vertices
         || !Number.isSafeInteger(reservation.baseTriangles) || reservation.baseTriangles < 0
         || !Number.isSafeInteger(reservation.estimatedTrianglesAtOneDegree)
         || reservation.estimatedTrianglesAtOneDegree < reservation.baseTriangles
@@ -439,10 +640,12 @@ export function validatePalaeoCoastlineClassCatalog(
       throw new Error("invalid palaeo-coastline interval record");
     }
     const previous = catalog.intervals[order - 1];
-    // Intervals run oldest to youngest and abut; a published catalog that skips
-    // a boundary would leave a band of ages with no map at all.
+    // Intervals run oldest to youngest and abut within the source's own 10 kyr
+    // step; a catalog that skips a boundary would leave a band of ages with no
+    // map, and one that overlaps would put two maps on the same age.
+    const step = previous ? previous.toAgeMa - interval.fromAgeMa : 0;
     if (previous && previous.intervalIndex + 1 === interval.intervalIndex
-        && previous.toAgeMa !== interval.fromAgeMa) {
+        && (step < 0 || step > PALAEO_SCHEDULE_STEP_MA + 1e-6)) {
       throw new Error("palaeo-coastline intervals are not contiguous");
     }
     previousIndex = interval.intervalIndex;
@@ -453,7 +656,7 @@ export function validatePalaeoCoastlineClassCatalog(
  * Cross-checks a decoded payload against the catalog record that indexes it.
  * The payload's own header is self-consistent by construction; this is what
  * proves it is the interval and class the catalog promised, and that every
- * chart, binding and evidence index it carries resolves.
+ * chart, binding, evidence and lifecycle index it carries resolves.
  */
 export function validatePalaeoRingPayloadAgainstCatalog(
   payload: PalaeoRingPayloadMetadata,
@@ -465,13 +668,15 @@ export function validatePalaeoRingPayloadAgainstCatalog(
       || Math.fround(interval.toAgeMa) !== payload.intervalYoungestAgeMa) {
     throw new Error("palaeo-coastline payload is not the interval its catalog declares");
   }
-  if (payload.pieces.length !== interval.simplified.pieces
-      || payload.ringCount !== interval.simplified.rings
-      || payload.vertexCount !== interval.simplified.vertices) {
+  if (payload.pieces.length !== interval.payload.pieces
+      || payload.ringCount !== interval.payload.rings
+      || payload.vertexCount !== interval.payload.vertices) {
     throw new Error("palaeo-coastline payload counts disagree with the catalog");
   }
   for (const piece of payload.pieces) {
-    if (piece.chartIndex >= catalog.charts.length || piece.bindingIndex >= catalog.bindings.length
+    // `chartIndex` is the sidecar's source-record ordinal, so `chartCount` is
+    // the only table that bounds it; the other three resolve into shipped rows.
+    if (piece.chartIndex >= catalog.chartCount || piece.bindingIndex >= catalog.bindings.length
         || piece.evidenceIndex >= catalog.evidence.length
         || piece.lifecycleIndex >= catalog.lifecycles.length) {
       throw new Error("palaeo-coastline piece references a catalog record that does not exist");
@@ -484,6 +689,83 @@ export function validatePalaeoRingPayloadAgainstCatalog(
       throw new Error("palaeo-coastline piece lifecycle does not overlap its own interval");
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// palaeo-binding-entry-v1
+// ---------------------------------------------------------------------------
+
+/** The palette fields the selection rule reads; `PreparedPaletteEntry` satisfies it. */
+export interface PalaeoSelectablePaletteEntry {
+  readonly entryId: string;
+  readonly plateId: number;
+  readonly youngestAgeMa: number;
+  readonly oldestAgeMa: number;
+}
+
+/** Palette entries grouped by the plate they pose, the index the rule starts from. */
+export function indexPalaeoPaletteEntriesByPlate<T extends PalaeoSelectablePaletteEntry>(
+  entries: Iterable<T>,
+): ReadonlyMap<number, readonly T[]> {
+  const byPlate = new Map<number, T[]>();
+  for (const entry of entries) {
+    const bucket = byPlate.get(entry.plateId);
+    if (bucket) bucket.push(entry); else byPlate.set(entry.plateId, [entry]);
+  }
+  return byPlate;
+}
+
+function newestEntry<T extends PalaeoSelectablePaletteEntry>(candidates: readonly T[]): T {
+  return candidates.reduce((best, entry) =>
+    entry.youngestAgeMa > best.youngestAgeMa
+      || (entry.youngestAgeMa === best.youngestAgeMa && entry.entryId > best.entryId)
+      ? entry : best);
+}
+
+/**
+ * `palaeo-binding-entry-v1`, stated normatively in
+ * `docs/data/palaeo-coastlines-format.md` and implemented identically by
+ * `select_palette_entry` in the offline compiler. The validator walks both over
+ * every `(binding, lifecycle)` pair a shipped piece carries and rejects a build
+ * whose answers differ.
+ *
+ * `recoveryPlateIds` is read from the catalog rather than rediscovered from the
+ * entries: a requested-age motion tile holds only part of the palette, and a
+ * plate whose recovery entry is simply not resident must still refuse to fall
+ * back to a native entry that happens to be.
+ */
+export function selectPalaeoBindingEntry<T extends PalaeoSelectablePaletteEntry>(
+  entriesForPlate: readonly T[],
+  selection: PalaeoCoastlineEntrySelection,
+  bindingPlateId: number,
+  ageMa: number,
+): T | null {
+  if (entriesForPlate.length === 0 || !Number.isFinite(ageMa)) return null;
+  const covering = entriesForPlate.filter((entry) =>
+    entry.youngestAgeMa <= ageMa && ageMa <= entry.oldestAgeMa);
+  const restoration = covering.filter((entry) => entry.entryId.startsWith(RESTORATION_PREFIX));
+  if (restoration.length > 0) return newestEntry(restoration);
+  if (selection.recoveryPlateIds.includes(bindingPlateId)) {
+    const recovery = covering.filter((entry) => entry.entryId.startsWith(RECOVERY_PREFIX));
+    return recovery.length > 0 ? newestEntry(recovery) : null;
+  }
+  if (covering.length === 0) return null;
+  const corrections = covering.filter((entry) => entry.entryId.startsWith(CORRECTION_PREFIX));
+  const natives = covering.filter((entry) => !entry.entryId.startsWith(CORRECTION_PREFIX));
+  const matches = ageMa >= selection.correctionPreferenceAgeMa && corrections.length > 0
+    ? corrections : natives.length > 0 ? natives : covering;
+  return newestEntry(matches);
+}
+
+/**
+ * Whether an age falls in one of the binding's declared source seams. Both ends
+ * are exclusive, so a piece is still posed exactly at a seam bound.
+ */
+export function palaeoBindingSeamCoversAge(
+  binding: PalaeoCoastlineBindingRecord,
+  ageMa: number,
+): boolean {
+  return binding.motionSupportGaps.some((gap) => ageMa > gap.youngestMa && ageMa < gap.oldestMa);
 }
 
 /**

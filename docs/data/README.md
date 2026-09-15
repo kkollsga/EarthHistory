@@ -83,6 +83,47 @@ They are not period-specific Hadley-cell observations. The independent climate
 module has synthetic software checks; calibrated historical climate and biome
 fields have not been promoted as part of this foundation.
 
+## Palaeo-coastlines (Cao 2017)
+
+An optional layer draws mapped palaeogeography instead of the Cao 2024 coast
+proxy. Its source is [Cao et al. (2017)](https://doi.org/10.5194/bg-14-5425-2017)
+under CC BY 3.0; the scientific record is
+[Cao 2017 palaeogeography as a palaeo-coastline source](../research/palaeo-coastlines-cao2017.md)
+and the wire format is [EHPR v1](palaeo-coastlines-format.md), which is the
+authority for the bytes, the columnar class catalog and the country-outline tone
+tables. `public/data/reconstruction/cao-v2.4/palaeo-coastlines/` holds two
+classes, `lm` (landmass) and `sm` (shallow marine), as one ring payload per
+class per published interval. The mountain class `m` is compiled and validated
+offline but is not funded by the byte budget and does not ship; the provenance
+sidecars and the unsimplified payloads never enter a build.
+
+The 24 published intervals run `402-380` to `11-2` Ma. A piece is drawn on its
+own `(TOAGE, FROMAGE]` lifecycle, not on the interval of the file it ships in,
+because an off-schedule source record appears in every interval it overlaps. The
+runtime decodes the rings in a worker, ear-clips each piece with its holes and
+refines every edge to at most 1° of arc before drawing.
+
+Each piece is posed by the plate its catalog binding names, resolved against the
+shared motion palette by the normative `palaeo-binding-entry-v1` rule: a North
+Sea restoration entry first, then the eight recovery plates that never fall back
+to native motion, then `correction-plate-` entries at and above 410 Ma, and the
+native chain below it. A piece the rule cannot pose is not drawn, and its state
+is `unsupported`/`missing-motion` — or `source-seam` inside a declared rotation
+discontinuity, which is a statement about the model rather than about what has
+finished downloading.
+
+Drawing and picking precedence, lowest first: shelf, palaeo shallow marine,
+corrections, palaeo land, palaeo mountain. Native land is hidden outright while
+the mode is on, because nothing else would keep a Cao 2024 coast fill over the
+Cao 2017 polygons that replace it. Shells are 400, 700, 800, 1,300 and 1,600 m,
+ordered against the 242.6 m chord sag at the 1° edge bound.
+
+Outside 2.01–402 Ma — including the present day — the mode falls back to today's
+composition with a map-key notice. Cao 2024 continental crust that carries
+neither class keeps its own "depth unmapped" meaning and is never drawn as deep
+marine. A country outline over a Cao 2017 sea is drawn in light ink; the tone is
+a legibility aid and never evidence that the modern country existed.
+
 ## Storage and resource ownership
 
 | Asset | Contents |
@@ -94,6 +135,9 @@ fields have not been promoted as part of this foundation.
 | Checkpoint JSON | Exact display controls and references to native state assets |
 | EHNB boundary assets | Exact source-age directed boundary points and metadata |
 | EHTO ownership assets | Exact source-age topology rings, polygon/hole identity and plate metadata |
+| EHPR palaeo payloads | Cao 2017 rings per class per map interval: pieces, rings and quantised vertices |
+| Palaeo class catalogs | Columnar bindings, gap sets, evidence, lifecycles and per-interval reservations |
+| EHPT outline tones | 24 country-outline tone tables, two bits per reference segment |
 
 Loaders verify declared identity, length, digest and packed headers before
 acceptance. Frame-incompatible assets cannot be combined. Invalid support must

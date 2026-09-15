@@ -40,9 +40,21 @@ import {
 /** Maximum triangle edge, in degrees of arc, the renderer's chord-sag guard allows. */
 export const PALAEO_MAX_EDGE_DEGREES = 1;
 
-/** Ceilings of the palaeo surface renderer instance; a payload above them cannot be drawn. */
-export const PALAEO_TRIANGULATION_MAX_VERTICES = 170_000;
-export const PALAEO_TRIANGULATION_MAX_TRIANGLES = 300_000;
+/**
+ * Ceilings of the palaeo surface renderer instance; a payload above them cannot
+ * be drawn.
+ *
+ * Measured 2026-09-15 over the 24 promoted `lm`+`sm` intervals: the worst
+ * interval (29-20 Ma) refines to 262,202 vertices and 427,088 triangles, 1.87x
+ * the compiler's `estimatedTrianglesAtOneDegree`. The compiler models
+ * per-triangle longest-edge bisection; this module bisects conformingly, so a
+ * split propagates into neighbours that were already short enough, and the
+ * earcut diagonals it starts from are long. The 1 degree bound is the chord-sag
+ * contract and cannot be relaxed, so the ceilings were raised to cover the
+ * measurement with about 12 % headroom instead.
+ */
+export const PALAEO_TRIANGULATION_MAX_VERTICES = 300_000;
+export const PALAEO_TRIANGULATION_MAX_TRIANGLES = 480_000;
 
 /** The reference implementation's own bound on conforming refinement rounds. */
 const MAX_REFINEMENT_ROUNDS = 32;

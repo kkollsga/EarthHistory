@@ -1,4 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { EarthHistorySurfaceProbe } from "../../src/render/GlobeScene";
+
+declare global {
+  interface Window {
+    /** The scene's CPU coverage path, exposed for these probes only. */
+    __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
+  }
+}
 
 const globe = (page: Page) => page.locator("canvas[aria-label='Interactive three-dimensional Earth']");
 
@@ -76,6 +84,72 @@ async function screenshotLuminanceSamples(page: Page) {
     bitmap.close();
     return samples;
   }, screenshot.toString("base64"));
+}
+
+/** Mean luminance of the whole globe canvas; the control the toggle must return to. */
+async function globeLuminance(page: Page) {
+  const screenshot = await globe(page).screenshot();
+  return page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("screenshot luminance canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let sum = 0;
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      sum += 0.2126 * pixels[offset]! + 0.7152 * pixels[offset + 1]! + 0.0722 * pixels[offset + 2]!;
+    }
+    bitmap.close();
+    return sum / (pixels.length / 4);
+  }, screenshot.toString("base64"));
+}
+
+/**
+ * Pixels painted by each palaeo surface class, by colour signature.
+ *
+ * The three base colours are far enough apart to separate on the lit globe: a
+ * Cao 2017 landmass is the olive `#9aa86b` (green channel highest), a mapped
+ * shallow sea the teal `#14606b` and the "depth unmapped" shelf the dimmed blue
+ * the native stack has always drawn, both with blue highest and the shallow sea
+ * the brighter of the two. Anything else - sky, clouds, outlines, the unlit
+ * limb - falls in no bucket.
+ */
+async function paintedSurfaceClasses(page: Page) {
+  const screenshot = await globe(page).screenshot();
+  return page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("screenshot class canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const buckets = { land: { pixels: 0, sum: 0 }, shallow: { pixels: 0, sum: 0 },
+      shelf: { pixels: 0, sum: 0 } };
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      const red = pixels[offset]!;
+      const green = pixels[offset + 1]!;
+      const blue = pixels[offset + 2]!;
+      const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      if (luminance < 25) continue;
+      const bucket = green > blue + 8 && green > red + 4 ? buckets.land
+        : blue > green + 4 && green > red + 20 ? (luminance > 95 ? buckets.shallow : buckets.shelf)
+          : null;
+      if (bucket === null) continue;
+      bucket.pixels += 1;
+      bucket.sum += luminance;
+    }
+    bitmap.close();
+    return Object.fromEntries(Object.entries(buckets).map(([name, bucket]) => [name,
+      { pixels: bucket.pixels, luminance: bucket.pixels === 0 ? 0 : bucket.sum / bucket.pixels }]));
+  }, screenshot.toString("base64")) as Promise<Record<"land" | "shallow" | "shelf",
+    { pixels: number; luminance: number }>>;
 }
 
 test("loads one local Cao reconstruction and the complete chapter picker", { tag: "@ci" }, async ({ page, baseURL }) => {
@@ -605,10 +679,13 @@ test("keeps layers usable and labels unavailable seafloor data", async ({ page }
   await expect(page.getByText(/no qualified ocean-floor age or depth field/i)).toBeVisible();
 });
 
-test("offers the palaeo-coastline layer control with its unavailable reason", async ({ page }) => {
-  // The charts do not ship yet, so the control is disabled with its reason and
-  // the outline keeps its single dark ink. Both are pinned here so Phase 6
-  // cannot enable the layer without moving this test with it.
+test("offers the palaeo-coastline layer control and leaves it off by default", async ({ page }) => {
+  // Default off: the outline keeps its single dark ink, nothing palaeo is
+  // fetched, and the control is available because the Cao 2017 charts now ship.
+  const palaeoRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("palaeo-coastlines/")) palaeoRequests.push(request.url());
+  });
   await page.goto("./");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
@@ -620,14 +697,122 @@ test("offers the palaeo-coastline layer control with its unavailable reason", as
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
   const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
-  await expect(palaeo).toBeDisabled();
+  await expect(palaeo).toBeEnabled();
   await expect(palaeo).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText(/steps between 24 published map intervals/)).toBeVisible();
-  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toBeVisible();
-  await expect(palaeo).not.toHaveAttribute("aria-busy", "true");
-  // A manifest without the palaeoCoastlines section fetches nothing palaeo.
+  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toHaveCount(0);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
+  expect(palaeoRequests, "no palaeo bytes are fetched while the layer is off").toEqual([]);
+});
+
+test("draws the Cao 2017 map with separable land, shallow sea and shelf", async ({ page }) => {
+  // Idle rotation would move the lit limb between screenshots.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "94-81");
+  expect(Number(await globe(page).getAttribute("data-cao-palaeo-triangles"))).toBeGreaterThan(0);
+  expect(Number(await globe(page).getAttribute("data-cao-palaeo-charts"))).toBeGreaterThan(0);
+  expect(Number(await globe(page).getAttribute("data-cao-palaeo-asset-bytes"))).toBeGreaterThan(0);
+
+  // Two tones on the country outline: dark ink over the Cao 2017 land, light
+  // over its seas. A build that uploaded no table would keep every segment dark.
+  await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "94-81");
+  expect(Number(await globe(page).getAttribute("data-cao-outline-tone-dark-segments")))
+    .toBeGreaterThan(0);
+  expect(Number(await globe(page).getAttribute("data-cao-outline-tone-light-segments")))
+    .toBeGreaterThan(0);
+
+  const painted = await paintedSurfaceClasses(page);
+  // The three classes must be separable on screen, not only in the manifest.
+  expect(painted.land.pixels, "palaeo land pixels").toBeGreaterThan(500);
+  expect(painted.shallow.pixels, "palaeo shallow-marine pixels").toBeGreaterThan(500);
+  expect(painted.shelf.pixels, "shelf pixels").toBeGreaterThan(500);
+  expect(painted.land.luminance).toBeGreaterThan(105);
+  expect(painted.land.luminance - painted.shelf.luminance).toBeGreaterThan(45);
+  expect(painted.shallow.luminance).toBeGreaterThan(painted.shelf.luminance);
+});
+
+test("places the compiled Cao 2017 witnesses on the live surface", async ({ page }) => {
+  // The same witnesses `palaeo_coastlines_correction.py` asserts offline, read
+  // back through the scene's own CPU coverage path.
+  await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const classify = (longitude: number, latitude: number) => page.evaluate(
+    ([lon, lat]) => window.__earthHistorySurfaceProbe?.(lon, lat) ?? "no-probe",
+    [longitude, latitude]);
+  expect(await classify(-100, 45), "Western Interior Seaway").toBe("palaeo-shallow-marine");
+  expect(await classify(75, 60), "West Siberian Sea").toBe("palaeo-shallow-marine");
+  expect(await classify(-90, 55), "Canadian Shield").toBe("palaeo-land");
+
+  // A hash-only change does not reload, and the witness table is per interval.
+  await page.goto("./#age=255&layers=borders,guides,palaeoCoastlines");
+  await page.reload();
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "269-248");
+  expect(await classify(4, 54), "Zechstein basin").toBe("palaeo-shallow-marine");
+});
+
+test("returns the Cao 2024 composition when the palaeo layer is switched off", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#age=90&layers=borders,guides");
+  await waitForCao(page);
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
+  const control = await globeLuminance(page);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  await palaeo.click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  // The mapped shallow seas are the change, and the surface probe names them.
+  expect(await page.evaluate(() => window.__earthHistorySurfaceProbe?.(-100, 45) ?? "no-probe"))
+    .toBe("palaeo-shallow-marine");
+  expect(Number(await globe(page).getAttribute("data-cao-palaeo-triangles"))).toBeGreaterThan(0);
+
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  await palaeo.click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("off");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-charts", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-triangles", "0");
+  await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
+  expect(await globeLuminance(page)).toBeCloseTo(control, 0);
+  expect(await page.evaluate(() => window.__earthHistorySurfaceProbe?.(-100, 45) ?? "no-probe"))
+    .not.toBe("palaeo-shallow-marine");
+});
+
+test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./#age=94&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "94-81");
+  const observed: string[] = [];
+  for (const ageMa of [92, 88, 84, 82, 80]) {
+    await setContinuousAge(page, ageMa);
+    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+      { timeout: 30_000 }).toBe("on");
+    const intervalId = await globe(page).getAttribute("data-cao-palaeo-interval-id");
+    if (observed[observed.length - 1] !== intervalId) observed.push(intervalId!);
+    // The mode never drops into an error state mid-scrub.
+    expect(await globe(page).getAttribute("data-cao-palaeo-fallback-reason") ?? "").toBe("");
+  }
+  expect(observed).toEqual(["94-81", "81-58"]);
+  expect(errors).toEqual([]);
 });
 
 test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {

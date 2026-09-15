@@ -209,7 +209,10 @@ tables are expanded by the palaeo decoder.
 `intervals` columns: `intervalId`, `intervalIndex`, `fromAgeMa`, `toAgeMa`,
 `midAgeMa`, `bytes`, `sha256`, `pieces`, `rings`, `vertices`, `collapsedRings`,
 `baseTriangles`, `estimatedTrianglesAtOneDegree`. The rows run oldest to
-youngest and abut. The payload file name is `payloadNameTemplate` with
+youngest and abut within the source's own 10 kyr step: `402-380` ends at
+380.01 Ma and `380-359` begins at 380, so a row's `toAgeMa` is the next row's
+`fromAgeMa` or exactly 0.01 Ma above it. A wider hole would leave a band of ages
+with no map and is rejected. The payload file name is `payloadNameTemplate` with
 `<intervalId>` substituted; `bytes` and `sha256` are the digest the loader
 verifies. `vertices`, `baseTriangles` and `estimatedTrianglesAtOneDegree` are
 the renderer's reservation, `maximumEdgeDegrees` its edge bound. The
@@ -317,6 +320,17 @@ triangles outside the piece removed: it is an estimate of the runtime's
 ear-clipping output, not a reproduction of it, and it is used only to size a
 reservation.
 
+Measured 2026-09-15 against the runtime over all 24 promoted `lm`+`sm`
+intervals: the runtime produces **1.63x** the estimate at the median interval and
+**2.04x** at the worst, because `palaeoTriangulate.ts` bisects conformingly —
+every violating edge of a round is split at once and the split propagates into
+neighbours that were already short enough — while this estimate models each
+triangle alone. So the package manifest's `reservation` scales the worst
+interval's estimate by 2.0 rather than trusting it (457,098 triangles against a
+measured worst of 427,088), and `palaeoCoastlineAssets.test.ts` re-measures every
+interval against the declared numbers. The estimate is a size class, not a
+prediction of the runtime's output.
+
 ## Provenance sidecar
 
 `provenance/palaeo-<class>-provenance.json` is the offline half of the split. It
@@ -378,6 +392,13 @@ and one `classes[<class>]` entry per compiled class with `path` (relative to
 the payload directory), `bytes`, `sha256`, `pieces`, `vertices` and
 `estimatedTriangles`. The tone payload's own `bytes` and `sha256` are recorded
 in `geometryAsset`.
+
+`classes` indexes every class the compiler produced, not only the classes a
+build publishes: the mountain class is compiled and validated offline and is
+listed here with its measurements, while `public/data` carries only `lm` and
+`sm`. The index is a compile record, never a fetch list — the runtime derives a
+payload url from its own class catalog's `payloadNameTemplate` and downloads
+only the classes the package manifest declares.
 
 The midpoint of each segment is decoded from `country-reference.ehgl`; the plate
 comes from the segment's own country-reference chart. The match is by plate id,

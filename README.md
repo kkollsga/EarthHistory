@@ -61,6 +61,11 @@ API credential. The production address is
 - Use Layers for modern-country references, native tectonic references and
   schematic globe guides. Exact tectonic geometry is available at marked ages;
   unmatched boundary geometry is not interpolated.
+- Switch on **Palaeo-coastlines (Cao 2017)** to replace the model coast proxy
+  with mapped landmass and shallow-marine polygons for the 24 published map
+  intervals between 402 and 2 Ma. The map steps at an interval boundary rather
+  than morphing, country outlines become light position markers over sea, and
+  ages outside the schedule fall back to today's composition with a notice.
 - Relief controls do not create source elevations. The initial Cao foundation
   uses neutral height placeholders while calibrated relief remains deferred.
 - Open field notes for dated places and events. Location actions require a

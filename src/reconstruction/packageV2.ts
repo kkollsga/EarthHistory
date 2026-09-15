@@ -392,9 +392,13 @@ function sameMotionBindingSignature(
 
 const PALAEO_SURFACE_CLASS_IDS: readonly PalaeoCoastlineSurfaceClassId[] = Object.freeze(["lm", "sm", "m"]);
 
-/** Ceilings of the palaeo surface renderer instance in `GlobeScene`. */
-const PALAEO_MAX_INTERVAL_VERTICES = 170_000;
-const PALAEO_MAX_INTERVAL_TRIANGLES = 300_000;
+/**
+ * Ceilings of the palaeo surface renderer instance in `GlobeScene`, measured
+ * against the promoted `lm`+`sm` set in 2026-09-15 (worst interval 262,202
+ * vertices and 427,088 triangles at the 1 degree refinement).
+ */
+const PALAEO_MAX_INTERVAL_VERTICES = 300_000;
+const PALAEO_MAX_INTERVAL_TRIANGLES = 480_000;
 const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
 
 export function validatePalaeoCoastlineAssets(

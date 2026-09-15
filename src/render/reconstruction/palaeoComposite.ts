@@ -58,6 +58,34 @@ export function caoCompositeCoversDirection(
   return mode === "palaeo" && covers(palaeo);
 }
 
+/**
+ * Highest-precedence class covering one piece of present-day ground, or null.
+ *
+ * This is the on-screen form of the compiled witness table: the Western
+ * Interior Seaway at 90 Ma is a question about the ground under present-day
+ * (-100, 45), not about a screen position, and every chart on both instances
+ * stores its geometry in present-day WGS84. It walks the same coverage path the
+ * guide-label ink uses, one precedence class at a time, so the answer is the
+ * class the viewer sees rather than whichever batch happened to be tested
+ * first.
+ */
+export function caoCompositeReferenceSurfaceClass(
+  native: CaoFoundationSurfaceView | null,
+  palaeo: CaoFoundationSurfaceView | null,
+  referenceDirection: Vec3Tuple,
+  options: CaoCompositeOptions = {},
+): CaoFoundationSurfaceClass | null {
+  const mode = options.mode ?? "native";
+  // `selectionFor` is ascending precedence; the answer is the class drawn last.
+  for (const surfaceClass of [...selectionFor(options, mode)].reverse()) {
+    const covered = (view: CaoFoundationSurfaceView | null) => view !== null
+      && caoFoundationSurfaceCoversDirection(view.geometry, view.publication, referenceDirection,
+        { surfaceClasses: [surfaceClass], directionFrame: "chart-reference" });
+    if (covered(native) || (mode === "palaeo" && covered(palaeo))) return surfaceClass;
+  }
+  return null;
+}
+
 export function intersectCaoComposite(
   native: CaoFoundationSurfaceView | null,
   palaeo: CaoFoundationSurfaceView | null,

@@ -101,10 +101,23 @@ earlier published versions retain their own asset sets and attribution.
 - **Improving global paleogeography since the late Paleozoic using paleobiology** —
   Cao et al. (2017), [Biogeosciences 14 (2017)](https://doi.org/10.5194/bg-14-5425-2017),
   official EarthByte GPlates 2.3 Paleogeography package, licensed under
-  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). EarthHistory derives
-  a qualitative chronology constraint from the absence of mapped permanent-ice
-  polygons between 81 and 285.01 Ma. Polygon geometry is not transferred across
-  reconstruction frames; this absence is not proof of an ice-free Earth.
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); the package README
+  also requires citing Matthews et al. (2016),
+  [doi:10.1016/j.gloplacha.2016.10.002](https://doi.org/10.1016/j.gloplacha.2016.10.002).
+  EarthHistory derives a qualitative chronology constraint from the absence of
+  mapped permanent-ice polygons between 81 and 285.01 Ma, and, for the
+  palaeo-coastline layer, redistributes the landmass and shallow-marine
+  polygons of the 24 published map intervals as a modified derivative. The
+  modifications are EarthHistory's: the present-day polygons are cut by the
+  present-day Cao et al. (2024) v2.4 static partitions, each piece is given one
+  partition owner and rides that plate, node counts are reduced by
+  Douglas–Peucker, and the published `FROMAGE`/`TOAGE` map interval becomes a
+  half-open lifecycle. The polygons are not reconstructed with the Matthews
+  et al. (2016) rotations the authors used. A map interval records the minimum
+  land and maximum flooding recorded anywhere in that bin, not a shoreline at
+  one moment; the absence of ice polygons is not proof of an ice-free Earth.
+  The research-only GitHub snapshot (commit `e92592aa`, no repository licence)
+  and the supplement raster maps are not inputs to any build.
 - **GDH1 ocean lithosphere age–depth model** — Stein and Stein (1992),
   [Nature 359, 123–129](https://doi.org/10.1038/359123a0). Citation and numerical
   model only; no paper text, figures or third-party implementation is bundled.

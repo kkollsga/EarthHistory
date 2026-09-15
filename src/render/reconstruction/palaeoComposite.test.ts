@@ -10,6 +10,7 @@ import {
   CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA,
   CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   caoCompositeCoversDirection,
+  caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
   intersectCaoComposite,
   nextCaoPalaeoVisibilityState,
@@ -161,6 +162,26 @@ describe("palaeo composite surface", () => {
     expect(intersectCaoComposite(null, palaeo([1, 1, 1]), [3, 0, 0], [-1, 0, 0],
       { mode: "palaeo" })?.surfaceClass).toBe("palaeo-mountain");
     expect(intersectCaoComposite(null, null, [3, 0, 0], [-1, 0, 0], {})).toBeNull();
+  });
+
+  it("names the class over one piece of present-day ground", () => {
+    // The compiled witness table asks about ground, not about a screen position:
+    // the answer must be the class drawn last over that ground, and it must be
+    // read in the frame the charts store their geometry in rather than through
+    // a pose.
+    const classify = (nativeActive: readonly number[], palaeoActive: readonly number[],
+      mode: "native" | "palaeo") =>
+      caoCompositeReferenceSurfaceClass(native(nativeActive), palaeo(palaeoActive),
+        gplatesLonLat(0, 0) as unknown as [number, number, number], { mode });
+    expect(classify([1, 1, 1], [1, 1, 1], "native")).toBe("land");
+    expect(classify([1, 1, 1], [1, 1, 1], "palaeo")).toBe("palaeo-mountain");
+    expect(classify([1, 1, 1], [1, 1, 0], "palaeo")).toBe("palaeo-land");
+    expect(classify([1, 0, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
+    expect(classify([1, 0, 1], [0, 0, 0], "palaeo")).toBe("shelf");
+    expect(classify([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
+    // Off the fixture's ground nothing answers, in either mode.
+    expect(caoCompositeReferenceSurfaceClass(native([1, 1, 1]), palaeo([1, 1, 1]),
+      gplatesLonLat(90, 0) as unknown as [number, number, number], { mode: "palaeo" })).toBeNull();
   });
 
   it("answers land coverage across both instances with native land hidden", () => {

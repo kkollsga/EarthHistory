@@ -38,6 +38,7 @@ import {
 } from "./reconstruction/caoFoundation";
 import {
   caoCompositeCoversDirection,
+  caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
   CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   intersectCaoComposite,
@@ -129,9 +130,19 @@ export interface EarthHistoryDiagnostics {
   };
 }
 
+/**
+ * Surface class covering one piece of present-day ground at the drawn age, or
+ * null. The compiled witness table (`palaeo_coastlines_correction.py`) asks
+ * exactly this question offline; the browser suite asks it of the live scene so
+ * the two cannot drift, and nothing in the application reads it.
+ */
+export type EarthHistorySurfaceProbe =
+  (longitudeDegrees: number, latitudeDegrees: number) => string | null;
+
 declare global {
   interface Window {
     __earthHistoryDiagnostics?: EarthHistoryDiagnostics;
+    __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
   }
 }
 
@@ -427,21 +438,27 @@ function createCaoGpuRetirementOwner(
 /**
  * Bounds for the palaeo-coastline instance. It streams one Cao 2017 map
  * interval at a time, so it replaces static geometry where the native instance
- * never may, and its worst measured interval (37-29 Ma: about 78k vertices and
- * 136k triangles at the 1 degree refinement) sits well inside these ceilings.
- * One resource and 8 MiB of retirement cover a single interval swap; the
- * publication ledger is a palette and per-chart pose table only.
+ * never may.
+ *
+ * Measured 2026-09-15 over the promoted `lm`+`sm` set: the worst interval
+ * (29-20 Ma) refines to 262,202 vertices and 427,088 triangles, whose retained
+ * source copies and tracked GPU buffers come to about 19 MiB. That is 1.87x the
+ * compiler's own triangle estimate, because this runtime bisects conformingly
+ * while the compiler models each triangle alone; the 1 degree edge bound is the
+ * chord-sag contract and cannot be relaxed to bring it down. One resource and
+ * 32 MiB of retirement cover a single interval swap; the publication ledger is
+ * a palette and per-chart pose table only.
  */
 const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
   maxBatches: 64,
-  maxVertices: 170_000,
-  maxTriangles: 300_000,
-  maxRetainedSourceBytes: 16 * 1024 * 1024,
+  maxVertices: 300_000,
+  maxTriangles: 480_000,
+  maxRetainedSourceBytes: 24 * 1024 * 1024,
   maxPublicationBytes: 512 * 1024,
   maxSpatialIndexBytes: 512 * 1024,
 });
 const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_PALAEO_RETIREMENT_MAX_BYTES = 8 * 1024 * 1024;
+const CAO_PALAEO_RETIREMENT_MAX_BYTES = 32 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -1198,6 +1215,9 @@ export class GlobeScene {
     this.renderer.dispose();
     this.renderer.domElement.remove();
     delete window.__earthHistoryDiagnostics;
+    if (window.__earthHistorySurfaceProbe === this.surfaceProbe) {
+      delete window.__earthHistorySurfaceProbe;
+    }
   }
 
   private makeGlobeGeometry(): THREE.BufferGeometry {
@@ -1741,6 +1761,22 @@ export class GlobeScene {
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 
+  /**
+   * Surface class over one piece of present-day ground at the drawn age. The
+   * browser suite reads it to ask the compiled witness questions of the live
+   * scene; nothing in the application calls it.
+   */
+  private readonly surfaceProbe: EarthHistorySurfaceProbe = (longitudeDegrees, latitudeDegrees) => {
+    const longitude = longitudeDegrees * Math.PI / 180;
+    const latitude = latitudeDegrees * Math.PI / 180;
+    const radius = Math.cos(latitude);
+    return caoCompositeReferenceSurfaceClass(
+      this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView(),
+      this.caoPalaeoRenderer.surfaceView(),
+      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
+      { mode: this.caoFoundationRenderer.surfaceMode() });
+  };
+
   private publishStats(now: number): void {
     this.lastStatsAt = now;
     const recent = this.frameTimes.slice(-180);
@@ -1770,6 +1806,10 @@ export class GlobeScene {
         workerRetainedBytes: 0, evictions: 0, queuedJobs: 0, workerPoolSize: 0, staleJobs: 0 },
     };
     window.__earthHistoryDiagnostics = diagnostics;
+    // Republished beside the diagnostics rather than installed once in the
+    // constructor: a scene that replaces another must own the hook, and the
+    // replaced scene's dispose() must not take the live one's with it.
+    window.__earthHistorySurfaceProbe = this.surfaceProbe;
     const dataset = this.renderer.domElement.dataset;
     dataset.detail = diagnostics.detail;
     dataset.quality = diagnostics.effectiveQuality;

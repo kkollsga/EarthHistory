@@ -21,8 +21,11 @@ import { selectPaletteMotionSubsegment, type PreparedPaletteEntry } from "./pale
 import {
   PALAEO_SURFACE_CLASS_APPEARANCES,
   PALAEO_SURFACE_EVIDENCE_CLASSES,
+  indexPalaeoPaletteEntriesByPlate,
+  palaeoBindingSeamCoversAge,
   palaeoLifecycleActiveAtAge,
   palaeoPieceLimitationFlags,
+  selectPalaeoBindingEntry,
   type PalaeoCoastlineEvidenceRecord,
   type PalaeoSurfaceClass,
 } from "./palaeoRings";
@@ -88,6 +91,10 @@ export function evaluateCaoPalaeoIntervalFrame(
   const activeLimitations = new Set<string>();
   let activeChartCount = 0;
   const values: number[] = [];
+  // `palaeo-binding-entry-v1` starts from the palette entries of one plate, and
+  // a resident palette is keyed by entry id, so the plate index is built once
+  // for the whole frame rather than per piece.
+  const entriesByPlate = indexPalaeoPaletteEntriesByPlate(paletteEntries.values());
   for (const resident of interval.classes) {
     classChartOffsets.set(resident.surfaceClass, charts.length);
     const { catalog, metadata } = resident;
@@ -95,17 +102,18 @@ export function evaluateCaoPalaeoIntervalFrame(
       const evidence = catalog.evidence[piece.evidenceIndex]!;
       const binding = catalog.bindings[piece.bindingIndex]!;
       const lifecycle = catalog.lifecycles[piece.lifecycleIndex]!;
-      const selected = binding.entries
-        .filter((entry) => requestedAgeMa >= entry.validTimeMa.youngest
-          && requestedAgeMa <= entry.validTimeMa.oldest)
-        .sort((left, right) => left.entryId.localeCompare(right.entryId))[0];
-      const entry = selected ? paletteEntries.get(selected.entryId) : undefined;
+      const entry = selectPalaeoBindingEntry(entriesByPlate.get(binding.bindingPlateId) ?? [],
+        catalog.entrySelection, binding.bindingPlateId, requestedAgeMa);
       const segment = entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
       const lifecycleActive = palaeoLifecycleActiveAtAge(lifecycle, requestedAgeMa);
+      // An unposable piece is not drawn. A declared source seam says so as
+      // `source-seam`: the model has a hole here, which is a different claim
+      // from a palette entry that has not finished downloading.
       const support: SupportState = !lifecycleActive
         ? { kind: "inactive", reason: requestedAgeMa > lifecycle.oldestMa ? "unborn" : "consumed" }
         : segment ? { kind: "supported", method: "compiled-rigid" }
-        : { kind: "unsupported", reason: "missing-motion" };
+        : { kind: "unsupported",
+          reason: palaeoBindingSeamCoversAge(binding, requestedAgeMa) ? "source-seam" : "missing-motion" };
       const younger: QuaternionWxyz = segment?.younger.quaternion ?? [1, 0, 0, 0];
       const older: QuaternionWxyz = segment?.older.quaternion ?? younger;
       const poseQuaternion = slerpQuaternion(numberScalarOps, younger, older, segment?.fraction ?? 0);
@@ -118,11 +126,13 @@ export function evaluateCaoPalaeoIntervalFrame(
         for (const sourceId of evidence.sourceIds) activeSourceIds.add(sourceId);
         for (const limitation of limitations) activeLimitations.add(limitation);
       }
-      const sourceChart = catalog.charts[piece.chartIndex]!;
-      const materialId = `palaeo:${catalog.class}:${sourceChart.sourceRecordIndex}`;
+      // The shipped catalog carries no chart table: `chartIndex` is the source
+      // record's own ordinal in the offline provenance sidecar, and every piece
+      // cut from one Cao 2017 record carries it, so it is the material identity.
+      const materialId = `palaeo:${catalog.class}:${piece.chartIndex}`;
       charts.push(Object.freeze({
         chartId: `palaeo:${catalog.class}:${resident.record.intervalId}:${pieceIndex}`,
-        chartRevision: `${catalog.catalogId}@${resident.record.simplified.sha256}`,
+        chartRevision: `${catalog.catalogId}@${resident.record.payload.sha256}`,
         materialId,
         fragmentOrCohortId: `${materialId}:${binding.partitionPlateId}`,
         role: "model-geography" as const,
@@ -214,7 +224,7 @@ function preparedBatch(
   return Object.freeze({
     batchId: `palaeo-${resident.surfaceClass}`,
     staticGeometryIdentity:
-      `${identity.packageId}@${identity.packageRevision}:palaeo-${resident.surfaceClass}:${resident.record.simplified.sha256}`,
+      `${identity.packageId}@${identity.packageRevision}:palaeo-${resident.surfaceClass}:${resident.record.payload.sha256}`,
     vertexCount: geometry.vertexCount,
     triangleCount: geometry.triangleCount,
     staticGeometryBytes,

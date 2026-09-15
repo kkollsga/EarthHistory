@@ -78,6 +78,13 @@ export class CaoReconstructionRuntime {
   private tilePending: { readonly tileId: string; readonly assetBytes: number; readonly controller: AbortController;
     readonly promise: Promise<LoadedRequestedAgeMotionPalette> } | null = null;
   private readonly tileCache = new Map<string, LoadedRequestedAgeMotionPalette>();
+  /**
+   * Every unsettled tile fetch, by tile id, whichever chain started it. The
+   * palaeo chain runs its own requests, so without one shared register a palaeo
+   * pose asked for before any native request in the same window would fetch the
+   * tile a second time.
+   */
+  private readonly tileLoads = new Map<string, Promise<LoadedRequestedAgeMotionPalette>>();
   private fullPaletteEntries: ReadonlyMap<string, PreparedPaletteEntry> | null = null;
   private foregroundFullPalette: Promise<ReadonlyMap<string, PreparedPaletteEntry>> | null = null;
   private background: AbortController | null = null;
@@ -445,10 +452,10 @@ export class CaoReconstructionRuntime {
       this.tilePending?.controller.abort();
       const controller = new AbortController();
       const pending = {} as NonNullable<typeof this.tilePending>;
+      const started = this.tileLoads.get(descriptor.tileId)
+        ?? this.startTileLoad(descriptor.tileId, metadata, requestedAgeMa, index, controller.signal);
       Object.assign(pending, { tileId: descriptor.tileId, assetBytes: descriptor.asset.bytes, controller,
-        promise: loadVerifiedCaoRequestedAgeMotionPalette(
-          this.manifest, metadata, requestedAgeMa, this.fetcher, controller.signal, index,
-        ).finally(() => { if (this.tilePending === pending) this.tilePending = null; }) });
+        promise: started.finally(() => { if (this.tilePending === pending) this.tilePending = null; }) });
       this.tilePending = pending;
     }
     const loaded = await this.tilePending.promise;
@@ -655,6 +662,24 @@ export class CaoReconstructionRuntime {
    * cached tile answers immediately; otherwise this joins the foreground tile
    * already in flight for the same window before starting its own.
    */
+  /** Registers one tile fetch so both request chains share it, and unregisters it on settle. */
+  private startTileLoad(
+    tileId: string,
+    metadata: Awaited<CaoReconstructionRuntime["metadata"]>,
+    requestedAgeMa: number,
+    index: RequestedAgeMotionTileIndex,
+    signal: AbortSignal,
+  ): Promise<LoadedRequestedAgeMotionPalette> {
+    const promise = loadVerifiedCaoRequestedAgeMotionPalette(
+      this.manifest, metadata, requestedAgeMa, this.fetcher, signal, index,
+    ).finally(() => { if (this.tileLoads.get(tileId) === promise) this.tileLoads.delete(tileId); });
+    this.tileLoads.set(tileId, promise);
+    // A rejection is delivered to every awaiting consumer; the register itself
+    // must not raise an unhandled rejection when nobody is awaiting yet.
+    void promise.catch(() => {});
+    return promise;
+  }
+
   private async palaeoPaletteEntries(
     requestedAgeMa: number,
     signal: AbortSignal,
@@ -674,10 +699,10 @@ export class CaoReconstructionRuntime {
     const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
     const cached = this.tileCache.get(descriptor.tileId);
     if (cached) return cached.entries;
-    const loaded = this.tilePending?.tileId === descriptor.tileId
-      ? await this.tilePending.promise
-      : await loadVerifiedCaoRequestedAgeMotionPalette(
-        this.manifest, metadata, requestedAgeMa, this.fetcher, signal, index);
+    // Joining the shared register is what keeps a palaeo pose from fetching a
+    // tile the foreground chain is already loading, and the other way round.
+    const loaded = await (this.tileLoads.get(descriptor.tileId)
+      ?? this.startTileLoad(descriptor.tileId, metadata, requestedAgeMa, index, signal));
     if (this.fullPaletteEntries) return this.fullPaletteEntries;
     this.tileCache.set(loaded.descriptor.tileId, loaded);
     while (this.tileCache.size > 2) this.tileCache.delete(this.tileCache.keys().next().value!);

@@ -1,6 +1,6 @@
 .PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs check-corrections \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
-	prune-build-cache sync-agents
+	check-palaeo-compile prune-build-cache sync-agents
 
 DEV_DOCS_MAX_MB ?= 50
 BUILD_CACHE_MAX_MB ?= 100
@@ -94,6 +94,23 @@ check-corrections:
 	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
 	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
 	@python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test
+	@python3 scripts/research/validate_palaeo_coastlines_runtime.py --self-test >/dev/null
+	@python3 scripts/research/validate_palaeo_coastlines_runtime.py >/dev/null
+	@$(MAKE) --no-print-directory check-palaeo-compile
+
+# The palaeo-coastline compile oracle reads the Cao source zips and the offline
+# compiled store through the pinned pyGPlates environment, none of which a bare
+# checkout has. Where they are present it must pass; where they are not it says
+# so by name instead of reporting a pass. The published bytes are gated
+# unconditionally by validate_palaeo_coastlines_runtime.py above.
+PALAEO_PYTHON ?= ../EarthHistory-data/palaeomap-study/verification/pygplates-venv/bin/python
+check-palaeo-compile:
+	@if [ -x "$(PALAEO_PYTHON)" ]; then \
+		"$(PALAEO_PYTHON)" scripts/research/palaeo_coastlines_correction.py --self-test >/dev/null \
+		&& echo "palaeo_coastlines_correction --self-test: pass"; \
+	else \
+		echo "palaeo_coastlines_correction --self-test: not run, the pinned pyGPlates environment is absent ($(PALAEO_PYTHON))"; \
+	fi
 
 # R4: Vite/TypeScript caches have a named owner and explicit bound.
 check-build-cache:

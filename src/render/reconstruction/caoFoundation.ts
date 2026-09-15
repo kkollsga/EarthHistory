@@ -2182,6 +2182,16 @@ export interface CaoFoundationCoverageOptions {
    * omitted or `true` accepts every class, matching picking.
    */
   readonly includeShelf?: boolean;
+  /**
+   * Which frame `direction` is given in. `renderer` is the drawn position at
+   * the requested age and is what picking and the guide-label ink use.
+   * `chart-reference` is the present-day WGS84 direction every Cao chart and
+   * every palaeo piece stores its geometry at, so it answers "what class does
+   * this map draw over this piece of present-day ground", which is the question
+   * the compiled witness table asks. Both walk the same triangles; the only
+   * difference is whether the chart's own pose is undone first.
+   */
+  readonly directionFrame?: "renderer" | "chart-reference";
 }
 
 export function caoFoundationSurfaceClassSelection(
@@ -2238,8 +2248,8 @@ export function caoFoundationSurfaceCoversDirection(
     throw new Error("Cao coverage direction must be finite and non-zero");
   }
   const unit = rendererDirection.map((value) => value / length) as unknown as Vec3Tuple;
-  const gplatesDirection = rendererToGplatesDirection(numberScalarOps, unit);
-  const [gx, gy, gz] = gplatesDirection;
+  const chartReference = options.directionFrame === "chart-reference";
+  const [gx, gy, gz] = chartReference ? unit : rendererToGplatesDirection(numberScalarOps, unit);
   const poses = publication.chartPoses;
   for (const batch of geometry.batches) {
     if (!selected.has(batch.surfaceClass)) continue;
@@ -2248,20 +2258,27 @@ export function caoFoundationSurfaceCoversDirection(
       rangeOffset < batch.chartRanges.length; rangeOffset += 4, boundsOffset += 6) {
       const chartIndex = batch.chartRanges[rangeOffset]!;
       if (publication.chartActive[chartIndex] !== 1) continue;
-      const poseOffset = chartIndex * 8;
-      // rotateDirection inlined on scalars: this runs once per active chart per
-      // probe, where the generic ops indirection and its array allocation
-      // dominated the whole classification round.
-      const w = poses[poseOffset + 4]!;
-      const qx = poses[poseOffset + 5]!;
-      const qy = poses[poseOffset + 6]!;
-      const qz = poses[poseOffset + 7]!;
-      const tx = 2 * (qy * gz - qz * gy);
-      const ty = 2 * (qz * gx - qx * gz);
-      const tz = 2 * (qx * gy - qy * gx);
-      const sx = gx + w * tx + (qy * tz - qz * ty);
-      const sy = gy + w * ty + (qz * tx - qx * tz);
-      const sz = gz + w * tz + (qx * ty - qy * tx);
+      // A chart-reference direction is already in the frame the triangles are
+      // stored in; only a renderer direction has to have this chart's pose undone.
+      let sx = gx;
+      let sy = gy;
+      let sz = gz;
+      if (!chartReference) {
+        const poseOffset = chartIndex * 8;
+        // rotateDirection inlined on scalars: this runs once per active chart
+        // per probe, where the generic ops indirection and its array allocation
+        // dominated the whole classification round.
+        const w = poses[poseOffset + 4]!;
+        const qx = poses[poseOffset + 5]!;
+        const qy = poses[poseOffset + 6]!;
+        const qz = poses[poseOffset + 7]!;
+        const tx = 2 * (qy * gz - qz * gy);
+        const ty = 2 * (qz * gx - qx * gz);
+        const tz = 2 * (qx * gy - qy * gx);
+        sx = gx + w * tx + (qy * tz - qz * ty);
+        sy = gy + w * ty + (qz * tx - qx * tz);
+        sz = gz + w * tz + (qx * ty - qy * tx);
+      }
       if (!pointInsideBounds(sx * shellRadius, sy * shellRadius, sz * shellRadius,
         batch.chartBounds, boundsOffset, CAO_FOUNDATION_COVERAGE_BOUNDS_EPSILON)) continue;
       // Boxes overlap between neighbouring charts, so confirm against the

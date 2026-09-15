@@ -21,7 +21,7 @@ import {
 } from "./outlineTones";
 import type { PreparedPaletteEntry } from "./palette";
 import type { PalaeoCoastlineClassCatalog } from "./palaeoRings";
-import { encodePalaeoRingPayload, palaeoClassCatalogFixture,
+import { encodePalaeoRingPayload, palaeoClassCatalogDocumentFixture, palaeoClassCatalogFixture,
   type LonLat } from "./fixtures/palaeoRingFixtures";
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
@@ -34,7 +34,8 @@ const packageFetcher: StaticAssetFetcher = async (url, signal) => {
 const sha256 = (bytes: ArrayBuffer) => createHash("sha256").update(new Uint8Array(bytes)).digest("hex");
 
 const CATALOG_URL = "palaeo/lm/palaeo-lm-catalog.json";
-const PALETTE_ENTRY_ID = "plate-101-0-1800";
+/** The plate the fixture bindings ride; the real package palette poses it at every age. */
+const BINDING_PLATE_ID = 101;
 
 /** Three abutting map intervals of one class, with one off-schedule piece in the oldest. */
 const INTERVALS = [
@@ -101,9 +102,10 @@ function palaeoFixture(overrides: Partial<PalaeoCoastlineAssets["reservation"]> 
     return { ...interval, url, bytes: payload.byteLength, sha256: sha256(payload),
       pieces: decodedPieces, rings: decodedPieces, vertices: decodedPieces * 4 };
   });
-  const catalog = palaeoClassCatalogFixture({ entryId: PALETTE_ENTRY_ID, lifecycles: LIFECYCLES,
-    intervals });
-  const catalogBytes = new TextEncoder().encode(JSON.stringify(catalog)).buffer as ArrayBuffer;
+  const catalogOptions = { bindingPlateId: BINDING_PLATE_ID, lifecycles: LIFECYCLES, intervals };
+  const catalog = palaeoClassCatalogFixture(catalogOptions);
+  const catalogBytes = new TextEncoder()
+    .encode(JSON.stringify(palaeoClassCatalogDocumentFixture(catalogOptions))).buffer as ArrayBuffer;
   assets.set(CATALOG_URL, catalogBytes);
   const toneCatalog = new TextEncoder().encode("{}").buffer as ArrayBuffer;
   const tones = toneTablesPayload();
@@ -177,7 +179,7 @@ describe("palaeo-coastline manifest section", () => {
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
       Object.assign(section.reservation, { maxEdgeDegrees: 1.28 })), domain)).toThrow(/reservation/);
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
-      Object.assign(section.reservation, { maxIntervalTriangles: 300_001 })), domain))
+      Object.assign(section.reservation, { maxIntervalTriangles: 480_001 })), domain))
       .toThrow(/reservation/);
     expect(() => validatePalaeoCoastlineAssets(corrupt((section) =>
       Object.assign(section.reservation, { maxResidentSourceBytes: 0 })), domain))
@@ -209,7 +211,7 @@ describe("palaeo-coastline interval store", () => {
 
   it("bounds resident bytes as well as resident count", async () => {
     const fixture = palaeoFixture();
-    const oneInterval = fixture.catalog.intervals[0]!.simplified.bytes;
+    const oneInterval = fixture.catalog.intervals[0]!.payload.bytes;
     const runner = createPalaeoTriangulationRunner();
     const store = new CaoPalaeoIntervalStore(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
@@ -464,8 +466,9 @@ describe("palaeo-coastline runtime requests", () => {
     // Inside the declared domain but past the compiled intervals of this fixture.
     await expect(runtime.requestPalaeoInterval(100).prepared).rejects.toThrow(/no palaeo-coastline interval/);
     runtime.dispose();
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
-      ReconstructionPackageManifestV2;
+    // A build compiled without the Cao 2017 charts: the section is absent.
+    const { palaeoCoastlines: _shipped, ...manifest } = JSON.parse(
+      await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
     const bare = new CaoReconstructionRuntime(manifest, packageFetcher);
     expect(() => bare.setPalaeoCoastlinesEnabled(true)).toThrow(/no palaeo-coastline section/);
     expect(() => bare.requestPalaeoInterval(390)).toThrow(/no palaeo-coastline section/);
@@ -524,9 +527,12 @@ describe("palaeo-coastline runtime requests", () => {
 describe("palaeo-coastline manifest availability and the assets one enablement fetches", () => {
   it("reports a manifest without the section unavailable and fetches nothing palaeo", async () => {
     const fixture = palaeoFixture();
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
-      ReconstructionPackageManifestV2;
-    expect(manifest.palaeoCoastlines).toBeUndefined();
+    // The published package now ships the Cao 2017 charts, so the unavailable
+    // case is the section removed: a build compiled without them, which the
+    // layer control must still disable rather than fall back from.
+    const { palaeoCoastlines: shipped, ...manifest } = JSON.parse(
+      await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
+    expect(shipped).toBeDefined();
     const runtime = new CaoReconstructionRuntime(manifest, fixture.fetcher);
     expect(runtime.palaeoCoastlineAssetsAvailable).toBe(false);
     expect(runtime.palaeoCoastlinesEnabled).toBe(false);

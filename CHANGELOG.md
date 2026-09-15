@@ -4,6 +4,46 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- A toggleable **Palaeo-coastlines (Cao 2017)** layer that replaces the Cao 2024
+  coast proxy with mapped palaeogeography for the 24 published map intervals
+  from `402-380` to `11-2` Ma. Two classes ship: 26,497 landmass pieces
+  (3,339,386 bytes) and 31,869 shallow-marine pieces (3,469,844 bytes), cut from
+  7,154 and 13,395 Cao et al. (2017) source records, plus two columnar class
+  catalogs (26,796 and 42,849 bytes) and 24 country-outline tone tables
+  (102,048 bytes for both files) — 6,980,923 bytes over 52 files, inside the
+  7 MiB budget `check-app-artifacts` now enforces. `dist` is 52,057,351 bytes
+  (49.65 MiB) against the unchanged 50 MiB ceiling.
+- The mechanism: the browser downloads polygon rings, not triangles. A published
+  interval is one EHPR v1 payload per class — int16 lon/lat vertices, a 12-byte
+  piece record and a 2-byte ring record — which a worker decodes, ear-clips with
+  its holes and refines to a maximum 1° edge before the second surface renderer
+  instance draws it. Pre-triangulated streaming of the landmass class alone
+  would have been 45–96 MiB. Each piece is posed by the plate its catalog
+  binding names, resolved against the shared motion palette by the normative
+  `palaeo-binding-entry-v1` rule (North Sea restoration first, eight recovery
+  plates that never fall back, `correction-plate-` entries at and above 410 Ma,
+  the native chain below it), and is drawn on its own `(TOAGE, FROMAGE]`
+  lifecycle rather than on the interval of the file it ships in. The format is
+  specified in `docs/data/palaeo-coastlines-format.md`.
+- What the layer does not claim: an interval records the minimum land and
+  maximum flooding mapped anywhere in that bin, not a shoreline at one moment,
+  and the map steps at an interval boundary rather than morphing through it.
+  Shallow marine is an environment class, not a water depth. Cao 2024
+  continental crust carrying neither class keeps its own "depth unmapped"
+  meaning and is never drawn as deep marine. Country outlines become light
+  position markers over a Cao 2017 sea; the tone is a legibility aid, never
+  evidence that the modern country existed. Outside 2.01–402 Ma, including the
+  present day, the mode falls back to today's composition with a map-key notice.
+- What did not change: the layer is off by default, a link written before it
+  existed still opens with it off, and nothing palaeo is fetched while it is
+  off. With the layer off the drawn globe, the native Cao 2024 composition, the
+  country outline's single dark ink, every correction, anchor, boundary and
+  ownership asset and every existing citation are exactly what they were. The
+  mountain class stays compiled and validated offline: it is not funded by the
+  byte budget and does not ship.
+
 ### Changed
 
 - Ship the Cao v2.4 package JSON in a lossless interned form and reclaim

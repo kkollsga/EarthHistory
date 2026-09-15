@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   PALAEO_RING_FLAGS,
+  decodePalaeoCoastlineClassCatalog,
   decodePalaeoRingPayload,
+  indexPalaeoPaletteEntriesByPlate,
+  palaeoBindingSeamCoversAge,
   palaeoLifecycleActiveAtAge,
   palaeoPieceLimitationFlags,
   palaeoVertexDirection,
+  selectPalaeoBindingEntry,
   selectPalaeoCatalogInterval,
   validatePalaeoCoastlineClassCatalog,
   validatePalaeoRingPayloadAgainstCatalog,
   type PalaeoCoastlineClassCatalog,
 } from "./palaeoRings";
 import { CAO_2017_MAP_INTERVALS, selectPalaeoInterval } from "./outlineTones";
-import { encodePalaeoRingPayload, palaeoClassCatalogFixture } from "./fixtures/palaeoRingFixtures";
+import { encodePalaeoRingPayload, palaeoClassCatalogDocumentFixture,
+  palaeoClassCatalogFixture } from "./fixtures/palaeoRingFixtures";
 
 const square = (west: number, south: number, size: number) => [
   [west, south], [west + size, south], [west + size, south + size], [west, south + size],
@@ -138,7 +143,9 @@ describe("palaeo-coastline class catalog", () => {
     expect(() => validatePalaeoCoastlineClassCatalog(palaeoClassCatalogFixture())).not.toThrow();
     expect(() => validatePalaeoCoastlineClassCatalog(palaeoClassCatalogFixture(), "sm")).toThrow();
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
-      Object.assign(catalog, { schemaVersion: 2 })))).toThrow();
+      Object.assign(catalog, { schemaVersion: 1 })))).toThrow();
+    expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
+      Object.assign(catalog, { encoding: "palaeo-class-catalog-rows-v1" })))).toThrow();
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
       Object.assign(catalog, { appearance: "palaeo-shallow-marine" }))))
       .toThrow();
@@ -154,17 +161,16 @@ describe("palaeo-coastline class catalog", () => {
     }
   });
 
-  it("refuses a reversed or empty lifecycle, a binding gap and an uncited edit", () => {
+  it("refuses a reversed or empty lifecycle, a foreign binding kind and an uncited edit", () => {
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
       Object.assign(catalog.lifecycles[0]!, { youngestExclusiveMa: 402, oldestMa: 380 })))).toThrow(/reversed or empty/);
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
       Object.assign(catalog.lifecycles[0]!, { youngestExclusiveMa: 402, oldestMa: 402 })))).toThrow(/reversed or empty/);
-    expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) => {
-      (catalog.bindings[0] as { entries: unknown }).entries = [
-        { entryId: "plate-101-0-100", validTimeMa: { youngest: 0, oldest: 100 } },
-        { entryId: "plate-101-200-400", validTimeMa: { youngest: 200, oldest: 400 } },
-      ];
-    }))).toThrow(/gap-free/);
+    expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
+      Object.assign(catalog.bindings[0]!, { kind: "deforming" })))).toThrow(/motion binding record/);
+    expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
+      Object.assign(catalog.entrySelection, { rule: "palaeo-binding-entry-v0" }))))
+      .toThrow(/palaeo-binding-entry-v1/);
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
       Object.assign(catalog.evidence[0]!, { status: "derived-from-published-source" })))).toThrow(/evidence record/);
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
@@ -179,22 +185,21 @@ describe("palaeo-coastline class catalog", () => {
       Object.assign(catalog.intervals[0]!.reservation, { vertices: 99 })))).toThrow(/interval record/);
     // A payload url is a bare file name resolved beside its own catalog.
     expect(() => validatePalaeoCoastlineClassCatalog(corrupt((catalog) =>
-      Object.assign(catalog.intervals[0]!.simplified, { url: "../other/payload.ehpr" })))).toThrow(/interval record/);
-    const gapped = palaeoClassCatalogFixture({ intervals: [
+      Object.assign(catalog.intervals[0]!.payload, { url: "../other/payload.ehpr" })))).toThrow(/interval record/);
+    expect(() => palaeoClassCatalogFixture({ intervals: [
       { intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380,
-        url: "a.ehpr", bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 3 },
+        bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 3 },
       { intervalId: "379-360", intervalIndex: 1, fromAgeMa: 379, toAgeMa: 360,
-        url: "b.ehpr", bytes: 1, sha256: "b".repeat(64), pieces: 1, rings: 1, vertices: 3 },
-    ] });
-    expect(() => validatePalaeoCoastlineClassCatalog(gapped)).toThrow(/not contiguous/);
+        bytes: 1, sha256: "b".repeat(64), pieces: 1, rings: 1, vertices: 3 },
+    ] })).toThrow(/not contiguous/);
   });
 
   it("selects the covering interval with the same half-open rule as a piece", () => {
     const catalog = palaeoClassCatalogFixture({ intervals: [
       { intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380,
-        url: "a.ehpr", bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 3 },
+        bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 3 },
       { intervalId: "380-360", intervalIndex: 1, fromAgeMa: 380, toAgeMa: 360,
-        url: "b.ehpr", bytes: 1, sha256: "b".repeat(64), pieces: 1, rings: 1, vertices: 3 },
+        bytes: 1, sha256: "b".repeat(64), pieces: 1, rings: 1, vertices: 3 },
     ] });
     expect(selectPalaeoCatalogInterval(catalog, 402)?.intervalId).toBe("402-380");
     expect(selectPalaeoCatalogInterval(catalog, 380)?.intervalId).toBe("380-360");
@@ -213,7 +218,7 @@ describe("palaeo-coastline class catalog", () => {
       intervals: CAO_2017_MAP_INTERVALS.map((interval, index) => ({
         intervalId: interval.id, intervalIndex: index,
         fromAgeMa: interval.oldestMa, toAgeMa: interval.youngestMa,
-        url: `palaeo-lm-${interval.id}.ehpr`, bytes: 1,
+        bytes: 1,
         sha256: String(index).padStart(64, "0"), pieces: 1, rings: 1, vertices: 3,
       })),
     });
@@ -232,7 +237,7 @@ describe("palaeo-coastline class catalog", () => {
 
 describe("payload and catalog cross-check", () => {
   const catalog = palaeoClassCatalogFixture({ intervals: [{ intervalId: "402-380", intervalIndex: 0,
-    fromAgeMa: 402, toAgeMa: 380, url: "palaeo-lm-402-380.ehpr", bytes: 1, sha256: "a".repeat(64),
+    fromAgeMa: 402, toAgeMa: 380, bytes: 1, sha256: "a".repeat(64),
     pieces: 1, rings: 1, vertices: 4 }] });
   const record = catalog.intervals[0]!;
   const payload = (overrides: Parameters<typeof encodePalaeoRingPayload>[0]) =>
@@ -262,7 +267,7 @@ describe("payload and catalog cross-check", () => {
     const outside = palaeoClassCatalogFixture({
       lifecycles: [{ youngestExclusiveMa: 380, oldestMa: 402 }, { youngestExclusiveMa: 100, oldestMa: 200 }],
       intervals: [{ intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380,
-        url: "palaeo-lm-402-380.ehpr", bytes: 1, sha256: "a".repeat(64),
+        bytes: 1, sha256: "a".repeat(64),
         pieces: 1, rings: 1, vertices: 4 }],
     });
     expect(() => validatePalaeoRingPayloadAgainstCatalog(
@@ -270,5 +275,133 @@ describe("payload and catalog cross-check", () => {
       .toThrow(/does not overlap its own interval/);
     expect(() => validatePalaeoRingPayloadAgainstCatalog(
       payload(valid), outside, outside.intervals[0]!)).not.toThrow();
+  });
+});
+
+describe("columnar catalog expansion", () => {
+  it("expands parallel arrays into rows and ships no chart table", () => {
+    const document = palaeoClassCatalogDocumentFixture({ chartCount: 7_154, bindings: [
+      { bindingPlateId: 101, partitionPlateId: 101, kind: 0, gapSet: 0 },
+      { bindingPlateId: 315, partitionPlateId: 315, kind: 2, gapSet: 1 },
+    ], gapSets: [[], [{ youngestMa: 119.999999, oldestMa: 120, reason: "source-seam" }]] });
+    expect(document.charts).toBeUndefined();
+    const catalog = decodePalaeoCoastlineClassCatalog(document);
+    expect(catalog.chartCount).toBe(7_154);
+    expect(catalog.bindings.map((binding) => [binding.bindingPlateId, binding.kind]))
+      .toEqual([[101, "partition"], [315, "restoration"]]);
+    // A gap set is resolved onto the row, so the runtime never carries the index.
+    expect(catalog.bindings[0]!.motionSupportGaps).toEqual([]);
+    expect(catalog.bindings[1]!.motionSupportGaps)
+      .toEqual([{ youngestMa: 119.999999, oldestMa: 120, reason: "source-seam" }]);
+    // The payload url is derived from the template, never listed per interval.
+    expect(catalog.intervals[0]!.payload.url).toBe("palaeo-lm-402-380.ehpr");
+    expect(catalog.intervals[0]!.reservation.maximumEdgeDegrees).toBe(1);
+  });
+
+  it("refuses a column that disagrees with its own row count", () => {
+    const document = palaeoClassCatalogDocumentFixture();
+    const bindings = document.bindings as Record<string, unknown>;
+    bindings.count = 2;
+    expect(() => decodePalaeoCoastlineClassCatalog(document))
+      .toThrow(/binding column bindingPlateId disagrees/);
+    bindings.count = 1;
+    (bindings.kind as number[]).push(0);
+    expect(() => decodePalaeoCoastlineClassCatalog(document))
+      .toThrow(/binding column kind disagrees/);
+  });
+
+  it("refuses a foreign encoding, an out-of-range gap set and a missing empty gap set", () => {
+    expect(() => decodePalaeoCoastlineClassCatalog({
+      ...palaeoClassCatalogDocumentFixture(), encoding: "rows-v1" }))
+      .toThrow(/unsupported palaeo-coastline class catalog encoding/);
+    expect(() => decodePalaeoCoastlineClassCatalog(palaeoClassCatalogDocumentFixture({
+      bindings: [{ bindingPlateId: 101, partitionPlateId: 101, kind: 0, gapSet: 4 }] })))
+      .toThrow(/points outside its own tables/);
+    expect(() => decodePalaeoCoastlineClassCatalog({
+      ...palaeoClassCatalogDocumentFixture(),
+      gapSets: [[{ youngestMa: 1, oldestMa: 2, reason: "source-seam" }]] }))
+      .toThrow(/missing their empty set/);
+  });
+
+  it("bounds a piece's chartIndex by chartCount alone", () => {
+    const catalog = palaeoClassCatalogFixture({ chartCount: 3, intervals: [{
+      intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380,
+      bytes: 1, sha256: "a".repeat(64), pieces: 1, rings: 1, vertices: 4 }] });
+    const decode = (chartIndex: number) => validatePalaeoRingPayloadAgainstCatalog(
+      decodePalaeoRingPayload(encodePalaeoRingPayload({
+        pieces: [{ chartIndex, rings: [{ lonLat: square(0, 0, 2) }] }] })),
+      catalog, catalog.intervals[0]!);
+    expect(() => decode(2)).not.toThrow();
+    expect(() => decode(3)).toThrow(/catalog record that does not exist/);
+  });
+});
+
+describe("palaeo-binding-entry-v1", () => {
+  const catalog = palaeoClassCatalogFixture({ recoveryPlateIds: [626] });
+  const selection = catalog.entrySelection;
+  const entry = (entryId: string, plateId: number, youngestAgeMa: number, oldestAgeMa: number) =>
+    ({ entryId, plateId, youngestAgeMa, oldestAgeMa });
+  const select = (entries: ReturnType<typeof entry>[], plateId: number, ageMa: number) =>
+    selectPalaeoBindingEntry(entries, selection, plateId, ageMa)?.entryId ?? null;
+
+  it("takes the covering entry with the largest youngest bound, closed at both ends", () => {
+    const entries = [entry("plate-315-0-130", 315, 0, 130), entry("plate-315-130-505", 315, 130, 505)];
+    expect(select(entries, 315, 90)).toBe("plate-315-0-130");
+    // Where two entries meet, the one the chain walks into going older wins.
+    expect(select(entries, 315, 130)).toBe("plate-315-130-505");
+    expect(select(entries, 315, 505)).toBe("plate-315-130-505");
+    expect(select(entries, 315, 506)).toBeNull();
+    expect(select([], 315, 90)).toBeNull();
+  });
+
+  it("prefers a restoration entry over the native chain that also covers the age", () => {
+    // Without this a palaeo chart on 315 takes native motion and detaches ~72 km
+    // from its restored shelf at 270 Ma.
+    const entries = [entry("plate-315-130-505", 315, 130, 505),
+      entry("restoration-north-sea-plate-315-130-420", 315, 130, 420)];
+    expect(select(entries, 315, 270)).toBe("restoration-north-sea-plate-315-130-420");
+    expect(select(entries, 315, 460)).toBe("plate-315-130-505");
+  });
+
+  it("never falls back off a recovery plate", () => {
+    const entries = [entry("native-recovery-plate-626-0-79.1", 626, 0, 79.1),
+      entry("native-recovery-plate-626-79.100001-120", 626, 79.100001, 120),
+      entry("plate-626-0-200", 626, 0, 200)];
+    expect(select(entries, 626, 60)).toBe("native-recovery-plate-626-0-79.1");
+    expect(select(entries, 626, 100)).toBe("native-recovery-plate-626-79.100001-120");
+    // 150 Ma is covered by the native entry alone: a recovery plate is unposable there.
+    expect(select(entries, 626, 150)).toBeNull();
+    // The same entries on a plate that is not declared a recovery plate do fall back.
+    expect(select(entries, 101, 150)).toBe("plate-626-0-200");
+  });
+
+  it("prefers a correction entry only at and above 410 Ma", () => {
+    const entries = [entry("plate-201-0-540", 201, 0, 540),
+      entry("correction-plate-201-0-540", 201, 0, 540)];
+    expect(select(entries, 201, 409.999)).toBe("plate-201-0-540");
+    expect(select(entries, 201, 410)).toBe("correction-plate-201-0-540");
+    expect(select(entries, 201, 500)).toBe("correction-plate-201-0-540");
+    // Only a correction entry covers the age: it is taken below 410 Ma too.
+    expect(select([entries[1]!], 201, 100)).toBe("correction-plate-201-0-540");
+  });
+
+  it("reads a declared source seam as open at both ends", () => {
+    const seamed = palaeoClassCatalogFixture({
+      bindings: [{ bindingPlateId: 626, partitionPlateId: 626, kind: 3, gapSet: 1 }],
+      gapSets: [[], [{ youngestMa: 119.999999, oldestMa: 120, reason: "source-seam" }]] });
+    const binding = seamed.bindings[0]!;
+    expect(palaeoBindingSeamCoversAge(binding, 119.9999995)).toBe(true);
+    expect(palaeoBindingSeamCoversAge(binding, 120)).toBe(false);
+    expect(palaeoBindingSeamCoversAge(binding, 119.999999)).toBe(false);
+    expect(palaeoBindingSeamCoversAge(seamed.bindings[0]!, 90)).toBe(false);
+  });
+
+  it("indexes palette entries by the plate they pose", () => {
+    const byPlate = indexPalaeoPaletteEntriesByPlate([
+      entry("plate-101-0-100", 101, 0, 100), entry("plate-101-100-200", 101, 100, 200),
+      entry("plate-201-0-100", 201, 0, 100)]);
+    expect(byPlate.get(101)).toHaveLength(2);
+    expect(byPlate.get(201)).toHaveLength(1);
+    expect(byPlate.get(999)).toBeUndefined();
   });
 });
