@@ -53,6 +53,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cao_package_intern as package_intern  # noqa: E402
 import palaeo_coastlines_audit as audit  # noqa: E402
 import palaeo_coastlines_lgm_acquire as acquire  # noqa: E402
+import palaeo_coastlines_rings as rings  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -107,8 +108,9 @@ KM_PER_DEGREE = EARTH_RADIUS_KM * math.pi / 180.0
 # no surviving wedge is narrow enough for quantisation to turn inside out.
 MINIMUM_SHELF_WIDTH_KM = 1.5
 # Vertices sharper than this are spikes, not shore. Applied after simplification
-# so it judges the shipped ring, not the staircase it came from.
-MINIMUM_INTERIOR_ANGLE_DEGREES = 3.0
+# so it judges the shipped ring, not the staircase it came from. Shared with the
+# interval compiler, which runs the same filter over every Cao interval.
+MINIMUM_INTERIOR_ANGLE_DEGREES = rings.MINIMUM_INTERIOR_ANGLE_DEGREES
 
 # One entry per named footprint; a footprint may be covered by several crops
 # (Beringia spans the antimeridian and is therefore two).
@@ -548,70 +550,16 @@ def metric_open(geometry, minimum_width_km: float):
     return polygonal(transform(stretch, opened))
 
 
-def _interior_angle_degrees(before, vertex, after, cosine: float) -> float:
-    ax = (before[0] - vertex[0]) * cosine
-    ay = before[1] - vertex[1]
-    bx = (after[0] - vertex[0]) * cosine
-    by = after[1] - vertex[1]
-    first = math.hypot(ax, ay)
-    second = math.hypot(bx, by)
-    if first == 0.0 or second == 0.0:
-        return 0.0
-    cosine_angle = max(-1.0, min(1.0, (ax * bx + ay * by) / (first * second)))
-    return math.degrees(math.acos(cosine_angle))
-
-
-def despike_ring(coordinates, minimum_degrees: float, cosine: float):
-    """Drop vertices whose interior angle is below ``minimum_degrees``.
-
-    A spike is a vertex whose two edges double back along each other; removing
-    it closes the needle without moving any other vertex. Removal can expose a
-    new spike at a neighbour, so the pass repeats until the ring is clean or too
-    short to be a ring at all. Returns the ring and how many vertices went.
-    """
-    points = list(coordinates)
-    if len(points) >= 2 and points[0] == points[-1]:
-        points = points[:-1]
-    removed = 0
-    while len(points) > 3:
-        total = len(points)
-        sharpest = None
-        for index in range(total):
-            angle = _interior_angle_degrees(points[index - 1], points[index],
-                                            points[(index + 1) % total], cosine)
-            if angle < minimum_degrees and (sharpest is None or angle < sharpest[0]):
-                sharpest = (angle, index)
-        if sharpest is None:
-            break
-        points.pop(sharpest[1])
-        removed += 1
-    if len(points) < 3:
-        return None, removed
-    return points + [points[0]], removed
-
-
 def despiked(parts, minimum_degrees: float) -> tuple[list, int]:
-    """Run :func:`despike_ring` over every exterior and hole of every part."""
-    cleaned = []
-    removed = 0
-    for part in parts:
-        west, south, east, north = part.bounds
-        cosine = max(math.cos(math.radians((south + north) / 2.0)), 0.1)
-        exterior, gone = despike_ring(part.exterior.coords, minimum_degrees, cosine)
-        removed += gone
-        if exterior is None:
-            continue
-        holes = []
-        for interior in part.interiors:
-            hole, gone = despike_ring(interior.coords, minimum_degrees, cosine)
-            removed += gone
-            if hole is not None:
-                holes.append(hole)
-        candidate = Polygon(exterior, holes)
-        if not candidate.is_valid:
-            candidate = candidate.buffer(0)
-        cleaned.extend(audit.polygon_parts(candidate))
-    return cleaned, removed
+    """Run the shared spike filter over every exterior and hole of every part.
+
+    The spike filter only. This layer's interior rings have already met the
+    25 km2 floor in :func:`cleaned_parts`, and what ships is one hash-pinned
+    contract, so the hole-width floor the interval compiler adds is not applied
+    retroactively here.
+    """
+    cleaned, report = rings.polish_parts(parts, minimum_degrees)
+    return cleaned, report["spikeVertices"]
 
 
 def cleaned_parts(geometry, tolerance: float) -> tuple[list, dict]:

@@ -184,6 +184,18 @@ enough to be several times the quantisation error, so nothing that survives can
 be folded inside out later, and narrow enough that no feature the 1 arc-minute
 grid can actually resolve is removed.
 
+Since 2026-09-16 the spike filter is no longer this layer's alone. The same 3°
+rule, and a 1.5 km floor on the *mean width* of an interior ring, run over every
+Cao interval inside `palaeo_coastlines_compile.py`; both scripts import them from
+`scripts/research/palaeo_coastlines_rings.py`. The mechanism this section
+measured is not specific to a subtracted coastline: the shipped 0.1.14 set
+carried 920 interior rings narrower than 1.5 km, 359 of them in
+`palaeo-lm-11-2.ehpr` and 209 in `palaeo-lm-20-11.ehpr`, many of them zero-area
+three-vertex rings around Iceland. `docs/data/palaeo-coastlines-format.md` states
+the compiler-wide contract. Nothing about the LGM contract itself changed: it
+ships the same hash-pinned rings, and the width floor is not applied
+retroactively to them.
+
 ## 4.2 Why the subtraction follows the drawn coast, not Natural Earth
 
 Until 2026-09-16 step 4 subtracted Natural Earth 1:50m admin-0 land. The 0.1.15

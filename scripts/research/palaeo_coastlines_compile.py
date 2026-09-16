@@ -67,6 +67,7 @@ from shapely.strtree import STRtree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palaeo_coastlines_audit as audit  # noqa: E402
+import palaeo_coastlines_rings as rings  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -132,6 +133,17 @@ LON_SCALE = 32767.0 / 180.0
 LAT_SCALE = 32767.0 / 90.0
 
 MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
+# Ring hygiene, applied to every shipped piece after node reduction and before
+# quantisation. Both numbers are the LGM derivation's, now shared: a vertex
+# sharper than SPIKE_ANGLE_DEGREES is a spike rather than a coastline, and an
+# interior ring whose mean width (4 x area / perimeter) is under
+# MINIMUM_HOLE_WIDTH_KM encloses nothing the renderer can draw. Measured on the
+# shipped set 2026-09-16 before this filter existed: 920 needle interior rings,
+# 359 of them in `lm 11-2` and 209 in `lm 20-11`, many of them zero-area
+# three-vertex rings around Iceland that int16 quantisation folds inside out and
+# the ear-clip then fills with hairline triangles.
+SPIKE_ANGLE_DEGREES = rings.MINIMUM_INTERIOR_ANGLE_DEGREES
+MINIMUM_HOLE_WIDTH_KM = rings.MINIMUM_HOLE_WIDTH_KM
 FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
 # Beyond this the partition binding is not an approximation of the source frame,
 # it is a different place on Earth. A piece whose *body* - the representative
@@ -1461,6 +1473,37 @@ def simplify_piece(piece, area: float, config: dict, protected: bool) -> tuple[o
                         "areaSquareKilometres": value}
 
 
+def polish_piece(piece, report: dict) -> tuple[object, bool]:
+    """Despike the shipped rings and drop the interior rings that are needles.
+
+    Runs on the reduced geometry - after the seam buffer, the node reduction and
+    the assembly rules have each had their say, and before quantisation - so it
+    judges the ring the renderer actually receives. Nothing moves: a spike
+    removal deletes one vertex from between two edges that already double back
+    along each other, and a needle hole is deleted whole.
+
+    A part the edit would leave invalid, or that would collapse, keeps its
+    unpolished rings and is counted: the rules above accepted that part with the
+    component and hole counts it has, and repairing it here would restructure it
+    behind them.
+    """
+    parts = polygon_parts(piece)
+    if not parts:
+        return piece, False
+    before = (report["spikeVertices"], report["droppedHoleRings"])
+    cleaned, _ = rings.polish_parts(parts, SPIKE_ANGLE_DEGREES,
+                                    minimum_hole_width_km=MINIMUM_HOLE_WIDTH_KM,
+                                    minimum_hole_area_km2=MIN_PIECE_KM2,
+                                    repair=False, report=report)
+    if (report["spikeVertices"], report["droppedHoleRings"]) == before:
+        return piece, False
+    if len(cleaned) != len(parts):
+        report["declinedPieces"] += 1
+        return piece, False
+    report["polishedPieces"] += 1
+    return (cleaned[0] if len(cleaned) == 1 else MultiPolygon(cleaned)), True
+
+
 # --------------------------------------------------------------------------
 # triangle reservation estimate
 # --------------------------------------------------------------------------
@@ -2049,6 +2092,9 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
     dropped_area = 0.0
     dropped_pieces = 0
     straddling_rings = 0
+    hygiene = rings.blank_report()
+    hygiene["polishedPieces"] = 0
+    hygiene["declinedPieces"] = 0
     cuts: dict[int, list[dict]] = {}
     dropped_by_record: dict[int, tuple[float, int]] = {}
     for row in kept_rows:
@@ -2125,6 +2171,12 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                         retainReasons={"seam-gap": len(polygon_parts(entry["original"]))})
                 seam_retained_records += 1
         for entry in entries:
+            # Last edit before the piece is interned and quantised, so both the
+            # seam-retained and the reduced branch reach the renderer clean.
+            polished, changed = polish_piece(entry["simplified"], hygiene)
+            if changed:
+                entry["simplified"] = polished
+                entry["simplifiedAreaSquareKilometres"] = area_km2(polished)
             if entry["seamOverlapSquareKilometres"] > 0.0:
                 seam_overlap_pieces += 1
                 seam_buffer_maximum_km = max(seam_buffer_maximum_km,
@@ -2483,6 +2535,26 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "compiled": len(kept_rows),
             "quarantined": quarantined,
             "offScheduleCharts": sum(1 for chart in chart_table if chart["offSchedule"]),
+        },
+        # Counted once per cut piece, not once per interval the piece is drawn
+        # in: the edit happens where the piece is cut and reduced, and the same
+        # piece is emitted into every interval its record is active in.
+        "ringHygiene": {
+            "rule": (f"after node reduction and before quantisation every shipped ring drops the "
+                     f"vertices whose interior angle is under {SPIKE_ANGLE_DEGREES:g} degrees, and "
+                     f"every interior ring whose mean width (4 x area / perimeter) is under "
+                     f"{MINIMUM_HOLE_WIDTH_KM:g} km or whose area is under {MIN_PIECE_KM2:g} km2 is "
+                     f"dropped whole; no vertex is moved, no exterior ring is dropped here, and a "
+                     f"piece the edit would leave invalid keeps its unpolished rings"),
+            "spikeAngleDegrees": SPIKE_ANGLE_DEGREES,
+            "minimumHoleWidthKilometres": MINIMUM_HOLE_WIDTH_KM,
+            "minimumHoleAreaSquareKilometres": MIN_PIECE_KM2,
+            "spikeVerticesRemoved": hygiene["spikeVertices"],
+            "spikedRings": hygiene["spikeRings"],
+            "droppedHoleRings": hygiene["droppedHoleRings"],
+            "droppedHoleAreaSquareKilometres": round(hygiene["droppedHoleAreaSquareKilometres"], 3),
+            "polishedPieces": hygiene["polishedPieces"],
+            "declinedPieces": hygiene["declinedPieces"],
         },
         "areaAudit": {
             "weighting": ("interval-weighted: a record active in several canonical intervals is "
