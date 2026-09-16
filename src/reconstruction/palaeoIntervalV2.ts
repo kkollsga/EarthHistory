@@ -14,7 +14,7 @@
 
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoChartIdentity,
   type PreparedCaoSpatialBatch } from "./facadeV2";
-import { prepareSurfaceBatch } from "../render/reconstruction/surfaceSource";
+import { prepareSurfaceBatch } from "./surfaceSource";
 import { inverseQuaternion, numberScalarOps, slerpQuaternion, type QuaternionWxyz } from "./arithmetic";
 import type { LoadedPalaeoInterval, LoadedPalaeoIntervalClass } from "./loaderV2";
 import { selectPaletteMotionSubsegment, type PreparedPaletteEntry } from "./palette";

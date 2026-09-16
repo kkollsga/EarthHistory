@@ -21,7 +21,7 @@ import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type PalaeoCoastlineSurfaceClassId,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoRevision } from "./facadeV2";
-import { prepareSurfaceBatch } from "../render/reconstruction/surfaceSource";
+import { prepareSurfaceBatch } from "./surfaceSource";
 import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, type CaoMotionFrame } from "./motionFrameV2";
 import type { MaterialAddress } from "./types";
 import type { PreparedPaletteEntry } from "./palette";

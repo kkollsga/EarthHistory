@@ -2,14 +2,14 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { prepareSurfaceBatch, type PreparedSurfaceBatch } from "./surfaceSource";
-import { decodeCaoSpatialBatch } from "../../reconstruction/spatialV2";
-import { expandInternedPackageDocument } from "../../reconstruction/packageIntern";
-import { packageAssetPath } from "../../reconstruction/assetLoader";
+import { decodeCaoSpatialBatch } from "./spatialV2";
+import { expandInternedPackageDocument } from "./packageIntern";
+import { packageAssetPath } from "./assetLoader";
 import type { ReconstructionCoreV2,
-  ReconstructionPackageManifestV2 } from "../../reconstruction/packageV2";
-import { preparePalaeoRingPayload } from "../../reconstruction/palaeoTriangulate";
-import { encodePalaeoRingPayload } from "../../reconstruction/fixtures/palaeoRingFixtures";
-import type { PreparedCaoStaticGeometryCopy } from "../../reconstruction/facadeV2";
+  ReconstructionPackageManifestV2 } from "./packageV2";
+import { preparePalaeoRingPayload } from "./palaeoTriangulate";
+import { encodePalaeoRingPayload } from "./fixtures/palaeoRingFixtures";
+import type { PreparedCaoStaticGeometryCopy } from "./facadeV2";
 
 const root = resolve("public/data/reconstruction/cao-v2.4");
 
