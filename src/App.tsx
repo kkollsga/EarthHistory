@@ -305,6 +305,12 @@ export default function App() {
   const handlePalaeoPublicationFailed = useCallback((reason: string) => {
     palaeoPublishFailedRef.current?.(reason);
   }, []);
+  // Per-frame palaeo motion, evaluated where the native surface is retargeted.
+  // Stable for the session: a new identity here would re-run the retarget
+  // effect and pose the same age again.
+  const evaluatePalaeoMotionNow = useCallback(
+    (requestedAgeMa: number, publishedIntervalId: string | null) =>
+      caoRuntimeRef.current?.evaluatePalaeoMotionNow(requestedAgeMa, publishedIntervalId) ?? null, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
@@ -726,7 +732,8 @@ export default function App() {
       inFlight: false,
       serial: 0,
       frameSerial: 0,
-      prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
+      /** The `<interval>|<direction>` the neighbour warm-up has already been asked for. */
+      prefetchedFrom: "",
       // Consecutive recoveries attempted for one interval. A publication that
       // keeps failing is a real defect and must end in a visible error, not in
       // a request loop.
@@ -739,6 +746,15 @@ export default function App() {
     // interval owns the static geometry, so the frame is retargeted onto the
     // geometry already on screen and no payload is fetched.
     const retarget = (targetAgeMa: number) => {
+      // Inside the native display domain the pose rides the native retarget
+      // itself, synchronously and on the same frame, wherever the interval and
+      // its palette are resident. Evaluating it again here would pose the same
+      // age a second time, one commit later — the step this path was the cause
+      // of. Outside that domain, and while the data is still loading, this is
+      // the only retarget there is.
+      const native = runtime.manifest.ageDomainMa;
+      if (targetAgeMa >= native.youngest && targetAgeMa <= native.oldest
+          && runtime.palaeoMotionResidentAt(targetAgeMa)) return;
       const serial = ++state.frameSerial;
       void runtime.evaluatePalaeoMotion(targetAgeMa).then((frame) => {
         if (frame === null || state.disposed || serial !== state.frameSerial) return;
@@ -753,16 +769,20 @@ export default function App() {
       });
     };
 
-    const schedulePrefetch = (index: number) => {
-      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
-      state.prefetchTimer = setTimeout(() => {
-        state.prefetchTimer = 0;
-        if (state.disposed) return;
-        const neighbour = PALAEO_MAP_INTERVALS[
-          neighbourPalaeoIntervalIndex(index, palaeoAgeDirectionRef.current)];
-        if (neighbour === undefined) return;
-        void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
-      }, SCRUB_SETTLE_MS);
+    // Warm the neighbour the moment this interval is the current one, not once
+    // the gesture has rested: a continuous scrub never rests, so a settle-timed
+    // prefetch was cleared on every sample and the crossing paid the whole
+    // fetch, decode and triangulation with the gesture waiting on it. One
+    // warm-up per interval and direction; the store's own residency bound (two
+    // intervals) is what keeps this from accumulating.
+    const prefetchNeighbour = (index: number) => {
+      const direction = palaeoAgeDirectionRef.current;
+      const key = `${index}|${direction}`;
+      if (state.prefetchedFrom === key) return;
+      state.prefetchedFrom = key;
+      const neighbour = PALAEO_MAP_INTERVALS[neighbourPalaeoIntervalIndex(index, direction)];
+      if (neighbour === undefined) return;
+      void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
     };
 
     const pump = () => {
@@ -790,7 +810,7 @@ export default function App() {
       if (palaeoPreparedRef.current?.intervalId === intervalId) {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
-        schedulePrefetch(index);
+        prefetchNeighbour(index);
         return;
       }
       const serial = ++state.serial;
@@ -827,7 +847,7 @@ export default function App() {
         setPalaeoFrame(null);
         setPalaeoLoading(false);
         setPalaeoError(null);
-        schedulePrefetch(latestIndex);
+        prefetchNeighbour(latestIndex);
         if (requestedAgeRef.current !== prepared.requestedAgeMa) pump();
       }).catch((error: unknown) => {
         if (state.disposed || serial !== state.serial) return;
@@ -878,7 +898,6 @@ export default function App() {
     pump();
     return () => {
       state.disposed = true;
-      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
       if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
       if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
       palaeoPreparedRef.current?.release();
@@ -1471,6 +1490,7 @@ export default function App() {
           palaeoInterval={palaeoPrepared}
           onPalaeoPublicationFailed={handlePalaeoPublicationFailed}
           palaeoFrame={palaeoFrame}
+          evaluatePalaeoMotionNow={evaluatePalaeoMotionNow}
           palaeoToneBytes={palaeoToneBytes}
           palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
           palaeoToneIntervalId={palaeoPrepared?.intervalId ?? null}

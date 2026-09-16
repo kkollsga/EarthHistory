@@ -56,6 +56,36 @@ All notable changes to EarthHistory will be recorded here.
   are unchanged, and the map key's mountain swatch follows the new predicted
   full-light tone.
 
+### Fixed
+
+- **Scrubbing across a Cao 2017 map-interval boundary no longer stalls the
+  gesture.** Three causes, measured on a headless SwiftShader harness over a
+  6 s scrub from 100 to 80 Ma before they were addressed: the neighbouring
+  interval's warm-up was armed on a settle timer that a continuous scrub
+  cleared on every sample, so it never fired and the crossing paid the whole
+  fetch, decode and triangulation with the gesture waiting on it; the three
+  class payloads were fetched and triangulated one after another inside an
+  `await` loop; and the incoming interval could not be posed onto the outgoing
+  geometry, which froze the layer from the boundary until the swap landed. The
+  neighbour is now warmed as soon as an interval becomes current (once per
+  interval and direction, bounded by the store's own two-interval residency),
+  the three class payloads load together, and the outgoing interval stays
+  drawn and posed at its own range edge until the incoming one is published.
+  Same harness and gesture, layer on: median frame gap 232.5 → 235.1 ms,
+  maximum **1518.3 → 1351.7 ms**, and the first crossing costs a 1.445 Ma age
+  step instead of 5 Ma while holding the outgoing pose for four frames. The
+  residual maximum is the second crossing, whose warm-up has only ~1.5 s of
+  lead: prefetch lead time, not GPU upload.
+- **Palaeo charts are re-posed in the same frame as the native surface.** The
+  pose went through a promise, a React state hop and a second commit where the
+  native surface and its country outlines are retargeted in one synchronous
+  call; `evaluatePalaeoMotionNow` answers the same pose from resident data with
+  no `await`, and the interval pump stands down where that path already posed
+  the age. Measured over the same scrub with a new per-frame probe, before and
+  after are the same — at this harness's ~235 ms cadence the promise and the
+  commit both fit inside one frame — so this removes the hop and a redundant
+  second evaluation per sample rather than a lag it measured.
+
 ## [0.1.12] - 2026-09-16
 
 ### Changed

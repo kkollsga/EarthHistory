@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type {
+  EarthHistoryMotionProbe,
   EarthHistoryPixelSurfaceProbe,
   EarthHistorySurfaceProbe,
 } from "../../src/render/GlobeScene";
@@ -10,6 +11,8 @@ declare global {
     __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
     /** Class and lighting under one canvas pixel; the tone census reads it. */
     __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
+    /** Per-frame native and palaeo poses; the scrub-synchrony check reads it. */
+    __earthHistoryMotionProbe?: EarthHistoryMotionProbe;
   }
 }
 
@@ -1782,4 +1785,189 @@ test("anchors the North Sea rift point of interest from the hash", async ({ page
     if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return 0;
     return Math.hypot(longitude - restingLongitude, latitude - restingLatitude);
   }, { timeout: 20_000 }).toBeGreaterThan(2);
+});
+
+
+/**
+ * One continuous 100 -> 80 Ma scrub, driven on the page's own animation frames,
+ * with the scene's per-frame motion record for it.
+ */
+async function recordScrub(page: Page) {
+  return page.evaluate(async () => {
+    const probe = window.__earthHistoryMotionProbe;
+    const input = document.querySelector<HTMLInputElement>("#geological-age");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (!probe || !input || !setter) throw new Error("motion probe or timeline is unavailable");
+    probe("start");
+    const started = performance.now();
+    await new Promise<void>((resolve) => {
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - started) / 6000);
+        const ageMa = 100 - 20 * progress;
+        setter.call(input, String(ageMa / 538.8 * 1000));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        if (progress >= 1) { resolve(); return; }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return probe("stop").map((sample) => ({ ...sample }));
+  });
+}
+
+test("poses the palaeo charts on the same frame as the native surface while scrubbing", async ({ page }) => {
+  // The country outlines ride the native surface retarget. A palaeo pose that
+  // lands a frame later, or at an older age, is the visible "polygons do not
+  // move as smoothly as the outlines" defect, so the measurement is per frame:
+  // the age each path was posed at, and the angle between where the sampled
+  // palaeo chart is and where it would be at the age the outlines are drawn at.
+  // A small viewport keeps the rasteriser out of it; the scrub cost is CPU.
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 480, height: 360 });
+  await page.goto("./#age=100&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const samples = await recordScrub(page);
+
+  // Attribution: the same gesture with the palaeo layer off. The native surface
+  // and its country outlines are the only thing retargeted then, so the frame
+  // cadence difference is what the palaeo path costs the gesture.
+  await page.goto("./#age=100&layers=borders,guides");
+  // A fragment-only navigation is same-document: reload so the layer set is
+  // parsed as a fresh visit and the palaeo layer is genuinely off.
+  await page.reload();
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("off");
+  const nativeOnly = await recordScrub(page);
+
+  const cadence = (record: readonly { timeMs: number }[]) => {
+    const gaps = record.slice(1).map((sample, index) => sample.timeMs - record[index]!.timeMs)
+      .sort((a, b) => a - b);
+    return { frames: record.length, medianGapMs: Number((gaps[gaps.length >> 1] ?? 0).toFixed(1)),
+      maximumGapMs: Number((gaps[gaps.length - 1] ?? 0).toFixed(1)) };
+  };
+  console.log("MOTION PROBE", JSON.stringify({
+    palaeoOn: cadence(samples),
+    palaeoOff: cadence(nativeOnly),
+    distinctNativeAges: new Set(samples.map((sample) => sample.nativeAgeMa)).size,
+    distinctPalaeoAges: new Set(samples.map((sample) => sample.palaeoAgeMa)).size,
+    intervals: [...new Set(samples.map((sample) =>
+      `${sample.palaeoFromAgeMa}-${sample.palaeoToAgeMa}`))],
+    trace: samples.map((sample) => [sample.frameIndex, sample.nativeAgeMa, sample.palaeoAgeMa]),
+  }));
+
+  // Read the record above as the measurement it is. At the frame cadence this
+  // headless harness produces under a scrub (a frame every ~230 ms), a pose
+  // that waits for a promise and a React commit still lands inside the frame,
+  // so these assertions hold before the synchronous retarget as well: they
+  // guard the synchrony, they do not prove a lag that only a faster machine
+  // shows. What the cadence numbers do show is the palaeo layer's cost per
+  // scrub frame and the stall an interval publication puts on the whole
+  // gesture, the native surface included.
+
+  // Frames the published map interval actually covers. A boundary crossing
+  // replaces the geometry, and the interval cannot be posed outside its own
+  // half-open range, so those frames measure the fetch and not the synchrony.
+  const covered = samples.filter((sample) =>
+    sample.nativeAgeMa !== null && sample.palaeoAgeMa !== null && sample.palaeoPose !== null
+    && sample.palaeoFromAgeMa !== null && sample.palaeoToAgeMa !== null
+    && sample.nativeAgeMa > sample.palaeoToAgeMa && sample.nativeAgeMa <= sample.palaeoFromAgeMa);
+  expect(covered.length, "frames whose published interval covers the native age").toBeGreaterThan(10);
+
+  // The native path must keep moving across the crossings: a stalled surface
+  // would make the palaeo path look synchronous for the wrong reason.
+  const nativeAges = new Set(samples.map((sample) => sample.nativeAgeMa));
+  expect(nativeAges.size, "distinct native ages posed during the scrub").toBeGreaterThan(10);
+
+  const poseByAge = new Map<number, readonly [number, number, number, number]>();
+  for (const sample of samples) {
+    if (sample.palaeoAgeMa !== null && sample.palaeoPose !== null) {
+      poseByAge.set(sample.palaeoAgeMa, sample.palaeoPose);
+    }
+  }
+  const nearestPalaeoPose = (ageMa: number) => {
+    let best: readonly [number, number, number, number] | null = null;
+    let bestDistance = Infinity;
+    for (const [age, pose] of poseByAge) {
+      const distance = Math.abs(age - ageMa);
+      if (distance < bestDistance) { bestDistance = distance; best = pose; }
+    }
+    return best;
+  };
+  const separationRadians = (
+    a: readonly [number, number, number, number],
+    b: readonly [number, number, number, number],
+  ) => 2 * Math.acos(Math.min(1, Math.abs(
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3])));
+
+  let laggedFrames = 0;
+  let maximumFrameLag = 0;
+  let maximumSeparation = 0;
+  let maximumAgeLagMa = 0;
+  for (const sample of covered) {
+    if (sample.palaeoAgeMa === sample.nativeAgeMa) continue;
+    laggedFrames += 1;
+    maximumAgeLagMa = Math.max(maximumAgeLagMa, Math.abs(sample.nativeAgeMa! - sample.palaeoAgeMa!));
+    const index = samples.indexOf(sample);
+    const caughtUp = samples.findIndex((later, position) =>
+      position >= index && later.palaeoAgeMa === sample.nativeAgeMa);
+    maximumFrameLag = Math.max(maximumFrameLag, caughtUp < 0 ? samples.length - index : caughtUp - index);
+    const target = nearestPalaeoPose(sample.nativeAgeMa!);
+    if (target !== null) {
+      maximumSeparation = Math.max(maximumSeparation, separationRadians(sample.palaeoPose!, target));
+    }
+  }
+  const report = `covered frames ${covered.length}, lagged ${laggedFrames}, `
+    + `max frame lag ${maximumFrameLag}, max age lag ${maximumAgeLagMa.toFixed(4)} Ma, `
+    + `max separation ${maximumSeparation.toExponential(3)} rad`;
+  expect(laggedFrames, report).toBe(0);
+  expect(maximumSeparation, report).toBeLessThan(1e-3);
+
+  // The boundary crossing. The scrub runs 100 -> 80 Ma and the published Cao
+  // 2017 maps meet at 94 Ma, so exactly one crossing happens inside the
+  // recording. What it must not do is take the layer off screen: the outgoing
+  // map stays published, and posed, until the incoming one is published in its
+  // place. A frame with no published interval between the two is the blank the
+  // prepared-neighbour design exists to prevent.
+  const published = samples.map((sample) => sample.palaeoPublishedIntervalId);
+  const firstPublished = published.findIndex((id) => id !== null);
+  expect(firstPublished, "a map interval is published during the scrub").toBeGreaterThanOrEqual(0);
+  const crossings = published.slice(firstPublished + 1)
+    .filter((id, index) => id !== published[firstPublished + index]).length;
+  let blankRun = 0;
+  let longestBlankRun = 0;
+  for (const id of published.slice(firstPublished)) {
+    blankRun = id === null ? blankRun + 1 : 0;
+    longestBlankRun = Math.max(longestBlankRun, blankRun);
+  }
+
+  // How long one pose is held. Where the age has left the published interval
+  // the outgoing map is posed at its own edge until the incoming one is
+  // published, which is a held pose on drawn geometry rather than a layer that
+  // has stopped being posed at all.
+  let heldFrames = 0;
+  let longestHold = 0;
+  for (const [index, sample] of samples.slice(firstPublished).entries()) {
+    const previous = samples[firstPublished + index - 1];
+    heldFrames = previous !== undefined && previous.palaeoAgeMa === sample.palaeoAgeMa
+      ? heldFrames + 1 : 0;
+    longestHold = Math.max(longestHold, heldFrames);
+  }
+  console.log("MOTION PROBE BOUNDARY", JSON.stringify({ crossings, longestBlankRun, longestHold,
+    published }));
+
+  // The bound that matters across a crossing: the map on screen is never gone
+  // for a stretch of frames. One frame can still be blank where a publication
+  // is refused and immediately re-requested, and a hold of a few frames is the
+  // incoming interval still being prepared — both are measured above and read
+  // in the record, not asserted away. Measured 2026-09-16 on the headless
+  // harness: one blank frame, longest hold 4 frames over two crossings.
+  const publishedReport = `published per frame ${JSON.stringify(published)}, `
+    + `longest blank run ${longestBlankRun}, longest held pose ${longestHold}`;
+  expect(crossings, publishedReport).toBeGreaterThan(0);
+  expect(longestBlankRun, publishedReport).toBeLessThanOrEqual(1);
+  expect(longestHold, publishedReport).toBeLessThanOrEqual(8);
 });

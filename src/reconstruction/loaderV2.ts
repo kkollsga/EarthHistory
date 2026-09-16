@@ -652,13 +652,16 @@ export async function loadVerifiedPalaeoInterval(
   reservation: PalaeoCoastlineAssets["reservation"],
   signal?: AbortSignal,
 ): Promise<LoadedPalaeoInterval> {
-  const classes: LoadedPalaeoIntervalClass[] = [];
-  for (const entry of catalogs) {
-    classes.push(await loadVerifiedPalaeoIntervalClass(entry, intervalId, fetcher, runner,
+  // The classes are independent payloads. Loading them one after another made
+  // an interval's latency the sum of three fetches, three worker round trips
+  // and three validations, and every one of those hops has to wait for a turn
+  // on a main thread that is already drawing the gesture. Started together,
+  // the interval costs about one hop instead of three.
+  const classes: readonly LoadedPalaeoIntervalClass[] = await Promise.all(
+    catalogs.map((entry) => loadVerifiedPalaeoIntervalClass(entry, intervalId, fetcher, runner,
       reservation.maxEdgeDegrees,
       { maxVertices: reservation.maxIntervalVertices, maxTriangles: reservation.maxIntervalTriangles },
-      signal));
-  }
+      signal)));
   const vertices = classes.reduce((sum, entry) => sum + entry.geometry.vertexCount, 0);
   const triangles = classes.reduce((sum, entry) => sum + entry.geometry.triangleCount, 0);
   if (vertices > reservation.maxIntervalVertices || triangles > reservation.maxIntervalTriangles) {

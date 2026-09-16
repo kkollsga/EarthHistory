@@ -166,13 +166,51 @@ export type EarthHistoryPixelSurfaceProbe = (
   readonly direction: readonly [number, number];
 } | null;
 
+/**
+ * What each motion path had posed on one rendered frame.
+ *
+ * The native surface — the country outlines are drawn on it — and the palaeo
+ * charts are retargeted by separate calls, so "do they move together" is only
+ * answerable per frame. A pose is one chart's own quaternion (w, x, y, z) as it
+ * was handed to the renderer, which makes the angle between two of them the
+ * whole angular discrepancy of that chart, whatever point on it is measured.
+ * The browser suite reads this; nothing in the application calls it.
+ */
+export interface EarthHistoryMotionSample {
+  readonly frameIndex: number;
+  /** `performance.now()` of the frame, so the record carries its own cadence. */
+  readonly timeMs: number;
+  readonly nativeAgeMa: number | null;
+  readonly nativePose: readonly [number, number, number, number] | null;
+  readonly palaeoAgeMa: number | null;
+  readonly palaeoPose: readonly [number, number, number, number] | null;
+  /** Age range of the palaeo map interval the sampled palaeo pose belongs to. */
+  readonly palaeoFromAgeMa: number | null;
+  readonly palaeoToAgeMa: number | null;
+  /**
+   * The map interval whose geometry is on screen on this frame, read from the
+   * publication rather than from the pose. A boundary crossing must never leave
+   * this null between two intervals: the outgoing map stays drawn and posed
+   * until the incoming one is published.
+   */
+  readonly palaeoPublishedIntervalId: string | null;
+}
+
+/** `start` clears and arms the recording, `stop` disarms it, `read` returns it. */
+export type EarthHistoryMotionProbe =
+  (command: "start" | "stop" | "read") => readonly EarthHistoryMotionSample[];
+
 declare global {
   interface Window {
     __earthHistoryDiagnostics?: EarthHistoryDiagnostics;
     __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
     __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
+    __earthHistoryMotionProbe?: EarthHistoryMotionProbe;
   }
 }
+
+/** Bound on one motion recording: about 20 s of frames, then it disarms itself. */
+const MOTION_PROBE_SAMPLE_LIMIT = 1200;
 
 interface RendererLike {
   readonly domElement: HTMLCanvasElement;
@@ -532,6 +570,19 @@ export class GlobeScene {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly frameTimes: number[] = [];
+  // Motion-synchrony recording. Disarmed by default, so nothing but the browser
+  // suite ever pays for it, and self-disarming at MOTION_PROBE_SAMPLE_LIMIT.
+  private motionProbeRecording = false;
+  private motionProbeFrameIndex = 0;
+  private readonly motionProbeSamples: EarthHistoryMotionSample[] = [];
+  private motionProbeNativeChart = -1;
+  private motionProbePalaeoChart = -1;
+  private motionProbeNative:
+  { ageMa: number; pose: [number, number, number, number] } | null = null;
+  private motionProbePalaeo: {
+    ageMa: number; pose: [number, number, number, number];
+    fromAgeMa: number; toAgeMa: number;
+  } | null = null;
   private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   private readonly guideCameraDirection = new THREE.Vector3();
   private readonly guideInverseGlobeQuaternion = new THREE.Quaternion();
@@ -796,6 +847,13 @@ export class GlobeScene {
       this.caoFoundationRenderer.retargetMotion(
         paletteValues, entryCount, displayFraction, chartPoses, chartActive, requestedAgeMa,
         materialCorrections);
+      if (this.motionProbeRecording) {
+        const sampled = this.motionProbePose(chartPoses, chartActive, this.motionProbeNativeChart);
+        if (sampled !== null) {
+          this.motionProbeNativeChart = sampled.chartIndex;
+          this.motionProbeNative = { ageMa: requestedAgeMa, pose: sampled.pose };
+        }
+      }
       this.updatePreparedAnchorMarkers(anchorMarkers, requestedAgeMa);
       this.palaeoRequestedAgeMa = requestedAgeMa;
       this.applyLayerVisibility();
@@ -1015,6 +1073,16 @@ export class GlobeScene {
   }
 
   /**
+   * The map interval whose static geometry is published, or null. The
+   * synchronous per-frame pose reads it so a sample taken after a boundary
+   * crossing poses the geometry that is actually drawn, rather than the
+   * incoming interval the renderer would refuse.
+   */
+  publishedPalaeoInterval(): string | null {
+    return this.publishedPalaeoIntervalId;
+  }
+
+  /**
    * Re-poses the published interval at a new age inside the same map. The
    * charts and their order are the interval's own, so a frame for a different
    * interval is refused rather than retargeting one interval's poses onto
@@ -1027,6 +1095,15 @@ export class GlobeScene {
     const diagnostics = this.caoPalaeoRenderer.retargetMotion(
       frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
       frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS);
+    if (this.motionProbeRecording) {
+      const sampled = this.motionProbePose(
+        pick.chartPoses, pick.chartActive, this.motionProbePalaeoChart);
+      if (sampled !== null) {
+        this.motionProbePalaeoChart = sampled.chartIndex;
+        this.motionProbePalaeo = { ageMa: frame.requestedAgeMa, pose: sampled.pose,
+          fromAgeMa: frame.fromAgeMa, toAgeMa: frame.toAgeMa };
+      }
+    }
     this.palaeoRequestedAgeMa = frame.requestedAgeMa;
     this.applyLayerVisibility();
     this.guideLabelTonesStaleSince = performance.now();
@@ -1273,6 +1350,9 @@ export class GlobeScene {
     }
     if (window.__earthHistoryPixelSurfaceProbe === this.pixelSurfaceProbe) {
       delete window.__earthHistoryPixelSurfaceProbe;
+    }
+    if (window.__earthHistoryMotionProbe === this.motionProbe) {
+      delete window.__earthHistoryMotionProbe;
     }
   }
 
@@ -1829,6 +1909,7 @@ export class GlobeScene {
     if (this.cloudMesh.visible && !this.reducedMotion.matches) {
       this.cloudMesh.rotation.y += frameTime * 0.000005;
     }
+    if (this.motionProbeRecording) this.recordMotionProbeFrame();
     try {
       this.renderer.render(this.scene, this.camera);
       if (this.pendingCaoDiagnostics !== null) {
@@ -1855,6 +1936,66 @@ export class GlobeScene {
     if (now - this.lastStatsAt >= 1000) this.publishStats(now);
     this.frameHandle = requestAnimationFrame(this.frame);
   };
+
+  /**
+   * Per-frame motion record for the scrub-synchrony measurement. Test-only:
+   * nothing in the application arms it, and while it is disarmed the retarget
+   * paths and the frame loop skip it on one boolean.
+   */
+  private readonly motionProbe: EarthHistoryMotionProbe = (command) => {
+    if (command === "start") {
+      this.motionProbeSamples.length = 0;
+      this.motionProbeFrameIndex = 0;
+      this.motionProbeNativeChart = -1;
+      this.motionProbePalaeoChart = -1;
+      this.motionProbeNative = null;
+      this.motionProbePalaeo = null;
+      this.motionProbeRecording = true;
+      return this.motionProbeSamples;
+    }
+    if (command === "stop") this.motionProbeRecording = false;
+    return this.motionProbeSamples;
+  };
+
+  /**
+   * The pose of one sampled chart, keeping the index chosen on the first
+   * recorded retarget: a sample is only comparable across frames while it
+   * follows the same chart.
+   */
+  private motionProbePose(
+    chartPoses: Float32Array,
+    chartActive: Uint8Array,
+    chartIndex: number,
+  ): { chartIndex: number; pose: [number, number, number, number] } | null {
+    let index = chartIndex;
+    if (index < 0 || index * 8 + 4 > chartPoses.length) {
+      index = chartActive.indexOf(1);
+      if (index < 0) return null;
+    }
+    const base = index * 8;
+    return { chartIndex: index,
+      pose: [chartPoses[base]!, chartPoses[base + 1]!, chartPoses[base + 2]!, chartPoses[base + 3]!] };
+  }
+
+  private recordMotionProbeFrame(): void {
+    if (this.motionProbeSamples.length >= MOTION_PROBE_SAMPLE_LIMIT) {
+      this.motionProbeRecording = false;
+      return;
+    }
+    const native = this.motionProbeNative;
+    const palaeo = this.motionProbePalaeo;
+    this.motionProbeSamples.push({
+      frameIndex: this.motionProbeFrameIndex++,
+      timeMs: performance.now(),
+      nativeAgeMa: native?.ageMa ?? null,
+      nativePose: native?.pose ?? null,
+      palaeoAgeMa: palaeo?.ageMa ?? null,
+      palaeoPose: palaeo?.pose ?? null,
+      palaeoFromAgeMa: palaeo?.fromAgeMa ?? null,
+      palaeoToAgeMa: palaeo?.toAgeMa ?? null,
+      palaeoPublishedIntervalId: this.publishedPalaeoIntervalId,
+    });
+  }
 
   /**
    * Surface class over one piece of present-day ground at the drawn age. The
@@ -1939,6 +2080,7 @@ export class GlobeScene {
     // replaced scene's dispose() must not take the live one's with it.
     window.__earthHistorySurfaceProbe = this.surfaceProbe;
     window.__earthHistoryPixelSurfaceProbe = this.pixelSurfaceProbe;
+    window.__earthHistoryMotionProbe = this.motionProbe;
     const dataset = this.renderer.domElement.dataset;
     dataset.detail = diagnostics.detail;
     dataset.quality = diagnostics.effectiveQuality;

@@ -40,6 +40,16 @@ export interface GlobeViewProps {
   onPalaeoPublicationFailed?: (reason: string) => void;
   /** Re-pose of the published interval at a new age inside the same map. */
   palaeoFrame?: CaoPalaeoIntervalFrame | null;
+  /**
+   * Synchronous re-pose of the published interval from resident data, or null
+   * where the age needs a fetch. Called inside the native retarget below so the
+   * charts and the country outlines are posed on the same frame; the async
+   * `palaeoFrame` above still carries every age this cannot answer.
+   */
+  evaluatePalaeoMotionNow?: (
+    requestedAgeMa: number,
+    publishedIntervalId: string | null,
+  ) => CaoPalaeoIntervalFrame | null;
   /** Verified EHPT bytes; the scene decodes them against its own segment count. */
   palaeoToneBytes?: Uint8Array | null;
   palaeoToneTableIndex?: number;
@@ -65,6 +75,7 @@ export function GlobeView({
   palaeoInterval = null,
   onPalaeoPublicationFailed,
   palaeoFrame = null,
+  evaluatePalaeoMotionNow,
   palaeoToneBytes = null,
   palaeoToneTableIndex = -1,
   palaeoToneIntervalId = null,
@@ -227,7 +238,14 @@ export function GlobeView({
       caoMotionFrame.materialCorrections,
       anchors,
     );
-  }, [caoMotionFrame, caoRevision]);
+    // Same age, same call stack, same rendered frame: the palaeo charts move
+    // with the outlines instead of a commit behind them. A null answer is an
+    // age whose interval or palette is still loading, which the interval pump
+    // owns; it must never hold up the native retarget above.
+    const palaeoNow = evaluatePalaeoMotionNow?.(
+      caoMotionFrame.requestedAgeMa, scene.publishedPalaeoInterval()) ?? null;
+    if (palaeoNow !== null) scene.retargetPalaeoMotion(palaeoNow);
+  }, [caoMotionFrame, caoRevision, evaluatePalaeoMotionNow]);
 
   // The palaeo publication follows the same handoff rule as the native one: a
   // prepared interval that never reaches a scene still owns a runtime lease and

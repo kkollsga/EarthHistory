@@ -608,6 +608,39 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.dispose();
   });
 
+  it("poses a resident age synchronously, with no fetch and no promise", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    // Nothing resident: the synchronous path answers null rather than loading,
+    // and says so before a caller spends a frame's evaluation on it.
+    expect(runtime.palaeoMotionResidentAt(390)).toBe(false);
+    expect(runtime.evaluatePalaeoMotionNow(390)).toBeNull();
+    expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpr"))).toHaveLength(0);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    const before = fixture.requestedUrls.length;
+    expect(runtime.palaeoMotionResidentAt(385)).toBe(true);
+    // The same pose the awaited path gives, without the await: this is what
+    // lets the charts retarget inside the native surface's own retarget.
+    const immediate = runtime.evaluatePalaeoMotionNow(385);
+    const awaited = await runtime.evaluatePalaeoMotion(385);
+    expect(immediate?.intervalId).toBe("402-380");
+    expect(immediate?.requestedAgeMa).toBe(385);
+    expect(immediate?.charts).toHaveLength(prepared.charts.length);
+    expect([...immediate!.paletteValues]).toEqual([...awaited!.paletteValues]);
+    expect(fixture.requestedUrls).toHaveLength(before);
+    // An age in a map that is not resident stays the async path's to fetch.
+    expect(runtime.palaeoMotionResidentAt(370)).toBe(false);
+    expect(runtime.evaluatePalaeoMotionNow(370)).toBeNull();
+    // A disabled mode poses nothing at all, the same answer the async path gives.
+    runtime.setPalaeoCoastlinesEnabled(false);
+    expect(runtime.palaeoMotionResidentAt(385)).toBe(false);
+    expect(runtime.evaluatePalaeoMotionNow(385)).toBeNull();
+    prepared.release();
+    runtime.dispose();
+  });
+
   it("leaves no lease held when the mode is toggled during a scrub", async () => {
     const fixture = palaeoFixture();
     const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
