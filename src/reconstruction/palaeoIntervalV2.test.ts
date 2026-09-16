@@ -4,8 +4,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { chartPickStateFromMotionFrame } from "./motionFrameV2";
-import { CaoPalaeoIntervalStore, loadVerifiedPalaeoClassCatalogs, selectPalaeoIntervalForAge,
-  type LoadedPalaeoClassCatalog } from "./loaderV2";
+import { CaoSurfaceResidencyStore, intervalUnit, loadVerifiedPalaeoClassCatalogs,
+  selectPalaeoIntervalForAge, type LoadedPalaeoClassCatalog,
+  type LoadedPalaeoInterval } from "./loaderV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -147,6 +148,22 @@ Promise<ReconstructionPackageManifestV2> {
   return { ...manifest, palaeoCoastlines: section };
 }
 
+/**
+ * The residency store with only its palaeo half attached. The interval cache
+ * lives on `CaoSurfaceResidencyStore`, so the tests below drive it through the
+ * unit API the runtime uses rather than through a store of its own.
+ */
+async function intervalResidency(
+  section: PalaeoCoastlineAssets,
+  catalogs: readonly LoadedPalaeoClassCatalog[],
+  fetcher: StaticAssetFetcher,
+  runner: ReturnType<typeof createPalaeoTriangulationRunner>,
+): Promise<CaoSurfaceResidencyStore> {
+  const store = new CaoSurfaceResidencyStore(await manifestWithPalaeo(section), fetcher);
+  store.attachIntervals(section, catalogs, runner);
+  return store;
+}
+
 describe("palaeo-coastline manifest section", () => {
   const domain = { youngest: 0, oldest: 1_800 };
   const corrupt = (mutate: (section: PalaeoCoastlineAssets) => void): PalaeoCoastlineAssets => {
@@ -192,21 +209,21 @@ describe("palaeo-coastline interval store", () => {
   it("keeps the current interval and both neighbours resident", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       fixture.fetcher, runner);
     store.noteCurrentAge(370);
-    await store.load("380-360");
-    await store.load("402-380");
-    await store.load("360-340");
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("360-340"));
     // Three, not two: a crossing in either direction must find its neighbour
     // already decoded, and a reversal must not have thrown one away.
-    expect(store.ledger.residentCount).toBe(3);
-    expect(store.ledger.maximumResidentCount).toBe(3);
+    expect(store.intervalLedger.residentCount).toBe(3);
+    expect(store.intervalLedger.maximumResidentCount).toBe(3);
     const before = fixture.requestedUrls.length;
-    expect(store.residentInterval("402-380")).not.toBeNull();
-    expect(store.residentInterval("360-340")).not.toBeNull();
-    await store.load("402-380");
-    await store.load("360-340");
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("360-340"))).not.toBeNull();
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("360-340"));
     expect(fixture.requestedUrls.length).toBe(before);
     store.dispose();
     runner.dispose();
@@ -217,7 +234,7 @@ describe("palaeo-coastline interval store", () => {
     const runner = createPalaeoTriangulationRunner();
     const twoIntervals = fixture.catalog.intervals[0]!.payload.bytes
       + fixture.catalog.intervals[1]!.payload.bytes;
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: twoIntervals } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
@@ -225,13 +242,13 @@ describe("palaeo-coastline interval store", () => {
     // interval, which is the one being drawn; the distance order evicts the far
     // 360-340 instead.
     store.noteCurrentAge(395);
-    await store.load("402-380");
-    await store.load("380-360");
-    await store.load("360-340");
-    expect(store.ledger.residentCount).toBe(2);
-    expect(store.residentInterval("402-380")).not.toBeNull();
-    expect(store.residentInterval("380-360")).not.toBeNull();
-    expect(store.residentInterval("360-340")).toBeNull();
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("360-340"));
+    expect(store.intervalLedger.residentCount).toBe(2);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("380-360"))).not.toBeNull();
+    expect(store.resident(intervalUnit("360-340"))).toBeNull();
     store.dispose();
     runner.dispose();
   });
@@ -240,14 +257,14 @@ describe("palaeo-coastline interval store", () => {
     const fixture = palaeoFixture();
     const oneInterval = fixture.catalog.intervals[0]!.payload.bytes;
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: oneInterval } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
-    await store.load("402-380");
-    await store.load("380-360");
-    expect(store.ledger.residentCount).toBe(1);
-    expect(store.ledger.residentSourceBytes).toBeLessThanOrEqual(oneInterval);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.intervalLedger.residentSourceBytes).toBeLessThanOrEqual(oneInterval);
     store.dispose();
     runner.dispose();
   });
@@ -255,11 +272,11 @@ describe("palaeo-coastline interval store", () => {
   it("refuses an interval larger than the whole resident bound", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation, maxResidentSourceBytes: 1 } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
-    await expect(store.load("402-380")).rejects.toThrow(/resident byte bound/);
-    expect(store.ledger.residentCount).toBe(0);
+    await expect(store.load(intervalUnit("402-380"))).rejects.toThrow(/resident byte bound/);
+    expect(store.intervalLedger.residentCount).toBe(0);
     store.dispose();
     runner.dispose();
   });
@@ -276,23 +293,23 @@ describe("palaeo-coastline interval store", () => {
       return fixture.fetcher(url, signal, options);
     };
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       gatedFetcher, runner);
     const first = new AbortController();
-    const pendingFirst = store.load("402-380", first.signal);
-    const pendingSecond = store.load("380-360");
+    const pendingFirst = store.load(intervalUnit("402-380"), first.signal);
+    const pendingSecond = store.load(intervalUnit("380-360"));
     await new Promise((settle) => setTimeout(settle, 10));
-    expect(store.ledger.pendingCount).toBe(2);
-    expect(store.ledger.pendingReservedSourceBytes).toBeGreaterThan(0);
+    expect(store.intervalLedger.pendingCount).toBe(2);
+    expect(store.intervalLedger.pendingReservedSourceBytes).toBeGreaterThan(0);
     first.abort();
     await expect(pendingFirst).rejects.toThrow(/aborted/);
     for (const release of gates.values()) release();
     await pendingSecond;
-    expect(store.ledger.residentCount).toBe(1);
-    expect(store.ledger.pendingCount).toBe(0);
-    await expect(store.load("402-380", AbortSignal.abort())).rejects.toThrow(/aborted/);
+    expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.intervalLedger.pendingCount).toBe(0);
+    await expect(store.load(intervalUnit("402-380"), AbortSignal.abort())).rejects.toThrow(/aborted/);
     store.dispose();
-    await expect(store.load("360-340")).rejects.toThrow(/disposed/);
+    await expect(store.load(intervalUnit("360-340"))).rejects.toThrow(/disposed/);
     runner.dispose();
   });
 
@@ -304,9 +321,9 @@ describe("palaeo-coastline interval store", () => {
       return bytes;
     };
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       corruptFetcher, runner);
-    await expect(store.load("402-380")).rejects.toThrow(/verification failed/);
+    await expect(store.load(intervalUnit("402-380"))).rejects.toThrow(/verification failed/);
     store.dispose();
     runner.dispose();
   });
@@ -317,8 +334,9 @@ describe("palaeo-coastline interval frame", () => {
     const fixture = palaeoFixture();
     const catalogs = await loadedCatalogs(fixture);
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, catalogs, fixture.fetcher, runner);
-    const interval = await store.load("402-380");
+    const store = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner);
+    const loaded = await store.load(intervalUnit("402-380"));
+    const interval = loaded.value as LoadedPalaeoInterval;
     const entries = new Map<string, PreparedPaletteEntry>();
     // No palette entry resolves: every piece reports missing motion, not "active".
     const unposed = evaluateCaoPalaeoIntervalFrame(interval, entries, 398);

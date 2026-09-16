@@ -699,7 +699,7 @@ export class CaoReconstructionRuntime {
     catalogs: readonly LoadedPalaeoClassCatalog[],
   ): void {
     this.palaeoRunner ??= createPalaeoTriangulationRunner();
-    this.surfaces.intervalStore(palaeo, catalogs, this.palaeoRunner);
+    this.surfaces.attachIntervals(palaeo, catalogs, this.palaeoRunner);
   }
 
   /**

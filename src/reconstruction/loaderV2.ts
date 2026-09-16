@@ -508,24 +508,6 @@ export async function loadVerifiedCaoBatchState(
 // palaeo-coastline map intervals
 // ---------------------------------------------------------------------------
 
-/**
- * Resident payload bytes the palaeo interval store may hold. Two intervals of
- * every compiled class sit far inside this; the bound exists so a scrub that
- * walks the timeline cannot accumulate decoded intervals without an owner.
- */
-export const PALAEO_INTERVAL_STORE_MAX_BYTES = 6 * 1024 * 1024;
-
-/**
- * Resident map intervals: the current one and both of its neighbours.
- *
- * Two was one neighbour, and a scrub that reversed direction — or crossed a
- * boundary less than the prefetch lead time after the last one — found the
- * interval it was entering cold. The manifest's `maxResidentSourceBytes` is
- * four worst-case interval payloads, so three residents stay inside the bound
- * the package declares; the byte guard below is still what enforces it.
- */
-export const PALAEO_RESIDENT_INTERVAL_COUNT = 3;
-
 export interface LoadedPalaeoIntervalClass {
   readonly surfaceClass: PalaeoSurfaceClass;
   readonly catalog: PalaeoCoastlineClassCatalog;
@@ -721,207 +703,19 @@ export interface SurfaceResidencyPolicy {
 
 export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
   pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
-  maximumResidentIntervalBytes: PALAEO_INTERVAL_STORE_MAX_BYTES,
-  maximumResidentIntervalCount: PALAEO_RESIDENT_INTERVAL_COUNT,
+  // Two intervals of every compiled class sit far inside six MiB; the bound
+  // exists so a scrub that walks the timeline cannot accumulate decoded
+  // intervals without an owner. Three residents are the current interval and
+  // both of its neighbours: two was one neighbour, and a scrub that reversed
+  // direction — or crossed a boundary less than the prefetch lead time after
+  // the last one — found the interval it was entering cold. The manifest's
+  // `maxResidentSourceBytes` is four worst-case interval payloads, so three
+  // residents stay inside the bound the package declares; the byte bound is
+  // still what enforces it.
+  maximumResidentIntervalBytes: 6 * 1024 * 1024,
+  maximumResidentIntervalCount: 3,
   releaseReplacedNativeGpuBuffers: true,
 });
-
-/**
- * Three resident map intervals — the current one and both prefetched
- * neighbours — and two unsettled loads, bounded by bytes as well as by count.
- * Copied from `CaoCheckpointStore` because the failure it guards against is the
- * same: a scrub across many intervals must not leave decoded geometry behind,
- * and a fetcher that ignores its abort signal must not be able to pin one.
- *
- * Eviction drops the interval whose age range is farthest from the age the
- * runtime last asked for, not the least recently read one: a prefetched
- * neighbour is never read until the crossing that needs it, so an LRU order
- * evicted exactly the interval the prefetch had just paid for.
- */
-export class CaoPalaeoIntervalStore {
-  private readonly resident = new Map<string, { value: LoadedPalaeoInterval; used: number }>();
-  private readonly pending = new Map<string, PendingPalaeoInterval>();
-  private readonly waiters = new Set<{ resolve(): void; reject(error: unknown): void;
-    signal?: AbortSignal; onAbort(): void }>();
-  private readonly maximumResidentBytes: number;
-  private clock = 0;
-  private closed = false;
-  /** Age the runtime last asked for; the distance eviction measures against. */
-  private currentAgeMa: number | null = null;
-
-  constructor(
-    private readonly palaeo: PalaeoCoastlineAssets,
-    private readonly catalogs: readonly LoadedPalaeoClassCatalog[],
-    private readonly fetcher: StaticAssetFetcher,
-    private readonly runner: PalaeoTriangulationRunner,
-    private readonly policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
-  ) {
-    this.maximumResidentBytes = Math.min(policy.maximumResidentIntervalBytes,
-      palaeo.reservation.maxResidentSourceBytes);
-  }
-
-  get ledger() {
-    return Object.freeze({ residentCount: this.resident.size, pendingCount: this.pending.size,
-      residentSourceBytes: [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
-      pendingReservedSourceBytes: [...this.pending.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
-      maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
-      maximumResidentSourceBytes: this.maximumResidentBytes });
-  }
-
-  /**
-   * The interval already decoded and triangulated, or null. A scrub retarget
-   * inside one map interval reads through here rather than through `load`, so
-   * moving the age can never start a fetch the foreground request did not ask
-   * for.
-   */
-  /**
-   * The age the runtime is drawing, so eviction can keep the intervals around
-   * it. Recording it is not a request: it starts no load and touches no
-   * residency order.
-   */
-  noteCurrentAge(requestedAgeMa: number): void {
-    if (Number.isFinite(requestedAgeMa)) this.currentAgeMa = requestedAgeMa;
-  }
-
-  residentInterval(intervalId: string): LoadedPalaeoInterval | null {
-    const cached = this.resident.get(intervalId);
-    if (!cached) return null;
-    cached.used = ++this.clock;
-    return cached.value;
-  }
-
-  dispose(): void {
-    if (this.closed) return;
-    this.closed = true;
-    this.resident.clear();
-    for (const record of this.pending.values()) record.controller.abort();
-    for (const waiter of [...this.waiters]) {
-      this.waiters.delete(waiter);
-      waiter.signal?.removeEventListener("abort", waiter.onAbort);
-      waiter.reject(new DOMException("palaeo-coastline interval store disposed", "AbortError"));
-    }
-  }
-
-  async load(intervalId: string, signal?: AbortSignal): Promise<LoadedPalaeoInterval> {
-    if (this.closed) throw new Error("palaeo-coastline interval store disposed");
-    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
-    const declaredBytes = this.assetBytes(intervalId);
-    if (declaredBytes === 0) throw new Error("palaeo-coastline interval absent from its class catalog");
-    if (declaredBytes > this.maximumResidentBytes) {
-      throw new Error("palaeo-coastline interval exceeds the resident byte bound");
-    }
-    const cached = this.resident.get(intervalId);
-    if (cached) { cached.used = ++this.clock; return cached.value; }
-    let record = this.pending.get(intervalId);
-    if (record?.controller.signal.aborted) {
-      await this.waitForCapacity(signal);
-      return this.load(intervalId, signal);
-    }
-    if (!record) {
-      if (this.pending.size >= 2) {
-        await this.waitForCapacity(signal);
-        return this.load(intervalId, signal);
-      }
-      const controller = new AbortController();
-      const created = {} as PendingPalaeoInterval;
-      Object.assign(created, { controller, consumers: 0, promise: loadVerifiedPalaeoInterval(
-        this.catalogs, intervalId, this.fetcher, this.runner, this.palaeo, controller.signal,
-      ).then((value) => {
-        if (controller.signal.aborted || this.closed) {
-          throw new DOMException("palaeo-coastline interval load retired", "AbortError");
-        }
-        this.resident.set(intervalId, { value, used: ++this.clock });
-        this.evict();
-        return value;
-      }).finally(() => {
-        if (this.pending.get(intervalId) === created) this.pending.delete(intervalId);
-        this.notifyWaiter();
-      }) });
-      record = created;
-      this.pending.set(intervalId, record);
-    }
-    record.consumers += 1;
-    return new Promise((resolve, reject) => {
-      let complete = false;
-      const finish = () => {
-        if (complete) return;
-        complete = true;
-        signal?.removeEventListener("abort", onAbort);
-        record!.consumers -= 1;
-      };
-      const onAbort = () => {
-        finish();
-        if (record!.consumers === 0) record!.controller.abort();
-        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
-      };
-      signal?.addEventListener("abort", onAbort, { once: true });
-      record!.promise.then((value) => { if (!complete) { finish(); resolve(value); } },
-        (error) => { if (!complete) { finish(); reject(error); } });
-    });
-  }
-
-  /** Ma between the noted current age and an interval's own `(toAge, fromAge]`. */
-  private ageDistance(interval: LoadedPalaeoInterval): number {
-    const age = this.currentAgeMa;
-    if (age === null) return 0;
-    if (age > interval.fromAgeMa) return age - interval.fromAgeMa;
-    if (age <= interval.toAgeMa) return interval.toAgeMa - age;
-    return 0;
-  }
-
-  private evict(): void {
-    // Farthest from the current age first; the least recently read one breaks a
-    // tie, which is the whole order when no age has been noted yet. A pinned
-    // unit is never a candidate: the policy names the geometry every
-    // composition falls back to, and evicting it costs a refetch on the frame
-    // that needs it most.
-    const evictable = () => [...this.resident]
-      .filter(([id]) => !this.policy.pinnedUnitIds.includes(id))
-      .sort((left, right) => this.ageDistance(right[1].value) - this.ageDistance(left[1].value)
-        || left[1].used - right[1].used);
-    const dropFarthest = (): boolean => {
-      const victim = evictable()[0];
-      if (!victim) return false;
-      this.resident.delete(victim[0]);
-      return true;
-    };
-    while (this.resident.size > this.policy.maximumResidentIntervalCount) {
-      if (!dropFarthest()) break;
-    }
-    while (this.resident.size > 1
-      && [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0)
-        > this.maximumResidentBytes) {
-      if (!dropFarthest()) break;
-    }
-  }
-
-  private assetBytes(intervalId: string): number {
-    return this.catalogs.reduce((sum, entry) => sum + (entry.catalog.intervals
-      .find((interval) => interval.intervalId === intervalId)?.payload.bytes ?? 0), 0);
-  }
-
-  private async waitForCapacity(signal?: AbortSignal): Promise<void> {
-    if (this.waiters.size >= 2) throw new Error("palaeo-coastline capacity waiter bound exceeded");
-    await new Promise<void>((resolve, reject) => {
-      const waiter = { resolve, reject, signal, onAbort: () => {
-        this.waiters.delete(waiter);
-        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
-      } };
-      this.waiters.add(waiter);
-      signal?.addEventListener("abort", waiter.onAbort, { once: true });
-    });
-    if (this.closed) throw new Error("palaeo-coastline interval store disposed");
-    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
-  }
-
-  private notifyWaiter(): void {
-    const waiter = this.waiters.values().next().value;
-    if (!waiter) return;
-    this.waiters.delete(waiter);
-    waiter.signal?.removeEventListener("abort", waiter.onAbort);
-    waiter.resolve();
-  }
-}
 
 // ---------------------------------------------------------------------------
 // one residency store over both surface units
@@ -973,21 +767,41 @@ const ABSENT_INTERVAL_LEDGER = Object.freeze({
 });
 
 /**
- * One residency owner over both stores.
+ * One residency owner over both surface units.
  *
- * The bounded caches themselves stay as they are — a checkpoint is two resident
- * and two unsettled loads keyed by age, an interval is three resident bounded
- * by bytes and evicted by age distance — because they guard different failures.
- * What this owns is everything that used to be duplicated above them: which
- * store a `SurfaceUnitId` belongs to, when the palaeo half exists at all, the
- * age eviction measures against, and the two ledgers reported upward. The
- * ledger shapes are unchanged, including the values reported while a half is
- * detached, because the engine ledger is a tested contract.
+ * The checkpoint half keeps its own class: it is keyed by age and shared with
+ * the native request chain. The interval half is this class — three resident
+ * map intervals, the current one and both prefetched neighbours, bounded by
+ * bytes as well as by count, with two unsettled loads. It lives here rather
+ * than in a store of its own because everything that used to sit between the
+ * two — which half a `SurfaceUnitId` belongs to, whether the palaeo half exists
+ * at all, the age eviction measures against — was this object already.
+ *
+ * Eviction drops the interval whose age range is farthest from the age the
+ * runtime last asked for, not the least recently read one: a prefetched
+ * neighbour is never read until the crossing that needs it, so an LRU order
+ * evicted exactly the interval the prefetch had just paid for. A fetcher that
+ * ignores its abort signal must not be able to pin an entry, and a scrub across
+ * many intervals must not leave decoded geometry behind. The ledger shapes are
+ * unchanged, including the values reported while the palaeo half is detached,
+ * because the engine ledger is a tested contract.
  */
 export class CaoSurfaceResidencyStore {
   private checkpoints: CaoCheckpointStore | null = null;
-  private intervals: CaoPalaeoIntervalStore | null = null;
   private closed = false;
+  /** The palaeo half's inputs, or null while the mode has never been on. */
+  private palaeo: PalaeoCoastlineAssets | null = null;
+  private catalogs: readonly LoadedPalaeoClassCatalog[] = [];
+  private runner: PalaeoTriangulationRunner | null = null;
+  private maximumResidentIntervalBytes = 0;
+  private readonly residentIntervals =
+    new Map<string, { value: LoadedPalaeoInterval; used: number }>();
+  private readonly pendingIntervals = new Map<string, PendingPalaeoInterval>();
+  private readonly waiters = new Set<{ resolve(): void; reject(error: unknown): void;
+    signal?: AbortSignal; onAbort(): void }>();
+  private clock = 0;
+  /** Age the runtime last asked for; the distance eviction measures against. */
+  private currentAgeMa: number | null = null;
 
   constructor(
     private readonly manifest: ReconstructionPackageManifestV2,
@@ -1001,15 +815,23 @@ export class CaoSurfaceResidencyStore {
     return this.checkpoints ??= new CaoCheckpointStore(this.manifest, core, this.fetcher);
   }
 
-  /** The interval half, created on first demand against the loaded catalogs. */
-  intervalStore(
+  /**
+   * Attaches the palaeo half against the loaded catalogs. Idempotent: the
+   * inputs of the one attached section never change within a package, and a
+   * second enablement must not throw away intervals already decoded.
+   */
+  attachIntervals(
     palaeo: PalaeoCoastlineAssets,
     catalogs: readonly LoadedPalaeoClassCatalog[],
     runner: PalaeoTriangulationRunner,
-  ): CaoPalaeoIntervalStore {
+  ): void {
     if (this.closed) throw new Error("Cao surface residency store disposed");
-    return this.intervals ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, runner,
-      this.policy);
+    if (this.palaeo !== null) return;
+    this.palaeo = palaeo;
+    this.catalogs = catalogs;
+    this.runner = runner;
+    this.maximumResidentIntervalBytes = Math.min(this.policy.maximumResidentIntervalBytes,
+      palaeo.reservation.maxResidentSourceBytes);
   }
 
   /** Whether a unit's bytes are pinned for the life of the package. */
@@ -1019,13 +841,22 @@ export class CaoSurfaceResidencyStore {
 
   /** Whether the interval half exists; false means zero palaeo bytes are resident. */
   get intervalsAttached(): boolean {
-    return this.intervals !== null;
+    return this.palaeo !== null;
   }
 
   /** Retires the interval half. Turning the mode off must leave nothing behind. */
   detachIntervals(): void {
-    this.intervals?.dispose();
-    this.intervals = null;
+    this.palaeo = null;
+    this.catalogs = [];
+    this.runner = null;
+    this.maximumResidentIntervalBytes = 0;
+    this.residentIntervals.clear();
+    for (const record of this.pendingIntervals.values()) record.controller.abort();
+    for (const waiter of [...this.waiters]) {
+      this.waiters.delete(waiter);
+      waiter.signal?.removeEventListener("abort", waiter.onAbort);
+      waiter.reject(new DOMException("palaeo-coastline interval store disposed", "AbortError"));
+    }
   }
 
   dispose(): void {
@@ -1040,25 +871,40 @@ export class CaoSurfaceResidencyStore {
   }
 
   get intervalLedger() {
-    return this.intervals?.ledger ?? ABSENT_INTERVAL_LEDGER;
+    if (this.palaeo === null) return ABSENT_INTERVAL_LEDGER;
+    return Object.freeze({
+      residentCount: this.residentIntervals.size, pendingCount: this.pendingIntervals.size,
+      residentSourceBytes: [...this.residentIntervals.keys()]
+        .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
+      pendingReservedSourceBytes: [...this.pendingIntervals.keys()]
+        .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
+      maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
+      maximumResidentSourceBytes: this.maximumResidentIntervalBytes });
   }
 
   /** The age eviction measures against; a note, never a request. */
   noteCurrentAge(requestedAgeMa: number): void {
-    this.intervals?.noteCurrentAge(requestedAgeMa);
-  }
-
-  /** A unit already decoded, without starting any load. */
-  resident(unit: SurfaceUnitId): LoadedSurfaceUnit | null {
-    if (unit.kind !== "interval") return null;
-    const interval = this.intervals?.residentInterval(unit.id) ?? null;
-    return interval === null ? null : Object.freeze({ kind: "interval" as const, id: unit.id, value: interval });
+    if (Number.isFinite(requestedAgeMa)) this.currentAgeMa = requestedAgeMa;
   }
 
   /**
-   * Loads a unit through whichever half owns it. The halves must already be
-   * attached: creating them needs the resident core or the loaded catalogs, and
-   * a caller that has neither has nothing to ask for yet.
+   * A unit already decoded, without starting any load. A scrub retarget inside
+   * one map interval reads through here rather than through `load`, so moving
+   * the age can never start a fetch the foreground request did not ask for.
+   */
+  resident(unit: SurfaceUnitId): LoadedSurfaceUnit | null {
+    if (unit.kind !== "interval") return null;
+    const cached = this.residentIntervals.get(unit.id);
+    if (!cached) return null;
+    cached.used = ++this.clock;
+    return Object.freeze({ kind: "interval" as const, id: unit.id, value: cached.value });
+  }
+
+  /**
+   * Loads a unit through whichever half owns it. The half must already be
+   * attached: the checkpoint store needs the resident core and the interval
+   * half needs the loaded catalogs, and a caller that has neither has nothing
+   * to ask for yet.
    */
   async load(unit: SurfaceUnitId, signal?: AbortSignal): Promise<LoadedSurfaceUnit> {
     if (this.closed) throw new Error("Cao surface residency store disposed");
@@ -1068,9 +914,132 @@ export class CaoSurfaceResidencyStore {
       const value = await store.load(unit.ageMa, signal);
       return Object.freeze({ kind: "checkpoint" as const, ageMa: unit.ageMa, value });
     }
-    const store = this.intervals;
-    if (!store) throw new Error("palaeo-coastline interval store is not attached");
-    const value = await store.load(unit.id, signal);
+    const value = await this.loadInterval(unit.id, signal);
     return Object.freeze({ kind: "interval" as const, id: unit.id, value });
+  }
+
+  private async loadInterval(intervalId: string, signal?: AbortSignal): Promise<LoadedPalaeoInterval> {
+    const palaeo = this.palaeo;
+    const runner = this.runner;
+    if (this.closed) throw new Error("Cao surface residency store disposed");
+    if (palaeo === null || runner === null) {
+      throw new Error("palaeo-coastline interval store is not attached");
+    }
+    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
+    const declaredBytes = this.intervalAssetBytes(intervalId);
+    if (declaredBytes === 0) throw new Error("palaeo-coastline interval absent from its class catalog");
+    if (declaredBytes > this.maximumResidentIntervalBytes) {
+      throw new Error("palaeo-coastline interval exceeds the resident byte bound");
+    }
+    const cached = this.residentIntervals.get(intervalId);
+    if (cached) { cached.used = ++this.clock; return cached.value; }
+    let record = this.pendingIntervals.get(intervalId);
+    if (record?.controller.signal.aborted) {
+      await this.waitForCapacity(signal);
+      return this.loadInterval(intervalId, signal);
+    }
+    if (!record) {
+      if (this.pendingIntervals.size >= 2) {
+        await this.waitForCapacity(signal);
+        return this.loadInterval(intervalId, signal);
+      }
+      const controller = new AbortController();
+      const created = {} as PendingPalaeoInterval;
+      Object.assign(created, { controller, consumers: 0, promise: loadVerifiedPalaeoInterval(
+        this.catalogs, intervalId, this.fetcher, runner, palaeo, controller.signal,
+      ).then((value) => {
+        if (controller.signal.aborted || this.closed || this.palaeo !== palaeo) {
+          throw new DOMException("palaeo-coastline interval load retired", "AbortError");
+        }
+        this.residentIntervals.set(intervalId, { value, used: ++this.clock });
+        this.evictIntervals();
+        return value;
+      }).finally(() => {
+        if (this.pendingIntervals.get(intervalId) === created) this.pendingIntervals.delete(intervalId);
+        this.notifyWaiter();
+      }) });
+      record = created;
+      this.pendingIntervals.set(intervalId, record);
+    }
+    record.consumers += 1;
+    return new Promise((resolve, reject) => {
+      let complete = false;
+      const finish = () => {
+        if (complete) return;
+        complete = true;
+        signal?.removeEventListener("abort", onAbort);
+        record!.consumers -= 1;
+      };
+      const onAbort = () => {
+        finish();
+        if (record!.consumers === 0) record!.controller.abort();
+        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      record!.promise.then((value) => { if (!complete) { finish(); resolve(value); } },
+        (error) => { if (!complete) { finish(); reject(error); } });
+    });
+  }
+
+  /** Ma between the noted current age and an interval's own `(toAge, fromAge]`. */
+  private ageDistance(interval: LoadedPalaeoInterval): number {
+    const age = this.currentAgeMa;
+    if (age === null) return 0;
+    if (age > interval.fromAgeMa) return age - interval.fromAgeMa;
+    if (age <= interval.toAgeMa) return interval.toAgeMa - age;
+    return 0;
+  }
+
+  private evictIntervals(): void {
+    // Farthest from the current age first; the least recently read one breaks a
+    // tie, which is the whole order when no age has been noted yet. A pinned
+    // unit is never a candidate: the policy names the geometry every
+    // composition falls back to, and evicting it costs a refetch on the frame
+    // that needs it most.
+    const evictable = () => [...this.residentIntervals]
+      .filter(([id]) => !this.isPinned(intervalUnit(id)))
+      .sort((left, right) => this.ageDistance(right[1].value) - this.ageDistance(left[1].value)
+        || left[1].used - right[1].used);
+    const dropFarthest = (): boolean => {
+      const victim = evictable()[0];
+      if (!victim) return false;
+      this.residentIntervals.delete(victim[0]);
+      return true;
+    };
+    while (this.residentIntervals.size > this.policy.maximumResidentIntervalCount) {
+      if (!dropFarthest()) break;
+    }
+    while (this.residentIntervals.size > 1
+      && [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0)
+        > this.maximumResidentIntervalBytes) {
+      if (!dropFarthest()) break;
+    }
+  }
+
+  private intervalAssetBytes(intervalId: string): number {
+    return this.catalogs.reduce((sum, entry) => sum + (entry.catalog.intervals
+      .find((interval) => interval.intervalId === intervalId)?.payload.bytes ?? 0), 0);
+  }
+
+  private async waitForCapacity(signal?: AbortSignal): Promise<void> {
+    if (this.waiters.size >= 2) throw new Error("palaeo-coastline capacity waiter bound exceeded");
+    await new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject, signal, onAbort: () => {
+        this.waiters.delete(waiter);
+        reject(new DOMException("palaeo-coastline interval request aborted", "AbortError"));
+      } };
+      this.waiters.add(waiter);
+      signal?.addEventListener("abort", waiter.onAbort, { once: true });
+    });
+    if (this.closed) throw new Error("Cao surface residency store disposed");
+    if (signal?.aborted) throw new DOMException("palaeo-coastline interval request aborted", "AbortError");
+  }
+
+  private notifyWaiter(): void {
+    const waiter = this.waiters.values().next().value;
+    if (!waiter) return;
+    this.waiters.delete(waiter);
+    waiter.signal?.removeEventListener("abort", waiter.onAbort);
+    waiter.resolve();
   }
 }
