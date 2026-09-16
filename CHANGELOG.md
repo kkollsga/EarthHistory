@@ -43,6 +43,38 @@ All notable changes to EarthHistory will be recorded here.
   fetch. Proven by mutation: dropping the foreground pause, replacing the
   nearest-by-age order with the published order, and reverting the policy to the
   neighbour cache each fail a new case, and all three mutations were restored.
+- **A map-interval crossing is a visibility switch, not a geometry
+  replacement.** The surface set now keeps one member per prepared interval it
+  has uploaded: the geometry goes to the GPU once and stays there with the
+  member parented and hidden, so a crossing back into an interval the set has
+  already seen shows that member, hides the outgoing one and retargets the
+  incoming age onto the resident palette and poses. No geometry upload, no
+  static-geometry retirement, and no arm — `armStaticGeometryChange` now guards
+  only the Cao 2024 stack, whose geometry must never change within the
+  renderer's lifetime. `GlobeScene.setPreparedPalaeoInterval` is the same call
+  and means "make this interval the drawn one"; every `data-cao-palaeo-*` answer
+  for the drawn interval is unchanged.
+- **Residency is bounded and stated.** The set's vertex (1,000,000), triangle
+  (1,280,000) and retained-source (64 MiB) ceilings are now per *drawn*
+  composition — the Cao 2024 stack plus the one interval on screen — because an
+  interval kept behind the current one draws nothing. What bounds those is a
+  separate residency policy: at most 25 resident intervals holding at most
+  55 MiB of vertex and index buffers, measured at about 40 MB over the promoted
+  interval set. The low quality profile keeps one interval, which is the
+  upload-on-swap behaviour the renderer has always had, and a mid-session drop
+  to that profile evicts down on the next crossing rather than mid-frame. When
+  the ceiling is met, the interval farthest by age is evicted first and its
+  geometry retired through the existing owner. The publication ledger, which
+  holds every resident member at once, moves from 4 MiB to 20 MiB: 25 interval
+  publications reserve 12.5 MiB, and a Cao 2024 scrub sample must still fit
+  beside the publication it replaces.
+- **`data-cao-foundation-gpu-bytes` is the whole set's residency.** It sums the
+  Cao 2024 stack and every resident map interval, drawn or hidden, so a warm
+  interval off screen is counted against the ceiling a reader is checking;
+  `data-cao-resident-intervals` says how many are resident. The D1 release
+  policy is unchanged and still applies to the Cao 2024 members. Proven by
+  mutation: forcing a re-upload on a return visit and reversing the eviction
+  order each fail the new cases, and both mutations were restored.
 
 ## [0.1.20] - 2026-09-16
 ### Fixed

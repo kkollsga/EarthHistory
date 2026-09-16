@@ -1969,13 +1969,21 @@ function palaeoRevision(geometrySuffix = "@1", nativeSuffix = "@1"): PreparedCao
   } satisfies PreparedCaoRevision;
 }
 
-/** One triangle of one palaeo class, in the shape the interval store prepares. */
+/**
+ * One triangle of one palaeo class, in the shape the interval store prepares.
+ *
+ * `onStaticCopy` fires once per geometry upload — the renderer copies the
+ * prepared source exactly when it creates a geometry resource — so a test can
+ * assert that a crossing back into a resident interval uploads nothing.
+ */
 function palaeoInterval(
   intervalId: string,
   intervalIndex: number,
   digest: string,
   onRelease: () => void = () => {},
+  options: { requestedAgeMa?: number; onStaticCopy?: () => void } = {},
 ): PreparedCaoPalaeoInterval {
+  const requestedAgeMa = options.requestedAgeMa ?? 390;
   const values = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1]);
   const referenceDirections = new Float32Array([
     ...gplatesLonLat(-0.5, -0.5), ...gplatesLonLat(0.5, -0.5), ...gplatesLonLat(0, 0.5),
@@ -1992,7 +2000,7 @@ function palaeoInterval(
     packageId: "cao",
     packageRevision: "r1",
     frameIdentity: "cao-frame",
-    requestedAgeMa: 390,
+    requestedAgeMa,
     intervalId,
     intervalIndex,
     fromAgeMa: 402,
@@ -2004,10 +2012,10 @@ function palaeoInterval(
       formationUncertainActiveCharts: 0, restoredCollisionMarginActiveCharts: 0,
       modelInferredPoseActiveCharts: 0,
       overriddenNativeCharts: 0, activeSourceIds: [], correctionIds: [] },
-    display: { youngerAgeMa: 390, olderAgeMa: 390, fraction: 0 },
+    display: { youngerAgeMa: requestedAgeMa, olderAgeMa: requestedAgeMa, fraction: 0 },
     lineBatches: [],
-    nativeBoundary: { kind: "unavailable", requestedAgeMa: 390, reason: "source-absent" },
-    topologyOwnership: { kind: "unavailable", requestedAgeMa: 390, reason: "source-absent" },
+    nativeBoundary: { kind: "unavailable", requestedAgeMa, reason: "source-absent" },
+    topologyOwnership: { kind: "unavailable", requestedAgeMa, reason: "source-absent" },
     anchorIds: [],
     addressForChartDirection: () => {
       throw new Error("palaeo-coastline charts carry no material addresses");
@@ -2029,6 +2037,7 @@ function palaeoInterval(
       surfaceAppearance: "palaeo-land",
       chartTriangleRanges: [{ chartIndex: 0, firstTriangle: 0, triangleCount: 1 }],
       createStaticGeometryCopy: () => ({
+        ...((): Record<string, never> => { options.onStaticCopy?.(); return {}; })(),
         referenceDirections: new Float32Array(referenceDirections),
         indices: new Uint32Array(indices),
         seamIds: new Uint32Array(seamIds),
@@ -2131,6 +2140,133 @@ describe("palaeo interval publication", () => {
     expect(surface.diagnostics().identity).toBeNull();
     const again = palaeoInterval("402-380", 0, "a");
     expect(surface.publish(again, 8).identity).toBe(again.identity);
+    surface.disposeForRendererTeardown();
+  });
+
+  /**
+   * The residency contract: a crossing into an interval the set has already
+   * uploaded draws it again without touching the GPU buffers. The upload
+   * counter is the assertion — force a re-upload and this test is the one that
+   * fails, because nothing else about the drawn interval changes.
+   */
+  it("keeps every prepared interval resident and crosses back without uploading", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    const first = surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    const second = surface.publish(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8, "interval");
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(uploads.get("a")).toBe(1);
+    expect(uploads.get("b")).toBe(1);
+    // Both members are parented; only the current one is drawn.
+    expect(group.children).toHaveLength(2);
+    expect(group.children.filter((child) => child.visible).map((child) => child.name))
+      .toEqual([`cao-foundation:${second.identity}`]);
+    // The ledger is the set's, not the drawn member's: a warm interval behind
+    // the current one still holds its buffers.
+    const oneInterval = surface.diagnostics("interval").gpuResidentBytes;
+    expect(oneInterval).toBeGreaterThan(0);
+    expect(surface.residentGpuBytes()).toBe(2 * oneInterval);
+
+    const back = surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 385, onStaticCopy: upload("a") }), 8, "interval");
+    expect(uploads.get("a")).toBe(1);
+    expect(uploads.get("b")).toBe(1);
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(group.children).toHaveLength(2);
+    // Every answer the drawn interval publishes is the one a fresh publication
+    // gave, at the crossing's own age.
+    expect(back.identity).toBe(first.identity);
+    expect(back.staticGeometryIdentity).toBe(first.staticGeometryIdentity);
+    expect(back.triangles).toBe(first.triangles);
+    expect(back.chartRanges).toBe(first.chartRanges);
+    expect(back.batches).toBe(first.batches);
+    expect(back.activeSourceBytes).toBe(first.activeSourceBytes);
+    expect(back.requestedAgeMa).toBe(385);
+    expect(back.drawCount).toBe(first.drawCount);
+    expect(surface.publishedIdentity("interval")).toBe(first.identity);
+    // Only the drawn interval answers picks and coverage; a resident member
+    // behind it is not in the set on screen.
+    expect(surface.surfaceSetView()).toHaveLength(1);
+    expect(group.children.filter((child) => child.visible).map((child) => child.name))
+      .toEqual([`cao-foundation:${first.identity}`]);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("evicts the interval farthest by age when the residency ceiling is met", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 2 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    surface.publish(palaeoInterval("300-280", 1, "b", undefined,
+      { requestedAgeMa: 300, onStaticCopy: upload("b") }), 8, "interval");
+    // 385 Ma is 5 Ma from the first interval's anchor and 85 from the second's,
+    // so the second is the one that goes.
+    surface.publish(palaeoInterval("390-385", 2, "c", undefined,
+      { requestedAgeMa: 385, onStaticCopy: upload("c") }), 8, "interval");
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(group.children).toHaveLength(2);
+
+    surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 388, onStaticCopy: upload("a") }), 8, "interval");
+    expect(uploads.get("a")).toBe(1);
+    surface.publish(palaeoInterval("300-280", 1, "b", undefined,
+      { requestedAgeMa: 300, onStaticCopy: upload("b") }), 8, "interval");
+    expect(uploads.get("b")).toBe(2);
+    expect(surface.residentIntervalCount()).toBe(2);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("keeps one interval at the low profile, uploading on every swap", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    // No ceiling in the limits is the low profile's one interval: the streaming
+    // behaviour the renderer has always had.
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8), limits,
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    const swapped = surface.publish(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8, "interval");
+    expect(surface.residentIntervalCount()).toBe(1);
+    expect(group.children.map((child) => child.name))
+      .toEqual([`cao-foundation:${swapped.identity}`]);
+    expect(surface.residentGpuBytes()).toBe(surface.diagnostics("interval").gpuResidentBytes);
+    surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    expect(uploads.get("a")).toBe(2);
+    expect(surface.residentIntervalCount()).toBe(1);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("lowers residency to a new ceiling on the next crossing", () => {
+    const group = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    surface.publish(palaeoInterval("402-380", 0, "a", undefined, { requestedAgeMa: 390 }),
+      8, "interval");
+    surface.publish(palaeoInterval("380-359", 1, "b", undefined, { requestedAgeMa: 370 }),
+      8, "interval");
+    expect(surface.residentIntervalCount()).toBe(2);
+    surface.setResidentIntervalCeiling(1);
+    expect(surface.residentIntervalCount()).toBe(2);
+    const current = surface.publish(
+      palaeoInterval("359-338", 2, "c", undefined, { requestedAgeMa: 350 }), 8, "interval");
+    expect(surface.residentIntervalCount()).toBe(1);
+    expect(group.children.map((child) => child.name))
+      .toEqual([`cao-foundation:${current.identity}`]);
+    expect(() => surface.setResidentIntervalCeiling(0)).toThrow(/at least one/);
     surface.disposeForRendererTeardown();
   });
 });

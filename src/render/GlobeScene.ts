@@ -522,26 +522,44 @@ function createCaoGpuRetirementOwner(
  * instance kept. Retained source is 48 + 30 MiB minus the headroom that was
  * duplicated.
  *
+ * The vertex, triangle and retained-source ceilings are per *drawn*
+ * composition — the Cao 2024 stack and the one map interval on screen — and
+ * keep the numbers above. Map intervals the set keeps resident behind the drawn
+ * one spend no vertices or triangles, because they draw nothing; what bounds
+ * them is `maxResidentIntervalGpuBytes`.
+ *
+ * Residency: up to 25 map intervals stay uploaded, so a crossing back into one
+ * is a visibility switch. Measured 2026-09-16 on the promoted interval set,
+ * the whole set's vertex and index buffers are about 40 MB; 55 MiB is the
+ * ceiling, which leaves headroom for the refinement the worst interval reaches
+ * and makes eviction the exception rather than the steady state. The low
+ * quality profile sets the ceiling to one interval, which is the upload-on-swap
+ * behaviour this renderer has always had.
+ *
  * The publication ledger is the one number the union is not simply the larger
- * of: it now holds both members at once. Measured on the loaded public package
- * 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a 5,675-entry
- * palette, its per-chart pose table, the exact-knot boundary and ownership
- * layers and the outline tone texture. A map-interval publication is a palette
- * and a pose table only, under the 512 KiB its own instance reserved. Inside
- * the band a scrub sample must fit beside both of those and beside the
- * publication it replaces, which is still retiring behind the submission fence:
- * 676 + 512 + 676 + 676 KiB is over 2 MiB, so 2 MiB would refuse a scrub sample
- * and blank the globe. 4 MiB carries that worst case with the headroom the Cao
- * 2024 arm had on its own.
+ * of: it now holds every resident member at once. Measured on the loaded public
+ * package 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a
+ * 5,675-entry palette, its per-chart pose table, the exact-knot boundary and
+ * ownership layers and the outline tone texture. A map-interval publication is
+ * a palette and a pose table only, under the 512 KiB its own instance reserved.
+ * Twenty-five of those reserve 12.5 MiB, and a scrub sample inside the band
+ * must still fit beside the Cao 2024 publication it replaces, which is retiring
+ * behind the submission fence: 12.5 MiB + 676 + 676 KiB is under 14 MiB, and
+ * 20 MiB carries it with the headroom the 4 MiB union kept.
  */
 const CAO_SURFACE_SET_LIMITS = Object.freeze({
   maxBatches: 512,
   maxVertices: 1_000_000,
   maxTriangles: 1_280_000,
   maxRetainedSourceBytes: 64 * 1024 * 1024,
-  maxPublicationBytes: 4 * 1024 * 1024,
+  maxPublicationBytes: 20 * 1024 * 1024,
   maxSpatialIndexBytes: 1024 * 1024,
+  maxResidentIntervalGpuBytes: 55 * 1024 * 1024,
 });
+
+/** Map intervals kept on the GPU at once; see `CAO_SURFACE_SET_LIMITS`. */
+const CAO_RESIDENT_INTERVALS_HIGH = 25;
+const CAO_RESIDENT_INTERVALS_LOW = 1;
 /**
  * Publications retire one member at a time: a scrub sample replaces the Cao
  * 2024 member, a crossing replaces the map interval, and a crossing can land in
@@ -551,9 +569,14 @@ const CAO_SURFACE_SET_LIMITS = Object.freeze({
  */
 const CAO_SURFACE_RETIREMENT_MAX_RESOURCES = 3;
 const CAO_SURFACE_RETIREMENT_MAX_BYTES = 44 * 1024 * 1024;
-/** Only a map-interval change replaces static geometry, one swap at a time. */
-const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
+/**
+ * Only a map-interval eviction retires static geometry. At the low profile that
+ * is one swap at a time, as it always was; at the high profile it happens only
+ * once residency is full, and a single crossing may have to make room for a
+ * large interval by evicting more than one resident.
+ */
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 4;
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 64 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -644,7 +667,6 @@ export class GlobeScene {
   /** The interval whose charts are published, and the one its geometry belongs to. */
   private publishedPalaeoIntervalId: string | null = null;
   private palaeoPublicationFailureReason: string | null = null;
-  private palaeoStaticIntervalId: string | null = null;
   private palaeoIntervalSourceBytes = 0;
   /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
   private palaeoTonePayload: Uint8Array | null = null;
@@ -716,7 +738,9 @@ export class GlobeScene {
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend,
         CAO_SURFACE_RETIREMENT_MAX_RESOURCES, CAO_SURFACE_RETIREMENT_MAX_BYTES),
-      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize },
+      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize,
+        maxResidentIntervals: this.effectiveQuality === "high"
+          ? CAO_RESIDENT_INTERVALS_HIGH : CAO_RESIDENT_INTERVALS_LOW },
       {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
           CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
@@ -1032,13 +1056,16 @@ export class GlobeScene {
   }
 
   /**
-   * Publishes one Cao 2017 map interval on the palaeo instance, or clears it.
+   * Makes one Cao 2017 map interval the drawn one, or clears the layer.
    *
-   * A map interval is the streaming unit, so a new interval is a static
-   * geometry replacement: the swap is armed with its reason first, and the arm
-   * is spent by exactly that publication. Scrubbing inside an interval never
-   * reaches here — `retargetPalaeoMotion` re-poses the resident geometry — so a
-   * sample that stays inside one map cannot cost a geometry rebuild.
+   * A map interval is the streaming unit, but it is no longer replaced: the
+   * surface set keeps a member per interval it has uploaded, so a crossing into
+   * an interval already resident is a visibility switch and a retarget, and a
+   * crossing into a new one uploads it once and keeps it. No static geometry
+   * change is armed here — that arm guards the Cao 2024 stack, whose geometry
+   * must never change. Scrubbing inside an interval never reaches here —
+   * `retargetPalaeoMotion` re-poses the resident geometry — so a sample that
+   * stays inside one map cannot cost a geometry rebuild.
    *
    * `publish` takes over the interval's lease and releases it, exactly as it
    * does for a native revision, so the interval store is free to evict the
@@ -1051,15 +1078,10 @@ export class GlobeScene {
       return null;
     }
     try {
-      if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
-        this.caoFoundationRenderer.armStaticGeometryChange(
-          `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
-      }
       const diagnostics = this.caoFoundationRenderer.publish(
         interval, this.verticalExaggeration, "interval");
       this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
-      this.palaeoStaticIntervalId = interval.intervalId;
       this.palaeoIntervalSourceBytes = interval.activeSourceBytes;
       this.palaeoRequestedAgeMa = interval.requestedAgeMa;
       this.applyLayerVisibility();
@@ -1385,6 +1407,10 @@ export class GlobeScene {
 
   private applyEffectiveQuality(value: "high" | "low"): void {
     this.effectiveQuality = value;
+    // The next crossing evicts down to the new ceiling; nothing on screen is
+    // torn down mid-frame to meet it.
+    this.caoFoundationRenderer.setResidentIntervalCeiling(
+      value === "high" ? CAO_RESIDENT_INTERVALS_HIGH : CAO_RESIDENT_INTERVALS_LOW);
     this.globeMesh.geometry.dispose();
     this.globeMesh.geometry = this.makeGlobeGeometry();
     this.cloudMesh.geometry.dispose();
@@ -1528,13 +1554,15 @@ export class GlobeScene {
    * the publication identity does not depend on whether the group is visible.
    */
   /**
-   * Publishes what the Cao 2024 unit actually holds on the GPU, and which
+   * Publishes what the surface set actually holds on the GPU — the Cao 2024
+   * stack and every map interval kept resident, drawn or hidden — and which
    * classes D1 has released. Separate from `caoFoundationStaticBytes`, which is
    * the resource's fixed budget and does not move when buffers are handed back.
    */
   private publishCaoResidencyDataset(): void {
     const dataset = this.renderer.domElement.dataset;
-    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.gpuResidentBytes());
+    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.residentGpuBytes());
+    dataset.caoResidentIntervals = String(this.caoFoundationRenderer.residentIntervalCount());
     dataset.caoFoundationReleasedClasses =
       this.caoFoundationRenderer.releasedSurfaceClasses().join(" ");
   }
