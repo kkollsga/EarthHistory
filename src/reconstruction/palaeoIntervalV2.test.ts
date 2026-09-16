@@ -10,7 +10,7 @@ import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { createPalaeoTriangulationRunner } from "./palaeoTriangulate";
 import { evaluateCaoPalaeoIntervalFrame, palaeoCoastlineEvidenceSummary,
-  type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
+  type CaoPalaeoIntervalFrame, type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
 import {
   PALAEO_OUTLINE_TONE_LAND,
   PALAEO_OUTLINE_TONE_SHALLOW,
@@ -188,23 +188,49 @@ describe("palaeo-coastline manifest section", () => {
 });
 
 describe("palaeo-coastline interval store", () => {
-  it("keeps two intervals resident and evicts the least recently used", async () => {
+  it("keeps the current interval and both neighbours resident", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
     const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
       fixture.fetcher, runner);
-    await store.load("402-380");
+    store.noteCurrentAge(370);
     await store.load("380-360");
-    expect(store.ledger.residentCount).toBe(2);
-    // Touching the older one makes the newer the eviction victim.
     await store.load("402-380");
     await store.load("360-340");
-    expect(store.ledger.residentCount).toBe(2);
+    // Three, not two: a crossing in either direction must find its neighbour
+    // already decoded, and a reversal must not have thrown one away.
+    expect(store.ledger.residentCount).toBe(3);
+    expect(store.ledger.maximumResidentCount).toBe(3);
     const before = fixture.requestedUrls.length;
+    expect(store.residentInterval("402-380")).not.toBeNull();
+    expect(store.residentInterval("360-340")).not.toBeNull();
     await store.load("402-380");
+    await store.load("360-340");
     expect(fixture.requestedUrls.length).toBe(before);
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("evicts the interval farthest from the current age, not the least recently read", async () => {
+    const fixture = palaeoFixture();
+    const runner = createPalaeoTriangulationRunner();
+    const twoIntervals = fixture.catalog.intervals[0]!.payload.bytes
+      + fixture.catalog.intervals[1]!.payload.bytes;
+    const store = new CaoPalaeoIntervalStore(
+      { ...fixture.section, reservation: { ...fixture.section.reservation,
+        maxResidentSourceBytes: twoIntervals } },
+      await loadedCatalogs(fixture), fixture.fetcher, runner);
+    // 395 Ma sits inside 402-380. A least-recently-used order would evict that
+    // interval, which is the one being drawn; the distance order evicts the far
+    // 360-340 instead.
+    store.noteCurrentAge(395);
+    await store.load("402-380");
     await store.load("380-360");
-    expect(fixture.requestedUrls.length).toBeGreaterThan(before);
+    await store.load("360-340");
+    expect(store.ledger.residentCount).toBe(2);
+    expect(store.residentInterval("402-380")).not.toBeNull();
+    expect(store.residentInterval("380-360")).not.toBeNull();
+    expect(store.residentInterval("360-340")).toBeNull();
     store.dispose();
     runner.dispose();
   });
@@ -350,6 +376,22 @@ describe("palaeo-coastline interval frame", () => {
       expect(copy.materialChartIndices[copy.indices[triangle * 3 + 1]!]).toBe(owner);
       expect(copy.materialChartIndices[copy.indices[triangle * 3 + 2]!]).toBe(owner);
     }
+    // One buffer, not two: for a palaeo batch a piece is a chart and a palette
+    // entry at once, so the material chart index and the prepared entry index
+    // are the same number per vertex.
+    expect(copy.materialChartIndices).toBe(copy.preparedEntryIndices);
+    // A second copy of the same batch allocates nothing at all: the reference
+    // directions, triangle indices and seam ids are the resident interval's own
+    // arrays, transferred out of the worker, and the entry indices are built
+    // once per resident class.
+    const again = batch.createStaticGeometryCopy();
+    expect(again.referenceDirections).toBe(copy.referenceDirections);
+    expect(again.indices).toBe(copy.indices);
+    expect(again.seamIds).toBe(copy.seamIds);
+    expect(again.preparedEntryIndices).toBe(copy.preparedEntryIndices);
+    // The whole main-thread allocation a crossing pays for this batch is that
+    // one index array — under a sixth of the bytes the copy used to duplicate.
+    expect(copy.preparedEntryIndices.byteLength * 6).toBeLessThanOrEqual(batch.staticGeometryBytes);
     const covered = prepared.batches.flatMap((entry) => entry.chartTriangleRanges)
       .reduce((sum, range) => sum + range.triangleCount, 0);
     expect(covered).toBe(batch.triangleCount);
@@ -637,6 +679,71 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.setPalaeoCoastlinesEnabled(false);
     expect(runtime.palaeoMotionResidentAt(385)).toBe(false);
     expect(runtime.evaluatePalaeoMotionNow(385)).toBeNull();
+    prepared.release();
+    runtime.dispose();
+  });
+
+  it("finds its neighbour resident for a crossing in either direction", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const current = await runtime.requestPalaeoInterval(370).prepared;
+    // Both neighbours are warmed as soon as this interval is the current one,
+    // so a scrub that reverses direction crosses into a decoded interval too.
+    await runtime.prefetchPalaeoInterval(390);
+    await runtime.prefetchPalaeoInterval(350);
+    // Residency is measured on the payloads: neither crossing below fetches,
+    // decodes or triangulates anything again.
+    const before = fixture.requestedUrls.filter((url) => url.endsWith(".ehpr")).length;
+    expect(before).toBe(3);
+    current.release();
+    const older = await runtime.requestPalaeoInterval(390).prepared;
+    expect(older.intervalId).toBe("402-380");
+    older.release();
+    const younger = await runtime.requestPalaeoInterval(350).prepared;
+    expect(younger.intervalId).toBe("360-340");
+    younger.release();
+    expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpr")).length).toBe(before);
+    runtime.dispose();
+  });
+
+  it("reuses one frame per resident interval and publishes an immutable copy of it", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const prepared = await runtime.requestPalaeoInterval(398).prepared;
+    const publishedPoses = prepared.charts.map((chart) => [...chart.poseQuaternion]);
+    const publishedPalette = [...prepared.motionPalette.createValuesCopy()];
+    const publishedSupport = prepared.charts.map((chart) => chart.support.kind);
+    const first = runtime.evaluatePalaeoMotionNow(398)!;
+    const paletteBytes = (frame: CaoPalaeoIntervalFrame) => Array.from(new Uint8Array(
+      frame.paletteValues.buffer, frame.paletteValues.byteOffset, frame.paletteValues.byteLength));
+    const at398 = paletteBytes(first);
+    // 390 Ma is the same interval with the off-schedule piece retired, so the
+    // frame really is re-evaluated between the two reads below.
+    const second = runtime.evaluatePalaeoMotionNow(390)!;
+    expect(paletteBytes(second)).not.toEqual(at398);
+    // The frame wrapper is a new object every evaluation — a render effect keyed
+    // on the frame must still fire — while everything inside it is the same
+    // instance, rewritten in place.
+    expect(second).not.toBe(first);
+    expect(second.paletteValues).toBe(first.paletteValues);
+    expect(second.charts).toBe(first.charts);
+    expect(second.charts[0]).toBe(first.charts[0]);
+    expect(second.charts[0]!.poseQuaternion).toBe(first.charts[0]!.poseQuaternion);
+    expect(second.charts[1]!.inversePoseQuaternion).toBe(first.charts[1]!.inversePoseQuaternion);
+    // Re-evaluating the first age reproduces its bytes exactly: reuse is an
+    // allocation change, not a value change.
+    expect(paletteBytes(runtime.evaluatePalaeoMotionNow(398)!)).toEqual(at398);
+    // The published revision keeps its own copy: a scrub inside the interval
+    // must not move the poses the publication reports under its own age.
+    expect(prepared.charts.map((chart) => [...chart.poseQuaternion])).toEqual(publishedPoses);
+    expect(prepared.charts.map((chart) => chart.support.kind)).toEqual(publishedSupport);
+    expect([...prepared.motionPalette.createValuesCopy()]).toEqual(publishedPalette);
+    expect(prepared.charts[0]).not.toBe(first.charts[0]);
+    expect(Object.isFrozen(prepared.charts[0])).toBe(true);
     prepared.release();
     runtime.dispose();
   });

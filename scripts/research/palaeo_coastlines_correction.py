@@ -1428,9 +1428,28 @@ def check_co_moving(view: ClassView) -> dict:
 
 def check_frame_conflict_oracle(store: Store, view: ClassView,
                                 rotations, interval_ids: tuple[str, ...]) -> dict:
-    """Recompute the frame-conflict flag from the rotation model on sampled intervals."""
+    """Recompute the frame-conflict flag from the rotation model on sampled intervals.
+
+    The flag is the compiler's ``frame_separation``: the worst distance the
+    binding carries any part of the piece from its own PLATEID1 frame, over each
+    part's representative point plus ``FRAME_CONFLICT_SAMPLES`` points of its
+    outline. Re-deriving it from a single centre point measures a different
+    quantity - measured 2026-09-16 on the promoted 0.1.14 set, 15 correctly
+    flagged pieces read 66-124 km at their centre and 257-489 km sampled - so
+    this calls the compiler's own function on the shipped ring.
+    """
     class_name = view.class_name
     by_id = {row["intervalId"]: row for row in view.intervals}
+    rotation_cache: dict[tuple[float, int], object] = {}
+
+    def rotation(age: float, plate: int):
+        # Every piece in an interval shares its age and most share a plate, so
+        # the pygplates lookup is cached the way the compiler caches it.
+        key = (age, plate)
+        if key not in rotation_cache:
+            rotation_cache[key] = rotations.get_rotation(age, plate)
+        return rotation_cache[key]
+
     checked = 0
     for interval_id in interval_ids:
         interval = by_id.get(interval_id)
@@ -1444,15 +1463,19 @@ def check_frame_conflict_oracle(store: Store, view: ClassView,
             geometry = compiler.piece_geometry(decoded, piece)
             if geometry.is_empty or chart["plateId1"] is None:
                 continue
-            point = geometry.representative_point()
-            probe = pygplates.PointOnSphere(point.y, point.x)
-            separation = audit.great_circle_km(
-                rotations.get_rotation(age, binding["bindingPlateId"]) * probe,
-                rotations.get_rotation(age, chart["plateId1"]) * probe)
+            separation = compiler.frame_separation(
+                geometry, binding["bindingPlateId"], chart["plateId1"], age, rotation)
             flagged = bool(piece["flags"] & compiler.FLAG_FRAME_CONFLICT)
-            # The flag is measured at the piece's own representative point before
-            # simplification; recomputing it from the shipped ring can land on the
-            # other side of the threshold, so only a gross disagreement is a defect.
+            # Same quantity and same threshold as the compiler: flagged exactly
+            # when the sampled worst separation passes ``FRAME_CONFLICT_KM``. The
+            # compiler measures the unsimplified, unquantised piece and this
+            # measures the shipped ring, so a piece sitting on the threshold can
+            # re-derive a little either side of it; the slack keeps that from
+            # being a defect while a flag on the wrong piece still is. Measured
+            # 2026-09-16 over the witness intervals of the promoted 0.1.14 set,
+            # the two sides agree to about 1.5 km of the 250 km threshold
+            # (flagged low 249.8 km, unflagged high 251.4 km), so the slack is
+            # what is left over rather than what the disagreement needs.
             if flagged and separation < compiler.FRAME_CONFLICT_KM * 0.5:
                 raise CorrectionError(
                     f"{class_name} {interval_id}: a piece flagged frame-conflict is {separation:.1f} km "
@@ -1467,14 +1490,22 @@ def check_frame_conflict_oracle(store: Store, view: ClassView,
             # bound to India by the partition rule were drawn 6,474-6,837 km
             # away and made up 46 % of the mountain area over India at 94-81 Ma.
             # The compiler drops these now; this proves none survived.
-            # 5 % of slack: the compiler measures at the unsimplified, unquantised
-            # piece's representative point and a shipped ring cannot reproduce it,
-            # so a piece sitting on the threshold re-derives a little either side
-            # of it. The defect this catches was 6,474-6,837 km out.
-            if separation > compiler.FRAME_CONFLICT_DROP_KM * 1.05:
+            # The drop is the compiler's ``frame_body_separation`` - the median
+            # of the same samples - not their maximum, which is what the flag
+            # above uses. The rotation difference grows with a piece's extent, so
+            # a worst-vertex drop test is a threshold on piece size: asserting it
+            # here condemned the 82,150 km2 Sunda shelf piece whose median sits
+            # 710 km inside the rule and whose north-east corner reads 1,015 km.
+            # Same quantity and threshold as the compiler, so the two sides
+            # agree. 5 % of slack: the compiler measures the unquantised ring and
+            # this measures the shipped one. The defect this catches was
+            # 6,474-6,837 km out.
+            body_separation = compiler.frame_body_separation(
+                geometry, binding["bindingPlateId"], chart["plateId1"], age, rotation)
+            if body_separation > compiler.FRAME_CONFLICT_DROP_KM * 1.05:
                 raise CorrectionError(
                     f"{class_name} {interval_id}: a piece on PLATEID1 {chart['plateId1']} bound to "
-                    f"plate {binding['bindingPlateId']} is {separation:.0f} km from its PLATEID1 "
+                    f"plate {binding['bindingPlateId']} is {body_separation:.0f} km from its PLATEID1 "
                     f"position, past the {compiler.FRAME_CONFLICT_DROP_KM:.0f} km drop threshold")
             checked += 1
     return {"checkedPieces": checked, "intervals": list(interval_ids)}

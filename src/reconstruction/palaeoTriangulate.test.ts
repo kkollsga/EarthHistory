@@ -181,7 +181,10 @@ describe("palaeo-coastline triangulation", () => {
     expect(failure.transfer).toHaveLength(0);
     const success = handlePalaeoTriangulationRequest({ requestId: 5, buffer: fixture(), options: {} });
     expect(success.response.ok).toBe(true);
-    expect(success.transfer).toHaveLength(3);
+    // Reference directions, triangle indices, piece indices and seam ids: the
+    // seam ids are built here too, so a crossing does not allocate them in the
+    // frame that publishes the incoming interval.
+    expect(success.transfer).toHaveLength(4);
   });
 
   it("falls back to the main thread where no worker exists and matches the pure path", async () => {

@@ -34,6 +34,7 @@ import {
   CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
   CAO_FOUNDATION_DEFAULT_BASE_COLORS,
   CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES,
+  caoFoundationSurfaceClassAppearance,
   CAO_FOUNDATION_MAX_SURFACE_EDGE_DEGREES,
   CAO_FOUNDATION_SURFACE_PRECEDENCE,
   CAO_FOUNDATION_GLOBE_SPHERE_RENDER_ORDER,
@@ -1382,6 +1383,16 @@ describe("Cao foundation renderer boundary", () => {
       expect(shell.shellOffsetMetres).toBeLessThan(CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
     }
 
+    // The stacking contract binds the classes that actually draw in a band. A
+    // class hidden there is exempt: `shelf` is not drawn in the Cao 2017 band at
+    // all, so no pair involving it constrains that band's shells.
+    const drawnStack = (mode: "native" | "palaeo") => CAO_FOUNDATION_SURFACE_SHELLS
+      .filter((shell) => mode === "palaeo" ? shell.visibleInPalaeoMode : shell.visibleInNativeMode)
+      .map((shell) => shell.surfaceClass);
+    expect(drawnStack("native")).toEqual(["shelf", "correction-shelf", "corrections", "land"]);
+    expect(drawnStack("palaeo")).toEqual(["correction-shelf", "palaeo-shallow-marine",
+      "palaeo-land", "palaeo-mountain"]);
+
     const exempt: string[] = [];
     for (const mode of ["native", "palaeo"] as const) {
       const stack = CAO_FOUNDATION_SURFACE_SHELLS.filter((shell) =>
@@ -1482,13 +1493,35 @@ describe("Cao foundation renderer boundary", () => {
     // disagree with itself at the same age with the layer off.
     const todaysComposition = ["shelf", "correction-shelf", "corrections", "land"];
     expect(visibleClasses("native")).toEqual(todaysComposition);
+    // The Cao 2017 band draws exactly five levels: the deep-sea sphere, mapped
+    // shallow sea, mapped land, mapped mountain and the country outlines. The
+    // Cao 2024 crust shelf is not one of them — unmapped ground reads as deep
+    // sea — and re-enabling it here is the mutation this assertion catches.
+    expect(caoFoundationSurfaceClassVisible("shelf", "palaeo")).toBe(false);
+    expect(caoFoundationSurfaceClassVisible("shelf", "native")).toBe(true);
+    // The restored pre-collision margins still draw in the band — they are the
+    // only thing closing a seam the Cao 2017 charts leave open — but with the
+    // palaeo shallow-marine appearance, so they are not a second crust level.
+    expect(caoFoundationSurfaceClassAppearance("correction-shelf", "shelf", "native"))
+      .toBe("shelf");
+    expect(caoFoundationSurfaceClassAppearance("correction-shelf", "shelf", "palaeo"))
+      .toBe("palaeo-shallow-marine");
+    for (const surfaceClass of ["shelf", "palaeo-shallow-marine", "corrections", "land",
+      "palaeo-land", "palaeo-mountain"] as const) {
+      for (const mode of ["native", "palaeo"] as const) {
+        expect(caoFoundationSurfaceClassAppearance(surfaceClass,
+          surfaceClass === "corrections" ? "land" : surfaceClass, mode))
+          .toBe(surfaceClass === "corrections" ? "land" : surfaceClass);
+      }
+    }
+    // A restored margin is never land-like, in either appearance.
+    expect(CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES).not.toContain("correction-shelf");
     // The second defect: `corrections` is drawn in native land's own colour, so
     // leaving it visible here put a second land tone over the Cao 2017 shallow
     // seas — the doubled polygons the user reported. No class drawn in the land
     // colour survives into the palaeo mode.
     expect(visibleClasses("palaeo")).toEqual(
-      ["shelf", "correction-shelf", "palaeo-shallow-marine",
-        "palaeo-land", "palaeo-mountain"]);
+      ["correction-shelf", "palaeo-shallow-marine", "palaeo-land", "palaeo-mountain"]);
     for (const landColoured of ["land", "corrections"] as const) {
       expect(caoFoundationSurfaceClassVisible(landColoured, "palaeo"),
         `${landColoured} must not draw while the Cao 2017 map replaces native land`).toBe(false);
@@ -1536,16 +1569,43 @@ describe("Cao foundation renderer boundary", () => {
     expect(nativeDiagnostics.chartRanges).toBe(6);
     const meshes = () => group.children[0]!.children.filter((child): child is Mesh =>
       child instanceof Mesh);
-    const visibleClasses = () => meshes().filter((mesh) => mesh.visible)
-      .map((mesh) => mesh.userData.surfaceClass as string);
-    expect(meshes().map((mesh) => [mesh.userData.surfaceClass, mesh.renderOrder])).toEqual([
+    // The mountain's land underlay is a `palaeo-land` mesh like any other, so
+    // it is named by the batch it stands under rather than by its class.
+    const label = (mesh: Mesh) => (mesh.userData.palaeoLandUnderlayOf === undefined
+      ? mesh.userData.surfaceClass as string
+      : `underlay-of:${mesh.userData.palaeoLandUnderlayOf as string}`);
+    const visibleClasses = () => meshes().filter((mesh) => mesh.visible).map(label);
+    expect(meshes().map((mesh) => [label(mesh), mesh.renderOrder])).toEqual([
       ["shelf", 1], ["palaeo-shallow-marine", 1.2], ["corrections", 1.5],
-      ["palaeo-land", 1.7], ["palaeo-mountain", 1.8], ["land", 2],
+      ["palaeo-land", 1.7], ["underlay-of:palaeo-mountain", 1.7],
+      ["palaeo-mountain", 1.8], ["land", 2],
     ]);
     // Depth writing is what forces shell separation; the two classes 100 m apart
-    // must not write it.
+    // must not write it. The mountain's land underlay is the third mesh that
+    // does not, and the only one whose reason is not a shell: it is the
+    // mountain's own geometry 300 m below itself, radially, and near the limb
+    // that separation collapses along the view ray, so a depth-writing underlay
+    // takes pixels from the mountain standing on it.
     expect(meshes().map((mesh) => (mesh.material as { depthWrite: boolean }).depthWrite))
-      .toEqual([true, false, false, true, true, true]);
+      .toEqual([true, false, false, true, false, true, true]);
+    // The underlay is the mountain's own geometry drawn a second time: one
+    // buffer, one extra draw, no extra bytes, and its own land material.
+    const mountain = meshes().find((mesh) => mesh.userData.surfaceClass === "palaeo-mountain")!;
+    const underlay = meshes().find((mesh) => mesh.userData.palaeoLandUnderlayOf !== undefined)!;
+    expect(underlay.geometry).toBe(mountain.geometry);
+    expect(underlay.material).not.toBe(mountain.material);
+    expect(underlay.userData.surfaceClass).toBe("palaeo-land");
+    const land = meshes().find((mesh) => mesh.userData.surfaceClass === "palaeo-land"
+      && mesh.userData.palaeoLandUnderlayOf === undefined)!;
+    expect(underlay.renderOrder).toBe(land.renderOrder);
+    // It takes the land shell and the land draw order, but never the land depth
+    // write, and it still depth-tests so the far side of the globe hides it.
+    expect((land.material as { depthWrite: boolean }).depthWrite).toBe(true);
+    expect((underlay.material as { depthWrite: boolean }).depthWrite).toBe(false);
+    expect((underlay.material as { depthTest: boolean }).depthTest).toBe(true);
+    // It draws before the mountain it stands under, which is what leaves the
+    // mountain's own colour on every pixel the mountain covers.
+    expect(underlay.renderOrder).toBeLessThan(mountain.renderOrder);
     expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
     expect(nativeDiagnostics.drawCount).toBe(3);
 
@@ -1553,15 +1613,18 @@ describe("Cao foundation renderer boundary", () => {
     expect(palaeoDiagnostics.palaeoCoastlineMode).toBe(true);
     // Neither `land` nor `corrections` draws: both carry native land's fill
     // colour, and a second land tone over a Cao 2017 shallow sea is the
-    // doubled polygon the mode exists to remove.
-    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine",
-      "palaeo-land", "palaeo-mountain"]);
+    // doubled polygon the mode exists to remove. The underlay draws with the
+    // mountain, never without it, and repaints to the land colour with the mode.
+    expect(visibleClasses()).toEqual(["palaeo-shallow-marine",
+      "palaeo-land", "underlay-of:palaeo-mountain", "palaeo-mountain"]);
+    expect((underlay.userData.palaeoAppearanceMix as { value: number }).value).toBe(1);
     expect(palaeoDiagnostics.drawCount).toBe(4);
     surface.setPalaeoCoastlineMode(false);
     expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
+    expect((underlay.userData.palaeoAppearanceMix as { value: number }).value).toBe(0);
     surface.setLayerVisibility({ borders: true, tectonics: true, palaeoCoastlines: true });
-    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine",
-      "palaeo-land", "palaeo-mountain"]);
+    expect(visibleClasses()).toEqual(["palaeo-shallow-marine",
+      "palaeo-land", "underlay-of:palaeo-mountain", "palaeo-mountain"]);
 
     const resource = createCaoFoundationGeometryResource(revision, palaeoLimits);
     const poses = new Float32Array(6 * 8);
@@ -1580,7 +1643,9 @@ describe("Cao foundation renderer boundary", () => {
     expect(pick([1, 1, 1, 1, 0, 1], "palaeo")).toBe("palaeo-land");
     expect(pick([1, 1, 1, 0, 0, 1], "palaeo")).toBe("palaeo-shallow-marine");
     expect(pick([1, 1, 0, 0, 0, 1], "palaeo")).toBe("palaeo-shallow-marine");
-    expect(pick([1, 0, 0, 0, 0, 1], "palaeo")).toBe("shelf");
+    // The crust shelf is not drawn in the band, so it cannot be picked either:
+    // unmapped ground is deep sea and answers nothing.
+    expect(pick([1, 0, 0, 0, 0, 1], "palaeo")).toBeNull();
     expect(pick([0, 0, 0, 0, 0, 1], "palaeo")).toBeNull();
 
     // Coverage by class, and the includeShelf alias unchanged for the callers

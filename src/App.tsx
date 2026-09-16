@@ -17,6 +17,7 @@ import {
   Share2,
   Waves,
 } from "lucide-react";
+import { APP_VERSION, APP_VERSION_LABEL } from "./appVersion";
 import { GlobeView, type PeriodCoordinateRenderState } from "./render";
 import {
   environmentForAge,
@@ -769,20 +770,44 @@ export default function App() {
       });
     };
 
-    // Warm the neighbour the moment this interval is the current one, not once
-    // the gesture has rested: a continuous scrub never rests, so a settle-timed
-    // prefetch was cleared on every sample and the crossing paid the whole
-    // fetch, decode and triangulation with the gesture waiting on it. One
-    // warm-up per interval and direction; the store's own residency bound (two
-    // intervals) is what keeps this from accumulating.
+    // Warm both neighbours the moment this interval is the current one, not
+    // once the gesture has rested: a continuous scrub never rests, so a
+    // settle-timed prefetch was cleared on every sample and the crossing paid
+    // the whole fetch, decode and triangulation with the gesture waiting on it.
+    // Both sides, because a scrub that reverses direction crossed back into an
+    // interval the one-sided warm-up had just let go. The one in the current
+    // direction is warmed first and the other only after it settles: the store
+    // takes two unsettled loads at a time, and a foreground request for a third
+    // interval must never have to wait for a prefetch to free a slot. One
+    // warm-up per interval; the store's residency bound (three intervals) is
+    // what keeps this from accumulating.
     const prefetchNeighbour = (index: number) => {
-      const direction = palaeoAgeDirectionRef.current;
-      const key = `${index}|${direction}`;
+      const key = `${index}`;
       if (state.prefetchedFrom === key) return;
       state.prefetchedFrom = key;
-      const neighbour = PALAEO_MAP_INTERVALS[neighbourPalaeoIntervalIndex(index, direction)];
-      if (neighbour === undefined) return;
-      void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+      // The LGM state is detached: about 2 Myr of no published map separate it
+      // from the youngest Cao 2017 interval, so neither table neighbour is an
+      // interval a scrub can cross into. Warming one would fetch, decode and
+      // triangulate a whole Cao 2017 map the age cannot reach without passing
+      // through the fallback first, and park it in the store's two pending
+      // slots and three residency slots while the interval actually on screen
+      // is the one that has to stay there.
+      if (palaeoIntervalIsDetached(PALAEO_MAP_INTERVALS[index] ?? null)) return;
+      const direction = palaeoAgeDirectionRef.current;
+      // A resting scrub (direction 0) warms the younger neighbour first, which
+      // is the direction `neighbourPalaeoIntervalIndex` already treats as rest.
+      const ordered = [neighbourPalaeoIntervalIndex(index, direction),
+        neighbourPalaeoIntervalIndex(index, direction > 0 ? -1 : 1)];
+      void (async () => {
+        for (const neighbourIndex of ordered) {
+          const neighbour = PALAEO_MAP_INTERVALS[neighbourIndex];
+          // The same gap from the other side: the youngest Cao 2017 interval
+          // does not adjoin the detached LGM state either.
+          if (neighbour === undefined || palaeoIntervalIsDetached(neighbour)
+            || state.disposed) continue;
+          await runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+        }
+      })();
     };
 
     const pump = () => {
@@ -1039,12 +1064,16 @@ export default function App() {
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
   const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
-  // Whether any native land fill is on screen. The Cao 2017 band replaces it
-  // outright — `batch-land` and every land-appearance correction with it — so a
-  // "Land" swatch there would name a colour the globe is not drawing. The
-  // fallback ages and the detached LGM band still draw today's land, and keep
-  // the row.
-  const nativeLandDrawn = !(palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached);
+  // The Cao 2017 band, on screen: the globe draws exactly five levels there —
+  // the deep-sea sphere, mapped shallow sea, mapped land, mapped mountain and
+  // the country outlines. Every native Cao 2024 fill is replaced outright:
+  // `batch-land` and its land-appearance corrections, and the crust shelf with
+  // them. A "Land" or "Blue shelf" swatch there would name a colour the globe
+  // is not drawing. The fallback ages and the detached LGM band still draw
+  // today's composition, and keep both rows.
+  const caoPalaeoBandDrawn = palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached;
+  const nativeLandDrawn = !caoPalaeoBandDrawn;
+  const nativeShelfDrawn = !caoPalaeoBandDrawn;
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
   const renderedEvidence = palaeoModeActive && !palaeoFallback
@@ -1420,7 +1449,14 @@ export default function App() {
   return (
     <main className="atlas-shell" data-map-key-open={mapKeyOpen}>
       <header className="site-header">
-        <button className="brand" type="button" onClick={() => changeAge(0)} aria-label="Earth History, return to today">
+        <button
+          className="brand"
+          type="button"
+          onClick={() => changeAge(0)}
+          title={APP_VERSION_LABEL}
+          data-app-version={APP_VERSION}
+          aria-label={`Earth History, version ${APP_VERSION}, return to today`}
+        >
           <span className="brand-orbit" aria-hidden="true"><span /></span>
           <span><b>EARTH</b><i>HISTORY</i></span>
         </button>
@@ -1553,9 +1589,14 @@ export default function App() {
               {palaeoClassInKey("m") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
               )}
-              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
-                ? "Cao 2024 continental crust, depth unmapped"
-                : "Continental shelf context; ancient water depth unknown"}</span></li>
+              {caoPalaeoBandDrawn && (
+                <li data-testid="map-key-restored-margin"><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Restored margin</strong>Pre-collision margin restored by the plate model and drawn as submerged margin in the shallow-sea color; model inference, not a mapped Cao 2017 polygon</span></li>
+              )}
+              {nativeShelfDrawn && (
+                <li data-testid="map-key-shelf"><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
+                  ? "Cao 2024 continental crust, depth unmapped"
+                  : "Continental shelf context; ancient water depth unknown"}</span></li>
+              )}
             </ul>
             {palaeoKeyVisible && (
               <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
@@ -1570,6 +1611,11 @@ export default function App() {
                     and central North Sea, the Sunda shelf and Beringia only. It is drawn beside
                     today&rsquo;s land, which stays visible: every other coastline at this age is the
                     present-day one.</p>
+                )}
+                {caoPalaeoBandDrawn && (
+                  <p className="surface-info-note" data-testid="palaeo-deep-sea-note">Ground the Cao
+                    2017 map does not map is drawn as deep sea: the globe itself. The Cao 2024 crust
+                    extent is not drawn at this age.</p>
                 )}
                 {palaeoFallback && (
                   <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">

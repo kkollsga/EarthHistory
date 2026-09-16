@@ -41,6 +41,15 @@ import {
 export const PALAEO_MAX_EDGE_DEGREES = 1;
 
 /**
+ * Seam ids are unique per palaeo vertex: a cookie-cut piece shares no vertex
+ * with any other, so no two palaeo vertices are ever welded. The array is built
+ * and transferred here with the rest of the geometry, because building it on
+ * the main thread put a `vertexCount * 4` byte allocation into the one frame
+ * that publishes an incoming interval.
+ */
+export const PALAEO_SEAM_ID_BASE = 2_000_000_000;
+
+/**
  * Ceilings of the palaeo surface renderer instance; a payload above them cannot
  * be drawn.
  *
@@ -72,6 +81,8 @@ export interface PreparedPalaeoIntervalGeometry {
   readonly indices: Uint32Array;
   /** Owning piece of every vertex; a triangle never spans two pieces. */
   readonly pieceIndices: Uint32Array;
+  /** `PALAEO_SEAM_ID_BASE + vertex`, in the renderer's seam-id shape. */
+  readonly seamIds: Uint32Array;
   readonly pieceTriangleRanges: readonly PalaeoPieceTriangleRange[];
   readonly vertexCount: number;
   readonly triangleCount: number;
@@ -282,12 +293,15 @@ export function preparePalaeoRingGeometry(
       triangleCount: refined.triangles.length / 3 }));
     for (const index of refined.triangles) indices.push(base + index);
   }
+  const seamIds = new Uint32Array(pieceIndices.length);
+  for (let vertex = 0; vertex < seamIds.length; vertex += 1) seamIds[vertex] = PALAEO_SEAM_ID_BASE + vertex;
   return Object.freeze({
     metadata: palaeoRingPayloadMetadata(payload),
     geometry: Object.freeze({
       referenceDirections: new Float32Array(directions),
       indices: new Uint32Array(indices),
       pieceIndices: new Uint32Array(pieceIndices),
+      seamIds,
       pieceTriangleRanges: Object.freeze(pieceTriangleRanges),
       vertexCount: directions.length / 3,
       triangleCount: indices.length / 3,
@@ -330,7 +344,8 @@ export function handlePalaeoTriangulationRequest(
         geometry: prepared.geometry },
       transfer: [prepared.geometry.referenceDirections.buffer as ArrayBuffer,
         prepared.geometry.indices.buffer as ArrayBuffer,
-        prepared.geometry.pieceIndices.buffer as ArrayBuffer],
+        prepared.geometry.pieceIndices.buffer as ArrayBuffer,
+        prepared.geometry.seamIds.buffer as ArrayBuffer],
     };
   } catch (error) {
     return { response: { requestId: request.requestId, ok: false,

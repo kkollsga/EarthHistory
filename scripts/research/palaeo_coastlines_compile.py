@@ -51,6 +51,7 @@ import hashlib
 import json
 import math
 import struct
+import statistics
 import sys
 import time
 import zipfile
@@ -74,6 +75,18 @@ PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 STORE = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastlines"
 
 DEGREE_KM = 2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0
+
+# The cookie cut introduces edges the source never had: the partition polygon's
+# own boundary. A partition edge is recorded as two points and the planar cut
+# keeps it as a lon/lat-straight chord, so after triangulation the boundary runs
+# across the sphere as a straight line beside a coastline that follows great
+# circles. Every cut piece is therefore re-sampled on the great circle at half a
+# degree - twice as fine as the source densification, whose samples this only
+# subdivides - and node reduction removes again every sample whose deviation
+# from the chord is under its tolerance. A quarter degree was measured too and
+# is not worth its payload: at 179-166 it costs the land class 11.3 % of its
+# simplified bytes where half a degree costs 4.2 %.
+CUT_DENSIFY_DEGREES = 0.5
 
 FORMAT_ID = "EHPR"
 FORMAT_VERSION = 1
@@ -121,10 +134,18 @@ LAT_SCALE = 32767.0 / 90.0
 MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
 FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
 # Beyond this the partition binding is not an approximation of the source frame,
-# it is a different place on Earth. A piece carried further than this from its
-# own PLATEID1 position, with no override entry to justify it, is dropped and
-# counted rather than drawn.
+# it is a different place on Earth. A piece whose *body* - the representative
+# point of each of its parts - is carried further than this from its own
+# PLATEID1 position, with no override entry to justify it, is dropped and
+# counted rather than drawn. The drop reads the body and not the sampled outline
+# because the rotation difference grows with a piece's extent, so a worst-vertex
+# test is a threshold on size rather than on displacement.
 FRAME_CONFLICT_DROP_KM = 1000.0
+# How many outline points per part the frame-conflict *flag* is measured at. The
+# rotation difference varies smoothly over a piece, so an evenly spaced sample
+# of the outline finds the extreme; the cap keeps the measurement bounded for
+# rings with tens of thousands of vertices.
+FRAME_CONFLICT_SAMPLES = 24
 # A piece is rebound by PLATEID1 when its centroid and at least this share of its
 # area lie inside that plate's declared footprint.
 OVERRIDE_MAJORITY_FRACTION = 0.5
@@ -134,6 +155,11 @@ OVERRIDE_MAJORITY_FRACTION = 0.5
 SEAM_INTERIOR_MARGIN_DEGREES = 0.08
 # Gap components smaller than this are Boolean noise, not a visible hairline.
 SEAM_MINIMUM_GAP_KM2 = 0.05
+# How close a sub-floor cut fragment has to lie to another piece of the same
+# record before it counts as interior ground the cookie cut split off rather than
+# a free-standing speck. Boolean output is adjacent to within rounding, so this is
+# a rounding tolerance (about 0.1 m at the equator), not a search radius.
+SLIVER_MERGE_DEGREES = 1e-6
 RESTORATION_PREFIX = "restoration-"
 RECOVERY_PREFIX = "native-recovery-plate-"
 # The editorial line every basin-edited chart carries, and the prefix each
@@ -646,11 +672,11 @@ def record_polygon(row: dict, densify: bool):
     return polygonal(Polygon(exterior, holes))
 
 
-def densify_geometry(geometry):
+def densify_geometry(geometry, max_degrees: float = audit.DENSIFY_DEGREES):
     parts = []
     for part in polygon_parts(geometry):
-        exterior = audit.densify(list(part.exterior.coords))
-        holes = [audit.densify(list(interior.coords)) for interior in part.interiors]
+        exterior = audit.densify(list(part.exterior.coords), max_degrees)
+        holes = [audit.densify(list(interior.coords), max_degrees) for interior in part.interiors]
         parts.append(Polygon(exterior, holes))
     if not parts:
         return Polygon()
@@ -820,11 +846,144 @@ def owner_priority(partition: dict) -> tuple:
             partition["sourceOrder"], partition["geometryIndex"])
 
 
+def frame_separation(geometry, binding_plate: int, source_plate: int, age: float,
+                     rotation) -> float:
+    """The worst distance the binding carries any part of this ground from its own frame.
+
+    The two rotations differ by a different amount at every point on Earth, so a
+    piece's centre is not a statement about its ends. Measured 2026-09-16 on sm
+    166-146: one 84 km2 piece on PLATEID1 305 bound to plate 307 read 976 km at
+    its representative point and 1,091 km at its eastern end - inside the
+    ``FRAME_CONFLICT_DROP_KM`` rule by the centre, past it by the ground that
+    would actually be drawn. Each part contributes its representative point and
+    an evenly spaced sample of its outline, so the cost is bounded however many
+    vertices the ring carries.
+    """
+    return max(frame_separation_samples(geometry, binding_plate, source_plate, age, rotation),
+               default=0.0)
+
+
+def frame_separation_samples(geometry, binding_plate: int, source_plate: int, age: float,
+                             rotation) -> list[float]:
+    """Every distance the two frames put between the same ground, one per sample.
+
+    Each part contributes its representative point and an evenly spaced sample of
+    its outline, so the cost is bounded however many vertices the ring carries.
+    Both frame measures read this one set: the flag takes its maximum, the drop
+    its median.
+    """
+    binding_rotation = rotation(age, binding_plate)
+    source_rotation = rotation(age, source_plate)
+    distances: list[float] = []
+    for part in polygon_parts(geometry):
+        points = [part.representative_point().coords[0]]
+        ring = list(part.exterior.coords)
+        step = max(1, len(ring) // FRAME_CONFLICT_SAMPLES)
+        points.extend(ring[::step])
+        for longitude, latitude in points:
+            probe = pygplates.PointOnSphere(latitude, longitude)
+            distances.append(audit.great_circle_km(binding_rotation * probe,
+                                                   source_rotation * probe))
+    return distances
+
+
+def frame_body_separation(geometry, binding_plate: int, source_plate: int, age: float,
+                          rotation) -> float:
+    """How far the binding carries the *body* of this ground from its own frame.
+
+    The drop rule asks whether a piece is drawn in a different place, and that is
+    a property of the piece's body, not of its farthest corner. Two rotations
+    differ by a different amount at every point on Earth, so the worst point on an
+    outline grows with the piece's extent: measuring the drop at that point turns
+    ``FRAME_CONFLICT_DROP_KM`` into a threshold on piece size. Measured 2026-09-16
+    on sm 29-20: 18 pieces totalling 921,505 km2 whose body sits well inside the
+    rule were dropped on a single outline sample 1.5-10 % past it, among them the
+    82,150 km2 Sunda shelf piece (record 2526, PLATEID1 604 on partition 61403)
+    that carries the Sarawak Oligocene witness - 544 km at its nearest sample,
+    710 km median, 1,015 km at one north-east corner. The ground the rule exists
+    for - Qiangtang and Tarim at 6,474-6,837 km, and the 166-146 pieces at 8,566
+    and 10,573 km - is thousands of kilometres out at every sample, and is still
+    dropped.
+
+    The median of the same sample set ``frame_separation`` takes its maximum from,
+    because the drop has to be re-derivable from the payload and no single point
+    of a piece is. ``expand_over_seam`` can buffer a record's cut fragments into
+    one connected polygon and int16 quantisation can sever that buffer again, so
+    a representative point is a property of which tier you measure: one sm
+    166-146 piece of three Alpine fragments reads 866 km as the grown polygon and
+    1,091 km as the three parts it ships as, while its median is 944 km on both.
+    A median over an evenly spaced outline sample moves by rounding, not by
+    topology, so the compiler and the correction oracle agree.
+
+    The sampled maximum stays in ``frame_separation``, which still sets
+    ``FLAG_FRAME_CONFLICT`` and the co-moving buckets, so a kept piece whose edge
+    runs far from its own frame is still declared.
+    """
+    distances = frame_separation_samples(geometry, binding_plate, source_plate, age, rotation)
+    return statistics.median(distances) if distances else 0.0
+
+
+def merge_sliver(pieces: list[list], sliver) -> bool:
+    """Give one sub-floor cut fragment to the piece of the same record it adjoins.
+
+    A fragment below ``MIN_PIECE_KM2`` that touches another piece of the same
+    record is interior ground, not an island: dropping it punches a hole through
+    which the darker crust, or the sphere, shows at closest zoom. The fragment is
+    unioned into the adjoining piece instead, so the record stays gap-free and
+    still has exactly one owner per piece - the adjoining piece's partition, whose
+    plate then carries those few square kilometres.
+
+    ``sliver`` is a *single* polygon, and adjacency is what qualifies it: the
+    receiving piece has to share boundary with it, or lie within the rounding
+    tolerance of it. Measured 2026-09-16: taking the nearest piece by distance
+    and accepting a whole multipolygon because any one of its parts was adjacent
+    unioned ground scattered across a hemisphere into one neighbour, which then
+    inherited that neighbour's plate binding - one sm 166-146 piece whose
+    PLATEID1 was 305 ended up bound to plate 307 and drawn 1,091 km from its own
+    frame, past the ``FRAME_CONFLICT_DROP_KM`` rule that is supposed to catch
+    exactly that. Choosing the longest shared boundary keeps the fragment with
+    the piece it was actually cut from rather than one that merely brushes it at
+    a corner. A part that adjoins nothing is a genuine speck below the class
+    floor and is still dropped by the caller. Returns whether the part found a
+    neighbour.
+    """
+    best: list | None = None
+    best_key = (0.0, -math.inf)
+    for entry in pieces:
+        distance = float(entry[1].distance(sliver))
+        try:
+            shared = float(entry[1].boundary.intersection(sliver.boundary).length)
+        except shapely.errors.GEOSException:
+            # A Boolean that will not run is not evidence of adjacency; the
+            # distance test still decides this pair.
+            shared = 0.0
+        if shared <= 0.0 and distance > SLIVER_MERGE_DEGREES:
+            continue
+        key = (shared, -distance)
+        if best is None or key > best_key:
+            best = entry
+            best_key = key
+    if best is None:
+        return False
+    merged = polygonal(unary_union([best[1], sliver]))
+    if merged.is_empty:
+        return False
+    best[1] = merged
+    best[2] = area_km2(merged)
+    return True
+
+
 def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tuple[int, object, float]], float, int]:
-    """Cut one source ring into disjoint pieces, each owned by exactly one partition."""
+    """Cut one source ring into disjoint pieces, each owned by exactly one partition.
+
+    Every kept piece is re-sampled at ``CUT_DENSIFY_DEGREES`` before it is
+    returned: the edges the cut introduced are the partition polygon's own, and
+    those are lon/lat-straight chords the source ring never had.
+    """
     candidates = sorted((int(index) for index in tree.query(geometry)),
                         key=lambda index: owner_priority(partitions[index]))
-    pieces: list[tuple[int, object, float]] = []
+    pieces: list[list] = []
+    slivers: list[object] = []
     dropped_area = 0.0
     dropped_pieces = 0
     remaining = geometry
@@ -838,16 +997,30 @@ def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tu
         remaining = polygonal(remaining.difference(partition["geometry"]))
         value = area_km2(piece)
         if value < MIN_PIECE_KM2:
-            dropped_area += value
-            dropped_pieces += 1
+            # Held back, not judged yet: whether this is an interior fragment or a
+            # free-standing speck depends on the pieces the rest of the cut keeps.
+            slivers.append(piece)
             continue
-        pieces.append((index, piece, value))
-    if not remaining.is_empty:
-        value = area_km2(remaining)
-        if value > 0:
-            dropped_area += value
+        pieces.append([index, piece, value])
+    # Ground no partition claimed is the same kind of fragment: interior where it
+    # touches the record's kept pieces, unmapped ocean floor where it does not.
+    if not remaining.is_empty and area_km2(remaining) > 0:
+        slivers.append(remaining)
+    # Judged one connected part at a time. The unclaimed remainder of a record
+    # that spans several partitions is a scattered multipolygon, and adopting it
+    # whole because one of its parts adjoins a kept piece moves the rest of it
+    # across the globe into that piece's frame. Adjacency is a property of a
+    # part, never of the collection.
+    for sliver in slivers:
+        for part in polygon_parts(sliver):
+            if part.is_empty or area_km2(part) <= 0:
+                continue
+            if merge_sliver(pieces, part):
+                continue
+            dropped_area += area_km2(part)
             dropped_pieces += 1
-    return pieces, dropped_area, dropped_pieces
+    return ([(entry[0], densify_geometry(entry[1], CUT_DENSIFY_DEGREES), entry[2])
+             for entry in pieces], dropped_area, dropped_pieces)
 
 
 def seam_gap_inside(entries: list[dict]) -> bool:
@@ -1636,10 +1809,17 @@ def load_country_segments() -> dict:
                             offset=index_offset).reshape(-1, 2)
     left = positions[indices[:, 0]]
     right = positions[indices[:, 1]]
-    midpoints = left + right
-    midpoints /= np.linalg.norm(midpoints, axis=1, keepdims=True)
-    longitudes = np.degrees(np.arctan2(midpoints[:, 1], midpoints[:, 0]))
-    latitudes = np.degrees(np.arcsin(np.clip(midpoints[:, 2], -1.0, 1.0)))
+
+    def spherical(vectors) -> tuple:
+        unit = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        return (np.degrees(np.arctan2(unit[:, 1], unit[:, 0])),
+                np.degrees(np.arcsin(np.clip(unit[:, 2], -1.0, 1.0))))
+
+    longitudes, latitudes = spherical(left + right)
+    # Both endpoints travel with the midpoint: a segment that crosses the edge of
+    # a class has a midpoint on one side of it and is drawn across both.
+    first_longitudes, first_latitudes = spherical(left)
+    second_longitudes, second_latitudes = spherical(right)
     chart_rows = read_core()["charts"]
     segment_charts = charts[indices[:, 0]]
     plates = np.zeros(segment_count, dtype=np.int64)
@@ -1658,6 +1838,8 @@ def load_country_segments() -> dict:
         youngest[index] = chart["lifecycle"]["validTimeMa"]["youngest"]
         oldest[index] = chart["lifecycle"]["validTimeMa"]["oldest"]
     return {"segmentCount": int(segment_count), "longitudes": longitudes, "latitudes": latitudes,
+            "firstLongitudes": first_longitudes, "firstLatitudes": first_latitudes,
+            "secondLongitudes": second_longitudes, "secondLatitudes": second_latitudes,
             "plateIds": plates, "youngestMa": youngest, "oldestMa": oldest,
             "geometrySha256": sha256_bytes(binary), "coreSha256": sha256_path(PUBLIC / "core.json")}
 
@@ -1675,8 +1857,12 @@ def build_tone_tables(segments: dict, intervals: list[dict],
     ``(i & 3) * 2``, least significant pair first. Tables run oldest to youngest,
     the same order as the canonical interval list.
 
-    Tone 0 is dark ink: the segment midpoint is inside a landmass or mountain
-    piece owned by the same plate as the segment's own static fragment. Tone 1 is
+    Tone 0 is dark ink: the segment midpoint **or either endpoint** is inside a
+    landmass or mountain piece owned by the same plate as the segment's own static
+    fragment. Mountain ground is land ground, and the whole segment is drawn: a
+    segment that straddles the edge between two classes, or the edge of the land
+    itself, took the sea tone from its midpoint and flipped tone in the middle of
+    a mountain. Testing all three points gives it the land tone instead. Tone 1 is
     light over shallow ground: mapped shallow marine of the same plate, or Cao
     2024 continental crust of that plate, whose depth the model does not state.
     Tone 2 is light over deep or unmapped ground. Tone 3 means the
@@ -1689,6 +1875,11 @@ def build_tone_tables(segments: dict, intervals: list[dict],
     struct.pack_into("<HHIII", payload, 4, 1, 32, len(intervals), count, stride)
     points = [shapely.Point(float(lon), float(lat))
               for lon, lat in zip(segments["longitudes"], segments["latitudes"])]
+    endpoints = [(shapely.Point(float(first_lon), float(first_lat)),
+                  shapely.Point(float(second_lon), float(second_lat)))
+                 for first_lon, first_lat, second_lon, second_lat
+                 in zip(segments["firstLongitudes"], segments["firstLatitudes"],
+                        segments["secondLongitudes"], segments["secondLatitudes"])]
     rows = []
     for order, interval in enumerate(intervals):
         age = interval["midAgeMa"]
@@ -1712,6 +1903,7 @@ def build_tone_tables(segments: dict, intervals: list[dict],
                          "darkSegments": counters[TONE_DARK],
                          "lightShelfSegments": counters[TONE_LIGHT_SHELF],
                          "lightDeepSegments": counters[TONE_LIGHT_DEEP],
+                         "darkByEndpointSegments": 0,
                          "inactiveSegments": counters[TONE_INACTIVE]})
             continue
         dark_entries = land_by_interval.get(interval["intervalId"], [])
@@ -1722,15 +1914,28 @@ def build_tone_tables(segments: dict, intervals: list[dict],
         shelf_tree = STRtree([geometry for _, geometry in shelf_entries]) if shelf_entries else None
         base = 32 + stride * order
         counters = [0, 0, 0, 0]
+
+        def on_land(plate: int, probe) -> bool:
+            """Whether one probe point sits on land - landmass or mountain - of its own plate."""
+            if dark_tree is None:
+                return False
+            return any(dark_entries[candidate][0] == plate
+                       and dark_entries[candidate][1].contains(probe)
+                       for candidate in dark_tree.query(probe))
+
+        dark_by_endpoint = 0
         for index, point in enumerate(points):
             plate = int(segments["plateIds"][index])
+            endpoint_only = False
             if not (segments["youngestMa"][index] <= age <= segments["oldestMa"][index]):
                 tone = TONE_INACTIVE
-            elif dark_tree is not None and any(
-                    dark_entries[candidate][0] == plate
-                    and dark_entries[candidate][1].contains(point)
-                    for candidate in dark_tree.query(point)):
+            elif on_land(plate, point):
                 tone = TONE_DARK
+            elif any(on_land(plate, probe) for probe in endpoints[index]):
+                # The segment crosses a class edge. It is drawn over that land, so
+                # it takes the land tone rather than flipping tone mid-mountain.
+                tone = TONE_DARK
+                endpoint_only = True
             elif shelf_tree is not None and any(
                     shelf_entries[candidate][0] == plate
                     and shelf_entries[candidate][1].contains(point)
@@ -1739,12 +1944,17 @@ def build_tone_tables(segments: dict, intervals: list[dict],
             else:
                 tone = TONE_LIGHT_DEEP
             counters[tone] += 1
+            dark_by_endpoint += endpoint_only
             payload[base + (index >> 2)] |= tone << ((index & 3) * 2)
         rows.append({"intervalId": interval["intervalId"], "detached": False,
                      "fromAgeMa": interval["fromAgeMa"], "toAgeMa": interval["toAgeMa"],
                      "darkSegments": counters[TONE_DARK],
                      "lightShelfSegments": counters[TONE_LIGHT_SHELF],
                      "lightDeepSegments": counters[TONE_LIGHT_DEEP],
+                     # Dark only because an endpoint is on land: the segments this
+                     # rule changed, and the measure of what the midpoint test alone
+                     # was flipping to the sea tone.
+                     "darkByEndpointSegments": dark_by_endpoint,
                      "inactiveSegments": counters[TONE_INACTIVE]})
     catalog = {
         "schemaVersion": 1,
@@ -1758,15 +1968,18 @@ def build_tone_tables(segments: dict, intervals: list[dict],
         "bitLayout": "segment i in byte (i >> 2) at bit offset (i & 3) * 2, least significant pair first",
         "tableOrder": "oldest to youngest, the canonical interval order",
         "values": {
-            "0": "dark ink: the segment midpoint is inside a landmass or mountain piece of the same plate",
+            "0": ("dark ink: the segment midpoint, or either of its endpoints, is inside a landmass "
+                  "or mountain piece of the same plate"),
             "1": "light over shallow ground: mapped shallow marine of the same plate, or Cao 2024 "
                  "continental crust of that plate whose depth the model does not state",
             "2": "light over deep or unmapped ground",
             "3": "inactive: the country-reference chart is not active at the interval mid-age",
         },
-        "method": ("midpoint of every country-reference segment, decoded from country-reference.ehgl, "
-                   "tested against the simplified pieces whose owning static partition carries the same "
-                   "plate id as the segment's own static fragment; evaluated at the interval mid-age"),
+        "method": ("midpoint and both endpoints of every country-reference segment, decoded from "
+                   "country-reference.ehgl, tested against the simplified pieces whose owning static "
+                   "partition carries the same plate id as the segment's own static fragment; a "
+                   "segment is dark where any of the three is on land, and light over shallow ground "
+                   "only on its midpoint; evaluated at the interval mid-age"),
         "limitations": ["a tone is a legibility aid over the palaeo classes, never evidence that the "
                         "modern country existed",
                         "a detached interval - the LGM lowstand state - draws over the present-day "
@@ -2075,14 +2288,35 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     interval_unposable_pieces += 1
                     continue
                 # How far the binding carries this ground from where its own
-                # source record puts it, measured before anything is counted.
-                probe_point = entry["original"].representative_point()
-                probe = pygplates.PointOnSphere(probe_point.y, probe_point.x)
-                separation = audit.great_circle_km(
-                    rotation(interval["midAgeMa"], binding_plate) * probe,
-                    rotation(interval["midAgeMa"], source_plate) * probe) \
-                    if source_plate is not None else 0.0
-                if separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
+                # source record puts it, measured over the whole piece rather
+                # than one representative point: a cut piece that a sliver merge
+                # made multipart, or a long thin piece that follows a partition
+                # edge, has ends the centre says nothing about, and it is the far
+                # end that would be drawn in the wrong place. Sampled at
+                # ``FRAME_CONFLICT_SAMPLES`` points per part so the cost stays
+                # bounded for the largest rings. This is the declared quantity -
+                # ``FLAG_FRAME_CONFLICT`` and the co-moving buckets, and what the
+                # correction oracle re-derives from the shipped ring.
+                separation = (frame_separation(entry["original"], binding_plate, source_plate,
+                                               interval["midAgeMa"], rotation)
+                              if source_plate is not None else 0.0)
+                # The drop is judged on the body, the flag on the sampled
+                # outline: a corner 1.5 % past the rule is a large piece, not a
+                # displaced one, and dropping the whole piece for it punches a
+                # hole in correctly seated ground.
+                #
+                # Measured on the piece that will be drawn, not on the grown one.
+                # ``expand_over_seam`` can buffer a record's cut fragments into a
+                # single connected polygon, and a single polygon has a single
+                # representative point: one sm 166-146 piece of three Alpine
+                # fragments read 866 km grown and 1,091 km as the three parts it
+                # ships as, so a drop judged on the grown geometry is a drop the
+                # correction oracle cannot re-derive from the payload.
+                drawn = entry["simplified"] if not entry["simplified"].is_empty else entry["original"]
+                body_separation = (frame_body_separation(drawn, binding_plate,
+                                                         source_plate, interval["midAgeMa"], rotation)
+                                   if source_plate is not None else 0.0)
+                if body_separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
                     # Ground drawn thousands of kilometres from where its own
                     # PLATEID1 puts it is not a flagged approximation, it is a
                     # different place. Measured 2026-09-15: Qiangtang and Tarim
@@ -2236,7 +2470,10 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                            "overlap instead of gapping after independent node reduction; the "
                            "record's own outline never moves and the overlap area is declared "
                            "per interval as seamOverlapAreaSquareKilometres"),
-            "densification": f"great-circle samples every {audit.DENSIFY_DEGREES} degree before any planar Boolean",
+            "densification": (f"great-circle samples every {audit.DENSIFY_DEGREES} degree before any "
+                              f"planar Boolean, and every {CUT_DENSIFY_DEGREES} degree on each cut "
+                              "piece afterwards, so the edges the partitions introduced follow great "
+                              "circles instead of rendering as lon/lat-straight chords"),
             "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
             "frameConflictKilometres": FRAME_CONFLICT_KM,
@@ -2625,7 +2862,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         # The legend has to name the classes this table was actually built from,
         # or it would promise dark ink over a class the build does not publish.
         tone_catalog["values"]["0"] = (
-            "dark ink: the segment midpoint is inside a "
+            "dark ink: the segment midpoint, or either of its endpoints, is inside a "
             + " or ".join(CLASS_NAMES[name] for name in tone_catalog["darkClassesUsed"])
             + " piece of the same plate")
         tone_catalog["values"]["1"] = (

@@ -48,8 +48,9 @@ AGE_DOMAIN_MA = {"youngest": 0.0195, "oldest": 402.0}
 # D1/Phase 4 defaults, identical to CAO_FOUNDATION_DEFAULT_BASE_COLORS in
 # src/render/reconstruction/caoFoundation.ts. Linear base colour per class:
 # palaeo-land is the muted olive of a Cao 2017 landmass polygon and
-# palaeo-shallow-marine the saturated teal that keeps a 5.4:1 luminance contrast
-# under the light #d0d4d5 outline ink. The mountain value is a saturated mid
+# palaeo-shallow-marine the saturated teal that keeps a 5.7:1 luminance contrast
+# under the light #d0d4d5 outline ink (0.1.14 darkened it 12 % in linear light,
+# #14606b to #12545e, at the same hue). The mountain value is a saturated mid
 # brown because it is an albedo, not a swatch: the renderer's inspection light
 # and ACES curve wash it to a light brown on screen, measured by the browser
 # tone census at 234,198,139 in full light.
@@ -57,7 +58,7 @@ AGE_DOMAIN_MA = {"youngest": 0.0195, "oldest": 402.0}
 # manifest ships them so the package, not the bundle, is the authority.
 BASE_COLOR_RGB = {
     "lm": [0x9A / 255, 0xA8 / 255, 0x6B / 255],
-    "sm": [0x14 / 255, 0x60 / 255, 0x6B / 255],
+    "sm": [0x12 / 255, 0x54 / 255, 0x5E / 255],
     "m": [0x71 / 255, 0x22 / 255, 0x0E / 255],
 }
 
@@ -74,8 +75,9 @@ RUNTIME_REFINEMENT_FACTOR = 2.0
 # Measured worst ratio of refined vertices to refined triangles is 0.614
 # (262,202 / 427,088); 0.65 is that with the same headroom.
 RUNTIME_VERTICES_PER_TRIANGLE = 0.65
-# The interval store holds at most two resident intervals and two unsettled
-# loads, so four worst-case intervals bound its resident payload bytes.
+# The interval store holds three resident intervals — the current one and both
+# neighbours — so four worst-case intervals bound its resident payload bytes
+# with one interval of headroom over the window it can actually retain.
 RESIDENT_INTERVAL_MULTIPLE = 4
 
 

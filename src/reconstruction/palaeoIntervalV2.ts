@@ -33,9 +33,6 @@ import type { SpatialBatchSurfaceAppearanceV2 } from "./packageV2";
 import type { SupportState } from "./types";
 import type { PalaeoCoastlineEvidence, PalaeoEvidenceReference } from "../data";
 
-/** Seam ids are unique per palaeo vertex: a cookie-cut piece shares no vertex with any other. */
-const PALAEO_SEAM_ID_BASE = 2_000_000_000;
-
 export interface CaoPalaeoChartIdentity extends PreparedCaoChartIdentity {
   readonly surfaceClass: PalaeoSurfaceClass;
   readonly appearance: SpatialBatchSurfaceAppearanceV2;
@@ -104,7 +101,7 @@ interface PalaeoIntervalIdentityTable {
 
 /**
  * One identity table per resident interval, dropped with the interval itself.
- * The store owns residency (two intervals at a time), so this cache is bounded
+ * The store owns residency (three intervals at a time), so this cache is bounded
  * by that residency and needs no eviction policy of its own.
  */
 const PALAEO_IDENTITY_TABLES = new WeakMap<LoadedPalaeoInterval, PalaeoIntervalIdentityTable>();
@@ -160,11 +157,115 @@ function palaeoIntervalIdentityTable(interval: LoadedPalaeoInterval): PalaeoInte
 }
 
 /**
+ * The five support verdicts a palaeo piece can carry.
+ *
+ * None of them holds piece-specific data, so one frozen constant each is what
+ * the frame assigns; a scrub inside an interval changes which constant a chart
+ * points at, never the object's contents.
+ */
+const PALAEO_SUPPORT_UNBORN: SupportState =
+  Object.freeze({ kind: "inactive", reason: "unborn" });
+const PALAEO_SUPPORT_CONSUMED: SupportState =
+  Object.freeze({ kind: "inactive", reason: "consumed" });
+const PALAEO_SUPPORT_COMPILED_RIGID: SupportState =
+  Object.freeze({ kind: "supported", method: "compiled-rigid" });
+const PALAEO_SUPPORT_SOURCE_SEAM: SupportState =
+  Object.freeze({ kind: "unsupported", reason: "source-seam" });
+const PALAEO_SUPPORT_MISSING_MOTION: SupportState =
+  Object.freeze({ kind: "unsupported", reason: "missing-motion" });
+
+type MutablePalaeoChart = { -readonly [K in keyof CaoPalaeoChartIdentity]: CaoPalaeoChartIdentity[K] };
+type MutableQuaternion = [number, number, number, number];
+
+/**
+ * Everything one evaluated frame writes, allocated once per resident interval.
+ *
+ * A scrub re-poses the same 3,000-plus pieces on every frame, and the measured
+ * cost of that frame was almost all allocation: one frozen chart object and two
+ * quaternions per piece, a fresh palette buffer, and two `Set`s plus a sort
+ * whose result only moves when a piece's activation bit moves. The pieces are
+ * the interval's, so this scratch is the interval's too, and the store's
+ * residency bound is what evicts it (`PALAEO_FRAME_SCRATCH` is a `WeakMap` for
+ * exactly that reason). The evaluated frame is a fresh wrapper over it, so a
+ * consumer that compares frame identity — React state, a render effect — still
+ * sees a new frame per evaluation.
+ */
+interface PalaeoIntervalFrameScratch {
+  readonly charts: readonly MutablePalaeoChart[];
+  readonly poses: readonly MutableQuaternion[];
+  readonly inversePoses: readonly MutableQuaternion[];
+  readonly paletteValues: Float32Array;
+  /** Last evaluated activation bit per piece; the source lists follow it. */
+  readonly activation: Uint8Array;
+  evaluated: boolean;
+  activeChartCount: number;
+  activeSourceIds: readonly string[];
+  activeLimitations: readonly string[];
+}
+
+const PALAEO_FRAME_SCRATCH = new WeakMap<LoadedPalaeoInterval, PalaeoIntervalFrameScratch>();
+
+function palaeoIntervalFrameScratch(
+  interval: LoadedPalaeoInterval,
+  identity: PalaeoIntervalIdentityTable,
+): PalaeoIntervalFrameScratch {
+  const cached = PALAEO_FRAME_SCRATCH.get(interval);
+  if (cached) return cached;
+  const charts: MutablePalaeoChart[] = [];
+  const poses: MutableQuaternion[] = [];
+  const inversePoses: MutableQuaternion[] = [];
+  for (const piece of identity.pieces) {
+    const poseQuaternion: MutableQuaternion = [1, 0, 0, 0];
+    const inversePoseQuaternion: MutableQuaternion = [1, 0, 0, 0];
+    poses.push(poseQuaternion);
+    inversePoses.push(inversePoseQuaternion);
+    // The quaternion arrays are the chart's own for the life of the interval:
+    // a frame writes into them rather than replacing them.
+    charts.push({
+      chartId: piece.chartId,
+      chartRevision: piece.chartRevision,
+      materialId: piece.materialId,
+      fragmentOrCohortId: piece.fragmentOrCohortId,
+      role: "model-geography",
+      support: PALAEO_SUPPORT_MISSING_MOTION,
+      evidence: piece.evidence,
+      surfaceEvidence: piece.surfaceEvidence,
+      poseQuaternion,
+      inversePoseQuaternion,
+      surfaceClass: piece.surfaceClass,
+      appearance: piece.appearance,
+      sourceStatus: piece.sourceStatus,
+      flags: piece.flags,
+      editorial: piece.editorial,
+    });
+  }
+  const scratch: PalaeoIntervalFrameScratch = {
+    charts: Object.freeze(charts),
+    poses: Object.freeze(poses),
+    inversePoses: Object.freeze(inversePoses),
+    paletteValues: new Float32Array(identity.pieces.length * PREPARED_MOTION_PALETTE_STRIDE),
+    activation: new Uint8Array(identity.pieces.length),
+    evaluated: false,
+    activeChartCount: 0,
+    activeSourceIds: Object.freeze([]),
+    activeLimitations: Object.freeze([]),
+  };
+  PALAEO_FRAME_SCRATCH.set(interval, scratch);
+  return scratch;
+}
+
+/**
  * Poses every piece of every resident class against the palette entries the
  * runtime already holds, and marks each one active or inactive at the
  * requested age. Inactive pieces stay in the frame with activation 0: the
  * static geometry belongs to the interval, so scrubbing inside an interval must
  * not replace it.
+ *
+ * The returned frame is a new object over the interval's reusable buffers: the
+ * charts, their quaternions and the palette values are the same instances the
+ * previous frame for this interval returned, rewritten in place. A consumer
+ * that must keep a frame beyond the next evaluation copies it — which is what
+ * `createPreparedCaoPalaeoInterval` does for the published revision.
  */
 export function evaluateCaoPalaeoIntervalFrame(
   interval: LoadedPalaeoInterval,
@@ -176,11 +277,10 @@ export function evaluateCaoPalaeoIntervalFrame(
     throw new Error("palaeo-coastline age is outside the resident interval");
   }
   const identity = palaeoIntervalIdentityTable(interval);
-  const charts: CaoPalaeoChartIdentity[] = [];
-  const activeSourceIds = new Set<string>();
-  const activeLimitations = new Set<string>();
+  const scratch = palaeoIntervalFrameScratch(interval, identity);
+  const { paletteValues } = scratch;
+  let activationMoved = !scratch.evaluated;
   let activeChartCount = 0;
-  const paletteValues = new Float32Array(identity.pieces.length * PREPARED_MOTION_PALETTE_STRIDE);
   // `palaeo-binding-entry-v1` starts from the palette entries of one plate, and
   // a resident palette is keyed by entry id, so the plate index is built once
   // per resident palette rather than per piece or per frame.
@@ -198,13 +298,14 @@ export function evaluateCaoPalaeoIntervalFrame(
     // `source-seam`: the model has a hole here, which is a different claim
     // from a palette entry that has not finished downloading.
     const support: SupportState = !lifecycleActive
-      ? { kind: "inactive", reason: requestedAgeMa > piece.lifecycle.oldestMa ? "unborn" : "consumed" }
-      : segment ? { kind: "supported", method: "compiled-rigid" }
-      : { kind: "unsupported",
-        reason: palaeoBindingSeamCoversAge(piece.binding, requestedAgeMa) ? "source-seam" : "missing-motion" };
+      ? requestedAgeMa > piece.lifecycle.oldestMa ? PALAEO_SUPPORT_UNBORN : PALAEO_SUPPORT_CONSUMED
+      : segment ? PALAEO_SUPPORT_COMPILED_RIGID
+      : palaeoBindingSeamCoversAge(piece.binding, requestedAgeMa)
+        ? PALAEO_SUPPORT_SOURCE_SEAM : PALAEO_SUPPORT_MISSING_MOTION;
     const younger: QuaternionWxyz = segment?.younger.quaternion ?? [1, 0, 0, 0];
     const older: QuaternionWxyz = segment?.older.quaternion ?? younger;
     const poseQuaternion = slerpQuaternion(numberScalarOps, younger, older, segment?.fraction ?? 0);
+    const inversePoseQuaternion = inverseQuaternion(numberScalarOps, poseQuaternion);
     const activation = support.kind === "supported" ? 1 : 0;
     const base = pieceIndex * PREPARED_MOTION_PALETTE_STRIDE;
     paletteValues.set(younger, base);
@@ -212,42 +313,48 @@ export function evaluateCaoPalaeoIntervalFrame(
     paletteValues[base + 8] = segment?.fraction ?? 0;
     paletteValues[base + 9] = activation;
     paletteValues[base + 10] = activation;
-    if (activation === 1) {
-      activeChartCount += 1;
+    if (activation === 1) activeChartCount += 1;
+    if (scratch.activation[pieceIndex] !== activation) {
+      scratch.activation[pieceIndex] = activation;
+      activationMoved = true;
+    }
+    const pose = scratch.poses[pieceIndex]!;
+    const inversePose = scratch.inversePoses[pieceIndex]!;
+    for (let component = 0; component < 4; component += 1) {
+      pose[component] = poseQuaternion[component]!;
+      inversePose[component] = inversePoseQuaternion[component]!;
+    }
+    scratch.charts[pieceIndex]!.support = support;
+  }
+  // The active source and limitation lists are a function of the activation
+  // bits alone, and those move on a handful of frames per interval, so the
+  // sets and the sort are rebuilt only when one of them actually moved.
+  if (activationMoved) {
+    const activeSourceIds = new Set<string>();
+    const activeLimitations = new Set<string>();
+    for (const [pieceIndex, piece] of identity.pieces.entries()) {
+      if (scratch.activation[pieceIndex] !== 1) continue;
       for (const sourceId of piece.sourceIds) activeSourceIds.add(sourceId);
       for (const limitation of piece.limitations) activeLimitations.add(limitation);
     }
-    charts.push(Object.freeze({
-      chartId: piece.chartId,
-      chartRevision: piece.chartRevision,
-      materialId: piece.materialId,
-      fragmentOrCohortId: piece.fragmentOrCohortId,
-      role: "model-geography" as const,
-      support,
-      evidence: piece.evidence,
-      surfaceEvidence: piece.surfaceEvidence,
-      poseQuaternion,
-      inversePoseQuaternion: inverseQuaternion(numberScalarOps, poseQuaternion),
-      surfaceClass: piece.surfaceClass,
-      appearance: piece.appearance,
-      sourceStatus: piece.sourceStatus,
-      flags: piece.flags,
-      editorial: piece.editorial,
-    }));
+    scratch.activeSourceIds = Object.freeze([...activeSourceIds].sort());
+    scratch.activeLimitations = Object.freeze([...activeLimitations]);
   }
+  scratch.evaluated = true;
+  scratch.activeChartCount = activeChartCount;
   return Object.freeze({
     requestedAgeMa,
     intervalId: interval.intervalId,
     intervalIndex: interval.intervalIndex,
     fromAgeMa: interval.fromAgeMa,
     toAgeMa: interval.toAgeMa,
-    entryCount: charts.length,
+    entryCount: scratch.charts.length,
     paletteValues,
-    charts: Object.freeze(charts),
+    charts: scratch.charts,
     activeChartCount,
     classChartOffsets: identity.classChartOffsets,
-    activeSourceIds: Object.freeze([...activeSourceIds].sort()),
-    activeLimitations: Object.freeze([...activeLimitations]),
+    activeSourceIds: scratch.activeSourceIds,
+    activeLimitations: scratch.activeLimitations,
   });
 }
 
@@ -294,10 +401,21 @@ function preparedBatch(
   const entryBytes = geometry.vertexCount * (narrow ? 2 : 4);
   const staticGeometryBytes = geometry.referenceDirections.byteLength + geometry.indices.byteLength
     + geometry.vertexCount * 4 + entryBytes * 2;
+  // One per-vertex index array per resident class, built on the first copy and
+  // reused by every later one. The worker cannot build it: the offset a class
+  // starts at is the sum of the piece counts of the classes before it, which is
+  // only known once all three classes of the interval are resident, while each
+  // class is triangulated on its own. Rebuilding it per copy was ~1.2 MiB of
+  // the per-crossing allocation, and the same array answers both the palette
+  // entry index and the material chart index because for a palaeo batch they
+  // are the same number: one piece is one chart and one palette entry.
+  let sharedEntryIndices: Uint16Array | Uint32Array | null = null;
   const entryIndices = () => {
+    if (sharedEntryIndices) return sharedEntryIndices;
     const current = requirePayload().geometry.pieceIndices;
     const indices = narrow ? new Uint16Array(current.length) : new Uint32Array(current.length);
     for (let vertex = 0; vertex < current.length; vertex += 1) indices[vertex] = chartOffset + current[vertex]!;
+    sharedEntryIndices = indices;
     return indices;
   };
   return Object.freeze({
@@ -314,17 +432,21 @@ function preparedBatch(
       firstTriangle: range.firstTriangle,
       triangleCount: range.triangleCount,
     }))),
+    // The copy shares the resident interval's own typed arrays rather than
+    // duplicating them. Nothing downstream writes to a static geometry buffer —
+    // the renderer uploads it and reads it for picking — and the interval store
+    // owns the lifetime of the resident arrays, so a crossing no longer pays
+    // ~10 MiB of copies in the one frame that publishes the incoming interval.
+    // `seamIds` comes from the worker with the rest of the geometry.
     createStaticGeometryCopy: (): PreparedCaoStaticGeometryCopy => {
       const current = requirePayload().geometry;
-      const seamIds = new Uint32Array(current.vertexCount);
-      for (let vertex = 0; vertex < seamIds.length; vertex += 1) seamIds[vertex] = PALAEO_SEAM_ID_BASE + vertex;
       const preparedEntryIndices = entryIndices();
       return {
-        referenceDirections: new Float32Array(current.referenceDirections),
-        indices: new Uint32Array(current.indices),
-        seamIds,
+        referenceDirections: current.referenceDirections,
+        indices: current.indices,
+        seamIds: current.seamIds,
         preparedEntryIndices,
-        materialChartIndices: preparedEntryIndices.slice(),
+        materialChartIndices: preparedEntryIndices,
       };
     },
     createDisplayControlsCopy: (): PreparedCaoDisplayControlsCopy => {
@@ -354,11 +476,20 @@ export function createPreparedCaoPalaeoInterval(
   const revisionIdentity =
     `${identity.packageId}@${identity.packageRevision}:palaeo:${interval.intervalId}:${identity.requestId}`;
   let resident: LoadedPalaeoInterval | null = interval;
-  let paletteValues: Float32Array | null = frame.paletteValues;
+  // The evaluated frame is reused by every later retarget of this interval, so
+  // the published revision takes its own immutable copy: a publication states
+  // the age it was prepared at, and a scrub must not move the poses a published
+  // revision reports under it. This is one copy per crossing, not per frame.
+  let paletteValues: Float32Array | null = new Float32Array(frame.paletteValues);
+  const charts: readonly CaoPalaeoChartIdentity[] = Object.freeze(frame.charts.map((chart) =>
+    Object.freeze({ ...chart,
+      poseQuaternion: Object.freeze([...chart.poseQuaternion]) as unknown as typeof chart.poseQuaternion,
+      inversePoseQuaternion:
+        Object.freeze([...chart.inversePoseQuaternion]) as unknown as typeof chart.inversePoseQuaternion })));
   const maximumEdgeDegrees = interval.classes.reduce(
     (largest, entry) => Math.max(largest, entry.geometry.maximumEdgeDegrees), 0);
   const batches = interval.classes.map((entry) => preparedBatch(entry,
-    frame.classChartOffsets.get(entry.surfaceClass)!, frame.charts.length, identity, () => {
+    frame.classChartOffsets.get(entry.surfaceClass)!, charts.length, identity, () => {
       if (!resident) throw new Error("palaeo-coastline interval released");
       return entry;
     }));
@@ -386,7 +517,7 @@ export function createPreparedCaoPalaeoInterval(
         return new Float32Array(paletteValues);
       } }),
     batches: Object.freeze(batches),
-    charts: frame.charts,
+    charts,
     activeChartCount: frame.activeChartCount,
     activeSourceIds: frame.activeSourceIds,
     activeLimitations: frame.activeLimitations,

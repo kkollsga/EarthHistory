@@ -1,7 +1,24 @@
-.PHONY: gate gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci check-dev-docs check-corrections \
+.PHONY: gate gate-fast gate-ci gate-full gate-full-ci typecheck test build test-e2e test-e2e-ci \
+	check-dev-docs check-corrections check-corrections-changed check-corrections-all \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
 	check-palaeo-compile check-precollision-extent check-restored-margins \
 	prune-build-cache sync-agents
+
+# Which gate to run when
+# ---------------------
+#   gate-fast  iteration, seconds: types, unit/data tests, the correction
+#              validators that changed, build, artifact bounds. It asserts
+#              exactly what those checks assert; it just skips the local
+#              working-state and adapter-mirror checks and reuses the
+#              validator digest cache.
+#   gate       per commit: gate-fast's checks plus check-dev-docs,
+#              check-agents and the build-cache bound, with every correction
+#              validator considered (cached ones are named as cached passes).
+#   gate-full  batch or release confidence reset: gate plus the browser suite,
+#              which is the only target that needs an installed Chromium.
+#              Run it once at program completion, and before a release.
+# CORRECTIONS_JOBS bounds the validator pool; CORRECTIONS_CACHE=--no-cache
+# forces every validator to run even when its recorded inputs are unchanged.
 
 DEV_DOCS_MAX_MB ?= 50
 BUILD_CACHE_MAX_MB ?= 100
@@ -20,6 +37,17 @@ gate:
 	@$(MAKE) check-app-artifacts
 	@$(MAKE) check-build-cache
 	@echo "gate: doctrine, types, unit/data tests, build, and artifact checks passed"
+
+# Iteration gate: the same assertions, without the local working-state and
+# adapter-mirror checks, and with the correction validators served from their
+# input-digest cache.
+gate-fast:
+	@$(MAKE) typecheck
+	@$(MAKE) test
+	@$(MAKE) check-corrections
+	@$(MAKE) build
+	@$(MAKE) check-app-artifacts
+	@echo "gate-fast: types, unit/data tests, correction validators, build, and artifact checks passed"
 
 # CI has no gitignored skill authority; keep the mirror check in the local gate.
 gate-ci:
@@ -65,52 +93,31 @@ test-e2e-ci:
 check-dev-docs:
 	@python3 scripts/check_dev_docs.py --max-mb "$(DEV_DOCS_MAX_MB)"
 
+CORRECTIONS_JOBS ?= 6
+CORRECTIONS_CACHE ?=
+
+# The thirty-eight validator lines this replaces are independent oracles over
+# the same tracked inputs. scripts/run_corrections.py keeps their commands and
+# output verbatim, runs the mutating apply_* ones first and one at a time, then
+# the rest in a bounded pool, and reports a validator whose recorded inputs and
+# outputs are unchanged since its last green run as a cached pass.
 check-corrections:
-	@python3 scripts/research/cao_package_intern.py --self-test
-	@python3 scripts/research/apply_cao_package_interning.py
-	@python3 scripts/research/cao_material_corrections.py --self-test
-	@python3 scripts/research/cao_material_corrections.py
-	@python3 scripts/research/validate_regional_barents_shelf.py --self-test
-	@python3 scripts/research/validate_regional_barents_shelf.py
-	@python3 scripts/research/validate_cao_shelf_lifecycle_422.py --self-test
-	@python3 scripts/research/validate_cao_shelf_lifecycle_422.py
-	@python3 scripts/research/regional_iceland_correction.py --self-test --runtime
-	@python3 scripts/research/regional_iceland_correction.py --runtime
-	@python3 scripts/research/regional_iceland_shelf_correction.py --self-test
-	@python3 scripts/research/regional_iceland_shelf_correction.py
-	@python3 scripts/research/regional_panama_correction.py --self-test
-	@python3 scripts/research/regional_observed_land_omission_correction.py --self-test --runtime
-	@python3 scripts/research/regional_observed_land_omission_correction.py --runtime
-	@python3 scripts/research/regional_lake_void_correction.py --self-test --runtime
-	@python3 scripts/research/regional_lake_void_correction.py --runtime
-	@python3 scripts/research/restored_margins_correction.py --self-test --runtime
-	@python3 scripts/research/restored_margins_correction.py --runtime
-	@python3 scripts/research/validate_north_sea_restoration.py --self-test
-	@python3 scripts/research/validate_north_sea_restoration.py
-	@python3 -m unittest scripts/research/apply_cao_native_triangulation_repair_test.py
-	@python3 scripts/research/apply_cao_native_triangulation_repair.py
-	@python3 -m unittest scripts/research/apply_regional_panama_land_test.py
-	@python3 scripts/research/apply_regional_panama_land.py
-	@python3 scripts/research/apply_cao_modern_country_reference.py
-	@python3 scripts/research/apply_cao_country_segment_bridge.py --self-test
-	@python3 scripts/research/apply_cao_country_segment_bridge.py
-	@python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py
-	@python3 scripts/research/apply_regional_iceland_shelf.py --validate-applied
-	@python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test
-	@python3 scripts/research/validate_palaeo_coastlines_runtime.py --self-test >/dev/null
-	@python3 scripts/research/validate_palaeo_coastlines_runtime.py >/dev/null
-	@python3 scripts/research/validate_precollision_extent.py --record-only --self-test >/dev/null
-	@python3 scripts/research/validate_precollision_extent.py --record-only >/dev/null
-	@$(MAKE) --no-print-directory check-palaeo-compile
-	@$(MAKE) --no-print-directory check-restored-margins
-	@$(MAKE) --no-print-directory check-precollision-extent
+	@python3 scripts/run_corrections.py --jobs "$(CORRECTIONS_JOBS)" $(CORRECTIONS_CACHE)
+
+# The cache already limits a run to the validators whose inputs changed; this
+# name exists for the iteration loop that wants to say so.
+check-corrections-changed: check-corrections
+
+# Ignore the cache: every validator runs, as the sequential recipe always did.
+check-corrections-all:
+	@python3 scripts/run_corrections.py --jobs "$(CORRECTIONS_JOBS)" --no-cache
 
 # The palaeo-coastline compile oracle reads the Cao source zips and the offline
 # compiled store through the pinned pyGPlates environment, and the Iceland
 # contract re-derives its geometry from the pinned NI bedrock snapshot through
 # the same one. A bare checkout has none of them. Where they are present it must pass; where they are not it says
 # so by name instead of reporting a pass. The published bytes are gated
-# unconditionally by validate_palaeo_coastlines_runtime.py above.
+# unconditionally by validate_palaeo_coastlines_runtime.py in check-corrections.
 PALAEO_PYTHON ?= ../EarthHistory-data/palaeomap-study/verification/pygplates-venv/bin/python
 check-palaeo-compile:
 	@if [ -x "$(PALAEO_PYTHON)" ]; then \
@@ -123,7 +130,8 @@ check-palaeo-compile:
 	fi
 
 # The restored pre-collision margin contract has the same two halves. Its
-# tracked and published checks run unconditionally above; re-deriving the
+# tracked and published checks run unconditionally in check-corrections;
+# re-deriving the
 # minimum gap between the restored Baltoscandian margin and the North-Sea-
 # restored UK block at every Scandian age needs the pinned Cao model and
 # pyGPlates, so it reports "not run" by name rather than a pass it did not earn.
@@ -137,7 +145,7 @@ check-restored-margins:
 	fi
 
 # The pre-collision extent gate has the same two halves. Its record-only run is
-# unconditional above: the literature minima, their references and the pinned
+# unconditional in check-corrections: the literature minima, their references and the pinned
 # verdicts need no model. Re-deriving the sixteen transects, nineteen overlaps
 # and twenty convergences from the Cao 2024 model needs the same pinned
 # environment the palaeo compile does, so it reports "not run" by name rather
@@ -167,6 +175,7 @@ self-test-gates:
 	@python3 scripts/check-app-artifacts.py --self-test
 	@python3 scripts/prune-build-cache.py --self-test
 	@python3 scripts/sync_agents.py --self-test
+	@python3 scripts/run_corrections.py --self-test
 
 prune-build-cache:
 	@python3 scripts/prune-build-cache.py --max-mb "$(BUILD_CACHE_MAX_MB)" --prune

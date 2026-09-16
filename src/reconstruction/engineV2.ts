@@ -635,6 +635,7 @@ export class CaoReconstructionRuntime {
         || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
+    this.palaeoStore?.noteCurrentAge(requestedAgeMa);
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     // The geometry on screen is the published interval's. Once the age has
     // crossed a boundary the incoming interval is not published yet, and posing
@@ -828,7 +829,11 @@ export class CaoReconstructionRuntime {
     this.resolvedPalaeoCatalogs = catalogs;
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     if (!record) throw new Error("no palaeo-coastline interval covers the requested age");
-    const interval = await this.palaeoIntervalStore(palaeo, catalogs).load(record.intervalId, signal);
+    const store = this.palaeoIntervalStore(palaeo, catalogs);
+    // The foreground age is what residency is kept around: a prefetched
+    // neighbour must not be evicted for being the one nobody has read yet.
+    store.noteCurrentAge(requestedAgeMa);
+    const interval = await store.load(record.intervalId, signal);
     requireCurrent();
     const paletteEntries = await this.palaeoPaletteEntries(requestedAgeMa, signal);
     requireCurrent();
