@@ -41,13 +41,13 @@ import {
   caoCompositeCoversDirection,
   caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineDomainBand,
-  caoPalaeoModeState,
-  CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   intersectCaoComposite,
-  nextCaoPalaeoVisibilityState,
-  type CaoPalaeoModeState,
-  type CaoPalaeoVisibilityState,
 } from "./reconstruction/palaeoComposite";
+import {
+  resolveSurfaceVisibility,
+  SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
+  type SurfaceVisibilityResolution,
+} from "./reconstruction/surfaceVisibility";
 import {
   NO_PALAEO_MATERIAL_CORRECTIONS,
   palaeoChartPickState,
@@ -605,15 +605,21 @@ export class GlobeScene {
   private layers: LayerVisibility = { clouds: true, borders: true, guides: true,
     tectonics: false, rivers: false, palaeoCoastlines: false };
   private palaeoRequestedAgeMa: number | null = null;
-  private palaeoVisibility: CaoPalaeoVisibilityState = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
   /**
-   * Whether the native instance is currently hiding `batch-land` in favour of
-   * palaeo charts. Cached because switching it walks the published group and
-   * rebuilds the renderer diagnostics, and this is consulted every frame.
+   * The one resolved composition: which classes are on screen, which stack the
+   * native instance draws, the reported mode and the hysteresis carried to the
+   * next frame. Nothing in this class re-derives any of it.
+   */
+  private surfaceVisibility: SurfaceVisibilityResolution = resolveSurfaceVisibility({
+    layerEnabled: false, band: "none", published: false,
+    hysteresis: SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
+  });
+  /**
+   * The palaeo-coastline mode last applied to the native instance. Cached
+   * because switching it walks the published group and rebuilds the renderer
+   * diagnostics, and the resolution is applied every frame.
    */
   private nativeSurfaceModeIsPalaeo = false;
-  /** Whether the palaeo instance has charts on screen, independent of the native stack. */
-  private palaeoSurfacesDrawn = false;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
@@ -1484,7 +1490,8 @@ export class GlobeScene {
    * `batch-land`. The layer flag is not that condition: at a fallback age the
    * layer is on and the palaeo instance draws nothing, so keying native land
    * off the flag would leave bare shelf where today's coastline belongs.
-   * `updatePalaeoDomainVisibility` owns the effective answer and runs last.
+   * `resolveSurfaceVisibility` owns the effective answer and
+   * `updatePalaeoDomainVisibility` applies it, last.
    */
   private applyLayerVisibility(): void {
     const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
@@ -1499,37 +1506,45 @@ export class GlobeScene {
   }
 
   /**
-   * Applies the one-frame hysteresis at the Cao 2017 map boundaries and reports
-   * the mode. The notice follows the requested age immediately; the geometry
-   * follows one frame later, so a scrub resting on 402 Ma cannot strobe.
+   * Resolves and applies the one surface composition, and reports the mode. The
+   * notice follows the requested age immediately; the geometry follows one
+   * frame later through the resolver's hysteresis, so a scrub resting on 402 Ma
+   * cannot strobe.
+   *
+   * This is the single place a composition is applied. `published` is read
+   * before the domain visibility is set, which is the same answer as after it:
+   * the publication identity does not depend on whether the group is visible.
    */
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
-    const band = caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa);
-    const inside = band !== "none";
-    const requested = this.layers.palaeoCoastlines && inside && !this.caoFoundationWithheld;
-    // Only the frame loop advances the hysteresis; a layer toggle or a scrub
-    // sample that also lands in the same frame must not spend its second frame
-    // and flip the domain immediately.
-    if (advanceHysteresis) {
-      this.palaeoVisibility = nextCaoPalaeoVisibilityState(this.palaeoVisibility,
-        requested ? band : "none");
-    }
-    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(this.palaeoVisibility.visible);
-    const state = caoPalaeoModeState({ layerEnabled: this.layers.palaeoCoastlines,
-      band, visibleBand: this.palaeoVisibility.band,
-      published: palaeo.identity !== null });
+    const resolved = resolveSurfaceVisibility({
+      layerEnabled: this.layers.palaeoCoastlines,
+      band: caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa),
+      published: this.caoPalaeoRenderer.publishedIdentity() !== null,
+      hysteresis: this.surfaceVisibility.hysteresis,
+      surfaceWithheld: this.caoFoundationWithheld,
+      advanceHysteresis,
+    });
+    this.surfaceVisibility = resolved;
+    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(resolved.hysteresis.visible);
     // Native land, the composite pick and coverage, and the guide-label ink all
-    // follow the effective mode, so a fallback age keeps exactly today's
-    // composition instead of hiding land nothing has replaced.
-    this.applyNativeSurfaceMode(state);
-    const drawn = state.palaeoDrawn;
+    // follow the resolved composition, so a fallback age keeps exactly today's
+    // composition instead of hiding land nothing has replaced. The palaeo
+    // instance can be on screen while the native instance stays in its own
+    // stack: that is exactly the detached LGM band, where the lowstand shelf is
+    // drawn over today's land rather than instead of it.
+    const palaeoMode = resolved.nativeSurfaceMode === "palaeo";
+    if (palaeoMode !== this.nativeSurfaceModeIsPalaeo) {
+      this.nativeSurfaceModeIsPalaeo = palaeoMode;
+      this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+    }
+    const drawn = resolved.palaeoDrawn;
     const dataset = this.renderer.domElement.dataset;
-    dataset.caoPalaeoCoastlineMode = state.mode;
-    dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && !inside
+    dataset.caoPalaeoCoastlineMode = resolved.mode;
+    dataset.caoPalaeoFallbackReason = this.layers.palaeoCoastlines && resolved.band === "none"
       ? "age-outside-cao-2017-map-intervals" : "";
-    dataset.caoPalaeoBand = this.layers.palaeoCoastlines ? state.band : "";
-    dataset.caoPalaeoCharts = String(this.palaeoVisibility.visible ? palaeo.chartRanges : 0);
-    dataset.caoPalaeoTriangles = String(this.palaeoVisibility.visible ? palaeo.triangles : 0);
+    dataset.caoPalaeoBand = this.layers.palaeoCoastlines ? resolved.band : "";
+    dataset.caoPalaeoCharts = String(resolved.hysteresis.visible ? palaeo.chartRanges : 0);
+    dataset.caoPalaeoTriangles = String(resolved.hysteresis.visible ? palaeo.triangles : 0);
     // The interval on screen, not the one the age asks for: a load in flight
     // leaves the previous map drawn, and the diagnostic must say which.
     const intervalId = drawn ? this.publishedPalaeoIntervalId : null;
@@ -1546,27 +1561,7 @@ export class GlobeScene {
       dataset.caoPalaeoIntervalId = intervalId ?? "";
       dataset.caoPalaeoAssetBytes = String(assetBytes);
     }
-    this.applyCountryLineToneTable(state.mode === "on");
-  }
-
-  /**
-   * Puts the native instance into the palaeo stack, or back into its own.
-   *
-   * One flag decides three things at once: whether `batch-land` is drawn,
-   * whether the composite ranks the palaeo classes into its precedence table,
-   * and which surfaces the guide-label ink reads as land. Keeping them on one
-   * switch is what stops a fallback age from hiding land in the picture while
-   * the pick still reports it.
-   */
-  private applyNativeSurfaceMode(state: CaoPalaeoModeState): void {
-    // The palaeo instance can be on screen while the native instance stays in
-    // its own stack: that is exactly the detached LGM band, where the lowstand
-    // shelf is drawn over today's land rather than instead of it.
-    this.palaeoSurfacesDrawn = state.palaeoDrawn;
-    const palaeoMode = state.nativeSurfaceMode === "palaeo";
-    if (palaeoMode === this.nativeSurfaceModeIsPalaeo) return;
-    this.nativeSurfaceModeIsPalaeo = palaeoMode;
-    this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+    this.applyCountryLineToneTable(resolved.mode === "on");
   }
 
   /**
@@ -1620,7 +1615,7 @@ export class GlobeScene {
     return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
       this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
       { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.palaeoSurfacesDrawn });
+        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
   }
 
   private rebuildOverlays(): void {
@@ -1690,7 +1685,7 @@ export class GlobeScene {
         ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
           this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
           { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode(),
-            palaeoVisible: this.palaeoSurfacesDrawn })
+            palaeoVisible: this.surfaceVisibility.palaeoDrawn })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -2011,7 +2006,7 @@ export class GlobeScene {
       this.caoPalaeoRenderer.surfaceView(),
       [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
       { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.palaeoSurfacesDrawn });
+        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
   };
 
   /**

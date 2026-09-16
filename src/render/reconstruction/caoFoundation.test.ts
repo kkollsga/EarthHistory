@@ -70,7 +70,7 @@ import {
   packPreparedCaoPalette,
 } from "./caoFoundation";
 import { GpuRetirementOwner } from "./gpuRetirement";
-import { caoPalaeoModeState } from "./palaeoComposite";
+import { resolveSurfaceVisibility } from "./surfaceVisibility";
 import { GUIDE_LABEL_LIGHT_INK_STYLE } from "../globeGuides";
 import {
   PALAEO_OUTLINE_TONE_LAND,
@@ -1435,7 +1435,7 @@ describe("Cao foundation renderer boundary", () => {
 
   it("orders the LGM composition so nothing lower overdraws something higher", () => {
     // The `lgm` band is the one composition that draws the native stack and the
-    // palaeo stack at the same time: `caoPalaeoModeState` keeps
+    // palaeo stack at the same time: `resolveSurfaceVisibility` keeps
     // `nativeSurfaceMode` at "native" there, because hiding today's land to show
     // three footprints of exposed shelf would blank every coastline on Earth.
     //
@@ -1537,10 +1537,11 @@ describe("Cao foundation renderer boundary", () => {
       { layerOn: true, insideDomain: true, domainVisible: true, published: true, mode: "on" },
     ] as const;
     for (const probe of cases) {
-      const state = caoPalaeoModeState({ layerEnabled: probe.layerOn,
+      const state = resolveSurfaceVisibility({ layerEnabled: probe.layerOn,
         band: probe.insideDomain ? "cao-2017" : "none",
-        visibleBand: probe.domainVisible ? "cao-2017" : "none",
-        published: probe.published });
+        published: probe.published,
+        hysteresis: { visible: probe.domainVisible,
+          band: probe.domainVisible ? "cao-2017" : "none", pendingFrames: 0 } });
       expect(state.mode, JSON.stringify(probe)).toBe(probe.mode);
       const classes = visibleClasses(state.nativeSurfaceMode);
       expect(classes.includes("land"), `native land in mode ${state.mode}`)
@@ -1553,8 +1554,8 @@ describe("Cao foundation renderer boundary", () => {
     // The `lgm` band runs the native mode, so the land-appearance corrections
     // stay drawn there: at 21 ka they are today's observed land and lake infill
     // beside the exposed shelf, not a claim the Cao 2017 map is replacing.
-    const lgm = caoPalaeoModeState({ layerEnabled: true, band: "lgm", visibleBand: "lgm",
-      published: true });
+    const lgm = resolveSurfaceVisibility({ layerEnabled: true, band: "lgm", published: true,
+      hysteresis: { visible: true, band: "lgm", pendingFrames: 0 } });
     expect(lgm.nativeSurfaceMode).toBe("native");
     expect(visibleClasses(lgm.nativeSurfaceMode)).toEqual(todaysComposition);
   });

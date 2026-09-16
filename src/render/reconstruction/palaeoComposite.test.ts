@@ -12,13 +12,10 @@ import {
   CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA,
   CAO_PALAEO_LGM_AGE_BAND_MA,
   caoPalaeoCoastlineDomainBand,
-  CAO_PALAEO_VISIBILITY_INITIAL_STATE,
   caoCompositeCoversDirection,
   caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
-  caoPalaeoModeState,
   intersectCaoComposite,
-  nextCaoPalaeoVisibilityState,
 } from "./palaeoComposite";
 import type { PreparedCaoRevision } from "../../reconstruction";
 
@@ -259,8 +256,9 @@ describe("palaeo composite surface", () => {
     expect(covers([1, 1, 0], [0, 0, 0], "native", { surfaceClasses: ["corrections"] })).toBe(true);
   });
 
-  it("holds the fallback boundary for one frame before switching the domain", () => {
+  it("splits the palaeo domain into the Cao 2017 band and the detached LGM band", () => {
     expect(CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA).toEqual({ youngest: 2.01, oldest: 402 });
+    expect(CAO_PALAEO_LGM_AGE_BAND_MA).toEqual({ youngestExclusive: 0.0195, oldest: 0.0265 });
     expect(caoPalaeoCoastlineAgeInsideDomain(90)).toBe(true);
     expect(caoPalaeoCoastlineAgeInsideDomain(2.01)).toBe(true);
     expect(caoPalaeoCoastlineAgeInsideDomain(402)).toBe(true);
@@ -269,43 +267,6 @@ describe("palaeo composite surface", () => {
     expect(caoPalaeoCoastlineAgeInsideDomain(0)).toBe(false);
     expect(caoPalaeoCoastlineAgeInsideDomain(null)).toBe(false);
     expect(caoPalaeoCoastlineAgeInsideDomain(Number.NaN)).toBe(false);
-
-    // A request has to hold for a second consecutive frame before it is applied.
-    let state = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
-    expect(state).toEqual({ visible: false, band: "none", pendingFrames: 0 });
-    state = nextCaoPalaeoVisibilityState(state, "cao-2017");
-    expect(state).toEqual({ visible: false, band: "none", pendingFrames: 1 });
-    state = nextCaoPalaeoVisibilityState(state, "cao-2017");
-    expect(state).toEqual({ visible: true, band: "cao-2017", pendingFrames: 0 });
-    // Steady state costs nothing.
-    state = nextCaoPalaeoVisibilityState(state, "cao-2017");
-    expect(state).toEqual({ visible: true, band: "cao-2017", pendingFrames: 0 });
-
-    // A single frame across 402 Ma and straight back leaves the surface alone:
-    // the blank-and-restore is what would read as a rendering fault.
-    let flicker = nextCaoPalaeoVisibilityState(state, "none");
-    expect(flicker).toEqual({ visible: true, band: "cao-2017", pendingFrames: 1 });
-    flicker = nextCaoPalaeoVisibilityState(flicker, "cao-2017");
-    expect(flicker).toEqual({ visible: true, band: "cao-2017", pendingFrames: 0 });
-
-    // A real crossing still lands, one frame later.
-    let crossing = nextCaoPalaeoVisibilityState(state, "none");
-    crossing = nextCaoPalaeoVisibilityState(crossing, "none");
-    expect(crossing).toEqual({ visible: false, band: "none", pendingFrames: 0 });
-    // And the delay never accumulates: coming back is one frame again.
-    crossing = nextCaoPalaeoVisibilityState(crossing, "cao-2017");
-    crossing = nextCaoPalaeoVisibilityState(crossing, "cao-2017");
-    expect(crossing).toEqual({ visible: true, band: "cao-2017", pendingFrames: 0 });
-
-    // The LGM band is its own answer, and a band change spends the same frame.
-    let lgm = nextCaoPalaeoVisibilityState(crossing, "lgm");
-    expect(lgm).toEqual({ visible: true, band: "cao-2017", pendingFrames: 1 });
-    lgm = nextCaoPalaeoVisibilityState(lgm, "lgm");
-    expect(lgm).toEqual({ visible: true, band: "lgm", pendingFrames: 0 });
-  });
-
-  it("splits the palaeo domain into the Cao 2017 band and the detached LGM band", () => {
-    expect(CAO_PALAEO_LGM_AGE_BAND_MA).toEqual({ youngestExclusive: 0.0195, oldest: 0.0265 });
     expect(caoPalaeoCoastlineDomainBand(90)).toBe("cao-2017");
     expect(caoPalaeoCoastlineDomainBand(2.01)).toBe("cao-2017");
     expect(caoPalaeoCoastlineDomainBand(402)).toBe("cao-2017");
@@ -321,88 +282,4 @@ describe("palaeo composite surface", () => {
     expect(caoPalaeoCoastlineAgeInsideDomain(0.021)).toBe(true);
   });
 
-  it("keeps native land drawn at the LGM band while the lowstand shelf draws over it", () => {
-    // The LGM state is three footprints of exposed shelf, not a global
-    // palaeogeography: hiding today's land would blank every coastline on Earth.
-    const lgm = caoPalaeoModeState({ layerEnabled: true, band: "lgm", visibleBand: "lgm",
-      published: true });
-    expect(lgm.mode).toBe("on");
-    expect(lgm.band).toBe("lgm");
-    expect(lgm.palaeoDrawn).toBe(true);
-    expect(lgm.nativeSurfaceMode).toBe("native");
-    // And the Cao band still replaces it, so this is a band rule, not a retreat.
-    const cao = caoPalaeoModeState({ layerEnabled: true, band: "cao-2017",
-      visibleBand: "cao-2017", published: true });
-    expect(cao.nativeSurfaceMode).toBe("palaeo");
-  });
-
-  it("keys native land off the effective mode, never off the layer flag", () => {
-    // The defect this pins: with the layer on at a fallback age the palaeo
-    // instance draws nothing, so hiding `batch-land` left bare shelf where
-    // today's coastline belongs — Africa as shelf sea at 0 Ma.
-    const state = (layerEnabled: boolean, insideDomain: boolean,
-      domainVisible: boolean, published: boolean) =>
-      caoPalaeoModeState({ layerEnabled, band: insideDomain ? "cao-2017" : "none",
-        visibleBand: domainVisible ? "cao-2017" : "none", published });
-
-    // Layer off: today's composition, whatever the age or the resident charts.
-    for (const insideDomain of [false, true]) {
-      for (const domainVisible of [false, true]) {
-        for (const published of [false, true]) {
-          const off = state(false, insideDomain, domainVisible, published);
-          expect(off.mode).toBe("off");
-          expect(off.palaeoDrawn).toBe(false);
-          expect(off.nativeSurfaceMode).toBe("native");
-        }
-      }
-    }
-
-    // Layer on outside 2.01-402 Ma: the notice says fallback and the native
-    // stack keeps every class it draws with the layer off.
-    for (const domainVisible of [false, true]) {
-      const fallback = state(true, false, domainVisible, false);
-      expect(fallback.mode).toBe("fallback");
-      expect(fallback.palaeoDrawn).toBe(false);
-      expect(fallback.nativeSurfaceMode).toBe("native");
-    }
-
-    // Layer on inside the domain, interval not on screen yet: land stays drawn
-    // rather than blanking for the length of a fetch.
-    expect(state(true, true, false, false).mode).toBe("loading");
-    expect(state(true, true, false, true).mode).toBe("loading");
-    expect(state(true, true, true, false).mode).toBe("loading");
-    expect(state(true, true, false, true).nativeSurfaceMode).toBe("native");
-    expect(state(true, true, true, false).nativeSurfaceMode).toBe("native");
-
-    // Only a drawn palaeo interval hides native land.
-    const on = state(true, true, true, true);
-    expect(on.mode).toBe("on");
-    expect(on.palaeoDrawn).toBe(true);
-    expect(on.nativeSurfaceMode).toBe("palaeo");
-  });
-
-  it("carries the fallback hysteresis into the native land switch", () => {
-    // `domainVisible` is the hysteresis output, so the two never disagree: the
-    // frame that stops drawing palaeo charts is the frame native land returns.
-    let visibility = CAO_PALAEO_VISIBILITY_INITIAL_STATE;
-    const frame = (insideDomain: boolean) => {
-      visibility = nextCaoPalaeoVisibilityState(visibility, insideDomain ? "cao-2017" : "none");
-      return caoPalaeoModeState({ layerEnabled: true,
-        band: insideDomain ? "cao-2017" : "none",
-        visibleBand: visibility.band, published: true });
-    };
-    // Scrubbing in across 402 Ma: two frames to show, and native land is hidden
-    // in the same frame the palaeo charts appear, never before.
-    expect(frame(true).nativeSurfaceMode).toBe("native");
-    expect(frame(true).nativeSurfaceMode).toBe("palaeo");
-    expect(frame(true).mode).toBe("on");
-    // Scrubbing back out: the notice flips at once, the surfaces one frame
-    // later, and they swap together.
-    const leaving = frame(false);
-    expect(leaving.mode).toBe("fallback");
-    expect(leaving.nativeSurfaceMode).toBe("palaeo");
-    const left = frame(false);
-    expect(left.mode).toBe("fallback");
-    expect(left.nativeSurfaceMode).toBe("native");
-  });
 });

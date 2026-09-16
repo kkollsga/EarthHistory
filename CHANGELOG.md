@@ -8,6 +8,8 @@ All notable changes to EarthHistory will be recorded here.
 
 - One surface-source preparation path for native and realistic classes (no
   visual change).
+- One surface-visibility resolver for native and realistic classes (no visual
+  change).
 
 ## [0.1.16] - 2026-09-16
 

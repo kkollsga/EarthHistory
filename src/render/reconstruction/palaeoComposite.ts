@@ -181,49 +181,6 @@ export function caoPalaeoCoastlineAgeInsideDomain(ageMa: number | null): boolean
   return caoPalaeoCoastlineDomainBand(ageMa) !== "none";
 }
 
-export interface CaoPalaeoVisibilityState {
-  /** Whether the palaeo domain is currently shown. */
-  readonly visible: boolean;
-  /**
-   * The band on screen, which is not the band the requested age asks for while
-   * the hysteresis is spending its frame. Native land keys off this one: the
-   * frame that still draws Cao 2017 charts must still hide native land.
-   */
-  readonly band: CaoPalaeoDomainBand;
-  /** Frames the opposite answer has held without being applied yet. */
-  readonly pendingFrames: number;
-}
-
-export const CAO_PALAEO_VISIBILITY_INITIAL_STATE: CaoPalaeoVisibilityState =
-  Object.freeze({ visible: false, band: "none", pendingFrames: 0 });
-
-/**
- * One-frame hysteresis across the 2.01 and 402 Ma boundaries.
- *
- * A scrub that lands exactly on a boundary, or a continuous age that crosses it
- * and comes back within a frame, would otherwise blank and restore the palaeo
- * surface on consecutive frames and read as a rendering fault. Requiring the
- * new answer to hold for a second consecutive frame costs at most one frame of
- * latency at a real crossing and removes the flicker at a boundary the user is
- * hovering on. The counter resets whenever the requested answer agrees with
- * what is on screen, so the delay never accumulates.
- */
-export function nextCaoPalaeoVisibilityState(
-  previous: CaoPalaeoVisibilityState,
-  requestedBand: CaoPalaeoDomainBand,
-): CaoPalaeoVisibilityState {
-  if (requestedBand === previous.band) {
-    return previous.pendingFrames === 0 ? previous
-      : Object.freeze({ visible: previous.visible, band: previous.band, pendingFrames: 0 });
-  }
-  if (previous.pendingFrames >= 1) {
-    return Object.freeze({ visible: requestedBand !== "none", band: requestedBand,
-      pendingFrames: 0 });
-  }
-  return Object.freeze({ visible: previous.visible, band: previous.band,
-    pendingFrames: previous.pendingFrames + 1 });
-}
-
 /**
  * What the palaeo-coastline layer resolves to on screen, as the map key and the
  * canvas diagnostics name it.
@@ -233,58 +190,3 @@ export function nextCaoPalaeoVisibilityState(
  * published yet.
  */
 export type CaoPalaeoCoastlineMode = "off" | "fallback" | "loading" | "on";
-
-export interface CaoPalaeoModeInputs {
-  /** The `palaeoCoastlines` layer flag; what the viewer asked for. */
-  readonly layerEnabled: boolean;
-  /** The band the requested age falls in; `none` is the fallback notice. */
-  readonly band: CaoPalaeoDomainBand;
-  /** The band on screen after `nextCaoPalaeoVisibilityState`. */
-  readonly visibleBand: CaoPalaeoDomainBand;
-  /** Whether the palaeo instance has a published interval on screen. */
-  readonly published: boolean;
-}
-
-export interface CaoPalaeoModeState {
-  readonly mode: CaoPalaeoCoastlineMode;
-  readonly band: CaoPalaeoDomainBand;
-  /** Whether palaeo charts are actually on screen this frame. */
-  readonly palaeoDrawn: boolean;
-  /**
-   * The stack the native instance draws and answers picks from. It is the
-   * effective mode, never the layer flag: native land — `batch-land` and every
-   * land-appearance correction with it — may only be hidden while palaeo charts
-   * are drawn over it, or a fallback age — 0 Ma, 500 Ma — would lose today's
-   * land and leave bare shelf behind.
-   *
-   * It stays `native` in the `lgm` band even with palaeo charts drawn. The LGM
-   * state is a regional lowstand over three footprints, not a global
-   * palaeogeography: hiding today's land there would blank every coastline on
-   * Earth to show a little exposed shelf in the North Sea, the Sunda shelf and
-   * Beringia. The land-appearance corrections stay with it, and correctly so —
-   * at 21 ka they are today's observed ground. The LGM land shell sits 500 m above the native land shell, so it
-   * draws on top of the land it adds to.
-   */
-  readonly nativeSurfaceMode: CaoFoundationSurfaceMode;
-}
-
-/**
- * Resolves the layer flag, the age domain, the hysteresis state and the
- * publication into one answer that the native visibility, the composite pick
- * and coverage, the guide-label ink and the reported mode all read.
- *
- * `palaeoDrawn` carries the same one-frame hysteresis as the fallback
- * transition, because it is `domainVisible` that carries it: native land is
- * therefore restored in the same frame the palaeo charts leave the screen, and
- * hidden in the same frame they arrive, with no frame showing neither.
- */
-export function caoPalaeoModeState(inputs: CaoPalaeoModeInputs): CaoPalaeoModeState {
-  const palaeoDrawn = inputs.layerEnabled && inputs.visibleBand !== "none" && inputs.published;
-  const mode: CaoPalaeoCoastlineMode = !inputs.layerEnabled ? "off"
-    : inputs.band === "none" ? "fallback"
-      : palaeoDrawn ? "on" : "loading";
-  // Native land follows the band actually on screen, never the requested one:
-  // the hysteresis frame that still draws Cao 2017 charts must still hide it.
-  return Object.freeze({ mode, band: inputs.band, palaeoDrawn,
-    nativeSurfaceMode: palaeoDrawn && inputs.visibleBand === "cao-2017" ? "palaeo" : "native" });
-}
