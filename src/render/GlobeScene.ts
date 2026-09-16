@@ -926,7 +926,11 @@ export class GlobeScene {
     // previous PreparedCaoRevision prop during in-domain age transitions so this
     // path is not used for ordinary scrubbing — that avoids a blank globe.
     if (revision === null) {
-      this.caoFoundationRenderer.clear();
+      // Only the Cao 2024 member: an age outside the Cao domain is outside the
+      // Cao 2017 band as well, and dropping the map interval here would leave
+      // this scene's own record of the published interval disagreeing with the
+      // set.
+      this.caoFoundationRenderer.clear("native");
       this.hasNativePublication = false;
       this.guideLabelTonesStaleSince = performance.now();
       this.preparedAnchors = [];
@@ -1531,17 +1535,22 @@ export class GlobeScene {
       surfaceWithheld: this.caoFoundationWithheld,
       advanceHysteresis,
     });
+    const previousComposition = this.surfaceVisibility.composition;
     this.surfaceVisibility = resolved;
     const palaeo = this.caoFoundationRenderer.setDomainVisibility(
       resolved.hysteresis.visible, "interval");
-    // Native land, the composite pick and coverage, and the guide-label ink all
-    // follow the resolved composition, so a fallback age keeps exactly today's
-    // composition instead of hiding land nothing has replaced. The palaeo
-    // instance can be on screen while the native instance stays in its own
-    // stack: that is exactly the detached LGM band, where the lowstand shelf is
-    // drawn over today's land rather than instead of it.
-    const palaeoMode = resolved.nativeSurfaceMode === "palaeo";
-    if (palaeoMode !== (this.caoFoundationRenderer.surfaceMode() === "palaeo")) {
+    // Native land, the pick and coverage set, and the guide-label ink all follow
+    // the resolved composition, so a fallback age keeps exactly today's
+    // composition instead of hiding land nothing has replaced. The map interval
+    // can be on screen while the Cao 2024 unit stays in its own stack: that is
+    // exactly the detached LGM band, where the lowstand shelf is drawn over
+    // today's land rather than instead of it.
+    //
+    // Keyed on the composition and not on the native mode, because `native` and
+    // `lgm` share that mode and not their class set: the lowstand overlay is
+    // drawn in one and not the other. Applying it walks the published groups, so
+    // a frame that resolves the same composition costs nothing.
+    if (resolved.composition !== previousComposition) {
       // The slots decide what is drawn: land and continents carry the Cao 2017
       // `lm`/`sm` batches inside the band and the Cao 2024 fills outside it, the
       // mountain slot is filled only there, and the land-appearance corrections
