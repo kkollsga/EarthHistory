@@ -32,6 +32,29 @@ All notable changes to EarthHistory will be recorded here.
   map key, next to the swatches it describes. The relief slider, the
   `aria-pressed` switches, the 44 px targets and the keyboard behaviour are
   unchanged.
+- **Palaeo mountains are a darker reddish brown.** 0.1.12 made the class visible
+  but landed it on a light tan — 235,198,139 at hue 33-37 degrees — which reads
+  as desert, not mountain. The base colour moves from `#fd7328` to `#71220e`,
+  aimed at sienna. Base colours are *linear albedo*, so the aim is solved
+  through the band model 0.1.12 measured: per-band light factors 1.0355 / 0.7970
+  / 0.5260 fitted to that colour's three measured tones, then ACES at exposure
+  1.02 and the sRGB transfer. The new albedo is **predicted** to render at
+  **196,114,68** in full light, **177,95,55** at mid lighting and **143,69,37**
+  near the terminator: hue 17.8-21.5 degrees, about 83/255 of luma-matched
+  separation from `palaeo-land` against a 30 floor, and 4.24:1 against the dark
+  outline ink at full light. These are predictions from a fitted model, not
+  measurements; the browser tone census now asserts them per channel with a
+  tolerance of 20 and a hue window of 10-30 degrees, and a run of it is what
+  confirms them.
+- A darker class cannot hold the old ink contrast everywhere. Sienna itself
+  (160,82,45) reaches only 2.72:1 against the dark outline ink and leaves the
+  terminator band at 57/255 of luma; the shipped tone is the smallest lightening
+  of it that keeps the terminator band readable at a predicted 82/255. Even
+  there it reaches only a predicted 2.21:1 against that ink, where the tan held
+  5.75:1, so the census floor near the terminator is 2 and full light and mid
+  lighting keep the >= 3:1 contract. `palaeo-land` and `palaeo-shallow-marine`
+  are unchanged, and the map key's mountain swatch follows the new predicted
+  full-light tone.
 
 ## [0.1.12] - 2026-09-16
 

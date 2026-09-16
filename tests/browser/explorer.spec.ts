@@ -1381,10 +1381,27 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
  * hold at the hardest band, not on average.
  */
 const PALAEO_TONE_BANDS = [
-  { id: "full light", min: 0.9, max: 1.01 },
-  { id: "mid", min: 0.55, max: 0.72 },
-  { id: "terminator-near", min: 0.2, max: 0.32 },
+  { id: "full light", min: 0.9, max: 1.01, predicted: [196, 114, 68] as const, minInkContrast: 3 },
+  { id: "mid", min: 0.55, max: 0.72, predicted: [177, 95, 55] as const, minInkContrast: 3 },
+  { id: "terminator-near", min: 0.2, max: 0.32, predicted: [143, 69, 37] as const,
+    minInkContrast: 2 },
 ] as const;
+
+/**
+ * How far a measured channel may sit from its predicted value.
+ *
+ * The `predicted` triples above are *predictions*, not measurements: they come
+ * from the band model in `caoFoundation.ts` - the per-band light factors 1.0355
+ * / 0.7970 / 0.5260 fitted to the three tones 0.1.12 measured for `#fd7328`,
+ * then ACES at exposure 1.02 and the sRGB transfer - solved for the new albedo
+ * `#71220e`. Refitting that model against 0.1.12's own measured tones reproduces
+ * them to within 9/255 at the worst channel, so a tolerance of 20 is the model's
+ * demonstrated error with room to spare, and is tight enough that the class
+ * cannot drift back toward the light tan it used to be (235,198,139 is 84 away
+ * in red at full light). A run of this census is what turns the predictions into
+ * measurements; until it has run, the numbers above are unconfirmed.
+ */
+const PALAEO_TONE_PREDICTION_TOLERANCE = 20;
 
 /**
  * Camera aims the census samples from.
@@ -1596,7 +1613,7 @@ function inkContrastRatio(rgb: readonly [number, number, number],
   return (high! + 0.05) / (low! + 0.05);
 }
 
-test("draws palaeo mountains as a readable light brown at every lighting band", async ({ page }) => {
+test("draws palaeo mountains as a readable dark reddish brown at every lighting band", async ({ page }) => {
   test.setTimeout(420_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -1645,12 +1662,29 @@ test("draws palaeo mountains as a readable light brown at every lighting band", 
     expect(row.separation,
       `${band.id}: mountain ${mountain!.rgb} vs land ${land!.rgb} luma-matched separation`)
       .toBeGreaterThanOrEqual(30);
-    expect(row.hue, `${band.id}: mountain hue must stay a brown, not an orange`)
-      .toBeGreaterThanOrEqual(30);
-    expect(row.hue, `${band.id}: mountain hue must stay a brown, not a yellow`)
-      .toBeLessThanOrEqual(40);
+    expect(row.hue, `${band.id}: mountain hue must stay a reddish brown, not a red`)
+      .toBeGreaterThanOrEqual(10);
+    expect(row.hue, `${band.id}: mountain hue must stay a reddish brown, not an orange`)
+      .toBeLessThanOrEqual(30);
+    // The predicted tone, channel by channel. This is the assertion that would
+    // catch the class drifting back toward a light tan, which neither the
+    // separation floor nor the hue window can see on their own.
+    for (const [channel, name] of (["red", "green", "blue"] as const).entries()) {
+      expect(mountain!.rgb[channel],
+        `${band.id}: mountain ${name} against the predicted ${band.predicted.join(",")}`)
+        .toBeGreaterThanOrEqual(band.predicted[channel]! - PALAEO_TONE_PREDICTION_TOLERANCE);
+      expect(mountain!.rgb[channel],
+        `${band.id}: mountain ${name} against the predicted ${band.predicted.join(",")}`)
+        .toBeLessThanOrEqual(band.predicted[channel]! + PALAEO_TONE_PREDICTION_TOLERANCE);
+    }
+    // The dark ink has to stay legible over mountain ground at full light and at
+    // mid lighting. Near the terminator a tone this dark cannot reach 3:1
+    // against ink this dark - it is predicted at 2.21:1 - and the floor there is
+    // 2: the band is held readable by its luma (predicted 82/255), not by the
+    // ratio. A lighter class would clear 3:1 everywhere, which is exactly the
+    // light tan this colour replaced.
     expect(row.contrast, `${band.id}: mountain against the dark outline ink`)
-      .toBeGreaterThanOrEqual(3);
+      .toBeGreaterThanOrEqual(band.minInkContrast);
   }
 });
 

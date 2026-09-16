@@ -312,21 +312,30 @@ export function caoFoundationShellOffsetMetres(
  * reading as a distinctly greener, brighter body of water than the 0.58-dimmed
  * shelf blue it sits on.
  *
- * `palaeo-mountain` is a light brown *on screen*, which is why the value here is
- * a saturated mid brown rather than a light one. These triples are linear
- * albedo: the scene multiplies them by an inspection light of intensity 3.2 plus
- * a hemisphere fill and then runs ACES, whose shoulder desaturates everything it
- * lifts toward white. The former `#c8a97e` was already a light brown *before*
- * that and came out of it at 223,213,192 against palaeo-land's 213,212,184 -
- * 6.5/255 of luma-matched separation for a base colour 21 CIE76 away, which is
- * not a class a viewer can name. `#fd7328` is pre-compensated for the wash and
- * renders at 234,198,139 in full light, 224,182,120 at mid lighting and
- * 186,147,99 near the terminator: 35-39/255 of luma-matched separation from
- * palaeo-land at every band against a 30 floor, hue 33-37 degrees at all three,
- * and 5.57:1 against the dark outline/label ink [0.12, 0.15, 0.18] the tone
- * table puts over mountain ground. palaeo-land is unchanged.
- * `tests/browser/explorer.spec.ts` owns the rendered contract and its
- * measurement; changing this constant without re-running it is not supported.
+ * `palaeo-mountain` is a dark reddish brown *on screen*, which is why the value
+ * here is a deep saturated red-brown rather than the tone itself. These triples
+ * are linear albedo: the scene multiplies them by an inspection light of
+ * intensity 3.2 plus a hemisphere fill and then runs ACES at exposure 1.02,
+ * whose shoulder desaturates everything it lifts toward white. `#c8a97e` was
+ * already light *before* that and came out at 223,213,192 against palaeo-land's
+ * 213,212,184; `#fd7328` cleared that but landed at 235,198,139, a light tan at
+ * hue 33-37 degrees rather than the brown the class is meant to read as.
+ *
+ * `#71220e` is pre-compensated for the same wash against a darker, redder aim.
+ * Solving the measured 0.1.12 band model - per-band light factors 1.0355 /
+ * 0.7970 / 0.5260 fitted to that colour's three measured tones, then ACES at
+ * exposure 1.02 and the sRGB transfer - predicts 196,114,68 in full light,
+ * 177,95,55 at mid lighting and 143,69,37 near the terminator: hue 17.8-21.5
+ * degrees, about 83/255 of luma-matched separation from palaeo-land against a
+ * 30 floor, and 4.24:1 against the dark outline/label ink [0.12, 0.15, 0.18]
+ * the tone table puts over mountain ground at full light. The terminator band
+ * is the cost of the darker aim: it keeps a readable 82/255 luma but only
+ * 2.21:1 against that dark ink, where the light tan held 5.75:1.
+ *
+ * These three tones are *predictions* from the fitted model, not measurements.
+ * `tests/browser/explorer.spec.ts` owns the rendered contract and is the only
+ * place it can be measured; changing this constant without re-running the tone
+ * census is not supported.
  */
 /**
  * The opaque globe sphere every surface class is drawn over. It is the bottom
@@ -341,7 +350,7 @@ Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>
   shelf: Object.freeze([0.0431, 0.2863, 0.3922] as const),
   "palaeo-land": Object.freeze([0x9a / 255, 0xa8 / 255, 0x6b / 255] as const),
   "palaeo-shallow-marine": Object.freeze([0x14 / 255, 0x60 / 255, 0x6b / 255] as const),
-  "palaeo-mountain": Object.freeze([0xfd / 255, 0x73 / 255, 0x28 / 255] as const),
+  "palaeo-mountain": Object.freeze([0x71 / 255, 0x22 / 255, 0x0e / 255] as const),
 });
 
 /**
