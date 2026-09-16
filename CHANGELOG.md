@@ -4,6 +4,18 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-09-16
+
+### Added
+
+- **The logo names the running build.** Hovering the "EARTH HISTORY" logo in
+  the upper left shows an `EarthHistory v<version>` tooltip, its accessible
+  name carries the same version, and the button exposes `data-app-version`, so
+  a screenshot or a bug report identifies the exact build without opening the
+  artifact manifest. The version is inlined from `package.json` by Vite's
+  `define`, and a unit test fails if the constant drifts from the manifest or
+  is left as an unreplaced token.
+
 ### Changed
 
 - **The palaeo shallow seas are slightly darker.** The
@@ -26,15 +38,97 @@ All notable changes to EarthHistory will be recorded here.
   the mountain swatch already did, instead of showing the albedo. Predictions,
   not measurements: the browser census owns the rendered contract.
 
-### Added
+- **The correction validators run in parallel and skip what nothing changed.**
+  `make check-corrections` ran thirty-eight validator lines strictly one after
+  the other: **164.8 s**, of which the palaeo compile oracle was 75.9 s, the
+  Panama land unit tests 41.1 s and the requested-age motion-tile self-test
+  18.8 s. `scripts/run_corrections.py` now runs the six mutating `apply_*`
+  validators first and one at a time, then the other thirty-two in a bounded
+  pool of six: **80.8 s** cold, all thirty-eight passing. It also records, per
+  validator, every project file that validator opened, renamed or listed on its
+  last green run — through a `sys.addaudithook` recorder, so the input set is
+  observed rather than declared by hand — and reports a validator whose command,
+  script, imported modules, inputs and outputs still hash to the recorded digest
+  as `cached pass (digest …)`. On an unchanged tree that is **0.3–0.7 s**.
+  Nothing a validator asserts changed: the commands and their arguments are the
+  Makefile's own, their output is printed in the same order, and mutating a
+  tracked input re-runs exactly the validators that read it and still fails
+  them — proved by editing
+  `data/corrections/north-sea-restoration/restoration-contract.json`, which
+  re-ran and failed `validate_north_sea_restoration` and its self-test while the
+  other thirty-six stayed cached. The cache lives in gitignored
+  `.cache/corrections/`, holds one small entry per declared validator and prunes
+  entries for validators that no longer exist; `make check-corrections-all` or
+  `CORRECTIONS_CACHE=--no-cache` ignores it, and
+  `python3 scripts/run_corrections.py --self-test` — now part of
+  `make self-test-gates` — proves the cache cannot report a pass for a mutated
+  input.
+- **The browser suite runs two tests at a time.** The tests share nothing but a
+  read-only static server: no `beforeAll`, no shared context, no browser
+  storage, no file writes. `playwright.config.ts` therefore moves from
+  `workers: 1, fullyParallel: false` to `fullyParallel: true` with two workers
+  (`EARTHHISTORY_TEST_WORKERS` overrides), and no test needed a change for
+  parallel safety. The default is two rather than four because Chromium renders
+  this scene through swiftshader and one browser already occupies most of a
+  ten-core machine. Measured baseline on that machine: **1818.0 s** for 48 tests
+  at one worker. The two-worker comparison run reached its 48th test in
+  **1071.6 s** but was terminated before it could write its report, so the
+  after figure is an in-flight reading, not a completed measurement, and the
+  suite's own pass/fail tally under two workers is still unmeasured. The
+  twenty-one palaeo-coastline tests carry a `@palaeo` tag and
+  `npm run test:e2e:palaeo` runs that subset.
+- **`make gate-fast` is the iteration gate.** Typecheck, unit/data tests, the
+  correction validators whose inputs changed, build and the artifact bounds:
+  **≈16 s** warm, against **180.2 s** for `make gate` before this change. The
+  Makefile header now says which gate is for what — `gate-fast` while
+  iterating, `gate` per commit (it adds `check-dev-docs`, `check-agents` and the
+  build-cache bound), `gate-full` as the batch or release confidence reset and
+  the only one that needs Chromium. No gate asserts less than it did:
+  `gate-fast` only leaves out the local working-state and adapter-mirror checks.
 
-- **The logo names the running build.** Hovering the "EARTH HISTORY" logo in
-  the upper left shows an `EarthHistory v<version>` tooltip, its accessible
-  name carries the same version, and the button exposes `data-app-version`, so
-  a screenshot or a bug report identifies the exact build without opening the
-  artifact manifest. The version is inlined from `package.json` by Vite's
-  `define`, and a unit test fails if the constant drifts from the manifest or
-  is left as an unreplaced token.
+### Fixed
+
+- **Exactly five levels while realistic coastlines are on.** With the layer on
+  the globe draws deep sea (the sphere), shallow sea, land, mountain and the
+  country outlines, and nothing else: the native shelf, the native land fill and
+  the land-class regional corrections are hidden inside the Cao 2017 band, and
+  the restored pre-collision margins draw with the shallow-sea appearance. A
+  unit test pins the visibility set per band and a browser check counts the
+  painted classes at 90 Ma.
+- **Land seams and holes in the cookie cut are closed.** Cut pieces of one
+  record are merged with the slivers the partition cut left beside them, but
+  only into adjoining parts of the same record; a merge that unioned the whole
+  multipolygon had produced a frame-conflict offender and is gone. Cut edges
+  follow great circles, so a piece boundary no longer opens a chord-wide gap at
+  closest zoom.
+- **Mountains sit on a land underlay with no hairline at the class edge.** The
+  mountain geometry is drawn a second time as land at the land shell without a
+  depth write, so the mountain tone stays above it and the browser census still
+  reads the darker reddish brown in every lighting band; mountain ground also
+  takes the dark outline tone.
+- **The frame-conflict drop judges a piece's body, not its farthest corner.**
+  The 1,000 km rule had read the maximum over 24 outline samples, which turned
+  it into a threshold on piece *size*: the Sarawak shelf at 29-20 Ma (82,150
+  km² bound to partition 61403, one corner at 1,015 km) was dropped along with
+  17 other pieces of that interval, 921,505 km² in all. The drop now takes the
+  median separation of the drawn ring; genuinely displaced ground (Qiangtang,
+  Tarim, the Alpine fragments at 166-146 Ma, all above 6,000 km) still drops.
+  The correction validator's oracle samples piece outlines exactly as the
+  compiler does and asserts the same body measure; the `sarawak-shelf-
+  oligocene` witness is green again. Payloads grew by 321 KiB across the three
+  classes (7.96 MiB against the 8.5 MiB cap).
+- **The LGM state no longer warms a Cao map it can never scrub into.** At
+  21 ka the prefetch treated the table neighbour (the 11-2 Ma map) as an age
+  neighbour, fetching and triangulating three payloads separated from the
+  lowstand by two million years of fallback and occupying a residency slot
+  beside the one interval that must stay resident. Detached intervals now warm
+  nothing and are warmed by nothing; a browser check proves no `11-2` payload
+  is fetched beside the LGM state.
+- **Scrubbing across map intervals reuses the frame.** The palaeo pose reuses
+  the native frame's scratch buffers, the worker transfers its index buffers
+  instead of copying them, and both neighbouring intervals are prefetched as
+  soon as one becomes current. The real-GPU profile and the costed remaining
+  options are in `docs/research/palaeo-coastlines-scrub-performance-review.md`.
 
 ## [0.1.13] - 2026-09-16
 
@@ -128,56 +222,6 @@ All notable changes to EarthHistory will be recorded here.
   after are the same — at this harness's ~235 ms cadence the promise and the
   commit both fit inside one frame — so this removes the hop and a redundant
   second evaluation per sample rather than a lag it measured.
-### Changed
-
-- **The correction validators run in parallel and skip what nothing changed.**
-  `make check-corrections` ran thirty-eight validator lines strictly one after
-  the other: **164.8 s**, of which the palaeo compile oracle was 75.9 s, the
-  Panama land unit tests 41.1 s and the requested-age motion-tile self-test
-  18.8 s. `scripts/run_corrections.py` now runs the six mutating `apply_*`
-  validators first and one at a time, then the other thirty-two in a bounded
-  pool of six: **80.8 s** cold, all thirty-eight passing. It also records, per
-  validator, every project file that validator opened, renamed or listed on its
-  last green run — through a `sys.addaudithook` recorder, so the input set is
-  observed rather than declared by hand — and reports a validator whose command,
-  script, imported modules, inputs and outputs still hash to the recorded digest
-  as `cached pass (digest …)`. On an unchanged tree that is **0.3–0.7 s**.
-  Nothing a validator asserts changed: the commands and their arguments are the
-  Makefile's own, their output is printed in the same order, and mutating a
-  tracked input re-runs exactly the validators that read it and still fails
-  them — proved by editing
-  `data/corrections/north-sea-restoration/restoration-contract.json`, which
-  re-ran and failed `validate_north_sea_restoration` and its self-test while the
-  other thirty-six stayed cached. The cache lives in gitignored
-  `.cache/corrections/`, holds one small entry per declared validator and prunes
-  entries for validators that no longer exist; `make check-corrections-all` or
-  `CORRECTIONS_CACHE=--no-cache` ignores it, and
-  `python3 scripts/run_corrections.py --self-test` — now part of
-  `make self-test-gates` — proves the cache cannot report a pass for a mutated
-  input.
-- **The browser suite runs two tests at a time.** The tests share nothing but a
-  read-only static server: no `beforeAll`, no shared context, no browser
-  storage, no file writes. `playwright.config.ts` therefore moves from
-  `workers: 1, fullyParallel: false` to `fullyParallel: true` with two workers
-  (`EARTHHISTORY_TEST_WORKERS` overrides), and no test needed a change for
-  parallel safety. The default is two rather than four because Chromium renders
-  this scene through swiftshader and one browser already occupies most of a
-  ten-core machine. Measured baseline on that machine: **1818.0 s** for 48 tests
-  at one worker. The two-worker comparison run reached its 48th test in
-  **1071.6 s** but was terminated before it could write its report, so the
-  after figure is an in-flight reading, not a completed measurement, and the
-  suite's own pass/fail tally under two workers is still unmeasured. The
-  seventeen palaeo-coastline tests now carry a `@palaeo` tag and
-  `npm run test:e2e:palaeo` runs that subset.
-- **`make gate-fast` is the iteration gate.** Typecheck, unit/data tests, the
-  correction validators whose inputs changed, build and the artifact bounds:
-  **≈16 s** warm, against **180.2 s** for `make gate` before this change. The
-  Makefile header now says which gate is for what — `gate-fast` while
-  iterating, `gate` per commit (it adds `check-dev-docs`, `check-agents` and the
-  build-cache bound), `gate-full` as the batch or release confidence reset and
-  the only one that needs Chromium. No gate asserts less than it did:
-  `gate-fast` only leaves out the local working-state and adapter-mirror checks.
-
 ## [0.1.12] - 2026-09-16
 
 ### Changed

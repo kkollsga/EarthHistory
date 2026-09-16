@@ -757,7 +757,7 @@ test("keeps layers usable and states the unavailable data once", async ({ page }
     .toBeVisible();
 });
 
-test("draws the Cao 2017 map by default in a link that names no layers", async ({ page }) => {
+test("draws the Cao 2017 map by default in a link that names no layers @palaeo", async ({ page }) => {
   // The mapped palaeogeography is what a visitor arrives at. A link with no
   // `layers=` takes the defaults, so 90 Ma comes up on its published interval
   // and the country outline carries both tones.
@@ -780,7 +780,7 @@ test("draws the Cao 2017 map by default in a link that names no layers", async (
     .toBeGreaterThan(0);
 });
 
-test("fetches no palaeo bytes when a link switches the layer off", async ({ page }) => {
+test("fetches no palaeo bytes when a link switches the layer off @palaeo", async ({ page }) => {
   // The "zero palaeo bytes when off" contract now needs an explicit link: the
   // default is on, and a `layers=` list that does not name the layer keeps it
   // off, which is the same contract a link written before the layer existed has.
@@ -806,7 +806,7 @@ test("fetches no palaeo bytes when a link switches the layer off", async ({ page
   expect(palaeoRequests, "no palaeo bytes are fetched while the layer is off").toEqual([]);
 });
 
-test("draws the Cao 2017 map with separable land, shallow sea and shelf", async ({ page }) => {
+test("draws the Cao 2017 map with separable land, shallow sea and shelf @palaeo", async ({ page }) => {
   // Idle rotation would move the lit limb between screenshots.
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
@@ -836,7 +836,7 @@ test("draws the Cao 2017 map with separable land, shallow sea and shelf", async 
   expect(painted.shallow.luminance).toBeGreaterThan(painted.shelf.luminance);
 });
 
-test("places the compiled Cao 2017 witnesses on the live surface", async ({ page }) => {
+test("places the compiled Cao 2017 witnesses on the live surface @palaeo", async ({ page }) => {
   // The same witnesses `palaeo_coastlines_correction.py` asserts offline, read
   // back through the scene's own CPU coverage path.
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
@@ -860,7 +860,7 @@ test("places the compiled Cao 2017 witnesses on the live surface", async ({ page
   expect(await classify(4, 54), "Zechstein basin").toBe("palaeo-shallow-marine");
 });
 
-test("returns the Cao 2024 composition when the palaeo layer is switched off", async ({ page }) => {
+test("returns the Cao 2024 composition when the palaeo layer is switched off @palaeo", async ({ page }) => {
   // Two interval loads and two triangulations inside one page, and the second
   // toggle is clicked while the neighbour warm-up is still decoding: the
   // file-level 45 s budget is a load budget here, not an assertion budget.
@@ -897,7 +897,7 @@ test("returns the Cao 2024 composition when the palaeo layer is switched off", a
     .not.toBe("palaeo-shallow-marine");
 });
 
-test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", async ({ page }) => {
+test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma @palaeo", async ({ page }) => {
   // Six interval loads in one page, each allowed 30 s of its own: the file-level
   // 45 s budget was never enough for the sum and only passed while every load
   // was warm.
@@ -935,7 +935,7 @@ test("advertises the build version on the header logo", async ({ page }) => {
   await expect(brand).toHaveAttribute("data-app-version", PACKAGE_VERSION);
 });
 
-test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
+test("names the Cao 2017 map interval and outline markers in the map key @palaeo", async ({ page }) => {
   // The key is only readable once the 94-81 interval is drawn, and the layer
   // now warms its neighbour behind that: the assertions are cheap, the load
   // this test waits on is not, and it overran the file-level 45 s budget.
@@ -1010,7 +1010,7 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   expect(rects.lastBottom).toBeLessThanOrEqual(rects.panelBottom + 1);
 });
 
-test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ page }) => {
+test("shows the palaeo fallback notice where no Cao 2017 map exists @palaeo", async ({ page }) => {
   await page.goto("./#age=0&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
   await openSurfaceInfo(page);
@@ -1038,7 +1038,7 @@ test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ p
 // layer-off control, and one page load each so the pair stays inside the
 // per-test budget.
 for (const view of [{ ageMa: 0, at: "5,25" }, { ageMa: 500, at: "-100,-10" }]) {
-  test(`composes exactly today's globe at ${view.ageMa} Ma, where no Cao 2017 map exists`,
+  test(`composes exactly today's globe at ${view.ageMa} Ma, where no Cao 2017 map exists @palaeo`,
     async ({ page }) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(`./#age=${view.ageMa}&layers=borders,guides&at=${view.at}`);
@@ -1062,7 +1062,7 @@ for (const view of [{ ageMa: 0, at: "5,25" }, { ageMa: 500, at: "-100,-10" }]) {
     });
 }
 
-test("keeps today's land when the palaeo layer is switched on at 0 Ma", async ({ page }) => {
+test("keeps today's land when the palaeo layer is switched on at 0 Ma @palaeo", async ({ page }) => {
   // The same contract through the control rather than the link: a viewer who
   // turns the layer on at the present day must not watch the continents go.
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -1088,7 +1088,7 @@ test("keeps today's land when the palaeo layer is switched on at 0 Ma", async ({
     .toBe("land");
 });
 
-test("leaves the palaeo layer off in a link written before it existed", async ({ page }) => {
+test("leaves the palaeo layer off in a link written before it existed @palaeo", async ({ page }) => {
   await page.goto("./#age=90&layers=borders,guides");
   await waitForCao(page);
   await openSurfaceInfo(page);
@@ -1207,7 +1207,7 @@ for (const site of [
     expected: "palaeo-land", nativeLandRow: 1,
     why: "the exposed central North Sea shelf at the lowstand" },
 ]) {
-  test(`draws no lower class inside the higher one: ${site.id}`, async ({ page }) => {
+  test(`draws no lower class inside the higher one: ${site.id} @palaeo`, async ({ page }) => {
     test.setTimeout(120_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -1339,7 +1339,7 @@ async function drawnClassCensus(page: Page, stepCssPx: number) {
  * rather than the Cao 2017 land olive, using the native tone measured in the
  * same view with the layer off — so it cannot drift with a colour change.
  */
-test("draws no native land fill while realistic coastlines are on", async ({ page }) => {
+test("draws no native land fill while realistic coastlines are on @palaeo", async ({ page }) => {
   test.setTimeout(180_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -1442,7 +1442,7 @@ test("draws no native land fill while realistic coastlines are on", async ({ pag
     `pixels carrying the native land olive: ${JSON.stringify(landToned)}`).toBe(0);
 });
 
-test("reaches the LGM interval after a long scrub through the Cao band", async ({ page }) => {
+test("reaches the LGM interval after a long scrub through the Cao band @palaeo", async ({ page }) => {
   // One page, many intervals. The defect this covers only appeared after a dozen
   // interval changes: every trip out of the published domain cleared the palaeo
   // publication, each clear handed the bounded GPU retirement owner a resource it
@@ -1498,7 +1498,7 @@ test("keeps the open map key clear of the chapter card on a phone", async ({ pag
   }
 });
 
-test("keeps the palaeo map key compact on a phone", async ({ page }) => {
+test("keeps the palaeo map key compact on a phone @palaeo", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
@@ -1949,7 +1949,7 @@ function inkContrastRatio(rgb: readonly [number, number, number],
   return (high! + 0.05) / (low! + 0.05);
 }
 
-test("draws palaeo mountains as a readable dark reddish brown at every lighting band", async ({ page }) => {
+test("draws palaeo mountains as a readable dark reddish brown at every lighting band @palaeo", async ({ page }) => {
   // Five full page loads, each fetching and triangulating a Cao map interval
   // and then warming its neighbour, plus a per-pixel probe sweep over each
   // frame. This is the slowest check in the suite and its budget is wall clock
@@ -2156,7 +2156,7 @@ async function recordScrub(page: Page) {
   });
 }
 
-test("poses the palaeo charts on the same frame as the native surface while scrubbing", async ({ page }) => {
+test("poses the palaeo charts on the same frame as the native surface while scrubbing @palaeo", async ({ page }) => {
   // The country outlines ride the native surface retarget. A palaeo pose that
   // lands a frame later, or at an older age, is the visible "polygons do not
   // move as smoothly as the outlines" defect, so the measurement is per frame:
@@ -2319,7 +2319,7 @@ test("poses the palaeo charts on the same frame as the native surface while scru
 // interval that has to stay resident - the one on screen. The camera reaching
 // the closest zoom is where a viewer actually looks at a regional lowstand, so
 // the publication is asserted through the zoom as well.
-test("warms no Cao 2017 map beside the detached LGM state", async ({ page }) => {
+test("warms no Cao 2017 map beside the detached LGM state @palaeo", async ({ page }) => {
   test.setTimeout(120_000);
   const intervalPayloads: string[] = [];
   page.on("request", (request) => {
