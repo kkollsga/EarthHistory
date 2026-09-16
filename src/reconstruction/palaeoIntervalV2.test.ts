@@ -46,6 +46,17 @@ const INTERVALS = [
   { intervalId: "360-340", intervalIndex: 2, fromAgeMa: 360, toAgeMa: 340 },
 ] as const;
 
+/**
+ * The shipped schedule's padded bounds: an interval's exclusive young bound is
+ * written 0.01 Ma above its neighbour's inclusive old bound, so the ages in
+ * `(380, 380.01]` are covered by neither and the selector's seam fallback
+ * answers the older map. `INTERVALS` above abuts exactly and has no seam.
+ */
+const SEAM_INTERVALS = [
+  { intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380.01 },
+  { intervalId: "380-360", intervalIndex: 1, fromAgeMa: 380, toAgeMa: 360.01 },
+] as const;
+
 type IntervalSpec = { readonly intervalId: string; readonly intervalIndex: number;
   readonly fromAgeMa: number; readonly toAgeMa: number };
 
@@ -867,6 +878,52 @@ describe("palaeo-coastline scrub retarget", () => {
     expect(inside.requestedAgeMa).toBe(385);
     expect(inside.supportAgeMa).toBe(385);
     prepared.release();
+    runtime.dispose();
+  });
+
+  it("poses a seam age against the published map instead of tearing the scene down", async () => {
+    const fixture = palaeoFixture({}, SEAM_INTERVALS);
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(390).prepared;
+    expect(published.intervalId).toBe("402-380");
+    // The crossing first: the age is inside 380-360 while 402-380 is still the
+    // geometry on screen, and the support age is held inside 402-380.
+    const crossing = runtime.evaluatePalaeoMotionNow(379.5, "402-380")!;
+    expect(crossing.intervalId).toBe("402-380");
+    expect(crossing.supportAgeMa).toBeCloseTo(380.011, 6);
+    // The shipped defect. An age in the seam belongs to no interval, so the
+    // selector answers the older one — which is the interval already published,
+    // so nothing here looks like a crossing at all and the support age used to
+    // pass through unheld, a hair below 402-380's own young edge. Measured at
+    // the 58 Ma end of a 117 -> 58 scrub, where the slider round-trip lands the
+    // age at 58.00000000000009: the throw escaped the render-loop effect and
+    // React unmounted the globe.
+    const seamAgeMa = 380 + 1e-13;
+    expect(selectPalaeoIntervalForAge(
+      await loadVerifiedPalaeoClassCatalogs(fixture.section, fixture.fetcher),
+      seamAgeMa)?.intervalId).toBe("402-380");
+    const seam = runtime.evaluatePalaeoMotionNow(seamAgeMa, "402-380")!;
+    expect(seam.intervalId).toBe("402-380");
+    expect(seam.requestedAgeMa).toBe(seamAgeMa);
+    expect(seam.supportAgeMa).toBeCloseTo(380.011, 6);
+    expect(seam.charts.map((chart) => chart.support.kind)).toContain("supported");
+    // The same age through the two paths that do not know what is published.
+    expect(runtime.evaluatePalaeoMotionNow(seamAgeMa)!.intervalId).toBe("402-380");
+    expect((await runtime.evaluatePalaeoMotion(seamAgeMa))!.intervalId).toBe("402-380");
+    // No frame was skipped: the clamp answered every one of them.
+    expect(runtime.ledger.palaeo.skippedFrames).toBe(0);
+    // And the swap the scrub was heading for still lands. One lease at a time,
+    // so the published interval is released before the next is asked for.
+    published.release();
+    const swapped = await runtime.requestPalaeoInterval(seamAgeMa).prepared;
+    expect(swapped.intervalId).toBe("402-380");
+    swapped.release();
+    const younger = await runtime.requestPalaeoInterval(370).prepared;
+    expect(younger.intervalId).toBe("380-360");
+    expect(runtime.evaluatePalaeoMotionNow(370, "380-360")!.intervalId).toBe("380-360");
+    younger.release();
     runtime.dispose();
   });
 

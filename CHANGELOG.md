@@ -3,6 +3,33 @@
 All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
+### Fixed
+
+- **A fast scrub across map boundaries no longer tears the globe down.** A
+  117 -> 58 Ma scrub over 2 s threw `palaeo-coastline age is outside the
+  resident interval` out of the renderer's synchronous pose effect, and React
+  unmounted the scene: no globe canvas was left in the document, reproduced 3/3.
+  The cause was the 0.01 Ma seam the padded interval bounds leave between two
+  adjacent maps. An age in `(58, 58.01]` is covered by no interval, so the
+  selector deliberately answers the older one, `81-58` — which is also the
+  interval already published, so nothing in the engine looked like a boundary
+  crossing and the 0.1.20 support-age clamp, which only ran on the crossing
+  branch, was skipped. The requested age then reached the evaluator a hair below
+  `81-58`'s own young edge and its range check threw. The scrub ends at exactly
+  58 Ma, where the slider's own round-trip lands the age at 58.00000000000009,
+  so this fired on every run. The support age is now held inside whichever
+  interval is actually evaluated on every path — the synchronous pose, the
+  asynchronous retarget and the interval prepare. A pose the runtime still
+  cannot honour skips the frame instead of throwing, leaving the previous pose
+  on screen and counting itself in the engine ledger as
+  `palaeo.skippedFrames`, and both palaeo effects in `GlobeView` now catch a
+  throw and name it in `data-cao-palaeo-fallback-reason` rather than letting it
+  reach React. Replayed as a unit case over a padded schedule — the crossing,
+  the seam age through all three entry points, then the swap — and proven by
+  mutation (restoring the clamp to the crossing branch alone fails it, and the
+  mutation was restored). The harness transaction now completes three
+  repetitions with the canvas present and no page errors.
+
 ### Changed
 
 - **A map interval is requested once the scrub settles in it, not the instant

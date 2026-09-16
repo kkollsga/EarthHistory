@@ -1105,6 +1105,20 @@ export class GlobeScene {
   }
 
   /**
+   * Records a pose failure without taking the layer down.
+   *
+   * The published geometry and its lease are untouched: a frame that could not
+   * be posed leaves the previous pose on screen, which is a frozen map for a
+   * frame or two rather than no globe at all. The reason reaches the dataset so
+   * a probe or a bench transaction sees it, because nothing else reports it —
+   * the throw it replaces used to unmount the scene from inside a React effect.
+   */
+  notePalaeoMotionFallback(reason: string): void {
+    this.palaeoPublicationFailureReason = reason;
+    this.renderer.domElement.dataset.caoPalaeoFallbackReason = reason;
+  }
+
+  /**
    * Why the last prepared interval was refused, for the owner that still holds
    * it. A refused publication is the layer's one silent failure mode: nothing
    * is on screen, the lease is still held elsewhere, and only the holder can

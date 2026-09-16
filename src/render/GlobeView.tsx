@@ -242,9 +242,18 @@ export function GlobeView({
     // with the outlines instead of a commit behind them. A null answer is an
     // age whose interval or palette is still loading, which the interval pump
     // owns; it must never hold up the native retarget above.
-    const palaeoNow = evaluatePalaeoMotionNow?.(
-      caoMotionFrame.requestedAgeMa, scene.publishedPalaeoInterval()) ?? null;
-    if (palaeoNow !== null) scene.retargetPalaeoMotion(palaeoNow);
+    // The pose is an optional layer inside the native retarget's effect. It
+    // must not be able to end the effect: a throw here escapes into React and
+    // unmounts the scene, which takes the globe with it. It is caught, named in
+    // the dataset, and the previous pose stands.
+    try {
+      const palaeoNow = evaluatePalaeoMotionNow?.(
+        caoMotionFrame.requestedAgeMa, scene.publishedPalaeoInterval()) ?? null;
+      if (palaeoNow !== null) scene.retargetPalaeoMotion(palaeoNow);
+    } catch (error) {
+      scene.notePalaeoMotionFallback(error instanceof Error ? error.message
+        : "palaeo-coastline pose failed");
+    }
   }, [caoMotionFrame, caoRevision, evaluatePalaeoMotionNow]);
 
   // The palaeo publication follows the same handoff rule as the native one: a
@@ -270,7 +279,16 @@ export function GlobeView({
 
   useEffect(() => {
     if (palaeoFrame === null) return;
-    sceneRef.current?.retargetPalaeoMotion(palaeoFrame);
+    const scene = sceneRef.current;
+    if (scene === null) return;
+    // Same rule as the synchronous pose above: the asynchronous retarget is one
+    // frame of an optional layer and never a reason to unmount the scene.
+    try {
+      scene.retargetPalaeoMotion(palaeoFrame);
+    } catch (error) {
+      scene.notePalaeoMotionFallback(error instanceof Error ? error.message
+        : "palaeo-coastline pose failed");
+    }
   }, [palaeoFrame]);
 
   useEffect(() => {

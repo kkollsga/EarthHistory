@@ -20,7 +20,7 @@ import { createPalaeoTriangulationRunner, type PalaeoTriangulationRunner } from 
 import { createPreparedCaoPalaeoInterval, evaluateCaoPalaeoIntervalFrame,
   type CaoPalaeoIntervalFrame, type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
 import { loadVerifiedBytes } from "./assetLoader";
-import type { PalaeoSurfaceClass } from "./palaeoRings";
+import { palaeoIntervalCoversAge, type PalaeoSurfaceClass } from "./palaeoRings";
 import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type PalaeoCoastlineSurfaceClassId,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -37,6 +37,31 @@ import type { PreparedPaletteEntry } from "./palette";
  * always lands inside the range and never inside the neighbour's.
  */
 const PALAEO_INTERVAL_EDGE_MA = 0.001;
+
+/**
+ * The age one interval's lifecycles may be judged at: the requested age, held
+ * inside that interval's own half-open `(TOAGE, FROMAGE]` range.
+ *
+ * Every evaluation of a map interval passes through this, because the interval
+ * a caller holds is not always one that contains the age. Two ways it is not.
+ * Across a boundary the outgoing map is still the geometry on screen while the
+ * live age has already moved into the next interval. And inside the 0.01 Ma
+ * seam between two adjacent published intervals — the ages the padded exclusive
+ * bound `58.01` leaves above the neighbour's inclusive `58` — the selector
+ * deliberately answers the older interval rather than no map at all, so the age
+ * it hands back is a hair *below* that interval's own young edge. Passing
+ * either age through unheld made `evaluateCaoPalaeoIntervalFrame` throw out of
+ * the render-loop effect, which unmounted the globe: measured 2026-09-17 at the
+ * 58 Ma end of a 117 -> 58 scrub, where the slider's round-trip lands the age
+ * at 58.00000000000009 and the seam fallback answers `81-58`.
+ */
+function palaeoSupportAgeMa(
+  interval: { readonly fromAgeMa: number; readonly toAgeMa: number },
+  requestedAgeMa: number,
+): number {
+  return Math.min(interval.fromAgeMa,
+    Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
+}
 
 /** Background warming waits until the foreground age has rested this long. */
 export const CAO_FOREGROUND_SETTLE_MS = 250;
@@ -162,6 +187,13 @@ export class CaoReconstructionRuntime {
   private palaeoPreparingIntervalId: string | null = null;
   private palaeoBackgroundComplete = false;
   private readonly palaeoPreparedIntervalIds = new Set<string>();
+  /**
+   * Frames the synchronous pose declined to evaluate, cumulative for the life
+   * of the runtime. A scrub that leaves this at 0 never had to skip; a rising
+   * count is the layer standing on its previous pose, which is visible only
+   * here.
+   */
+  private palaeoSkippedFrames = 0;
   /**
    * Foreground `requestPalaeoInterval` calls still in flight. The scheduler
    * starts no job while this is above zero: a background fetch and decode must
@@ -298,6 +330,7 @@ export class CaoReconstructionRuntime {
       preparingIntervalId: this.palaeoPreparingIntervalId,
       backgroundPreparationComplete: this.palaeoBackgroundComplete,
       intervalStore: palaeoStore, preparedLeaseCount: this.chains.interval.leases.size,
+      skippedFrames: this.palaeoSkippedFrames,
       totalSourceBytes: palaeoCatalogBytes + palaeoToneBytes + palaeoStore.residentSourceBytes
         + palaeoStore.pendingReservedSourceBytes });
     return Object.freeze({ foundationResidentSourceBytes,
@@ -613,6 +646,16 @@ export class CaoReconstructionRuntime {
   ): CaoPalaeoIntervalFrame | null {
     const resident = this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null);
     if (resident === null) return null;
+    // The clamp above is the contract; this is the assertion that it held. A
+    // pose is one frame of an optional layer, so an age this runtime cannot
+    // honour against the interval it holds skips the frame — the previous pose
+    // stands — rather than throwing into the render loop that called it.
+    if (!Number.isFinite(resident.poseAgeMa)
+        || !palaeoIntervalCoversAge(resident.supportAgeMa,
+          resident.interval.fromAgeMa, resident.interval.toAgeMa)) {
+      this.palaeoSkippedFrames += 1;
+      return null;
+    }
     return evaluateCaoPalaeoIntervalFrame(
       resident.interval, resident.paletteEntries, resident.poseAgeMa, resident.supportAgeMa);
   }
@@ -661,8 +704,11 @@ export class CaoReconstructionRuntime {
     const interval = published
       ?? (record ? this.residentInterval(record.intervalId) : null);
     if (!interval) return null;
-    const supportAgeMa = published === null ? requestedAgeMa
-      : Math.min(interval.fromAgeMa, Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
+    // Held for every interval, not only the outgoing one: the selector's seam
+    // fallback answers an interval that does not contain the age either, and
+    // that age reaches here with `published === null` because the seam's own
+    // interval is the one already published.
+    const supportAgeMa = palaeoSupportAgeMa(interval, requestedAgeMa);
     const paletteEntries = this.residentPaletteEntries();
     return paletteEntries === null ? null
       : { interval, paletteEntries, poseAgeMa: requestedAgeMa, supportAgeMa };
@@ -704,7 +750,8 @@ export class CaoReconstructionRuntime {
     if (!this.palaeoEnabled || serial !== this.chains.interval.serial || this.lifetime.signal.aborted) {
       throw new DOMException("stale palaeo-coastline motion evaluation", "AbortError");
     }
-    return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
+    return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa,
+      palaeoSupportAgeMa(interval, requestedAgeMa));
   }
 
   /**
@@ -946,7 +993,8 @@ export class CaoReconstructionRuntime {
     requireCurrent();
     const paletteEntries = await this.palaeoPaletteEntries();
     requireCurrent();
-    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
+    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa,
+      palaeoSupportAgeMa(interval, requestedAgeMa));
     const baseColorRgb = Object.fromEntries(palaeo.classes.map((entry) =>
       [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
       readonly [number, number, number]>;
