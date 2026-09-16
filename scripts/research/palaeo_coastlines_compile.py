@@ -134,6 +134,11 @@ OVERRIDE_MAJORITY_FRACTION = 0.5
 SEAM_INTERIOR_MARGIN_DEGREES = 0.08
 # Gap components smaller than this are Boolean noise, not a visible hairline.
 SEAM_MINIMUM_GAP_KM2 = 0.05
+# How close a sub-floor cut fragment has to lie to another piece of the same
+# record before it counts as interior ground the cookie cut split off rather than
+# a free-standing speck. Boolean output is adjacent to within rounding, so this is
+# a rounding tolerance (about 0.1 m at the equator), not a search radius.
+SLIVER_MERGE_DEGREES = 1e-6
 RESTORATION_PREFIX = "restoration-"
 RECOVERY_PREFIX = "native-recovery-plate-"
 # The editorial line every basin-edited chart carries, and the prefix each
@@ -820,11 +825,41 @@ def owner_priority(partition: dict) -> tuple:
             partition["sourceOrder"], partition["geometryIndex"])
 
 
+def merge_sliver(pieces: list[list], sliver) -> bool:
+    """Give one sub-floor cut fragment to the adjacent piece of the same record.
+
+    A fragment below ``MIN_PIECE_KM2`` that touches another piece of the same
+    record is interior ground, not an island: dropping it punches a hole through
+    which the darker crust, or the sphere, shows at closest zoom. The fragment is
+    unioned into the adjacent piece instead, so the record stays gap-free and
+    still has exactly one owner per piece - the adjacent piece's partition, whose
+    plate then carries those few square kilometres. A fragment that touches
+    nothing is a genuine speck below the class floor and is still dropped by the
+    caller. Returns whether the fragment found a neighbour.
+    """
+    nearest: list | None = None
+    nearest_distance = math.inf
+    for entry in pieces:
+        distance = float(entry[1].distance(sliver))
+        if distance < nearest_distance:
+            nearest_distance = distance
+            nearest = entry
+    if nearest is None or nearest_distance > SLIVER_MERGE_DEGREES:
+        return False
+    merged = polygonal(unary_union([nearest[1], sliver]))
+    if merged.is_empty:
+        return False
+    nearest[1] = merged
+    nearest[2] = area_km2(merged)
+    return True
+
+
 def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tuple[int, object, float]], float, int]:
     """Cut one source ring into disjoint pieces, each owned by exactly one partition."""
     candidates = sorted((int(index) for index in tree.query(geometry)),
                         key=lambda index: owner_priority(partitions[index]))
-    pieces: list[tuple[int, object, float]] = []
+    pieces: list[list] = []
+    slivers: list[object] = []
     dropped_area = 0.0
     dropped_pieces = 0
     remaining = geometry
@@ -838,16 +873,21 @@ def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tu
         remaining = polygonal(remaining.difference(partition["geometry"]))
         value = area_km2(piece)
         if value < MIN_PIECE_KM2:
-            dropped_area += value
-            dropped_pieces += 1
+            # Held back, not judged yet: whether this is an interior fragment or a
+            # free-standing speck depends on the pieces the rest of the cut keeps.
+            slivers.append(piece)
             continue
-        pieces.append((index, piece, value))
-    if not remaining.is_empty:
-        value = area_km2(remaining)
-        if value > 0:
-            dropped_area += value
-            dropped_pieces += 1
-    return pieces, dropped_area, dropped_pieces
+        pieces.append([index, piece, value])
+    # Ground no partition claimed is the same kind of fragment: interior where it
+    # touches the record's kept pieces, unmapped ocean floor where it does not.
+    if not remaining.is_empty and area_km2(remaining) > 0:
+        slivers.append(remaining)
+    for sliver in slivers:
+        if merge_sliver(pieces, sliver):
+            continue
+        dropped_area += area_km2(sliver)
+        dropped_pieces += 1
+    return [(entry[0], entry[1], entry[2]) for entry in pieces], dropped_area, dropped_pieces
 
 
 def seam_gap_inside(entries: list[dict]) -> bool:
