@@ -1,7 +1,8 @@
 import { packageFrameIdentity } from "./identity";
 import {
-  CaoCheckpointStore,
-  CaoPalaeoIntervalStore,
+  CaoSurfaceResidencyStore,
+  checkpointUnit,
+  intervalUnit,
   loadVerifiedCaoFoundationMetadata,
   loadVerifiedCaoFullMotionPalette,
   loadVerifiedCaoStaticFoundation,
@@ -9,6 +10,7 @@ import {
   selectPalaeoIntervalForAge,
   warmVerifiedCaoCheckpointAssets,
   type LoadedCaoFoundation,
+  type SurfaceUnitId,
   type LoadedPalaeoClassCatalog,
   type LoadedPalaeoInterval,
 } from "./loaderV2";
@@ -74,7 +76,12 @@ export class CaoReconstructionRuntime {
     status: "idle", foregroundStatus: "idle", requestedAgeMa: null, error: null,
   });
   private readonly timelineListeners = new Set<(state: CaoTimelineLoadingState) => void>();
-  private checkpointStore: CaoCheckpointStore | null = null;
+  /**
+   * One residency owner over both streaming units. Which bounded cache a
+   * `SurfaceUnitId` belongs to, and whether the palaeo half exists at all, is
+   * its question rather than this class's.
+   */
+  private readonly surfaces: CaoSurfaceResidencyStore;
   private readonly leases = new Map<string, () => void>();
   /**
    * Palaeo-coastline mode runs its own request chain: its own serial, abort
@@ -88,7 +95,6 @@ export class CaoReconstructionRuntime {
   private palaeoCatalogs: Promise<readonly LoadedPalaeoClassCatalog[]> | null = null;
   private resolvedPalaeoCatalogs: readonly LoadedPalaeoClassCatalog[] | null = null;
   private palaeoPendingIntervalId: string | null = null;
-  private palaeoStore: CaoPalaeoIntervalStore | null = null;
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
   private palaeoOutlineTones: Promise<Uint8Array> | null = null;
   private readonly palaeoLeases = new Map<string, () => void>();
@@ -97,6 +103,7 @@ export class CaoReconstructionRuntime {
 
   constructor(manifest: ReconstructionPackageManifestV2, private readonly fetcher: StaticAssetFetcher) {
     this.manifest = immutableReconstructionPackageManifestV2(manifest);
+    this.surfaces = new CaoSurfaceResidencyStore(this.manifest, fetcher);
     this.metadata = loadVerifiedCaoFoundationMetadata(this.manifest, fetcher, this.lifetime.signal);
     this.staticFoundation = this.metadata.then((metadata) =>
       loadVerifiedCaoStaticFoundation(this.manifest, metadata, fetcher, this.lifetime.signal));
@@ -147,14 +154,14 @@ export class CaoReconstructionRuntime {
     if (this.lifetime.signal.aborted) return;
     const foundation = await this.staticFoundation;
     if (this.lifetime.signal.aborted || signal?.aborted) return;
-    const store = this.checkpointStore ??= new CaoCheckpointStore(this.manifest, foundation.core, this.fetcher);
+    this.surfaces.checkpointStore(foundation.core);
     const unique = [...new Set(ageMaList.filter((age) => this.manifest.checkpoints
       .some((checkpoint) => checkpoint.ageMa === age)))].slice(0, 2);
     await Promise.all(unique.map(async (age) => {
       this.checkpointDemandAges.add(age);
       try {
-        const loaded = await store.load(age, signal);
-        this.warmedCheckpointAges.add(loaded.checkpoint.ageMa);
+        const loaded = await this.surfaces.load(checkpointUnit(age), signal);
+        if (loaded.kind === "checkpoint") this.warmedCheckpointAges.add(loaded.value.checkpoint.ageMa);
       } catch {
         // Prefetch remains opportunistic; a foreground prepare reports its own failure.
       } finally {
@@ -167,12 +174,10 @@ export class CaoReconstructionRuntime {
     this.active?.abort();
     this.background?.abort();
     this.lifetime.abort();
-    this.checkpointStore?.dispose();
     this.palaeoActive?.abort();
     this.palaeoCatalogController?.abort();
-    this.palaeoStore?.dispose();
+    this.surfaces.dispose();
     this.palaeoRunner?.dispose();
-    this.palaeoStore = null;
     this.palaeoRunner = null;
     this.palaeoCatalogs = null;
     this.resolvedPalaeoCatalogs = null;
@@ -193,15 +198,12 @@ export class CaoReconstructionRuntime {
   }
 
   get ledger() {
-    const checkpoint = this.checkpointStore?.ledger ?? { residentCount: 0, pendingCount: 0,
-      residentSourceBytes: 0, pendingReservedSourceBytes: 0, maximumResidentCount: 2, maximumPendingCount: 2 };
+    const checkpoint = this.surfaces.checkpointLedger;
     const motionBytes = this.fullPaletteEntries ? this.manifest.motionPalette.binary.bytes : 0;
     const foundationResidentSourceBytes = this.foundationStaticSourceBytes + motionBytes;
     const foregroundReservedSourceBytes = this.fullPaletteEntries || !this.motionPalettePending
       ? 0 : this.manifest.motionPalette.binary.bytes;
-    const palaeoStore = this.palaeoStore?.ledger ?? { residentCount: 0, pendingCount: 0,
-      residentSourceBytes: 0, pendingReservedSourceBytes: 0, maximumResidentCount: 2,
-      maximumPendingCount: 2, maximumResidentSourceBytes: 0 };
+    const palaeoStore = this.surfaces.intervalLedger;
     const palaeoCatalogBytes = this.resolvedPalaeoCatalogs
       ? this.resolvedPalaeoCatalogs.reduce((sum, entry) => sum + entry.asset.bytes, 0) : 0;
     const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
@@ -401,8 +403,7 @@ export class CaoReconstructionRuntime {
     this.palaeoCatalogController = null;
     this.palaeoCatalogs = null;
     this.resolvedPalaeoCatalogs = null;
-    this.palaeoStore?.dispose();
-    this.palaeoStore = null;
+    this.surfaces.detachIntervals();
     this.palaeoRunner?.dispose();
     this.palaeoRunner = null;
     this.palaeoOutlineTones = null;
@@ -501,7 +502,7 @@ export class CaoReconstructionRuntime {
         || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
-    this.palaeoStore?.noteCurrentAge(requestedAgeMa);
+    this.surfaces.noteCurrentAge(requestedAgeMa);
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     // The geometry on screen is the published interval's. Once the age has
     // crossed a boundary the incoming interval is not published yet, and posing
@@ -511,14 +512,20 @@ export class CaoReconstructionRuntime {
     // the last age the drawn geometry can honestly carry, for the one or two
     // frames the swap takes.
     const published = publishedIntervalId === null || record?.intervalId === publishedIntervalId
-      ? null : this.palaeoStore?.residentInterval(publishedIntervalId) ?? null;
+      ? null : this.residentInterval(publishedIntervalId);
     const interval = published
-      ?? (record ? this.palaeoStore?.residentInterval(record.intervalId) ?? null : null);
+      ?? (record ? this.residentInterval(record.intervalId) : null);
     if (!interval) return null;
     const poseAgeMa = published === null ? requestedAgeMa
       : Math.min(interval.fromAgeMa, Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
     const paletteEntries = this.residentPaletteEntries();
     return paletteEntries === null ? null : { interval, paletteEntries, poseAgeMa };
+  }
+
+  /** A map interval already decoded, without starting a load of any kind. */
+  private residentInterval(intervalId: string): LoadedPalaeoInterval | null {
+    const resident = this.surfaces.resident(intervalUnit(intervalId));
+    return resident?.kind === "interval" ? resident.value : null;
   }
 
   /** The palette entries already in hand: the whole palette, or nothing yet. */
@@ -541,8 +548,7 @@ export class CaoReconstructionRuntime {
     if (!catalogs) return null;
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     if (!record) return null;
-    const store = this.palaeoStore;
-    const interval = store?.residentInterval(record.intervalId) ?? null;
+    const interval = this.residentInterval(record.intervalId);
     if (!interval) return null;
     const serial = this.palaeoSerial;
     const paletteEntries = await this.palaeoPaletteEntries();
@@ -600,18 +606,19 @@ export class CaoReconstructionRuntime {
       this.resolvedPalaeoCatalogs = catalogs;
       const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
       if (!record) return;
-      await this.palaeoIntervalStore(palaeo, catalogs).load(record.intervalId, signal);
+      this.attachIntervalStore(palaeo, catalogs);
+      await this.surfaces.load(intervalUnit(record.intervalId), signal);
     } catch {
       // Prefetch stays opportunistic; a foreground request reports its own failure.
     }
   }
 
-  private palaeoIntervalStore(
+  private attachIntervalStore(
     palaeo: NonNullable<ReconstructionPackageManifestV2["palaeoCoastlines"]>,
     catalogs: readonly LoadedPalaeoClassCatalog[],
-  ): CaoPalaeoIntervalStore {
+  ): void {
     this.palaeoRunner ??= createPalaeoTriangulationRunner();
-    return this.palaeoStore ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, this.palaeoRunner);
+    this.surfaces.intervalStore(palaeo, catalogs, this.palaeoRunner);
   }
 
   /**
@@ -646,11 +653,13 @@ export class CaoReconstructionRuntime {
     this.resolvedPalaeoCatalogs = catalogs;
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     if (!record) throw new Error("no palaeo-coastline interval covers the requested age");
-    const store = this.palaeoIntervalStore(palaeo, catalogs);
+    this.attachIntervalStore(palaeo, catalogs);
     // The foreground age is what residency is kept around: a prefetched
     // neighbour must not be evicted for being the one nobody has read yet.
-    store.noteCurrentAge(requestedAgeMa);
-    const interval = await store.load(record.intervalId, signal);
+    this.surfaces.noteCurrentAge(requestedAgeMa);
+    const loaded = await this.surfaces.load(intervalUnit(record.intervalId), signal);
+    if (loaded.kind !== "interval") throw new Error("palaeo-coastline request resolved a native unit");
+    const interval = loaded.value;
     requireCurrent();
     const paletteEntries = await this.palaeoPaletteEntries();
     requireCurrent();
@@ -673,12 +682,17 @@ export class CaoReconstructionRuntime {
     const { foundation: motionFoundation, sourceBytes: motionSourceBytes } =
       await this.foundationForAge(requestedAgeMa);
     if (signal.aborted || requestId !== this.serial) throw new DOMException("stale Cao revision", "AbortError");
-    const store = this.checkpointStore ??= new CaoCheckpointStore(this.manifest, motionFoundation.core, this.fetcher);
+    this.surfaces.checkpointStore(motionFoundation.core);
     this.checkpointDemandAges.add(youngerAsset.ageMa);
     this.checkpointDemandAges.add(olderAsset.ageMa);
-    const youngerTask = store.load(youngerAsset.ageMa, signal);
+    const loadCheckpoint = async (ageMa: number) => {
+      const loaded = await this.surfaces.load(checkpointUnit(ageMa), signal);
+      if (loaded.kind !== "checkpoint") throw new Error("Cao request resolved a palaeo unit");
+      return loaded.value;
+    };
+    const youngerTask = loadCheckpoint(youngerAsset.ageMa);
     const olderTask = olderAsset.ageMa === youngerAsset.ageMa ? youngerTask
-      : store.load(olderAsset.ageMa, signal);
+      : loadCheckpoint(olderAsset.ageMa);
     let youngerLoaded: Awaited<typeof youngerTask>;
     let olderLoaded: Awaited<typeof olderTask>;
     try {

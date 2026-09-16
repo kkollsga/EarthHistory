@@ -870,3 +870,188 @@ export class CaoPalaeoIntervalStore {
     waiter.resolve();
   }
 }
+
+// ---------------------------------------------------------------------------
+// one residency store over both surface units
+// ---------------------------------------------------------------------------
+
+/**
+ * The streaming unit of the surface pipeline.
+ *
+ * The two arms stream different things — a Cao 2024 checkpoint is addressed by
+ * its exact age, a Cao 2017 map interval by its published id — but everything
+ * above the stores treats them the same way: request one, wait for it, hold it
+ * resident while it is drawn, let it go. Naming the union once is what lets the
+ * residency store and the request chain stop carrying two of everything.
+ */
+export type SurfaceUnitId =
+  | { readonly kind: "checkpoint"; readonly ageMa: number }
+  | { readonly kind: "interval"; readonly id: string };
+
+export function checkpointUnit(ageMa: number): SurfaceUnitId {
+  return Object.freeze({ kind: "checkpoint" as const, ageMa });
+}
+
+export function intervalUnit(id: string): SurfaceUnitId {
+  return Object.freeze({ kind: "interval" as const, id });
+}
+
+/** A stable string for map keys and identity comparisons. */
+export function surfaceUnitKey(unit: SurfaceUnitId): string {
+  return unit.kind === "checkpoint" ? `checkpoint:${unit.ageMa}` : `interval:${unit.id}`;
+}
+
+export function surfaceUnitsEqual(left: SurfaceUnitId | null, right: SurfaceUnitId | null): boolean {
+  if (left === null || right === null) return left === right;
+  return surfaceUnitKey(left) === surfaceUnitKey(right);
+}
+
+export type LoadedSurfaceUnit =
+  | { readonly kind: "checkpoint"; readonly ageMa: number; readonly value: LoadedCaoCheckpoint }
+  | { readonly kind: "interval"; readonly id: string; readonly value: LoadedPalaeoInterval };
+
+/**
+ * Units whose bytes are never evicted while the package is open.
+ *
+ * The Cao 2024 land and shelf batches, the material corrections and the
+ * restored pre-collision margin are the geometry every composition falls back
+ * to — a fallback age, a loading interval and the LGM lowstand all draw them —
+ * so evicting them buys nothing and costs a refetch on the frame that needs
+ * them most. They are loaded once with the static foundation and pinned here so
+ * the policy is stated where the LRU that governs everything else is stated.
+ */
+export const PINNED_SURFACE_UNIT_IDS: readonly string[] = Object.freeze([
+  "batch-land", "batch-shelf", "corrections", "restored-margin",
+]);
+
+/**
+ * The residency policy the surface pipeline runs under.
+ *
+ * `releaseReplacedNativeGpuBuffers` is the D1 knob. In the `realistic`
+ * composition the Cao 2017 map replaces the native land and shelf outright, so
+ * their GPU buffers are dead weight for as long as the band lasts and may be
+ * released and re-uploaded on exit. In `lgm` the native stack and the palaeo
+ * overlay draw at once, and at a fallback or still-loading age the native stack
+ * is the only thing on screen, so the release is refused there — releasing it
+ * would blank the globe.
+ */
+export interface SurfaceResidencyPolicy {
+  readonly pinnedUnitIds: readonly string[];
+  readonly maximumResidentIntervalBytes: number;
+  readonly maximumResidentIntervalCount: number;
+  readonly releaseReplacedNativeGpuBuffers: boolean;
+}
+
+export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
+  pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
+  maximumResidentIntervalBytes: PALAEO_INTERVAL_STORE_MAX_BYTES,
+  maximumResidentIntervalCount: PALAEO_RESIDENT_INTERVAL_COUNT,
+  releaseReplacedNativeGpuBuffers: true,
+});
+
+const ABSENT_CHECKPOINT_LEDGER = Object.freeze({
+  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
+  maximumResidentCount: 2, maximumPendingCount: 2,
+});
+
+const ABSENT_INTERVAL_LEDGER = Object.freeze({
+  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
+  maximumResidentCount: 2, maximumPendingCount: 2, maximumResidentSourceBytes: 0,
+});
+
+/**
+ * One residency owner over both stores.
+ *
+ * The bounded caches themselves stay as they are — a checkpoint is two resident
+ * and two unsettled loads keyed by age, an interval is three resident bounded
+ * by bytes and evicted by age distance — because they guard different failures.
+ * What this owns is everything that used to be duplicated above them: which
+ * store a `SurfaceUnitId` belongs to, when the palaeo half exists at all, the
+ * age eviction measures against, and the two ledgers reported upward. The
+ * ledger shapes are unchanged, including the values reported while a half is
+ * detached, because the engine ledger is a tested contract.
+ */
+export class CaoSurfaceResidencyStore {
+  private checkpoints: CaoCheckpointStore | null = null;
+  private intervals: CaoPalaeoIntervalStore | null = null;
+  private closed = false;
+
+  constructor(
+    private readonly manifest: ReconstructionPackageManifestV2,
+    private readonly fetcher: StaticAssetFetcher,
+    readonly policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
+  ) {}
+
+  /** The checkpoint half, created on first demand against the resident core. */
+  checkpointStore(core: ReconstructionCoreV2): CaoCheckpointStore {
+    if (this.closed) throw new Error("Cao surface residency store disposed");
+    return this.checkpoints ??= new CaoCheckpointStore(this.manifest, core, this.fetcher);
+  }
+
+  /** The interval half, created on first demand against the loaded catalogs. */
+  intervalStore(
+    palaeo: PalaeoCoastlineAssets,
+    catalogs: readonly LoadedPalaeoClassCatalog[],
+    runner: PalaeoTriangulationRunner,
+  ): CaoPalaeoIntervalStore {
+    if (this.closed) throw new Error("Cao surface residency store disposed");
+    return this.intervals ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, runner);
+  }
+
+  /** Whether the interval half exists; false means zero palaeo bytes are resident. */
+  get intervalsAttached(): boolean {
+    return this.intervals !== null;
+  }
+
+  /** Retires the interval half. Turning the mode off must leave nothing behind. */
+  detachIntervals(): void {
+    this.intervals?.dispose();
+    this.intervals = null;
+  }
+
+  dispose(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.checkpoints?.dispose();
+    this.detachIntervals();
+  }
+
+  get checkpointLedger() {
+    return this.checkpoints?.ledger ?? ABSENT_CHECKPOINT_LEDGER;
+  }
+
+  get intervalLedger() {
+    return this.intervals?.ledger ?? ABSENT_INTERVAL_LEDGER;
+  }
+
+  /** The age eviction measures against; a note, never a request. */
+  noteCurrentAge(requestedAgeMa: number): void {
+    this.intervals?.noteCurrentAge(requestedAgeMa);
+  }
+
+  /** A unit already decoded, without starting any load. */
+  resident(unit: SurfaceUnitId): LoadedSurfaceUnit | null {
+    if (unit.kind !== "interval") return null;
+    const interval = this.intervals?.residentInterval(unit.id) ?? null;
+    return interval === null ? null : Object.freeze({ kind: "interval" as const, id: unit.id, value: interval });
+  }
+
+  /**
+   * Loads a unit through whichever half owns it. The halves must already be
+   * attached: creating them needs the resident core or the loaded catalogs, and
+   * a caller that has neither has nothing to ask for yet.
+   */
+  async load(unit: SurfaceUnitId, signal?: AbortSignal): Promise<LoadedSurfaceUnit> {
+    if (this.closed) throw new Error("Cao surface residency store disposed");
+    if (unit.kind === "checkpoint") {
+      const store = this.checkpoints;
+      if (!store) throw new Error("Cao checkpoint store is not attached");
+      const value = await store.load(unit.ageMa, signal);
+      return Object.freeze({ kind: "checkpoint" as const, ageMa: unit.ageMa, value });
+    }
+    const store = this.intervals;
+    if (!store) throw new Error("palaeo-coastline interval store is not attached");
+    const value = await store.load(unit.id, signal);
+    return Object.freeze({ kind: "interval" as const, id: unit.id, value });
+  }
+}
