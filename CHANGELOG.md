@@ -75,6 +75,31 @@ All notable changes to EarthHistory will be recorded here.
   policy is unchanged and still applies to the Cao 2024 members. Proven by
   mutation: forcing a re-upload on a return visit and reversing the eviction
   order each fail the new cases, and both mutations were restored.
+### Added
+
+- **The palaeo bench measures a fast multi-boundary scrub and what the layer
+  keeps resident.** `scripts/bench/palaeo-coastlines-performance.mjs` gains two
+  transactions for the resident-intervals program, whose thresholds were written
+  before measuring in the plan and are carried in the stop rule beside the
+  result. `fastScrub117to58` drives 117 -> 58 Ma over 2 s in 40 steps from
+  inside the page — a driver round trip per step would cost more than the step
+  it places — across the 117-94 / 94-81 / 81-58 boundaries, and reports the
+  longest rAF interval, the frames over 33 ms, the interval publishes, and
+  whether the outgoing map kept being posed while the next one was prepared,
+  read from `window.__earthHistoryMotionProbe`. `residencyAfterWarmup` reads the
+  JS heap (Chrome `--enable-precise-memory-info`), `data-cao-foundation-gpu-bytes`
+  and `data-cao-foundation-static-bytes` 15 s after the layer has settled at
+  90 Ma, against a 0 Ma baseline outside the map domain. `--only=` narrows a
+  `--transactions-only` run to named transactions; a transaction it excludes is
+  reported as not measured and is judged by nothing rather than counted as a
+  pass, and a page error during a transaction fails the run whatever its frame
+  times say. The v0.1.20 baseline is recorded in
+  `docs/research/resident-intervals-baseline-v0.1.20.json`: the fast scrub's
+  longest frame is 133.3 ms against a 33 ms threshold and ends in
+  `palaeo-coastline age is outside the resident interval` with the globe canvas
+  gone, while heap growth (44.7 MB) and GPU residency (11.4 MB) are inside their
+  budgets.
+
 
 ## [0.1.20] - 2026-09-16
 ### Fixed
