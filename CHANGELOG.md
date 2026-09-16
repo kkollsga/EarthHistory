@@ -4,6 +4,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-09-16
+
 ### Added
 
 - **The palaeogeography layer is exportable as a citable dataset.**
