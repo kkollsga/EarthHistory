@@ -33,6 +33,18 @@ All notable changes to EarthHistory will be recorded here.
   resident at once beside the one a scrub sample is replacing. Every
   `data-cao-*` value is unchanged, and all three compositions draw what they
   drew.
+- **The map key stops saying "Loading timeline…" once the map is ready.** The
+  collapsed pill read `90 Ma ready · Loading timeline…` for minutes after the
+  globe finished drawing, because its suffix followed the background checkpoint
+  warm-up over the whole manifest — work that is age-independent, yields to
+  every gesture, and only reaches a terminal state once every checkpoint is
+  resident. The pill's line is now one tested function of the foreground
+  reconstruction alone: only a pending requested age produces a "Loading …"
+  line, and a ready surface reads `Cao surface`. Background warming, and a
+  paused warm-up, stay visible as hover text on the map key's status dot and as
+  the existing status rows with their Retry button inside the open panel. Every
+  `data-cao-*` diagnostic is unchanged.
+
 - **One residency store and one request chain behind the surface pipeline.**
   The two streaming units — a Cao 2024 checkpoint addressed by its age and a
   Cao 2017 map interval addressed by its published id — are named once as a
