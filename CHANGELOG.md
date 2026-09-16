@@ -4,6 +4,34 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Needle rings and spikes removed from every palaeo interval, and the Iceland
+  seam measured by plate ownership.** The 3-degree spike filter and the 1.5 km
+  hole-width floor the LGM derivation already used now run over all 24 Cao map
+  intervals as well, from the shared `scripts/research/palaeo_coastlines_rings.py`
+  the compiler and the LGM derivation both import; the compiler applies them to
+  the reduced piece after the seam and assembly rules and before int16
+  quantisation and declares the counts per class as `ringHygiene` in the
+  provenance sidecar. Measured over the whole compiled set, before to after:
+  landmass 739 to 0 needle interior rings, 119 to 0 sub-floor holes, 711 to 313
+  spike vertices, 3,529,672 to 3,510,508 bytes; shallow marine 161 to 0, 35 to
+  0, 1,821 to 685, 3,369,032 to 3,355,760 bytes; mountain 20 to 2, 6 to 0, 177
+  to 82, 1,196,994 to 1,195,834 bytes. The promoted public set moves 8,589,288
+  to 8,555,688 bytes and class area by at most 0.0008 %, against a 0.05 % gate.
+  Dropping the needles exposed a defect in the Iceland contract's seam witness:
+  it paired every western ground segment on a parallel against every eastern one
+  and kept the smallest gap, so a needle hole inside the western half ended a
+  segment at its wall 0.77 km from eastern ground the compiler's seam buffer had
+  already carried west of it, and that wall was read as the plate seam. The
+  separation is now measured between the two plates' facing extremities — the
+  west plate's easternmost ground on the parallel against the east plate's
+  westernmost — which no interior structure can reach. The four pinned parallels
+  are unchanged and so is the disagreement the witness records: 65.4 N 56.1 to
+  62.2 km, 65.6 N 57.5 to 58.6, 65.8 N 45.5 to 39.0, 66.0 N 19.7 to 19.7, all
+  inside the contract's 75 km tolerance, with the 5 km drift allowance kept
+  rather than widened.
+
 ### Changed
 
 - **One renderer publishes the whole surface set, in slots.** The globe no
