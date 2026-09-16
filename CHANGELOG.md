@@ -66,6 +66,24 @@ All notable changes to EarthHistory will be recorded here.
   outline is bound to its own palette entry, so no pair matches on the binding
   and the guard holds every line. The dedupe is the load-time contract, not a
   measured saving.
+- **The interval-crossing transaction is measurable, and the captures reach the
+  LGM.** `scripts/bench/palaeo-coastlines-performance.mjs` drives its
+  transactions in a second Chrome without `--disable-frame-rate-limit`: with
+  that flag the 94 -> 80 Ma crossing never completes — the age arrives but the
+  layer stays at `mode=loading` with an empty interval id past 60 s — which is
+  why threshold 3 of the Phase 10 stop rule had no number. One flag at a time
+  isolated it, and the stuck page's timers were measured and cleared (a 0 ms
+  timer fired in 2.9 ms). The frame metric keeps the uncapped browser it needs;
+  the transactions are wall-clock and never did. `capture-palaeo-coastlines.mjs`
+  gains the LGM lowstand pair `11-21ka-doggerland-closest-{off,on}` at 21 ka
+  over the southern North Sea, zoomed by camera distance rather than by a fixed
+  wheel count and released by the published interval id `lgm` under a
+  first-publication budget of its own. The layer-toggle transaction in the same
+  runner was clicking a control by its old label, "Palaeo-coastlines (Cao
+  2017)", which the product renamed to "Realistic coastlines": the click
+  expired at 30 s in both browsers, so that transaction is now driven by the
+  current label. All nine transactions are measured. Thresholds are unchanged;
+  no product code moved.
 
 - **One residency store and one request chain behind the surface pipeline.**
   The two streaming units — a Cao 2024 checkpoint addressed by its age and a
