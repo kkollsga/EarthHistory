@@ -12,6 +12,7 @@ import {
   validateSpatialBatchSurfaceAppearanceV2,
   type StaticAssetFetcher,
 } from "../../reconstruction";
+import type { CaoPalaeoDomainBand } from "./surfaceVisibility";
 import { numberScalarOps } from "../../reconstruction/arithmetic";
 import {
   CAO_FOUNDATION_COUNTRY_LINE_CULL_MARGIN_DEGREES,
@@ -1749,6 +1750,47 @@ describe("Cao foundation renderer boundary", () => {
     surface.publish({ ...second, identity: "cao@r1:1b", requestId: 4 }, 8);
     expect(staticRetirement.pendingCount()).toBe(1);
     staticCompletions.shift()?.();
+    surface.disposeForRendererTeardown();
+  });
+
+  it("draws exactly the classes a composition's slots assign", () => {
+    const parent = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(parent,
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
+    surface.publish(palaeoRevision(), 8);
+    const drawn = () => new Set(parent.children.flatMap((member) => member.children)
+      .filter((child) => child.visible && child.userData.surfaceClass !== undefined)
+      .map((child) => child.userData.surfaceClass as CaoFoundationSurfaceClass));
+    const resolved = (band: CaoPalaeoDomainBand) => resolveSurfaceVisibility({
+      layerEnabled: band !== "none", band, published: band !== "none",
+      hysteresis: { visible: band !== "none", band, pendingFrames: 0 },
+    });
+
+    // Today's composition: the Cao 2024 fills and their land-appearance
+    // corrections, and nothing the Cao 2017 map would draw.
+    const native = resolved("none");
+    expect(native.composition).toBe("native");
+    surface.applySurfaceComposition(native.visibleClasses, native.nativeSurfaceMode);
+    expect(drawn()).toEqual(new Set(["shelf", "corrections", "land"]));
+
+    // The band: `lm` and `sm` replace today's land and crust shelf in their
+    // slots, the mountain slot is filled, and the corrections are hidden with
+    // the land they repaint. A restored margin, which this fixture has none of,
+    // stays and is repainted as shallow sea.
+    const realistic = resolved("cao-2017");
+    expect(realistic.composition).toBe("realistic");
+    expect(realistic.slots.land).toBe("palaeo-land");
+    expect(realistic.slots.continents).toBe("palaeo-shallow-marine");
+    expect(realistic.slots.mountain).toBe("palaeo-mountain");
+    surface.applySurfaceComposition(realistic.visibleClasses, realistic.nativeSurfaceMode);
+    expect(drawn()).toEqual(new Set(["palaeo-shallow-marine", "palaeo-land", "palaeo-mountain"]));
+
+    // The lowstand draws over today's composition rather than instead of it.
+    const lgm = resolved("lgm");
+    expect(lgm.composition).toBe("lgm");
+    surface.applySurfaceComposition(lgm.visibleClasses, lgm.nativeSurfaceMode);
+    expect(drawn()).toEqual(new Set(["shelf", "corrections", "land",
+      "palaeo-shallow-marine", "palaeo-land", "palaeo-mountain"]));
     surface.disposeForRendererTeardown();
   });
 

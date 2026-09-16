@@ -1291,6 +1291,26 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
     }
   }
 
+  /**
+   * Draws exactly the classes the composition's slots assign, and repaints the
+   * one class whose appearance depends on the mode. Overlay children — the
+   * borders and tectonics layers — carry no surface class and are left to the
+   * layer switch, so a hidden layer is not resurrected by a composition change.
+   */
+  setVisibleSurfaceClasses(
+    visible: ReadonlySet<CaoFoundationSurfaceClass>,
+    palaeoAppearance: boolean,
+  ): void {
+    for (const child of this.group.children) {
+      const surfaceClass = child.userData.surfaceClass as CaoFoundationSurfaceClass | undefined;
+      if (surfaceClass === undefined) continue;
+      child.visible = visible.has(surfaceClass);
+      const mix = child.userData.palaeoAppearanceMix as
+        UniformNode<"float", number> | null | undefined;
+      if (mix) mix.value = palaeoAppearance ? 1 : 0;
+    }
+  }
+
   setNativeBoundaryLayerVisibility(visible: boolean): void {
     if (this.nativeBoundaryObject) {
       this.nativeBoundaryObject.visible = visible
@@ -2774,6 +2794,29 @@ export class CaoFoundationSurfaceRenderer {
   setPalaeoCoastlineMode(on: boolean): CaoFoundationDiagnostics {
     this.palaeoCoastlineMode = on;
     this.publisher.current()?.resources.member("native")?.setPalaeoCoastlineMode(on);
+    return this.diagnostics("native");
+  }
+
+  /**
+   * Applies one resolved composition to the whole set: the classes its slots
+   * assign are the classes drawn, in every member.
+   *
+   * The slot table is the source — `land` carries the Cao 2024 coast fill in
+   * the native composition and the Cao 2017 `lm` batch in the realistic one, and
+   * the mountain slot is filled only there — so the renderer no longer derives
+   * what to draw from a mode flag. The appearance mix stays a Cao 2024 answer:
+   * the restored margin is repainted as shallow sea where the map replaces land,
+   * while the map interval's own charts are always drawn in their own tones.
+   */
+  applySurfaceComposition(
+    visibleClasses: ReadonlySet<CaoFoundationSurfaceClass>,
+    nativeSurfaceMode: CaoFoundationSurfaceMode,
+  ): CaoFoundationDiagnostics {
+    this.palaeoCoastlineMode = nativeSurfaceMode === "palaeo";
+    for (const [unit, member] of this.publisher.current()?.resources.entries() ?? []) {
+      member.setVisibleSurfaceClasses(visibleClasses,
+        unit === "native" ? this.palaeoCoastlineMode : true);
+    }
     return this.diagnostics("native");
   }
 

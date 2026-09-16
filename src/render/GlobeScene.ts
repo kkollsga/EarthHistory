@@ -1542,7 +1542,12 @@ export class GlobeScene {
     // drawn over today's land rather than instead of it.
     const palaeoMode = resolved.nativeSurfaceMode === "palaeo";
     if (palaeoMode !== (this.caoFoundationRenderer.surfaceMode() === "palaeo")) {
-      this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+      // The slots decide what is drawn: land and continents carry the Cao 2017
+      // `lm`/`sm` batches inside the band and the Cao 2024 fills outside it, the
+      // mountain slot is filled only there, and the land-appearance corrections
+      // are hidden wherever the map replaces land.
+      this.caoFoundationRenderer.applySurfaceComposition(
+        resolved.visibleClasses, resolved.nativeSurfaceMode);
       // D1. The composition decides which native classes it replaces outright;
       // their vertex and index buffers are handed back for as long as it lasts
       // and uploaded again on the way out. The CPU source stays resident, so
