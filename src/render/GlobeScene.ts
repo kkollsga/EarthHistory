@@ -1595,13 +1595,21 @@ export class GlobeScene {
     // tables are fetched once per enablement and stay resident across a scrub,
     // but they tone nothing at a fallback age — `applyCountryLineToneTable`
     // clears the table there — so a fallback reports zero exactly as its
-    // interval id, its charts and its triangles do.
-    const assetBytes = drawn
-      ? this.palaeoIntervalSourceBytes + (this.palaeoTonePayload?.byteLength ?? 0) : 0;
+    // interval id, its charts and its triangles do. `caoPalaeoAssetBytes` keeps
+    // its historical meaning (drawn interval + the resident tone table, the
+    // 2026-09-15 bench rows read it that way); the two halves are published
+    // beside it so a comparison can tell a payload change from a tone-table
+    // change — the 1:50m outlines grew the table 75,332 → 319,082 B, which
+    // read as a per-interval "+59–196 %" in the P6 record until separated.
+    const intervalBytes = drawn ? this.palaeoIntervalSourceBytes : 0;
+    const toneBytes = drawn ? this.palaeoTonePayload?.byteLength ?? 0 : 0;
+    const assetBytes = intervalBytes + toneBytes;
     if (intervalId !== this.reportedPalaeoIntervalId || assetBytes !== this.reportedPalaeoAssetBytes) {
       this.reportedPalaeoIntervalId = intervalId;
       this.reportedPalaeoAssetBytes = assetBytes;
       dataset.caoPalaeoIntervalId = intervalId ?? "";
+      dataset.caoPalaeoIntervalBytes = String(intervalBytes);
+      dataset.caoPalaeoToneBytes = String(toneBytes);
       dataset.caoPalaeoAssetBytes = String(assetBytes);
     }
     this.applyCountryLineToneTable(resolved.mode === "on");
