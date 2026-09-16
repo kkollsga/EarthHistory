@@ -505,32 +505,59 @@ function createCaoGpuRetirementOwner(
 }
 
 /**
- * Bounds for the palaeo-coastline instance. It streams one Cao 2017 map
- * interval at a time, so it replaces static geometry where the native instance
- * never may.
+ * Bounds for the whole surface set: the Cao 2024 units and the Cao 2017 map
+ * interval that replaces them in the land, continents and mountain slots.
  *
- * Measured 2026-09-15 over the promoted `lm`+`sm`+`m` set, after the cookie-cut
- * seam buffer and the 1,000 km frame-conflict drop: the worst interval refines
- * to 393,375 vertices and 605,192 triangles (the promoted manifest's own
- * reservation), against 300,697 / 483,487 before the seam buffer. The limits
- * below keep about a quarter of headroom over that, as they did before. The
- * refined counts are roughly 1.9x the compiler's own triangle estimate, because
- * this runtime bisects conformingly while the compiler models each triangle
- * alone; the 1 degree edge bound is the chord-sag contract and cannot be relaxed
- * to bring it down. One resource and 40 MiB of retirement cover a single
- * interval swap; the publication ledger is a palette and per-chart pose table
- * only.
+ * One renderer holds both, so the ceilings are the union of what each instance
+ * reserved before, not the larger of the two. Probed on the loaded public
+ * package 2026-09-16: 404,888 Cao 2024 surface vertices and 574,075 triangles,
+ * plus 51,048 country segments at 1:50m — drawn as screen-space quads, four
+ * expanded corners and two triangles each — preflighting at 609,080 vertices
+ * and 676,171 triangles. Measured 2026-09-15 over the promoted `lm`+`sm`+`m`
+ * set, after the cookie-cut seam buffer and the 1,000 km frame-conflict drop:
+ * the worst map interval refines to 393,375 vertices and 605,192 triangles (the
+ * promoted manifest's own reservation). The refined counts are roughly 1.9x the
+ * compiler's own triangle estimate, because this runtime bisects conformingly
+ * while the compiler models each triangle alone; the 1 degree edge bound is the
+ * chord-sag contract and cannot be relaxed to bring it down.
+ *
+ * The union of the two worst cases is about 1.00 M vertices and 1.28 M
+ * triangles, which the ceilings below carry with the same headroom each
+ * instance kept. Retained source is 48 + 30 MiB minus the headroom that was
+ * duplicated.
+ *
+ * The publication ledger is the one number the union is not simply the larger
+ * of: it now holds both members at once. Measured on the loaded public package
+ * 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a 5,675-entry
+ * palette, its per-chart pose table, the exact-knot boundary and ownership
+ * layers and the outline tone texture. A map-interval publication is a palette
+ * and a pose table only, under the 512 KiB its own instance reserved. Inside
+ * the band a scrub sample must fit beside both of those and beside the
+ * publication it replaces, which is still retiring behind the submission fence:
+ * 676 + 512 + 676 + 676 KiB is over 2 MiB, so 2 MiB would refuse a scrub sample
+ * and blank the globe. 4 MiB carries that worst case with the headroom the Cao
+ * 2024 arm had on its own.
  */
-const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
-  maxBatches: 64,
-  maxVertices: 500_000,
-  maxTriangles: 760_000,
-  maxRetainedSourceBytes: 30 * 1024 * 1024,
-  maxPublicationBytes: 512 * 1024,
-  maxSpatialIndexBytes: 512 * 1024,
+const CAO_SURFACE_SET_LIMITS = Object.freeze({
+  maxBatches: 512,
+  maxVertices: 1_000_000,
+  maxTriangles: 1_280_000,
+  maxRetainedSourceBytes: 64 * 1024 * 1024,
+  maxPublicationBytes: 4 * 1024 * 1024,
+  maxSpatialIndexBytes: 1024 * 1024,
 });
-const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_PALAEO_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
+/**
+ * Publications retire one member at a time: a scrub sample replaces the Cao
+ * 2024 member, a crossing replaces the map interval, and a crossing can land in
+ * the frame after a sample. Three resources and 44 MiB cover both in flight —
+ * the two the Cao 2024 arm always allowed, plus the one map-interval
+ * publication the Cao 2017 arm did.
+ */
+const CAO_SURFACE_RETIREMENT_MAX_RESOURCES = 3;
+const CAO_SURFACE_RETIREMENT_MAX_BYTES = 44 * 1024 * 1024;
+/** Only a map-interval change replaces static geometry, one swap at a time. */
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 1;
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -601,7 +628,6 @@ export class GlobeScene {
   private readonly focusMarkerProjectedPosition = new THREE.Vector3();
   private readonly controls: OrbitControls;
   private readonly caoFoundationRenderer: CaoFoundationSurfaceRenderer;
-  private readonly caoPalaeoRenderer: CaoFoundationSurfaceRenderer;
   private readonly globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
   private readonly cloudMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   private resizeObserver: ResizeObserver;
@@ -617,12 +643,6 @@ export class GlobeScene {
     layerEnabled: false, band: "none", published: false,
     hysteresis: SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
   });
-  /**
-   * The palaeo-coastline mode last applied to the native instance. Cached
-   * because switching it walks the published group and rebuilds the renderer
-   * diagnostics, and the resolution is applied every frame.
-   */
-  private nativeSurfaceModeIsPalaeo = false;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
@@ -692,35 +712,19 @@ export class GlobeScene {
     const maximumTextureSize = backend === "webgpu"
       ? renderer.backend?.device?.limits?.maxTextureDimension2D ?? 2_048
       : renderer.capabilities?.maxTextureSize ?? 2_048;
+    // One renderer owns the whole surface set. It keeps two retirement owners —
+    // one for publications, one for the static geometry a map-interval change
+    // replaces — because a single owner bounded at one pending resource cannot
+    // hold both retirements of the same swap.
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
-      createCaoGpuRetirementOwner(renderer, backend),
-      // Country-line segments are drawn as screen-space quads, four expanded
-      // corners and two triangles each, so the vertex and triangle ceilings
-      // carry 4x and 2x the segment count rather than the package's own line
-      // vertices. Probed on the loaded public package 2026-09-16: 404,888
-      // surface vertices and 574,075 surface triangles, plus 51,048 country
-      // segments at 1:50m, preflighting at 609,080 vertices and 676,171
-      // triangles. The headroom above is for segments a later package adds.
-      { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
-        maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
-        maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
-    );
-    // A second instance owns the palaeo-coastline charts. It keeps its own
-    // retirement owners — one for publications, one for the static geometry a
-    // map-interval change replaces — because a single owner bounded at one
-    // pending resource cannot hold both retirements of the same swap.
-    this.caoPalaeoRenderer = new CaoFoundationSurfaceRenderer(
-      this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend,
-        CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES),
-      { ...CAO_PALAEO_RENDERER_LIMITS, maxTextureSize: maximumTextureSize },
+        CAO_SURFACE_RETIREMENT_MAX_RESOURCES, CAO_SURFACE_RETIREMENT_MAX_BYTES),
+      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize },
       {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
-          CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES) },
+          CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
     );
-    this.caoPalaeoRenderer.setPalaeoCoastlineMode(true);
-    this.caoPalaeoRenderer.setDomainVisibility(false);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1043,11 +1047,11 @@ export class GlobeScene {
     }
     try {
       if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
-        this.caoPalaeoRenderer.armStaticGeometryChange(
+        this.caoFoundationRenderer.armStaticGeometryChange(
           `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
       }
-      const diagnostics = this.caoPalaeoRenderer.publish(
-        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration);
+      const diagnostics = this.caoFoundationRenderer.publish(
+        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration, "interval");
       this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
       this.palaeoStaticIntervalId = interval.intervalId;
@@ -1103,9 +1107,9 @@ export class GlobeScene {
     if (this.publishedPalaeoIntervalId === null
         || this.publishedPalaeoIntervalId !== frame.intervalId) return null;
     const pick = palaeoChartPickState(frame.charts);
-    const diagnostics = this.caoPalaeoRenderer.retargetMotion(
+    const diagnostics = this.caoFoundationRenderer.retargetMotion(
       frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
-      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS);
+      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS, "interval");
     if (this.motionProbeRecording) {
       const sampled = this.motionProbePose(
         pick.chartPoses, pick.chartActive, this.motionProbePalaeoChart);
@@ -1197,7 +1201,7 @@ export class GlobeScene {
    */
   private clearPalaeoPublication(): void {
     if (this.publishedPalaeoIntervalId === null) return;
-    this.caoPalaeoRenderer.clear();
+    this.caoFoundationRenderer.clear("interval");
     this.publishedPalaeoIntervalId = null;
     this.palaeoIntervalSourceBytes = 0;
     this.guideLabelTonesStaleSince = performance.now();
@@ -1340,7 +1344,6 @@ export class GlobeScene {
     this.controls.removeEventListener("end", this.handleControlsEnd);
     this.controls.dispose();
     this.caoFoundationRenderer.disposeForRendererTeardown();
-    this.caoPalaeoRenderer.disposeForRendererTeardown();
     this.markerTexture.dispose();
     this.focusLockMarkerTexture.dispose();
     this.focusLockMarker = null;
@@ -1499,10 +1502,9 @@ export class GlobeScene {
    * `updatePalaeoDomainVisibility` applies it, last.
    */
   private applyLayerVisibility(): void {
-    const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
-      palaeoCoastlines: this.nativeSurfaceModeIsPalaeo };
-    this.caoFoundationRenderer.setLayerVisibility(record);
-    this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
+    this.caoFoundationRenderer.setLayerVisibility({ borders: this.layers.borders,
+      tectonics: this.layers.tectonics,
+      palaeoCoastlines: this.caoFoundationRenderer.surfaceMode() === "palaeo" });
     // Turning the mode off releases every palaeo interval lease in the runtime,
     // so a publication left standing here would keep drawing geometry whose
     // payload the interval store is already free to evict.
@@ -1524,13 +1526,14 @@ export class GlobeScene {
     const resolved = resolveSurfaceVisibility({
       layerEnabled: this.layers.palaeoCoastlines,
       band: caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa),
-      published: this.caoPalaeoRenderer.publishedIdentity() !== null,
+      published: this.caoFoundationRenderer.publishedIdentity("interval") !== null,
       hysteresis: this.surfaceVisibility.hysteresis,
       surfaceWithheld: this.caoFoundationWithheld,
       advanceHysteresis,
     });
     this.surfaceVisibility = resolved;
-    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(resolved.hysteresis.visible);
+    const palaeo = this.caoFoundationRenderer.setDomainVisibility(
+      resolved.hysteresis.visible, "interval");
     // Native land, the composite pick and coverage, and the guide-label ink all
     // follow the resolved composition, so a fallback age keeps exactly today's
     // composition instead of hiding land nothing has replaced. The palaeo
@@ -1538,8 +1541,7 @@ export class GlobeScene {
     // stack: that is exactly the detached LGM band, where the lowstand shelf is
     // drawn over today's land rather than instead of it.
     const palaeoMode = resolved.nativeSurfaceMode === "palaeo";
-    if (palaeoMode !== this.nativeSurfaceModeIsPalaeo) {
-      this.nativeSurfaceModeIsPalaeo = palaeoMode;
+    if (palaeoMode !== (this.caoFoundationRenderer.surfaceMode() === "palaeo")) {
       this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
       // D1. The composition decides which native classes it replaces outright;
       // their vertex and index buffers are handed back for as long as it lasts
@@ -1626,7 +1628,7 @@ export class GlobeScene {
    */
   private surfaceSetView(nativeView: CaoFoundationSurfaceView | null): CaoSurfaceSetView {
     const palaeoView = this.surfaceVisibility.palaeoDrawn
-      ? this.caoPalaeoRenderer.surfaceView() : null;
+      ? this.caoFoundationRenderer.surfaceView("interval") : null;
     return [nativeView, palaeoView].filter((view): view is CaoFoundationSurfaceView =>
       view !== null);
   }
