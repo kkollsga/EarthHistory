@@ -156,7 +156,10 @@ const fetcher: StaticAssetFetcher = async (url, signal) => {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 
-describe("native Cao package v2", () => {
+// These cases load and validate the real public package (46 MiB, 75 realistic
+// batch records cross-checked since 0.1.19), which exceeds vitest's 5 s default
+// on the two-core CI runner (19 s for the file there, PR #22 run 35136484690).
+describe("native Cao package v2", { timeout: 60_000 }, () => {
   it("keeps Iceland's modern observation and pale material within their exact evidence ages", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as
       ReconstructionPackageManifestV2;
