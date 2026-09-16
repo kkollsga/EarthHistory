@@ -3,9 +3,8 @@
 
 What ships is exactly the landmass and shallow-marine payloads, their two class
 catalogs and the country-outline tone tables. The mountain class stays compiled
-and validated in the offline store (user decision 2026-09-15: the requested-age
-motion-tiles first-paint tier keeps its 5.48 MiB), and the provenance sidecars
-and the unsimplified ``original`` payloads never enter a build at all.
+and validated in the offline store, and the provenance sidecars and the
+unsimplified ``original`` payloads never enter a build at all.
 
 Two manifests are written. The package manifest gains the ``palaeoCoastlines``
 section `validatePalaeoCoastlineAssets` reads; the outer data inventory gains one

@@ -78,7 +78,6 @@ UNITS: tuple[tuple[str, str, str], ...] = (
     ("regional_panama_land-unittest", PARALLEL, "python3 -m unittest scripts/research/apply_regional_panama_land_test.py"),
     ("cao_country_segment_bridge-self-test", PARALLEL, "python3 scripts/research/apply_cao_country_segment_bridge.py --self-test"),
     ("regional_iceland_shelf-unittest", PARALLEL, "python3 -m unittest scripts/research/apply_regional_iceland_shelf_test.py"),
-    ("cao_requested_age_motion_tiles-self-test", PARALLEL, "python3 scripts/research/validate_cao_requested_age_motion_tiles.py --self-test"),
     ("palaeo_coastlines_runtime-self-test", PARALLEL, "python3 scripts/research/validate_palaeo_coastlines_runtime.py --self-test >/dev/null"),
     ("palaeo_coastlines_runtime", PARALLEL, "python3 scripts/research/validate_palaeo_coastlines_runtime.py >/dev/null"),
     ("precollision_extent-record-only-self-test", PARALLEL, "python3 scripts/research/validate_precollision_extent.py --record-only --self-test >/dev/null"),

@@ -276,8 +276,7 @@ export default function App() {
   const [caoAnchorCoordinates, setCaoAnchorCoordinates] = useState<Readonly<Record<string, LonLat>>>({});
   const [caoRuntimeReady, setCaoRuntimeReady] = useState(0);
   const [caoTimelineLoading, setCaoTimelineLoading] = useState<CaoTimelineLoadingState>({
-    status: "idle", foregroundStatus: "idle", requestedAgeMa: null,
-    motionTier: "requested-age", error: null,
+    status: "idle", foregroundStatus: "idle", requestedAgeMa: null, error: null,
   });
   const [caoSourceAges, setCaoSourceAges] = useState<readonly number[]>([]);
   const [palaeoAssetsAvailable, setPalaeoAssetsAvailable] = useState(false);
@@ -1018,6 +1017,10 @@ export default function App() {
         ? `${formatAge(ageMa)} ready · Timeline loading paused`
         : surfaceInfoState === "ready" ? "Cao surface"
           : surfaceInfoState === "editorial" ? "Editorial surface"
+            // The whole motion palette is the only motion path, so until it
+            // lands no age can be posed: name the payload, not the age.
+            : caoRevision === null && caoTimelineLoading.foregroundStatus !== "ready"
+              ? "Loading motion palette…"
             : displayedSurfaceAgeMa !== undefined && displayedSurfaceAgeMa !== ageMa
               ? `Loading ${formatAge(ageMa)} · Showing ${formatAge(displayedSurfaceAgeMa)}`
               : `Loading ${formatAge(ageMa)}…`;
@@ -1518,7 +1521,6 @@ export default function App() {
         aria-label="Interactive Earth reconstruction"
         data-cao-last-prepare-failed-age-ma={caoLastPrepareFailure?.failedAgeMa}
         data-cao-last-prepare-failure-observed-age-ma={caoLastPrepareFailure?.observedAgeMa}
-        data-cao-motion-tier={caoTimelineLoading.motionTier}
         data-cao-motion-foreground-status={caoTimelineLoading.foregroundStatus}
         data-cao-timeline-loading-status={caoTimelineLoading.status}
         data-focus-resolution={focusResolution ?? undefined}

@@ -3,8 +3,6 @@ import { expandInternedPackageDocument } from "./packageIntern";
 import { decodeMotionPalette, selectPaletteMotionSubsegment, type MotionPaletteCatalog,
   type PreparedPaletteEntry } from "./palette";
 import { evaluateLifecycleSupport } from "./motion";
-import { decodeRequestedAgeMotionTile, selectRequestedAgeMotionTile,
-  validateRequestedAgeMotionTileIndex, type RequestedAgeMotionTileIndex } from "./motionTiles";
 import {
   decodePalaeoCoastlineClassCatalog,
   selectPalaeoCatalogInterval,
@@ -73,12 +71,6 @@ export interface LoadedCaoFoundation extends LoadedCaoStaticFoundation {
   readonly paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>;
 }
 
-export interface LoadedRequestedAgeMotionPalette {
-  readonly index: RequestedAgeMotionTileIndex;
-  readonly descriptor: ReturnType<typeof selectRequestedAgeMotionTile>;
-  readonly entries: ReadonlyMap<string, PreparedPaletteEntry>;
-}
-
 function validateTouchingBindingPoses(
   core: ReconstructionCoreV2,
   paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
@@ -126,7 +118,7 @@ export function validateRequestedAgePaletteCoverage(
     if (!selected) continue;
     const entry = paletteEntries.get(selected.entryId);
     if (!entry || !selectPaletteMotionSubsegment(entry, requestedAgeMa)) {
-      throw new Error("requested-age motion tile does not cover a selected Cao chart binding");
+      throw new Error("motion palette does not cover a selected Cao chart binding");
     }
   }
 }
@@ -270,43 +262,14 @@ export function loadVerifiedCaoFoundationForAge(
   return metadata.then(async (loaded) => {
     const [foundation, paletteEntries] = await Promise.all([
       loadVerifiedCaoStaticFoundation(manifest, loaded, fetcher, signal),
-      loadVerifiedCaoRequestedAgeMotionPalette(manifest, loaded, requestedAgeMa, fetcher, signal),
+      loadVerifiedCaoFullMotionPalette(manifest, loaded, fetcher, signal),
     ]);
-    return withPaletteEntries(foundation, paletteEntries.entries);
+    validateRequestedAgePaletteCoverage(loaded.core, paletteEntries, requestedAgeMa);
+    return withPaletteEntries(foundation, paletteEntries);
   });
 }
 
-export async function loadVerifiedCaoRequestedAgeMotionTileIndex(
-  manifest: ReconstructionPackageManifestV2,
-  fetcher: StaticAssetFetcher,
-  signal?: AbortSignal,
-): Promise<RequestedAgeMotionTileIndex> {
-  const indexAsset = manifest.motionPalette.requestedAgeTiles;
-  if (!indexAsset) throw new Error("Cao package has no requested-age motion tile index");
-  const index = await verifiedJson<RequestedAgeMotionTileIndex>(indexAsset, fetcher, signal);
-  validateRequestedAgeMotionTileIndex(index, manifest);
-  return deepFreeze(index);
-}
-
-export async function loadVerifiedCaoRequestedAgeMotionPalette(
-  manifest: ReconstructionPackageManifestV2,
-  metadata: Pick<LoadedCaoFoundationMetadata, "core" | "paletteCatalog">,
-  requestedAgeMa: number,
-  fetcher: StaticAssetFetcher,
-  signal?: AbortSignal,
-  loadedIndex?: RequestedAgeMotionTileIndex,
-): Promise<LoadedRequestedAgeMotionPalette> {
-  const indexAsset = manifest.motionPalette.requestedAgeTiles;
-  if (!indexAsset) throw new Error("Cao package has no requested-age motion tile index");
-  const index = loadedIndex ?? await loadVerifiedCaoRequestedAgeMotionTileIndex(manifest, fetcher, signal);
-  const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
-  const buffer = await loadVerifiedBytes(descriptor.asset, fetcher, signal);
-  const entries = decodeRequestedAgeMotionTile(descriptor, metadata.paletteCatalog, buffer);
-  validateRequestedAgePaletteCoverage(metadata.core, entries, requestedAgeMa);
-  return Object.freeze({ index, descriptor, entries });
-}
-
-/** Loads and validates the canonical all-age palette for a resident requested-age foundation. */
+/** Loads and validates the canonical all-age palette: the only motion path. */
 export async function loadVerifiedCaoFullMotionPalette(
   manifest: ReconstructionPackageManifestV2,
   foundation: Pick<LoadedCaoFoundationMetadata, "core" | "paletteCatalog">,

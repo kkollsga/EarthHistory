@@ -14,18 +14,11 @@ edited (CLAUDE.md R10/R16):
 
   1. ``public/data/reconstruction/cao-v2.4/manifest.json`` — ``core``,
      ``materialCorrections.catalog``, every checkpoint's bytes/sha256 and
-     ``transitiveBytes``, and ``motionPalette.requestedAgeTiles``.
+     ``transitiveBytes``.
   2. ``public/data/manifest.json`` — one output row per rewritten file.
   3. ``checkpoint-*.json`` — the boundary/ownership catalog asset each pins.
   4. ``corrections/material-v1/catalog.json`` — ``baseline.coreSha256``.
-  5. ``motion-tiles/index.json`` — ``sourceIdentity.coreSha256`` and
-     ``sourceIdentity.materialCorrectionCatalogSha256``, re-emitted through
-     ``emit_cao_requested_age_motion_tiles`` and promoted through
-     ``promote_cao_requested_age_motion_tiles`` so the tile payloads are proved
-     unchanged by their own validator.
-  6. ``data/corrections/requested-age-motion-tiles/source-contract.json`` — the
-     pinned source-package identity and the emitted index digest.
-  7. ``docs/research/regional-iceland-motion-validation.json`` and
+  5. ``docs/research/regional-iceland-motion-validation.json`` and
      ``docs/research/north-sea-restoration-validation.json`` — the package
      identity these oracle records were measured against. Both are *identity*
      rebases: every measured field must stay byte-identical or the rebase is
@@ -46,19 +39,15 @@ import hashlib
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import cao_package_intern as intern  # noqa: E402
-import emit_cao_requested_age_motion_tiles as tiles  # noqa: E402
-import promote_cao_requested_age_motion_tiles as tile_promoter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = (ROOT / "public/data/reconstruction/cao-v2.4").resolve()
 ROOT_MANIFEST = ROOT / "public/data/manifest.json"
-TILE_CONTRACT = ROOT / "data/corrections/requested-age-motion-tiles/source-contract.json"
 PROOF = ROOT / "docs/research/cao-package-interning-proof.json"
 INTERNING_ID = "earthhistory-cao-package-interning-v1"
 CORRECTION_CATALOG = "corrections/material-v1/catalog.json"
@@ -175,31 +164,6 @@ def rebase_identity_pinned_reports(manifest: dict) -> list[Path]:
     return touched
 
 
-def reemit_motion_tiles() -> dict:
-    """Re-derive the tile index through its own emitter, promoter and validator."""
-    contract = require_round_trip(TILE_CONTRACT, indented)
-    manifest = json.loads((PUBLIC / "manifest.json").read_text())
-    contract["sourcePackage"]["core"] = manifest["core"]
-    contract["sourcePackage"]["materialCorrections"] = manifest["materialCorrections"]
-    write_atomic(TILE_CONTRACT, indented(contract))
-
-    source = tiles.load_source(PUBLIC, tiles.load_contract())
-    expected = tiles.expected_index(source, tiles.expected_tiles(source))
-    payload = tiles.canonical(expected)
-    contract["derivation"]["expectedIndexBytes"] = len(payload)
-    contract["derivation"]["expectedIndexSha256"] = sha_bytes(payload)
-    write_atomic(TILE_CONTRACT, indented(contract))
-
-    with tempfile.TemporaryDirectory(prefix="earthhistory-interning-tiles-") as temporary:
-        stage = Path(temporary) / "motion-tiles"
-        staged_manifest = Path(temporary) / "manifest.json"
-        emitted = tiles.emit(PUBLIC, stage, staged_manifest)
-        promoted = tile_promoter.promote(stage, staged_manifest, PUBLIC)
-    return {"tileCount": emitted["tileCount"], "tileBytes": emitted["tileBytes"],
-            "indexSha256": sha(PUBLIC / "motion-tiles/index.json"),
-            "packageManifestSha256": promoted["packageManifestSha256"]}
-
-
 def expanded_digests(package: Path) -> dict[str, str]:
     """Canonical digest of the *expanded* form of every file interning touches.
 
@@ -297,7 +261,6 @@ def apply(package: Path) -> dict:
                       *sorted(package.glob("ownership-*.json")),
                       *sorted(package.glob("boundary-*.json"))])
     reports = rebase_identity_pinned_reports(manifest)
-    tiles_report = reemit_motion_tiles()
 
     after = expanded_digests(package)
     if after != before:
@@ -314,7 +277,6 @@ def apply(package: Path) -> dict:
         "classes": summarise(rewritten),
         "internedBytes": sum(row["afterBytes"] for row in rewritten),
         "rebasedIdentityReports": [str(path.relative_to(ROOT)) for path in reports],
-        "motionTiles": tiles_report,
     }
     write_atomic(PROOF, indented(proof))
     return {"files": len(rewritten),

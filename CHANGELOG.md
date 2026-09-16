@@ -4,6 +4,25 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **One motion payload instead of two.** The requested-age motion-tile
+  first-paint tier is retired: the 72 published `.ehmt` windows and their
+  index (**5,743,096 bytes**, 73 files) are deleted, together with their
+  emitter, promoter, validator, tracked source contract, manifest section and
+  outer-manifest rows. `motion-palette.bin` + `motion-palette.json` are now the
+  only motion path — fetched and decoded once at startup and shared by the
+  native and palaeo request chains — so no age needs a window of its own and
+  no tile URL is requested. Nothing scientific changed: a tile only ever
+  carried exact byte copies of palette records, and the full palette was
+  already the authority every frame was verified against. The complete build
+  drops from **49.05 MiB to 43.55 MiB** of the 50 MiB ceiling (1,341 → 1,268
+  published data files), which is what funds the 1:50m country outlines. While
+  the palette is in flight the surface panel now reads *Loading motion
+  palette…* instead of naming an age that cannot yet be posed; background
+  timeline loading keeps warming checkpoints age-independently, and it still
+  defers its main-thread decoding until a live scrub has rested.
+
 ## [0.1.14] - 2026-09-16
 
 ### Added

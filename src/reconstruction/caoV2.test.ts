@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
-import { CAO_FOREGROUND_SETTLE_MS, CaoReconstructionRuntime } from "./engineV2";
+import { describe, expect, it } from "vitest";
+import { CaoReconstructionRuntime } from "./engineV2";
 import { evaluateLifecycleSupport } from "./motion";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import type { MaterialCorrectionCatalogV1, ReconstructionPackageManifestV2 } from "./packageV2";
@@ -391,7 +391,7 @@ describe("native Cao package v2", () => {
       geometryAsset: { ...batch.geometryAsset, sha256: geometrySha },
     }, ...catalog.spatialBatches.slice(1)] };
     const catalogBytes = new TextEncoder().encode(JSON.stringify(mutatedCatalog));
-    const mutatedManifest = { ...manifest, motionPalette: { ...manifest.motionPalette, requestedAgeTiles: undefined },
+    const mutatedManifest = { ...manifest,
       materialCorrections: { ...manifest.materialCorrections!,
       catalog: { ...manifest.materialCorrections!.catalog, bytes: catalogBytes.byteLength,
         sha256: createHash("sha256").update(catalogBytes).digest("hex") },
@@ -412,14 +412,12 @@ describe("native Cao package v2", () => {
   it("changes the prepared identity when the additive correction catalog revision changes", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
     const rawCatalog = expandInternedPackageDocument(await readJson(manifest.materialCorrections!.catalog.url)) as MaterialCorrectionCatalogV1;
-    const manifestWithoutTiles = { ...manifest,
-      motionPalette: { ...manifest.motionPalette, requestedAgeTiles: undefined } };
-    const baseRuntime = new CaoReconstructionRuntime(manifestWithoutTiles, fetcher);
+    const baseRuntime = new CaoReconstructionRuntime(manifest, fetcher);
     const base = await baseRuntime.request(411).prepared;
     const alternateId = `${rawCatalog.id}-identity-witness`;
     const alternateCatalog = { ...rawCatalog, id: alternateId, version: "identity-witness" };
     const catalogBytes = new TextEncoder().encode(JSON.stringify(alternateCatalog));
-    const alternateManifest = { ...manifestWithoutTiles, materialCorrections: { id: alternateId,
+    const alternateManifest = { ...manifest, materialCorrections: { id: alternateId,
       catalog: { ...manifest.materialCorrections!.catalog, bytes: catalogBytes.byteLength,
         sha256: createHash("sha256").update(catalogBytes).digest("hex") },
     } };
@@ -466,7 +464,7 @@ describe("native Cao package v2", () => {
     runtime.dispose();
   });
 
-  it("loads the requested motion window before starting the all-age background palette", async () => {
+  it("loads the whole motion palette once and serves every age from it", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
     const requestedUrls: string[] = [];
     const recordingFetcher: StaticAssetFetcher = async (url, signal) => {
@@ -475,251 +473,68 @@ describe("native Cao package v2", () => {
     };
     const runtime = new CaoReconstructionRuntime(manifest, recordingFetcher);
     const prepared = await runtime.request(411).prepared;
-    expect(requestedUrls).toContain("motion-tiles/tile-0400-0425ma.ehmt");
-    expect(requestedUrls).not.toContain(manifest.motionPalette.binary.url);
-    runtime.markRendered(411);
-    await waitUntil(() => requestedUrls.includes(manifest.motionPalette.binary.url));
+    expect(requestedUrls.filter((path) => path === manifest.motionPalette.binary.url)).toHaveLength(1);
+    expect(requestedUrls.some((path) => path.startsWith("motion-tiles/"))).toBe(false);
+    const before = requestedUrls.length;
+    // Every other age is a retarget of the resident palette, not a fetch.
+    expect((await runtime.evaluateMotion(0)).requestedAgeMa).toBe(0);
+    expect((await runtime.evaluateMotion(1799)).requestedAgeMa).toBe(1799);
+    expect(requestedUrls.slice(before)).toEqual([]);
+    expect(runtime.ledger.foundationResidentSourceBytes)
+      .toBeGreaterThanOrEqual(manifest.motionPalette.binary.bytes);
     prepared.release();
     runtime.dispose();
   });
 
-  it("starts a newer motion window before an older stalled tile can complete", async () => {
+  it("reports the foreground loading until the one palette load lands", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let stalled = false;
-    let stalledAborted = false;
-    let newestStarted = false;
-    const delayedFetcher: StaticAssetFetcher = async (url, signal) => {
-      const path = packageAssetPath(url);
-      if (path === "motion-tiles/tile-0000-0025ma.ehmt") {
-        stalled = true;
-        return new Promise<ArrayBuffer>((_resolve, reject) => {
-          const abort = () => {
-            stalledAborted = true;
-            reject(new DOMException("aborted", "AbortError"));
-          };
-          if (signal?.aborted) abort(); else signal?.addEventListener("abort", abort, { once: true });
-        });
-      }
-      if (path === "motion-tiles/tile-0400-0425ma.ehmt") newestStarted = true;
-      return fetcher(url, signal);
-    };
-    const runtime = new CaoReconstructionRuntime(manifest, delayedFetcher);
-    const stale = runtime.evaluateMotion(0).catch((error: unknown) => error);
-    await waitUntil(() => stalled);
-    expect(runtime.ledger.foregroundReservedSourceBytes).toBeGreaterThan(0);
-    runtime.prioritizeRequestedAge(411);
-    const newest = runtime.evaluateMotion(411);
-    await waitUntil(() => newestStarted);
-    expect(stalledAborted).toBe(true);
-    expect((await newest).requestedAgeMa).toBe(411);
-    expect(await stale).toBeInstanceOf(DOMException);
-    runtime.dispose();
-  });
-
-  it("finishes the all-age palette under the current age after a foreground change", async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    const tileIndex = JSON.parse(await readFile(resolve(root,
-      packageAssetPath(manifest.motionPalette.requestedAgeTiles!.url)), "utf8")) as {
-      tiles: Array<{ validTimeMa: { youngest: number; oldest: number }; recordCount: number }>;
-    };
-    const modernTile = tileIndex.tiles.find((tile) => tile.validTimeMa.youngest <= 0
-      && tile.validTimeMa.oldest >= 0)!;
-    const sourceIndexDigestBytes = modernTile.recordCount * Uint32Array.BYTES_PER_ELEMENT;
-    const originalDigest = crypto.subtle.digest.bind(crypto.subtle);
-    let digestStarted = false;
-    let releaseDigest: (() => void) | undefined;
-    const digestGate = new Promise<void>((resolvePromise) => { releaseDigest = resolvePromise; });
-    const digest = vi.spyOn(crypto.subtle, "digest").mockImplementation(async (algorithm, data) => {
-      const result = await originalDigest(algorithm, data);
-      if (data.byteLength === sourceIndexDigestBytes) {
-        digestStarted = true;
-        await digestGate;
-      }
-      return result;
-    });
-    try {
-      const runtime = new CaoReconstructionRuntime(manifest, fetcher);
-      const states: Array<{ requestedAgeMa: number | null; motionTier: string; status: string }> = [];
-      runtime.subscribeTimelineLoading((state) => states.push({
-        requestedAgeMa: state.requestedAgeMa, motionTier: state.motionTier, status: state.status,
-      }));
-      const modern = await runtime.request(0).prepared;
-      runtime.markRendered(0);
-      await waitUntil(() => digestStarted);
-      runtime.prioritizeRequestedAge(411);
-      const afterChange = states.length;
-      releaseDigest!();
-      expect((await runtime.evaluateMotion(411)).requestedAgeMa).toBe(411);
-      await waitUntil(() => states.at(-1)?.motionTier === "full");
-      // The palette is age-independent: it lands under the live requested age
-      // and is never labelled with the age that started it.
-      expect(states.slice(afterChange).every((state) => state.requestedAgeMa === 411)).toBe(true);
-      expect(states.at(-1)?.status).not.toBe("idle");
-      expect((await runtime.evaluateMotion(411)).requestedAgeMa).toBe(411);
-      modern.release();
-      runtime.dispose();
-    } finally {
-      digest.mockRestore();
-    }
-  });
-
-  it("keeps a pending motion tile when a newer age lies in the same window", async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let tileStarts = 0;
-    let tileAborted = false;
-    let releaseTile: (() => void) | undefined;
-    const gate = new Promise<void>((resolvePromise) => { releaseTile = resolvePromise; });
+    let paletteStarts = 0;
+    let releasePalette: (() => void) | undefined;
+    const gate = new Promise<void>((resolvePromise) => { releasePalette = resolvePromise; });
     const gatedFetcher: StaticAssetFetcher = async (url, signal) => {
-      if (packageAssetPath(url) === "motion-tiles/tile-0400-0425ma.ehmt") {
-        tileStarts += 1;
-        signal?.addEventListener("abort", () => { tileAborted = true; }, { once: true });
+      if (packageAssetPath(url) === manifest.motionPalette.binary.url) {
+        paletteStarts += 1;
         await gate;
-        if (signal?.aborted) throw new DOMException("aborted", "AbortError");
       }
       return fetcher(url, signal);
     };
     const runtime = new CaoReconstructionRuntime(manifest, gatedFetcher);
     const states: string[] = [];
     runtime.subscribeTimelineLoading((state) => states.push(state.foregroundStatus));
-    const stale = runtime.evaluateMotion(411).catch((error: unknown) => error);
-    await waitUntil(() => tileStarts === 1);
+    const pending = runtime.evaluateMotion(411).catch((error: unknown) => error);
+    await waitUntil(() => paletteStarts === 1);
+    expect(states.at(-1)).toBe("loading");
+    expect(runtime.ledger.foregroundReservedSourceBytes).toBe(manifest.motionPalette.binary.bytes);
+    // A second age joins the one load rather than starting another.
     runtime.prioritizeRequestedAge(412);
     const newer = runtime.evaluateMotion(412);
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
-    expect(tileStarts).toBe(1);
-    expect(tileAborted).toBe(false);
-    expect(states.at(-1)).toBe("loading");
-    releaseTile!();
+    releasePalette!();
     expect((await newer).requestedAgeMa).toBe(412);
-    expect(await stale).toBeInstanceOf(DOMException);
-    expect(tileStarts).toBe(1);
-    // A resident window reports ready immediately on the next same-window age.
-    runtime.prioritizeRequestedAge(413);
+    expect(await pending).toBeInstanceOf(DOMException);
+    expect(paletteStarts).toBe(1);
     expect(states.at(-1)).toBe("ready");
+    expect(runtime.ledger.foregroundReservedSourceBytes).toBe(0);
     runtime.dispose();
   });
 
-  it("keeps a tile resident when its requesting age moved on before it landed", async () => {
+  it("continues background timeline warming across foreground age changes", async () => {
     const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let tileStarts = 0;
-    let releaseTile: (() => void) | undefined;
-    const gate = new Promise<void>((resolvePromise) => { releaseTile = resolvePromise; });
-    const gatedFetcher: StaticAssetFetcher = async (url, signal) => {
-      if (packageAssetPath(url) === "motion-tiles/tile-0400-0425ma.ehmt") {
-        tileStarts += 1;
-        await gate;
-      }
-      return fetcher(url, signal);
-    };
-    const runtime = new CaoReconstructionRuntime(manifest, gatedFetcher);
-    const stale = runtime.evaluateMotion(411).catch((error: unknown) => error);
-    await waitUntil(() => tileStarts === 1);
-    // The App pump only starts the next evaluation after the stale one settles.
-    runtime.prioritizeRequestedAge(412);
-    releaseTile!();
-    expect(await stale).toBeInstanceOf(DOMException);
-    expect((await runtime.evaluateMotion(412)).requestedAgeMa).toBe(412);
-    expect(tileStarts).toBe(1);
-    runtime.dispose();
-  });
-
-  it("holds background body reads while a foreground tile is pending", async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let backgroundOptions: Parameters<StaticAssetFetcher>[2] | undefined;
-    let releaseTile: (() => void) | undefined;
-    const tileGate = new Promise<void>((resolvePromise) => { releaseTile = resolvePromise; });
-    let releaseFull: (() => void) | undefined;
-    const fullGate = new Promise<void>((resolvePromise) => { releaseFull = resolvePromise; });
-    const gatedFetcher: StaticAssetFetcher = async (url, signal, options) => {
-      const path = packageAssetPath(url);
-      if (path === manifest.motionPalette.binary.url) {
-        backgroundOptions = options;
-        await fullGate;
-      }
-      if (path === "motion-tiles/tile-0400-0425ma.ehmt") await tileGate;
-      return fetcher(url, signal);
-    };
-    const runtime = new CaoReconstructionRuntime(manifest, gatedFetcher);
-    const modern = await runtime.request(0).prepared;
-    runtime.markRendered(0);
-    await waitUntil(() => backgroundOptions !== undefined);
-    runtime.prioritizeRequestedAge(411);
-    const pending = runtime.evaluateMotion(411);
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
-    let yielded = false;
-    const wait = backgroundOptions!.yieldToForeground!().then(() => { yielded = true; });
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 60));
-    expect(yielded).toBe(false);
-    releaseTile!();
-    expect((await pending).requestedAgeMa).toBe(411);
-    await wait;
-    expect(yielded).toBe(true);
-    releaseFull!();
-    modern.release();
-    runtime.dispose();
-  });
-
-  it("defers all-age palette decoding until the foreground age has settled", async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let fullBytesDelivered = false;
+    let lowPriorityRequests = 0;
     const recordingFetcher: StaticAssetFetcher = async (url, signal, options) => {
-      const bytes = await fetcher(url, signal, options);
-      if (packageAssetPath(url) === manifest.motionPalette.binary.url) fullBytesDelivered = true;
-      return bytes;
+      if (options?.priority === "low") lowPriorityRequests += 1;
+      return fetcher(url, signal, options);
     };
     const runtime = new CaoReconstructionRuntime(manifest, recordingFetcher);
-    const tiers: string[] = [];
-    runtime.subscribeTimelineLoading((state) => tiers.push(state.motionTier));
+    const states: string[] = [];
+    runtime.subscribeTimelineLoading((state) => states.push(`${state.status}:${state.requestedAgeMa}`));
     const modern = await runtime.request(0).prepared;
     runtime.markRendered(0);
-    await waitUntil(() => fullBytesDelivered);
-    // Keep the foreground moving inside the resident window faster than the
-    // settle window: decoding must wait even though the bytes are here.
-    const started = Date.now();
-    let age = 0;
-    while (Date.now() - started < CAO_FOREGROUND_SETTLE_MS * 3) {
-      age = age === 0 ? 1 : 0;
-      runtime.prioritizeRequestedAge(age);
-      expect((await runtime.evaluateMotion(age)).requestedAgeMa).toBe(age);
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, CAO_FOREGROUND_SETTLE_MS / 5));
-    }
-    expect(tiers.at(-1)).toBe("requested-age");
-    await waitUntil(() => tiers.at(-1) === "full", 10_000);
-    modern.release();
-    runtime.dispose();
-  });
-
-  it("continues background timeline loading across foreground age changes", async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as ReconstructionPackageManifestV2;
-    let fullStarts = 0;
-    let fullAborted = false;
-    let lowPriorityRequests = 0;
-    let releaseFull: (() => void) | undefined;
-    const gate = new Promise<void>((resolvePromise) => { releaseFull = resolvePromise; });
-    const gatedFetcher: StaticAssetFetcher = async (url, signal, options) => {
-      if (options?.priority === "low") lowPriorityRequests += 1;
-      if (packageAssetPath(url) === manifest.motionPalette.binary.url) {
-        fullStarts += 1;
-        signal?.addEventListener("abort", () => { fullAborted = true; }, { once: true });
-        await gate;
-        if (signal?.aborted) throw new DOMException("aborted", "AbortError");
-      }
-      return fetcher(url, signal);
-    };
-    const runtime = new CaoReconstructionRuntime(manifest, gatedFetcher);
-    const tiers: string[] = [];
-    runtime.subscribeTimelineLoading((state) => tiers.push(`${state.status}:${state.motionTier}:${state.requestedAgeMa}`));
-    const modern = await runtime.request(0).prepared;
-    runtime.markRendered(0);
-    await waitUntil(() => fullStarts === 1);
+    await waitUntil(() => states.at(-1)?.startsWith("loading:") === true);
     runtime.prioritizeRequestedAge(411);
     expect((await runtime.evaluateMotion(411)).requestedAgeMa).toBe(411);
-    expect(fullAborted).toBe(false);
-    expect(fullStarts).toBe(1);
-    expect(runtime.ledger.backgroundReservedSourceBytes).toBe(manifest.motionPalette.binary.bytes);
-    releaseFull!();
-    await waitUntil(() => tiers.at(-1)?.startsWith("loading:full:411") === true);
-    expect(fullStarts).toBe(1);
+    // Warming is age-independent: it lands under the live requested age and is
+    // never cancelled or relabelled by the age that started it.
+    await waitUntil(() => states.at(-1) === "ready:411", 20_000);
     expect(lowPriorityRequests).toBeGreaterThan(0);
     modern.release();
     runtime.dispose();
