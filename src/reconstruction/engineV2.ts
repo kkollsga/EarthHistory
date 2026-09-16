@@ -32,9 +32,9 @@ import type { PreparedPaletteEntry } from "./palette";
 
 /**
  * How far inside its own half-open `(TOAGE, FROMAGE]` range an outgoing
- * interval is posed once the age has left it. Ten times finer than the 0.01 Ma
- * seam padding the compiled intervals carry, so the clamp always lands inside
- * the range and never inside the neighbour's.
+ * interval's support age is held once the live age has left it. Ten times finer
+ * than the 0.01 Ma seam padding the compiled intervals carry, so the clamp
+ * always lands inside the range and never inside the neighbour's.
  */
 const PALAEO_INTERVAL_EDGE_MA = 0.001;
 
@@ -554,7 +554,7 @@ export class CaoReconstructionRuntime {
     const resident = this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null);
     if (resident === null) return null;
     return evaluateCaoPalaeoIntervalFrame(
-      resident.interval, resident.paletteEntries, resident.poseAgeMa);
+      resident.interval, resident.paletteEntries, resident.poseAgeMa, resident.supportAgeMa);
   }
 
   /**
@@ -573,8 +573,10 @@ export class CaoReconstructionRuntime {
   ): {
     readonly interval: LoadedPalaeoInterval;
     readonly paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>;
-    /** The age the pose is evaluated at: the requested one, or the outgoing interval's edge. */
+    /** The age the charts are posed at: the live requested age. */
     readonly poseAgeMa: number;
+    /** The age their lifecycles are judged at: inside the drawn interval's range. */
+    readonly supportAgeMa: number;
   } | null {
     if (!this.manifest.palaeoCoastlines || !this.palaeoEnabled
         || this.lifetime.signal.aborted) return null;
@@ -585,23 +587,25 @@ export class CaoReconstructionRuntime {
     // The geometry on screen is the published interval's. Once the age has
     // crossed a boundary the incoming interval is not published yet, and posing
     // its charts onto the outgoing geometry is refused by the renderer — which
-    // is what froze the layer from the boundary until the swap landed. Keeping
-    // the outgoing interval posed at its own edge instead holds the charts on
-    // the last age the drawn geometry can honestly carry, for the one or two
-    // frames the swap takes. The edge is not a preference: a frame evaluation
-    // rejects an age outside the interval's own `(TOAGE, FROMAGE]`, and the
-    // compiled lifecycles of the pieces it owns end 0.01 Ma above that same
-    // edge, so posing the outgoing interval at a live age past the boundary
-    // would report those charts consumed and blank them rather than move them.
+    // is what froze the layer from the boundary until the swap landed. The
+    // outgoing interval is retargeted instead, and the two ages part company
+    // for the one or two frames the swap takes: the pieces keep rotating with
+    // the live age, because the palette is one continuous rotation history and
+    // the country outlines are already moving on it, while their lifecycles are
+    // judged just inside the drawn interval. That edge is not a preference —
+    // the compiled lifecycles of the pieces this interval owns end at its own
+    // young edge, so judging them at a live age past the boundary would report
+    // them consumed and blank the map rather than move it.
     const published = publishedIntervalId === null || record?.intervalId === publishedIntervalId
       ? null : this.residentInterval(publishedIntervalId);
     const interval = published
       ?? (record ? this.residentInterval(record.intervalId) : null);
     if (!interval) return null;
-    const poseAgeMa = published === null ? requestedAgeMa
+    const supportAgeMa = published === null ? requestedAgeMa
       : Math.min(interval.fromAgeMa, Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
     const paletteEntries = this.residentPaletteEntries();
-    return paletteEntries === null ? null : { interval, paletteEntries, poseAgeMa };
+    return paletteEntries === null ? null
+      : { interval, paletteEntries, poseAgeMa: requestedAgeMa, supportAgeMa };
   }
 
   /** A map interval already decoded, without starting a load of any kind. */

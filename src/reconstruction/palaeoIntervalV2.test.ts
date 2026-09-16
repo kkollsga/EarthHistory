@@ -683,22 +683,43 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.dispose();
   });
 
-  it("holds the outgoing interval at its own edge until the incoming one is published", async () => {
+  it("keeps posing the outgoing interval live once the age has crossed out of it", async () => {
     const fixture = palaeoFixture();
     const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
       fixture.fetcher);
     runtime.setPalaeoCoastlinesEnabled(true);
     const prepared = await runtime.requestPalaeoInterval(390).prepared;
     // The age has crossed into 380-360, but 402-380 is still the geometry on
-    // screen, so the pose is held inside the published interval's own range.
+    // screen. The pose follows the live age — the country outlines drawn over
+    // this map already do — while only the lifecycle verdict is held inside the
+    // published interval's own range, so its pieces are not called consumed.
     const crossing = runtime.evaluatePalaeoMotionNow(379.5, "402-380")!;
     expect(crossing.intervalId).toBe("402-380");
-    expect(crossing.requestedAgeMa).toBeCloseTo(380.001, 6);
+    expect(crossing.requestedAgeMa).toBe(379.5);
+    expect(crossing.supportAgeMa).toBeCloseTo(380.001, 6);
     expect(crossing.charts.map((chart) => chart.support.kind)).toContain("supported");
-    // A crossing the other way is held at the old edge the same way.
-    expect(runtime.evaluatePalaeoMotionNow(410, "402-380")!.requestedAgeMa).toBe(402);
-    // An age still inside the published interval is posed live, unheld.
-    expect(runtime.evaluatePalaeoMotionNow(385, "402-380")!.requestedAgeMa).toBe(385);
+    // The regression this pins: two samples past the boundary must not pose
+    // identically. Held at the edge they did, and the map stood still under
+    // outlines that were still moving. The frame reuses its buffers, so the
+    // quaternion is copied before the next evaluation rewrites it.
+    const atCrossing = [...crossing.charts[0]!.poseQuaternion];
+    const further = runtime.evaluatePalaeoMotionNow(378.5, "402-380")!;
+    expect(further.requestedAgeMa).toBe(378.5);
+    expect([...further.charts[0]!.poseQuaternion]).not.toEqual(atCrossing);
+    // A crossing the other way is live in the same way.
+    const older = runtime.evaluatePalaeoMotionNow(410, "402-380")!;
+    expect(older.requestedAgeMa).toBe(410);
+    expect(older.supportAgeMa).toBe(402);
+    // A jump of tens of megayears is not a crossing, and rotating this map to
+    // an age its geometry never described would be extrapolation. Past the
+    // excursion limit the pose falls back to the held support age.
+    const jump = runtime.evaluatePalaeoMotionNow(345, "402-380")!;
+    expect(jump.requestedAgeMa).toBeCloseTo(380.001, 6);
+    expect(jump.supportAgeMa).toBeCloseTo(380.001, 6);
+    // An age still inside the published interval carries one age, not two.
+    const inside = runtime.evaluatePalaeoMotionNow(385, "402-380")!;
+    expect(inside.requestedAgeMa).toBe(385);
+    expect(inside.supportAgeMa).toBe(385);
     prepared.release();
     runtime.dispose();
   });

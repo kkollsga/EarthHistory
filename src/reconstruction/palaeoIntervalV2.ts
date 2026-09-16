@@ -6,10 +6,10 @@
  * its own catalog binding — the partition it was cookie-cut by, or the tracked
  * `PLATEID1` override, or an explicit North Sea restoration entry — rather than
  * from a package chart's motion bindings. And activation is evaluated against
- * the piece's own `(TOAGE, FROMAGE]` lifecycle at the requested age, not
- * against the interval the payload file covers: an off-schedule source record
- * ships inside every canonical interval it overlaps and must stop being drawn
- * on its own date, inside the interval.
+ * the piece's own `(TOAGE, FROMAGE]` lifecycle at the support age, not against
+ * the interval the payload file covers: an off-schedule source record ships
+ * inside every canonical interval it overlaps and must stop being drawn on its
+ * own date, inside the interval.
  */
 
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoChartIdentity,
@@ -43,7 +43,20 @@ export interface CaoPalaeoChartIdentity extends PreparedCaoChartIdentity {
 }
 
 export interface CaoPalaeoIntervalFrame {
+  /**
+   * The age the charts are actually posed at — the caller's requested age,
+   * except where the far-jump guard below fell back to `supportAgeMa`. This is
+   * what a diagnostic, a probe or a published revision reports as the frame's
+   * age, because it is the age the geometry on screen is standing at.
+   */
   readonly requestedAgeMa: number;
+  /**
+   * The age the lifecycles were judged at: inside the interval's own
+   * `(TOAGE, FROMAGE]` always, and equal to `requestedAgeMa` except across a
+   * boundary, where the outgoing interval keeps drawing whatever its pieces
+   * supported at its edge while their poses follow the live age.
+   */
+  readonly supportAgeMa: number;
   readonly intervalId: string;
   readonly intervalIndex: number;
   readonly fromAgeMa: number;
@@ -255,11 +268,36 @@ function palaeoIntervalFrameScratch(
 }
 
 /**
+ * How far outside its own interval a pose age may still be honoured.
+ *
+ * The pose age leaves the interval only while a boundary crossing waits for the
+ * incoming map to publish, which is a frame or two of scrub — a fraction of a
+ * megayear at any usable scrub rate. A jump of tens of megayears is a slider
+ * throw or a bookmark, not a crossing, and rotating this interval's polygons to
+ * an age its geometry never described would be extrapolation the source model
+ * does not support. Past this limit the pose falls back to the support age, so
+ * the outgoing map stands still for the frames before the right one lands.
+ */
+const PALAEO_POSE_EXCURSION_LIMIT_MA = 30;
+
+/**
  * Poses every piece of every resident class against the palette entries the
- * runtime already holds, and marks each one active or inactive at the
- * requested age. Inactive pieces stay in the frame with activation 0: the
- * static geometry belongs to the interval, so scrubbing inside an interval must
- * not replace it.
+ * runtime already holds, and marks each one active or inactive. Inactive pieces
+ * stay in the frame with activation 0: the static geometry belongs to the
+ * interval, so scrubbing inside an interval must not replace it.
+ *
+ * Two ages, because a boundary crossing separates them. `poseAgeMa` is the age
+ * the caller is actually showing, and it drives the palette lookup and the
+ * quaternions: the palette is one global, continuous rotation history, so it
+ * answers just as well a little outside this interval, and an outgoing map that
+ * keeps rotating with the country outlines reads as one moving Earth instead of
+ * a frozen map under sliding outlines. `supportAgeMa` must lie inside the
+ * interval's own `(TOAGE, FROMAGE]` and is what the lifecycles are judged at:
+ * the compiled lifecycle of a piece ends at the interval's own young edge, so
+ * judging it at a live age past the boundary would call every piece consumed
+ * and blank the map — the opposite of what the live pose is for. Held at the
+ * edge, a retiring piece keeps the last support verdict its own dates justify.
+ * Callers with a single age pass it once and the two collapse.
  *
  * The returned frame is a new object over the interval's reusable buffers: the
  * charts, their quaternions and the palette values are the same instances the
@@ -270,12 +308,17 @@ function palaeoIntervalFrameScratch(
 export function evaluateCaoPalaeoIntervalFrame(
   interval: LoadedPalaeoInterval,
   paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>,
-  requestedAgeMa: number,
+  poseAgeMa: number,
+  supportAgeMa: number = poseAgeMa,
 ): CaoPalaeoIntervalFrame {
-  if (!Number.isFinite(requestedAgeMa)) throw new Error("palaeo-coastline age is not finite");
-  if (!(requestedAgeMa > interval.toAgeMa && requestedAgeMa <= interval.fromAgeMa)) {
+  if (!Number.isFinite(poseAgeMa) || !Number.isFinite(supportAgeMa)) {
+    throw new Error("palaeo-coastline age is not finite");
+  }
+  if (!(supportAgeMa > interval.toAgeMa && supportAgeMa <= interval.fromAgeMa)) {
     throw new Error("palaeo-coastline age is outside the resident interval");
   }
+  const excursionMa = Math.max(interval.toAgeMa - poseAgeMa, poseAgeMa - interval.fromAgeMa, 0);
+  const requestedAgeMa = excursionMa > PALAEO_POSE_EXCURSION_LIMIT_MA ? supportAgeMa : poseAgeMa;
   const identity = palaeoIntervalIdentityTable(interval);
   const scratch = palaeoIntervalFrameScratch(interval, identity);
   const { paletteValues } = scratch;
@@ -293,12 +336,12 @@ export function evaluateCaoPalaeoIntervalFrame(
     const entry = selectPalaeoBindingEntry(entriesByPlate.get(piece.binding.bindingPlateId) ?? [],
       piece.entrySelection, piece.binding.bindingPlateId, requestedAgeMa);
     const segment = entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
-    const lifecycleActive = palaeoLifecycleActiveAtAge(piece.lifecycle, requestedAgeMa);
+    const lifecycleActive = palaeoLifecycleActiveAtAge(piece.lifecycle, supportAgeMa);
     // An unposable piece is not drawn. A declared source seam says so as
     // `source-seam`: the model has a hole here, which is a different claim
     // from a palette entry that has not finished downloading.
     const support: SupportState = !lifecycleActive
-      ? requestedAgeMa > piece.lifecycle.oldestMa ? PALAEO_SUPPORT_UNBORN : PALAEO_SUPPORT_CONSUMED
+      ? supportAgeMa > piece.lifecycle.oldestMa ? PALAEO_SUPPORT_UNBORN : PALAEO_SUPPORT_CONSUMED
       : segment ? PALAEO_SUPPORT_COMPILED_RIGID
       : palaeoBindingSeamCoversAge(piece.binding, requestedAgeMa)
         ? PALAEO_SUPPORT_SOURCE_SEAM : PALAEO_SUPPORT_MISSING_MOTION;
@@ -344,6 +387,7 @@ export function evaluateCaoPalaeoIntervalFrame(
   scratch.activeChartCount = activeChartCount;
   return Object.freeze({
     requestedAgeMa,
+    supportAgeMa,
     intervalId: interval.intervalId,
     intervalIndex: interval.intervalIndex,
     fromAgeMa: interval.fromAgeMa,

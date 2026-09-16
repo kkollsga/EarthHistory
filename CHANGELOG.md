@@ -84,6 +84,20 @@ All notable changes to EarthHistory will be recorded here.
   and releases nothing yet. No visual change: every ledger shape, every
   `data-cao-*` value and all three compositions draw exactly as before.
 
+### Fixed
+
+- **The outgoing map keeps moving with the outlines across an interval
+  boundary.** Once a scrub crossed into the next map interval, the interval
+  still on screen was posed at its own edge age until the incoming one
+  published, so the palaeogeographic polygons stood still for a beat while the
+  country outlines drawn over them kept rotating. The pose age and the support
+  age are now separate: the charts are posed at the live requested age, because
+  the rotation palette is one continuous global history and the outlines are
+  already riding it, while the lifecycles stay judged just inside the drawn
+  interval so its retiring pieces keep their last honest support verdict instead
+  of blanking. A jump of more than 30 Ma outside the drawn interval is not a
+  crossing and falls back to the held pose rather than extrapolating.
+
 ## [0.1.19] - 2026-09-16
 
 ### Added
