@@ -4,19 +4,23 @@ import {
   CAO_FOUNDATION_SURFACE_PRECEDENCE,
   caoFoundationSurfaceClassVisible,
   createCaoFoundationGeometryResource,
+  type CaoFoundationCoverageOptions,
   type CaoFoundationGeometryResource,
   type CaoFoundationPickState,
+  type CaoFoundationSurfaceMode,
   type CaoFoundationSurfaceView,
 } from "./caoFoundation";
 import {
+  caoSurfaceSetCoversDirection,
+  caoSurfaceSetReferenceSurfaceClass,
+  intersectCaoSurfaceSet,
+} from "./surfaceSet";
+import {
   CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA,
   CAO_PALAEO_LGM_AGE_BAND_MA,
-  caoPalaeoCoastlineDomainBand,
-  caoCompositeCoversDirection,
-  caoCompositeReferenceSurfaceClass,
   caoPalaeoCoastlineAgeInsideDomain,
-  intersectCaoComposite,
-} from "./palaeoComposite";
+  caoPalaeoCoastlineDomainBand,
+} from "./surfaceVisibility";
 import type { PreparedCaoRevision } from "../../reconstruction";
 
 const limits = { maxBatches: 16, maxVertices: 1_000, maxTriangles: 1_000,
@@ -109,23 +113,24 @@ function viewOf(
   geometry: CaoFoundationGeometryResource,
   active: readonly number[],
   chartCount: number,
+  mode: CaoFoundationSurfaceMode,
 ): CaoFoundationSurfaceView {
   const chartPoses = new Float32Array(chartCount * 8);
   for (let chart = 0; chart < chartCount; chart += 1) {
     chartPoses.set([1, 0, 0, 0, 1, 0, 0, 0], chart * 8);
   }
   const publication: CaoFoundationPickState = { chartPoses, chartActive: new Uint8Array(active) };
-  return { geometry, publication };
+  return { geometry, publication, mode };
 }
 
-describe("palaeo composite surface", () => {
+describe("surface set", () => {
   // The native stack: shelf, one correction, and the Cao 2024 coast fill.
   const nativeGeometry = createCaoFoundationGeometryResource(revisionOf([
     { batchId: "batch-shelf", halfDegrees: 0.5, chartIndex: 0, nativePrecedence: false },
     { batchId: "correction-fine", halfDegrees: 0.3, chartIndex: 1, nativePrecedence: true },
     { batchId: "batch-land", halfDegrees: 0.25, chartIndex: 2, nativePrecedence: false },
   ], 3), limits);
-  // The palaeo stack, published by the second renderer instance.
+  // The Cao 2017 stack, the set member the band and the LGM overlay draw.
   const palaeoGeometry = createCaoFoundationGeometryResource(revisionOf([
     { batchId: "palaeo-shallow", halfDegrees: 0.4, chartIndex: 0, nativePrecedence: false,
       surfaceAppearance: "palaeo-shallow-marine" },
@@ -135,14 +140,24 @@ describe("palaeo composite surface", () => {
       surfaceAppearance: "palaeo-mountain" },
   ], 3), limits);
 
-  const native = (active: readonly number[]) => viewOf(nativeGeometry, active, 3);
-  const palaeo = (active: readonly number[]) => viewOf(palaeoGeometry, active, 3);
+  const native = (active: readonly number[], mode: CaoFoundationSurfaceMode) =>
+    viewOf(nativeGeometry, active, 3, mode);
+  const palaeo = (active: readonly number[]) => viewOf(palaeoGeometry, active, 3, "palaeo");
+  /**
+   * The set the composition draws: the Cao 2024 member in the mode the band
+   * puts it in, and the Cao 2017 member wherever it is on screen — which is the
+   * Cao 2017 band, and the LGM band, where it is drawn over today's land rather
+   * than instead of it.
+   */
+  const set = (nativeActive: readonly number[], palaeoActive: readonly number[],
+    mode: CaoFoundationSurfaceMode, palaeoVisible = mode === "palaeo") =>
+    [native(nativeActive, mode), ...(palaeoVisible ? [palaeo(palaeoActive)] : [])];
 
   it("ranks both instances against one precedence table when picking", () => {
     const pick = (nativeActive: readonly number[], palaeoActive: readonly number[],
       mode: "native" | "palaeo") =>
-      intersectCaoComposite(native(nativeActive), palaeo(palaeoActive),
-        [3, 0, 0], [-1, 0, 0], { mode })?.surfaceClass ?? null;
+      intersectCaoSurfaceSet(set(nativeActive, palaeoActive, mode),
+        [3, 0, 0], [-1, 0, 0])?.surfaceClass ?? null;
 
     // Mode off: the palaeo instance is not consulted at all, and the native
     // answers are exactly the ones the single-instance pick has always given.
@@ -164,22 +179,23 @@ describe("palaeo composite surface", () => {
     expect(pick([1, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(pick([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
 
-    // The `lgm` band draws both instances in the native mode, and there the
-    // corrections are today's observed ground: they stay pickable.
-    const lgmPick = intersectCaoComposite(native([1, 1, 1]), palaeo([1, 0, 0]),
-      [3, 0, 0], [-1, 0, 0], { mode: "native", palaeoVisible: true })?.surfaceClass ?? null;
+    // The `lgm` band keeps the Cao 2024 member in the native mode with the
+    // lowstand member over it, and there the corrections are today's observed
+    // ground: they stay pickable.
+    const lgmPick = intersectCaoSurfaceSet(set([1, 1, 1], [1, 0, 0], "native", true),
+      [3, 0, 0], [-1, 0, 0])?.surfaceClass ?? null;
     expect(lgmPick).toBe("land");
-    expect(intersectCaoComposite(native([1, 1, 0]), palaeo([1, 0, 0]), [3, 0, 0], [-1, 0, 0],
-      { mode: "native", palaeoVisible: true })?.surfaceClass).toBe("corrections");
+    expect(intersectCaoSurfaceSet(set([1, 1, 0], [1, 0, 0], "native", true), [3, 0, 0],
+      [-1, 0, 0])?.surfaceClass).toBe("corrections");
 
-    // A missing instance is simply absent, never an error.
-    expect(intersectCaoComposite(native([1, 1, 1]), null, [3, 0, 0], [-1, 0, 0],
-      { mode: "palaeo" })?.surfaceClass ?? null).toBeNull();
-    expect(intersectCaoComposite(native([1, 1, 1]), null, [3, 0, 0], [-1, 0, 0],
-      { mode: "native" })?.surfaceClass).toBe("land");
-    expect(intersectCaoComposite(null, palaeo([1, 1, 1]), [3, 0, 0], [-1, 0, 0],
-      { mode: "palaeo" })?.surfaceClass).toBe("palaeo-mountain");
-    expect(intersectCaoComposite(null, null, [3, 0, 0], [-1, 0, 0], {})).toBeNull();
+    // A member that is not on screen is simply absent from the set, never an error.
+    expect(intersectCaoSurfaceSet([native([1, 1, 1], "palaeo")], [3, 0, 0],
+      [-1, 0, 0])?.surfaceClass ?? null).toBeNull();
+    expect(intersectCaoSurfaceSet([native([1, 1, 1], "native")], [3, 0, 0],
+      [-1, 0, 0])?.surfaceClass).toBe("land");
+    expect(intersectCaoSurfaceSet([palaeo([1, 1, 1])], [3, 0, 0],
+      [-1, 0, 0])?.surfaceClass).toBe("palaeo-mountain");
+    expect(intersectCaoSurfaceSet([], [3, 0, 0], [-1, 0, 0])).toBeNull();
   });
 
   it("drops the crust shelf from the Cao 2017 band's precedence and keeps the margins", () => {
@@ -200,8 +216,8 @@ describe("palaeo composite surface", () => {
     // a pose.
     const classify = (nativeActive: readonly number[], palaeoActive: readonly number[],
       mode: "native" | "palaeo") =>
-      caoCompositeReferenceSurfaceClass(native(nativeActive), palaeo(palaeoActive),
-        gplatesLonLat(0, 0) as unknown as [number, number, number], { mode });
+      caoSurfaceSetReferenceSurfaceClass(set(nativeActive, palaeoActive, mode),
+        gplatesLonLat(0, 0) as unknown as [number, number, number]);
     expect(classify([1, 1, 1], [1, 1, 1], "native")).toBe("land");
     expect(classify([1, 1, 1], [1, 1, 1], "palaeo")).toBe("palaeo-mountain");
     expect(classify([1, 1, 1], [1, 1, 0], "palaeo")).toBe("palaeo-land");
@@ -216,15 +232,18 @@ describe("palaeo composite surface", () => {
     expect(classify([1, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(classify([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     // Off the fixture's ground nothing answers, in either mode.
-    expect(caoCompositeReferenceSurfaceClass(native([1, 1, 1]), palaeo([1, 1, 1]),
-      gplatesLonLat(90, 0) as unknown as [number, number, number], { mode: "palaeo" })).toBeNull();
+    expect(caoSurfaceSetReferenceSurfaceClass(set([1, 1, 1], [1, 1, 1], "palaeo"),
+      gplatesLonLat(90, 0) as unknown as [number, number, number])).toBeNull();
   });
 
   it("answers land coverage across both instances with native land hidden", () => {
     const covers = (nativeActive: readonly number[], palaeoActive: readonly number[],
-      mode: "native" | "palaeo", options = {}) =>
-      caoCompositeCoversDirection(native(nativeActive), palaeo(palaeoActive),
-        rendererDirection(0, 0), { mode, ...options });
+      mode: "native" | "palaeo",
+      options: CaoFoundationCoverageOptions & { palaeoVisible?: boolean } = {}) => {
+      const { palaeoVisible, ...coverage } = options;
+      return caoSurfaceSetCoversDirection(set(nativeActive, palaeoActive, mode, palaeoVisible),
+        rendererDirection(0, 0), coverage);
+    };
 
     // Mode off: the Cao 2024 coast fill is the only land, and shelf water takes
     // the light ink.
@@ -241,7 +260,7 @@ describe("palaeo composite surface", () => {
     expect(covers([1, 0, 1], [0, 0, 1], "palaeo", { includeShelf: false })).toBe(true);
     expect(covers([1, 1, 1], [0, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
     expect(covers([1, 1, 1], [1, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
-    // And in the `lgm` band, which runs the native mode with both instances on
+    // And in the `lgm` band, which runs the native mode with both members on
     // screen, the same correction still answers "land".
     expect(covers([1, 1, 0], [0, 0, 0], "native", { includeShelf: false, palaeoVisible: true }))
       .toBe(true);

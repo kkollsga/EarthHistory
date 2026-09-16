@@ -5,7 +5,6 @@ import {
   caoFoundationSurfaceClassAppearance,
   type CaoFoundationSurfaceClass,
 } from "./caoFoundation";
-import type { CaoPalaeoDomainBand } from "./palaeoComposite";
 import { DEFAULT_SURFACE_RESIDENCY_POLICY } from "../../reconstruction/loaderV2";
 import {
   advanceSurfaceVisibilityHysteresis,
@@ -13,6 +12,7 @@ import {
   resolveSurfaceVisibility,
   surfaceSlotComposition,
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
+  type CaoPalaeoDomainBand,
   type SurfaceComposition,
 } from "./surfaceVisibility";
 

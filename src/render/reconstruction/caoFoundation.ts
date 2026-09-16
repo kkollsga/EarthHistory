@@ -2200,10 +2200,17 @@ export function caoFoundationRefusedStaticGeometryReplacements(
   return Object.freeze(refused);
 }
 
-/** The read-only surface view a composite coverage or pick query consumes. */
+/** One member of the surface set, as a coverage or pick query consumes it. */
 export interface CaoFoundationSurfaceView {
   readonly geometry: CaoFoundationGeometryResource;
   readonly publication: CaoFoundationPickState;
+  /**
+   * The stack this member draws. It travels with the view so a set query needs
+   * no per-instance argument: the member holding the Cao 2017 batches is read in
+   * the palaeo mode whatever the Cao 2024 member is doing, which is exactly the
+   * LGM band, where the lowstand shelf is drawn over today's land.
+   */
+  readonly mode: CaoFoundationSurfaceMode;
 }
 
 /**
@@ -2428,7 +2435,7 @@ export class CaoFoundationSurfaceRenderer {
   surfaceView(): CaoFoundationSurfaceView | null {
     const current = this.publisher.current();
     if (!this.domainVisible || !this.staticGeometry || !current) return null;
-    return { geometry: this.staticGeometry, publication: current.resources };
+    return { geometry: this.staticGeometry, publication: current.resources, mode: this.surfaceMode() };
   }
 
   /**

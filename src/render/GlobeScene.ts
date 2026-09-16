@@ -36,14 +36,16 @@ import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
   type CaoFoundationSurfaceHit,
+  type CaoFoundationSurfaceView,
 } from "./reconstruction/caoFoundation";
 import {
-  caoCompositeCoversDirection,
-  caoCompositeReferenceSurfaceClass,
-  caoPalaeoCoastlineDomainBand,
-  intersectCaoComposite,
-} from "./reconstruction/palaeoComposite";
+  caoSurfaceSetCoversDirection,
+  caoSurfaceSetReferenceSurfaceClass,
+  intersectCaoSurfaceSet,
+  type CaoSurfaceSetView,
+} from "./reconstruction/surfaceSet";
 import {
+  caoPalaeoCoastlineDomainBand,
   resolveReleasableNativeSurfaceClasses,
   resolveSurfaceVisibility,
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
@@ -1616,15 +1618,26 @@ export class GlobeScene {
     dataset.caoOutlineToneLightSegments = String(counts.lightSegments);
   }
 
-  /** Nearest hit across both instances, ranked by one precedence table. */
+  /**
+   * Every surface on screen, in draw order, each carrying the mode it is drawn
+   * in. The Cao 2017 member is in the set exactly while the resolved composition
+   * draws it, which is also the only condition under which its charts are on
+   * screen; a member with nothing published answers null and is absent.
+   */
+  private surfaceSetView(nativeView: CaoFoundationSurfaceView | null): CaoSurfaceSetView {
+    const palaeoView = this.surfaceVisibility.palaeoDrawn
+      ? this.caoPalaeoRenderer.surfaceView() : null;
+    return [nativeView, palaeoView].filter((view): view is CaoFoundationSurfaceView =>
+      view !== null);
+  }
+
+  /** Nearest hit across the whole set, ranked by one precedence table. */
   private intersectCompositeRay(
     rayOrigin: [number, number, number],
     rayDirection: [number, number, number],
   ): CaoFoundationSurfaceHit | null {
-    return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
-      this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
-      { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
+    return intersectCaoSurfaceSet(
+      this.surfaceSetView(this.caoFoundationRenderer.surfaceView()), rayOrigin, rayDirection);
   }
 
   private rebuildOverlays(): void {
@@ -1686,15 +1699,17 @@ export class GlobeScene {
     // the fixed editorial answer.
     const editorialCovered = GUIDE_LABEL_EDITORIAL_TONE === "dark";
     const started = performance.now();
+    // Resolved once for the whole budgeted round rather than per probe: the set
+    // cannot change while this loop runs, and rebuilding it per probe would
+    // allocate once per scanned label.
+    const views = this.surfaceSetView(this.caoFoundationRenderer.surfaceView());
     const step = advanceGuideLabelToneScan(this.guideLabelToneScan,
       GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME, (direction) => native
         // Land only: shelf water and mapped shallow sea are dark backgrounds
-        // like the open ocean, so they take the light ink too. The composite is
-        // what keeps a palaeo landmass dark once native land is hidden.
-        ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
-          this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
-          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode(),
-            palaeoVisible: this.surfaceVisibility.palaeoDrawn })
+        // like the open ocean, so they take the light ink too. The set is what
+        // keeps a palaeo landmass dark once native land is hidden.
+        ? caoSurfaceSetCoversDirection(views, [direction.x, direction.y, direction.z],
+          { includeShelf: false })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -2010,12 +2025,10 @@ export class GlobeScene {
     const longitude = longitudeDegrees * Math.PI / 180;
     const latitude = latitudeDegrees * Math.PI / 180;
     const radius = Math.cos(latitude);
-    return caoCompositeReferenceSurfaceClass(
-      this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView(),
-      this.caoPalaeoRenderer.surfaceView(),
-      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
-      { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
+    return caoSurfaceSetReferenceSurfaceClass(
+      this.surfaceSetView(
+        this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView()),
+      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)]);
   };
 
   /**
