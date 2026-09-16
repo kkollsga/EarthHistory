@@ -23,6 +23,14 @@ All notable changes to EarthHistory will be recorded here.
   timeline loading keeps warming checkpoints age-independently, and it still
   defers its main-thread decoding until a live scrub has rested.
 
+### Fixed
+
+- **The CI browser smoke runs one test at a time.** The two-worker default
+  that 0.1.14 introduced starved both `@ci` tests on the two-core GitHub runner
+  past their 20 s first-paint budget (main run 35093699520 failed where the
+  identical pull-request run had passed). `make test-e2e-ci` now pins
+  `EARTHHISTORY_TEST_WORKERS=1`; the local default stays two.
+
 ## [0.1.14] - 2026-09-16
 
 ### Added
