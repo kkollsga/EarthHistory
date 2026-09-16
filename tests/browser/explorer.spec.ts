@@ -41,6 +41,22 @@ async function waitForCao(page: Page) {
   await expect(globe(page)).toHaveAttribute("data-legacy-surface-pipeline", "removed");
 }
 
+/**
+ * How long the first Cao 2017 publication after a page load may take. The
+ * browser gate runs two Playwright workers over one software renderer, so the
+ * first publish - fetch, decode, triangulate, upload - contends for the same
+ * CPU that swiftshader is drawing with; alone the LGM warm check publishes in
+ * about 34 s, and under contention it has still been "loading" at 30 s. One
+ * budget for every first-publication wait, so the LGM tests wait alike.
+ */
+const PALAEO_FIRST_PUBLICATION_MS = 90_000;
+
+/** Waits for the palaeo-coastline layer's first publication after a load. */
+async function waitForPalaeoCoastlines(page: Page, message?: string) {
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: PALAEO_FIRST_PUBLICATION_MS, message }).toBe("on");
+}
+
 async function openMenu(page: Page) {
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("menu", { name: "Explore tools" })).toBeVisible();
@@ -1208,13 +1224,12 @@ for (const site of [
     why: "the exposed central North Sea shelf at the lowstand" },
 ]) {
   test(`draws no lower class inside the higher one: ${site.id} @palaeo`, async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`./#age=${site.age}&layers=borders,guides,palaeoCoastlines&at=${site.at}`);
     await waitForCao(page);
-    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-      { timeout: 30_000 }).toBe("on");
+    await waitForPalaeoCoastlines(page);
     expect(await probeClass(page, site.probe[0], site.probe[1]), site.why).toBe(site.expected);
     await zoomToClosest(page);
     const census = await isolatedColdPixels(page);
@@ -1450,12 +1465,11 @@ test("reaches the LGM interval after a long scrub through the Cao band @palaeo",
   // the next publication no longer fit. The layer then latched at "loading" with
   // the globe drawn as if it were off, because the pump believed its own
   // bookkeeping and never asked again.
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
-  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-    { timeout: 30_000 }).toBe("on");
+  await waitForPalaeoCoastlines(page);
 
   // Thirteen Cao 2017 intervals, one after another in the same page. The gap
   // ages between them are what tear the publication down.
@@ -2320,7 +2334,7 @@ test("poses the palaeo charts on the same frame as the native surface while scru
 // the closest zoom is where a viewer actually looks at a regional lowstand, so
 // the publication is asserted through the zoom as well.
 test("warms no Cao 2017 map beside the detached LGM state @palaeo", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const intervalPayloads: string[] = [];
   page.on("request", (request) => {
     const name = new URL(request.url()).pathname.split("/").pop() ?? "";
@@ -2330,8 +2344,7 @@ test("warms no Cao 2017 map beside the detached LGM state @palaeo", async ({ pag
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("./#age=0.021&at=3,55");
   await waitForCao(page);
-  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-    { timeout: 30_000 }).toBe("on");
+  await waitForPalaeoCoastlines(page);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "lgm");
 
   // Pin high detail: the adaptive setting drops a software-rendered run to
