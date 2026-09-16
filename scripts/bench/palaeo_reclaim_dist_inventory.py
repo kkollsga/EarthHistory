@@ -45,8 +45,6 @@ def class_of(relative: str) -> str:
         return "spatial-geometry-ehgb"
     if name.endswith(".ehgl"):
         return "country-line-ehgl"
-    if name.endswith(".ehmt"):
-        return "motion-tiles-ehmt"
     if name.endswith(".ehnb"):
         return "native-point-ehnb"
     if name.endswith(".ehto"):

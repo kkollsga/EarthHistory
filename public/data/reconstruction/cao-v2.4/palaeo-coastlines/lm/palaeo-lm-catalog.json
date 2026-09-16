@@ -765,10 +765,10 @@
    254,
    275,
    254,
-   607,
-   647,
    669,
-   675
+   675,
+   607,
+   647
   ],
   "count": 761,
   "gapSet": [
@@ -3055,14 +3055,14 @@
    274,
    275,
    233,
-   607,
-   647,
    669,
-   675
+   675,
+   607,
+   647
   ]
  },
  "catalogId": "palaeo-coastlines-lm-v2",
- "chartCount": 7363,
+ "chartCount": 7390,
  "class": "lm",
  "className": "landmass",
  "detachedIntervalIds": [
@@ -3617,7 +3617,7 @@
    44369,
    39062,
    43124,
-   11953
+   11342
   ],
   "bytes": [
    105174,
@@ -3644,7 +3644,7 @@
    210542,
    187894,
    204836,
-   53648
+   51684
   ],
   "collapsedRings": [
    2,
@@ -3699,7 +3699,7 @@
    239658,
    120076,
    127122,
-   15298
+   14662
   ],
   "fromAgeMa": [
    402.0,
@@ -3834,7 +3834,7 @@
    1428,
    1402,
    1483,
-   284
+   307
   ],
   "rings": [
    941,
@@ -3861,7 +3861,7 @@
    1697,
    1921,
    2218,
-   504
+   510
   ],
   "sha256": [
    "e69e71aa1a53c31f73c71405e9bc1a90f5a9b63fe0f6ac17a8b795ac1ef663b3",
@@ -3888,7 +3888,7 @@
    "0f951e553dbd4b1b640c2afa2d440fbfab348581bffa331366724e95ec50e267",
    "2aa37c7447d3b19d3650fe03dfe34f565a11064f2e52d2b9b63eecf1b23467a8",
    "0a7c052e5dbff2a9c9e87125adf9adc8376daafc3571f7e51bfc62929156c0b8",
-   "1492504cf02409bf077bbda715e01a958f3bccaf5d77b8c0855292cdd4ff049c"
+   "4a10d83ba138900a9af40d5ef0d796eada865daf2a1aeaf9c5265bbfd4eaa726"
   ],
   "toAgeMa": [
    380.01,
@@ -3942,7 +3942,7 @@
    47495,
    41799,
    45643,
-   12300
+   11737
   ]
  },
  "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
@@ -4091,10 +4091,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-lm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 700198,
+  "bytes": 703244,
   "path": "provenance/palaeo-lm-provenance.json",
-  "records": 7363,
-  "sha256": "424ac9b4712d3aa92206fa7b59a9b3683976eb8301bef6695df60e847c827995",
+  "records": 7390,
+  "sha256": "9560fca09853371a9bae6d3df6a0918d2ca27705c41b99bb6825a5a4bfa0d560",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2

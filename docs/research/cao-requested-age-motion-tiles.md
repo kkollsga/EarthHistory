@@ -1,5 +1,14 @@
 # Cao requested-age motion tiles
 
+> **Retired in 0.1.15.** The tier was removed end to end — the 72 `.ehmt`
+> windows, their index, the emitter/promoter/validator and the tracked source
+> contract are gone, and `motion-palette.bin` + `motion-palette.json` are the
+> only motion path the runtime loads. The 5,743,096 published bytes were
+> reclaimed to fund the 1:50m country outlines. Nothing scientific changed: the
+> tier only ever transported exact copies of palette records. This record is
+> kept as the design and measurement history of that tier, and everything below
+> describes the retired design in the present tense.
+
 ## Decision and scientific scope
 
 EarthHistory may show the URL-requested Cao age before downloading the complete

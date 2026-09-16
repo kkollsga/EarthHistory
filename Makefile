@@ -86,8 +86,10 @@ build:
 test-e2e:
 	@npm run test:e2e:built
 
+# The GitHub runner has two cores and renders through swiftshader; two workers
+# starve both @ci tests past their 20 s first-paint budget (main run 35093699520).
 test-e2e-ci:
-	@npm run test:e2e:ci
+	@EARTHHISTORY_TEST_WORKERS=1 npm run test:e2e:ci
 
 # R4: local state is gitignored, so only a local gate can enforce its bound.
 check-dev-docs:

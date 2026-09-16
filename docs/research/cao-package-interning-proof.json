@@ -30,11 +30,5 @@
   "rebasedIdentityReports": [
     "docs/research/regional-iceland-motion-validation.json",
     "docs/research/north-sea-restoration-validation.json"
-  ],
-  "motionTiles": {
-    "tileCount": 72,
-    "tileBytes": 5715028,
-    "indexSha256": "c83ccb285fa26892c4234eac9f196c069a50b0902bfaa7c0d9364ea9d48c9434",
-    "packageManifestSha256": "63ab1a54b37468f034779c205b623677e5732f4361c296014ac63e26e69cc35e"
-  }
+  ]
 }

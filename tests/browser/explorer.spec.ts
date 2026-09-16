@@ -41,6 +41,22 @@ async function waitForCao(page: Page) {
   await expect(globe(page)).toHaveAttribute("data-legacy-surface-pipeline", "removed");
 }
 
+/**
+ * How long the first Cao 2017 publication after a page load may take. The
+ * browser gate runs two Playwright workers over one software renderer, so the
+ * first publish - fetch, decode, triangulate, upload - contends for the same
+ * CPU that swiftshader is drawing with; alone the LGM warm check publishes in
+ * about 34 s, and under contention it has still been "loading" at 30 s. One
+ * budget for every first-publication wait, so the LGM tests wait alike.
+ */
+const PALAEO_FIRST_PUBLICATION_MS = 90_000;
+
+/** Waits for the palaeo-coastline layer's first publication after a load. */
+async function waitForPalaeoCoastlines(page: Page, message?: string) {
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: PALAEO_FIRST_PUBLICATION_MS, message }).toBe("on");
+}
+
 async function openMenu(page: Page) {
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("menu", { name: "Explore tools" })).toBeVisible();
@@ -276,8 +292,7 @@ test("reloads fresh manifests while reusing only hash-qualified package bytes", 
   }).filter((entry) => entry.url.includes("/data/reconstruction/cao-v2.4/")));
   const manifest = reloadResources.find((entry) => entry.url.endsWith("/manifest.json"));
   const reusedPayloads = reloadResources.filter((entry) => firstPayloadUrls.has(entry.url));
-  const requiredPayloads = ["core.json", "motion-palette.json", "motion-tiles/index.json",
-    "motion-tiles/tile-0000-0025ma.ehmt", "batch-land.ehgb"];
+  const requiredPayloads = ["core.json", "motion-palette.json", "motion-palette.bin", "batch-land.ehgb"];
   expect(manifest?.transferSize).toBeGreaterThan(0);
   for (const filename of requiredPayloads) {
     expect([...firstPayloadUrls].some((url) => new URL(url).pathname.endsWith(`/${filename}`))).toBe(true);
@@ -286,90 +301,6 @@ test("reloads fresh manifests while reusing only hash-qualified package bytes", 
   expect(reusedPayloads.length).toBeGreaterThan(10);
   expect(reusedPayloads.filter((entry) => entry.transferSize !== 0)
     .map((entry) => new URL(entry.url).pathname)).toEqual([]);
-});
-
-test("publishes the requested URL age before background timeline loading and keeps it on failure", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  let fullPaletteRequests = 0;
-  let canvasStatusAtFirstRequest: string | null = null;
-  const requestedPaths: string[] = [];
-  page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
-  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-palette\.bin\?h=/, async (route) => {
-    fullPaletteRequests += 1;
-    if (fullPaletteRequests === 1) {
-      canvasStatusAtFirstRequest = await globe(page).getAttribute("data-cao-foundation-status");
-      await route.abort("failed");
-    } else {
-      await route.continue();
-    }
-  });
-  await page.goto("./#age=411");
-  await waitForCao(page);
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "411");
-  await expect(page.locator(".globe-stage")).toHaveAttribute("data-cao-displayed-age-ma", "411");
-  expect(requestedPaths.some((path) => path.endsWith("/motion-tiles/tile-0400-0425ma.ehmt"))).toBe(true);
-  expect(requestedPaths.some((path) => path.endsWith("/motion-tiles/tile-0000-0025ma.ehmt"))).toBe(false);
-  await expect.poll(() => fullPaletteRequests).toBe(1);
-  expect(canvasStatusAtFirstRequest).toBe("ready");
-  const stage = page.locator(".globe-stage");
-  await expect(stage).toHaveAttribute("data-cao-timeline-loading-status", "paused");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
-  await expect(globe(page)).not.toHaveAttribute("data-cao-foundation-draw-count", "0");
-  const currentIdentity = await globe(page).getAttribute("data-cao-foundation-geometry-identity");
-  await openSurfaceInfo(page);
-  const retry = page.getByRole("button", { name: "Retry" });
-  const retryBox = await retry.boundingBox();
-  expect(retryBox?.width).toBeGreaterThanOrEqual(44);
-  expect(retryBox?.height).toBeGreaterThanOrEqual(44);
-  await retry.click();
-  await expect.poll(() => fullPaletteRequests).toBe(2);
-  await expect(stage).toHaveAttribute("data-cao-motion-tier", "full", { timeout: 20_000 });
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
-  await expect(stage).toHaveAttribute("data-cao-displayed-age-ma", "411");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-geometry-identity", currentIdentity!);
-});
-
-test("keeps the last rendered surface visible while a newer motion window is pending", async ({ page }) => {
-  let releaseTile: (() => void) | undefined;
-  let tileStarted = false;
-  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-palette\.bin\?h=/,
-    (route) => route.abort("failed"));
-  await page.route(/\/data\/reconstruction\/cao-v2\.4\/motion-tiles\/tile-0400-0425ma\.ehmt\?h=/,
-    (route) => new Promise<void>((resolvePromise) => {
-      tileStarted = true;
-      releaseTile = () => { void route.continue().finally(resolvePromise); };
-    }));
-  await page.goto("./#age=0");
-  await waitForCao(page);
-  await expect(page.locator(".globe-stage")).toHaveAttribute("data-cao-timeline-loading-status", "paused");
-  await page.locator("#timeline-scale").selectOption("phanerozoic");
-  await page.locator("#geological-age").evaluate((element, age) => {
-    if (!(element instanceof HTMLInputElement)) throw new Error("geological age range is missing");
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element,
-      String(age / 538.8 * 1000));
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  }, 411);
-  const stage = page.locator(".globe-stage");
-  await expect.poll(async () => Number(await stage.getAttribute("data-cao-requested-age-ma")))
-    .toBeCloseTo(411, 8);
-  await expect.poll(() => tileStarted).toBe(true);
-  await expect(stage).toHaveAttribute("data-cao-motion-foreground-status", "loading");
-  // The previously rendered surface stays on the globe with truthful
-  // requested/displayed ages. Blanking it here flashed land on slow devices.
-  await expect(stage).toHaveAttribute("data-cao-displayed-age-ma", "0");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-status", "ready");
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-requested-age-ma", "0");
-  await expect(globe(page)).not.toHaveAttribute("data-cao-foundation-draw-count", "0");
-  await expect(page.locator(".surface-info summary strong[role='status']"))
-    .toHaveText("Loading 411 Ma · Showing Today");
-  await expect(page.locator(".surface-info")).toHaveAttribute("data-status", "loading");
-  releaseTile!();
-  await waitForCao(page);
-  await expect.poll(async () => Number(await globe(page)
-    .getAttribute("data-cao-foundation-requested-age-ma"))).toBeCloseTo(411, 8);
-  await expect.poll(async () => Number(await stage.getAttribute("data-cao-displayed-age-ma")))
-    .toBeCloseTo(411, 8);
-  await expect(globe(page)).toHaveAttribute("data-cao-foundation-native-boundary-source-age-ma", "");
 });
 
 test("withholds the surface when hash-qualified package bytes are corrupt", async ({ page }) => {
@@ -1208,13 +1139,12 @@ for (const site of [
     why: "the exposed central North Sea shelf at the lowstand" },
 ]) {
   test(`draws no lower class inside the higher one: ${site.id} @palaeo`, async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`./#age=${site.age}&layers=borders,guides,palaeoCoastlines&at=${site.at}`);
     await waitForCao(page);
-    await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-      { timeout: 30_000 }).toBe("on");
+    await waitForPalaeoCoastlines(page);
     expect(await probeClass(page, site.probe[0], site.probe[1]), site.why).toBe(site.expected);
     await zoomToClosest(page);
     const census = await isolatedColdPixels(page);
@@ -1450,12 +1380,11 @@ test("reaches the LGM interval after a long scrub through the Cao band @palaeo",
   // the next publication no longer fit. The layer then latched at "loading" with
   // the globe drawn as if it were off, because the pump believed its own
   // bookkeeping and never asked again.
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
-  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-    { timeout: 30_000 }).toBe("on");
+  await waitForPalaeoCoastlines(page);
 
   // Thirteen Cao 2017 intervals, one after another in the same page. The gap
   // ages between them are what tear the publication down.
@@ -2320,7 +2249,7 @@ test("poses the palaeo charts on the same frame as the native surface while scru
 // the closest zoom is where a viewer actually looks at a regional lowstand, so
 // the publication is asserted through the zoom as well.
 test("warms no Cao 2017 map beside the detached LGM state @palaeo", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const intervalPayloads: string[] = [];
   page.on("request", (request) => {
     const name = new URL(request.url()).pathname.split("/").pop() ?? "";
@@ -2330,8 +2259,7 @@ test("warms no Cao 2017 map beside the detached LGM state @palaeo", async ({ pag
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("./#age=0.021&at=3,55");
   await waitForCao(page);
-  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
-    { timeout: 30_000 }).toBe("on");
+  await waitForPalaeoCoastlines(page);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "lgm");
 
   // Pin high detail: the adaptive setting drops a software-rendered run to

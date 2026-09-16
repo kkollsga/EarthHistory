@@ -344,10 +344,10 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
     runtime.dispose();
   }, 120_000);
 
-  it("fetches one requested-age motion tile when both chains want the same window", async () => {
+  it("fetches the motion palette once when both chains want it", async () => {
     // Phase 3 note (d): the palaeo chain runs its own palette requests, so a
-    // palaeo pose asked for before any native request in the same window used to
-    // start a second fetch of the tile the foreground chain was about to load.
+    // palaeo pose asked for before any native request used to start a second
+    // fetch of the motion payload the foreground chain was about to load.
     const fetched: string[] = [];
     const counting: StaticAssetFetcher = async (url, signal) => {
       fetched.push(url);
@@ -359,8 +359,8 @@ describe("promoted Cao 2017 palaeo-coastline assets", () => {
       runtime.requestPalaeoInterval(90).prepared,
       runtime.request(90).prepared,
     ]);
-    const tiles = fetched.filter((url) => url.startsWith("motion-tiles/tile-"));
-    expect(tiles.length, `tiles fetched: ${tiles.join(", ")}`).toBe(1);
+    const palette = fetched.filter((url) => url.startsWith("motion-palette.bin"));
+    expect(palette.length, `palette fetches: ${palette.join(", ")}`).toBe(1);
     prepared.release();
     runtime.dispose();
   }, 120_000);

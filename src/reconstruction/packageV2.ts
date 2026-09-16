@@ -15,7 +15,6 @@ export interface MotionPaletteAsset {
   readonly catalog: PackageAsset;
   readonly binary: PackageAsset;
   /** Optional verified windows used to prepare the requested age before the all-age binary arrives. */
-  readonly requestedAgeTiles?: PackageAsset;
 }
 
 export interface ReconstructionPackageManifestV2 {
@@ -463,8 +462,6 @@ export function validateReconstructionPackageManifestV2(manifest: Reconstruction
       || domain.youngest < 0 || domain.oldest > 1_800 || domain.youngest > domain.oldest
       || !manifest.motionPalette.id || !assetValid(manifest.core)
       || !assetValid(manifest.motionPalette.catalog) || !assetValid(manifest.motionPalette.binary)
-      || (manifest.motionPalette.requestedAgeTiles !== undefined
-        && !assetValid(manifest.motionPalette.requestedAgeTiles))
       || manifest.checkpoints.length < 2 || !manifest.frame.modelId || !manifest.frame.modelVersion
       || !manifest.frame.absoluteFrameId || !Number.isInteger(manifest.frame.anchorPlateId)
       || !SHA256.test(manifest.frame.rotationSha256) || !SHA256.test(manifest.frame.topologySha256)

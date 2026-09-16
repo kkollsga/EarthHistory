@@ -758,9 +758,9 @@ function newestEntry<T extends PalaeoSelectablePaletteEntry>(candidates: readonl
  * whose answers differ.
  *
  * `recoveryPlateIds` is read from the catalog rather than rediscovered from the
- * entries: a requested-age motion tile holds only part of the palette, and a
- * plate whose recovery entry is simply not resident must still refuse to fall
- * back to a native entry that happens to be.
+ * entries: a plate whose recovery entry is simply absent from the resident
+ * entries must still refuse to fall back to a native entry that happens to be
+ * present.
  */
 export function selectPalaeoBindingEntry<T extends PalaeoSelectablePaletteEntry>(
   entriesForPlate: readonly T[],
