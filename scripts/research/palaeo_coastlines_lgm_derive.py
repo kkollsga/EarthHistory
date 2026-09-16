@@ -12,12 +12,14 @@ Method:
 1. read the crops pinned by ``palaeo_coastlines_lgm_acquire.py`` and verify
    every raster against the sha256 in its manifest;
 2. build the boolean mask ``surface >= -120`` on the source 1 arc-minute grid, and
-   **subtract present-day land** from it. The layer ships the *exposed shelf*
-   only: the ground the lowstand added to the coastline, never the ground that
-   is dry today. Present-day land is the same pinned Natural Earth 1:50m
-   admin-0 land the observed-land omission correction uses, eroded by
-   ``MODERN_LAND_OVERLAP_KM`` so the shelf still laps 1.5 km over the modern
-   coast and no sliver of sphere opens along it;
+   **subtract the present-day land the application draws** from it. The layer
+   ships the *exposed shelf* only: the ground the lowstand added to the
+   coastline, never the ground that is dry today. Drawn land is the emitted
+   Cao v2.4 ``shapes_coasts`` charts at 0 Ma plus the observed-land omission
+   correction - the same two polygon sets the 0 Ma composition fills as land -
+   eroded by ``MODERN_LAND_OVERLAP_KM`` so the shelf still laps 1.5 km over the
+   drawn coast and no sliver of sphere opens along it. The mask complements the
+   drawn coast, so an estuary the drawn coast leaves as water is shelf here;
 3. polygonise the mask on **cell boundaries** — maximal axis-aligned rectangles
    of set cells, unioned. No contour interpolation is invented between two
    source cells, so every vertex of the raw polygon lies on a real grid line;
@@ -36,36 +38,49 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
 import math
 import sys
-import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-import shapefile
+import pygplates
 from shapely.geometry import MultiPolygon, Polygon, box, mapping, shape
 from shapely.ops import transform, unary_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cao_package_intern as package_intern  # noqa: E402
 import palaeo_coastlines_audit as audit  # noqa: E402
 import palaeo_coastlines_lgm_acquire as acquire  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[2]
-POOL = ROOT.parent / "EarthHistory-data/palaeomap-study"
 STORE = acquire.STORE
 CONTRACT = ROOT / "data/corrections/palaeo-coastlines/lgm"
+PUBLIC = ROOT / "public/data/reconstruction/cao-v2.4"
 
-# Present-day land, pinned. This is the same archive and the same digest the
-# observed-land omission correction reads (`regional_observed_land_omission_
-# compile.py`), so "today's land" means one thing across the project.
-NE_ARCHIVE = POOL / "verification/regional-iceland-correction-v1/source-inputs/ne_50m_admin_0_countries.zip"
-NE_STEM = "ne_50m_admin_0_countries"
-NE_VERSION = "5.1.1"
-NE_PINNED = (799734, "5fed433373581fa648920435f937d95f2d3c0200e067409c6478dcdf1b853139")
+# Present-day land as the *application draws it* at 0 Ma, pinned. Two parts, and
+# both are needed: the emitted Cao v2.4 `shapes_coasts` charts are the foundation
+# land fill, and the observed-land omission correction is the tracked repair that
+# adds the observed modern land those charts miss. Anything outside their union
+# is water on screen at 0 Ma.
+#
+# Natural Earth 1:50m stood here until 2026-09-16 and was wrong for this job: it
+# generalises estuaries, firths, fjords and belt seas as land, so subtracting it
+# punched a hole in the exposed shelf exactly where the drawn coast has water,
+# and at 21 ka the sphere's shelf tint needled through along the Solway, Clyde,
+# Tay, Humber, Morecambe, Tyne, Ems/Dollart, Schlei, Kiel Fjord, Vejle,
+# Limfjord, Great Belt and the North Frisian Wadden. The mask must complement
+# the land that is drawn, not the land some other cartographer drew.
+CAO_COASTS = audit.COASTS
+CAO_COASTS_PINNED = audit.PINNED["shapes_coasts.gpmlz"]
+CAO_CHART_PREFIX = "cao-coast"
+OBSERVED_LAND_GEOJSON = ROOT / "data/corrections/observed-land-omission/observed-land-omission-v1.geojson"
+# Sanity floors on the two inputs: a silent drop to a handful of polygons would
+# turn most of the world into "exposed shelf" without any other symptom.
+MINIMUM_CAO_COAST_CHARTS = 200
+MINIMUM_OBSERVED_LAND_PARTS = 1
 
 LOWSTAND_DATUM_M = -120.0
 LGM_OLDEST_MA = 0.0265
@@ -80,10 +95,10 @@ COORDINATE_DECIMALS = 4
 MODERN_LAND_OVERLAP_KM = 1.5
 EARTH_RADIUS_KM = 6371.0088
 KM_PER_DEGREE = EARTH_RADIUS_KM * math.pi / 180.0
-# Narrowest exposed shelf this layer will draw. Subtracting the generalised
-# Natural Earth coastline from a 1 arc-minute raster mask leaves needles far
-# thinner than the 1.85 km source cell along an indented coast - the Norwegian
-# fjords and the Skagerrak worst of all. They are an artefact of two
+# Narrowest exposed shelf this layer will draw. Subtracting a generalised
+# coastline from a 1 arc-minute raster mask leaves needles far thinner than the
+# 1.85 km source cell along an indented coast - the Norwegian fjords and the
+# Skagerrak worst of all. They are an artefact of two
 # incompatible resolutions meeting, never a claim about the lowstand shore, and
 # once int16 quantisation (0.0055 deg lon, 0.0027 deg lat) moves their walls
 # past one another the ring self-intersects and the renderer's ear-clip fills it
@@ -137,6 +152,15 @@ WITNESSES = (
      "Norwegian Trench at -254 m: far below the lowstand datum, still sea"),
     ("makassar-strait", 118.5, -2.0, "sundaland", False,
      "Makassar Strait: never closed by a lowstand (Hall 2009)"),
+    ("humber-estuary", -0.709, 53.653, "north-sea", True,
+     "inner Humber: the drawn 0 Ma coast has open water here and ETOPO has the bed "
+     "above the datum, so it is exposed shelf. Natural Earth 1:50m generalises the "
+     "estuary as land, and subtracting that used to leave a hole the sphere's shelf "
+     "tint needled through. The estuary mouth itself (-0.3, 53.6) is +12 m of dry "
+     "modern ground, so no exposed-shelf layer can ship anything there"),
+    ("devils-hole", 0.7, 56.6, "north-sea", False,
+     "Devil's Hole: trenches more than 200 m deep inside the exposed shelf, water at "
+     "the lowstand and still water here"),
     ("aleutian-basin", -175.0, 57.0, "beringia", False,
      "deep Aleutian Basin south of the shelf break: open ocean at the lowstand"),
 )
@@ -173,12 +197,29 @@ REFERENCES = [
         "url": ("https://www.naturalearthdata.com/downloads/50m-cultural-vectors/"
                 "50m-admin-0-countries-2/"),
         "year": 2022,
-        "constrains": ("present-day land: it is subtracted from the -120 m mask so this layer "
-                       "ships the exposed shelf only. The same pinned archive and digest the "
-                       "observed-land omission correction uses"),
+        "constrains": ("present-day land, indirectly: the observed-land omission correction "
+                       "is derived from this archive, and that correction is part of the drawn "
+                       "0 Ma land subtracted from the -120 m mask. Natural Earth is no longer "
+                       "subtracted directly - it generalises estuaries, firths, fjords and belt "
+                       "seas as land where the drawn coast has water"),
         "claimOrInference": ("the land polygons are the source's own generalised present-day "
-                             "coastline; subtracting them, and the 1.5 km erosion that keeps "
-                             "the shelf lapping over them, is EarthHistory's method"),
+                             "coastline; which of them reach this layer, through the "
+                             "observed-land omission correction, is EarthHistory's method"),
+    },
+    {
+        "sourceId": "cao-v2.4-native-coasts",
+        "citation": ("Cao, X., Zahirovic, S., Li, S., Young, A., Muller, R. D. and others 2024. "
+                     "A deep-time plate motion model with continuously evolving topological "
+                     "plate boundaries, v2.4, shapes_coasts.gpmlz."),
+        "url": "https://doi.org/10.5281/zenodo.13628813",
+        "year": 2024,
+        "constrains": ("the present-day land the application actually draws: the emitted "
+                       "shapes_coasts charts at 0 Ma are the foundation land fill, and they "
+                       "are subtracted from the -120 m mask so this layer ships the exposed "
+                       "shelf only and complements the drawn coast exactly"),
+        "claimOrInference": ("the coastline polygons are the model's own geography; reading "
+                             "their 0 Ma pose as the present-day shoreline this layer must "
+                             "complement is EarthHistory's method"),
     },
     {
         "sourceId": "lambeck-2014-sea-level",
@@ -276,9 +317,13 @@ LIMITATIONS = [
     " is not removed, and the present-day sea bed is not the lowstand land surface",
     "regional: only the southern/central North Sea, the Sunda shelf and Beringia are drawn;"
     " every other coastline at this age falls back to the present-day composition",
-    "exposed shelf only: present-day land is subtracted (Natural Earth 1:50m, eroded 1.5 km so"
-    " the two overlap), so this state adds coastline to today's composition and never re-draws"
-    " the ground that is dry now",
+    "exposed shelf only: the present-day land the application draws is subtracted (the emitted"
+    " Cao v2.4 shapes_coasts charts at 0 Ma plus the observed-land omission correction, eroded"
+    " 1.5 km so the two overlap), so this state adds coastline to today's composition and never"
+    " re-draws the ground that is dry now",
+    "the exposed shelf is the complement of the drawn 0 Ma coast, not of an independent modern"
+    " shoreline: where that coast generalises an estuary, a firth or a fjord, the lowstand shelf"
+    " is drawn across it whenever ETOPO puts the sea bed above the datum",
     "rivers, lakes, estuaries and the Doggerland landscape mapped by seismic survey are not"
     " represented at all",
 ]
@@ -311,38 +356,105 @@ def polygonal(geometry):
     return parts[0] if len(parts) == 1 else MultiPolygon(parts)
 
 
-def load_present_day_land():
-    """The pinned Natural Earth 1:50m admin-0 land polygons, unioned.
+def unwrapped_copies(rings):
+    """One planar polygon per antimeridian frame for a spherical ring set.
 
-    The same archive, digest and embedded version the observed-land omission
-    correction pins, so "present-day land" is one dataset across the project.
+    A pyGPlates ring reports longitudes in [-180, 180], so a polygon that
+    crosses the antimeridian - Chukotka, Wrangel, the Aleutians - reads in the
+    plane as a ring that sweeps the whole globe backwards. Each ring is walked
+    once and unwrapped (every step kept under 180 degrees), which puts the
+    polygon in a single contiguous longitude band; the band is then emitted in
+    every +-360 translate that can touch [-181, 181], so a planar clip against
+    a crop window finds it whichever side of the seam the window sits on.
     """
-    raw = NE_ARCHIVE.read_bytes()
-    size, digest = NE_PINNED
-    if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
-        raise SystemExit(f"{NE_ARCHIVE.name}: pinned {size} B / {digest} but the stored archive "
-                         f"is {len(raw)} B / {hashlib.sha256(raw).hexdigest()}")
-    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-        if archive.read(f"{NE_STEM}.VERSION.txt").decode("ascii").strip() != NE_VERSION:
-            raise SystemExit("Natural Earth embedded version changed")
-        reader = shapefile.Reader(
-            shp=io.BytesIO(archive.read(f"{NE_STEM}.shp")),
-            shx=io.BytesIO(archive.read(f"{NE_STEM}.shx")),
-            dbf=io.BytesIO(archive.read(f"{NE_STEM}.dbf")),
-            encoding="utf-8",
-        )
-        parts = []
-        for record in reader.iterShapes():
-            geometry = polygonal(shape(record.__geo_interface__))
-            if not geometry.is_empty:
-                parts.append(geometry)
-    if len(parts) < 200:
-        raise SystemExit("Natural Earth country inventory changed")
-    return polygonal(unary_union(parts))
+    unwrapped = []
+    for ring in rings:
+        walked = []
+        offset = 0.0
+        previous = None
+        for longitude, latitude in ring:
+            if previous is not None:
+                step = longitude + offset - previous
+                if step > 180.0:
+                    offset -= 360.0
+                elif step < -180.0:
+                    offset += 360.0
+            previous = longitude + offset
+            walked.append((previous, latitude))
+        unwrapped.append(walked)
+    west = min(point[0] for point in unwrapped[0])
+    east = max(point[0] for point in unwrapped[0])
+    copies = []
+    for shift in (-720.0, -360.0, 0.0, 360.0, 720.0):
+        if east + shift < -181.0 or west + shift > 181.0:
+            continue
+        moved = [[(longitude + shift, latitude) for longitude, latitude in ring]
+                 for ring in unwrapped]
+        candidate = polygonal(Polygon(moved[0], moved[1:]))
+        if not candidate.is_empty:
+            copies.append(candidate)
+    return copies
+
+
+def load_drawn_present_day_land():
+    """Present-day land exactly as the application composes it at 0 Ma.
+
+    The emitted Cao v2.4 ``shapes_coasts`` charts are the foundation land fill;
+    the tracked observed-land omission correction adds the observed modern land
+    those charts miss. Their union is what a viewer sees as land at 0 Ma, so its
+    complement is what the viewer sees as water - and that, above the lowstand
+    datum, is exactly the exposed shelf this layer ships.
+
+    Only charts the shipped package actually emits are read, by chart id, so a
+    coast polygon the package drops cannot be counted as drawn land here.
+    """
+    payload = CAO_COASTS.read_bytes()
+    size, digest = CAO_COASTS_PINNED
+    measured = hashlib.sha256(payload).hexdigest()
+    if len(payload) != size or measured != digest:
+        raise SystemExit(f"{CAO_COASTS.name}: pinned {size} B / {digest} but the stored file "
+                         f"is {len(payload)} B / {measured}")
+    emitted = {row.get("chartId")
+               for row in package_intern.read_package_json(PUBLIC / "core.json").get("charts", [])}
+    parts = []
+    charts = 0
+    for order, feature in enumerate(pygplates.FeatureCollection(str(CAO_COASTS))):
+        oldest, youngest = feature.get_valid_time()
+        if not youngest <= 0 <= oldest:
+            continue
+        geometry_order = 0
+        for geometry in feature.get_all_geometries():
+            if not isinstance(geometry, pygplates.PolygonOnSphere):
+                continue
+            chart_id = f"{CAO_CHART_PREFIX}:{feature.get_feature_id()}:{order}:{geometry_order}"
+            geometry_order += 1
+            if chart_id not in emitted:
+                continue
+            charts += 1
+            rings = [[(point.to_lat_lon()[1], point.to_lat_lon()[0])
+                      for point in geometry.get_exterior_ring_points()]]
+            rings.extend([(point.to_lat_lon()[1], point.to_lat_lon()[0])
+                          for point in geometry.get_interior_ring_points(index)]
+                         for index in range(geometry.get_number_of_interior_rings()))
+            parts.extend(unwrapped_copies(rings))
+    if charts < MINIMUM_CAO_COAST_CHARTS:
+        raise SystemExit(f"emitted Cao coast charts collapsed to {charts}; the package or the "
+                         "chart-id convention changed")
+
+    observed = json.loads(OBSERVED_LAND_GEOJSON.read_text())
+    observed_parts = []
+    for feature in observed["features"]:
+        geometry = polygonal(shape(feature["geometry"]))
+        if not geometry.is_empty:
+            observed_parts.append(geometry)
+    if len(observed_parts) < MINIMUM_OBSERVED_LAND_PARTS:
+        raise SystemExit("the observed-land omission correction carries no polygons")
+    parts.extend(observed_parts)
+    return polygonal(unary_union(parts)), charts, len(observed_parts)
 
 
 def eroded_land_for_crop(land, bounds, overlap_km: float):
-    """Present-day land near one crop, eroded by ``overlap_km``.
+    """Drawn present-day land near one crop, eroded by ``overlap_km``.
 
     The erosion runs in a local equirectangular frame (longitude scaled by
     cos(centre latitude)) so the inward offset is the same distance in both
@@ -559,7 +671,21 @@ def rounded(geometry, decimals: int):
         if not candidate.is_valid:
             candidate = candidate.buffer(0)
         parts.extend(audit.polygon_parts(candidate))
-    return parts
+    return disjoint(parts)
+
+
+def disjoint(parts: list) -> list:
+    """The same parts, guaranteed to assemble into a valid multipolygon.
+
+    Every part is simplified and rounded on its own, so two neighbours along an
+    indented coast can cross each other by a fraction of the tolerance even
+    though each ring is sound. A multipolygon whose parts overlap is invalid,
+    and every Boolean the compiler runs on it afterwards is undefined, so the
+    crossings are unioned away here rather than shipped.
+    """
+    if len(parts) < 2 or MultiPolygon(parts).is_valid:
+        return parts
+    return audit.polygon_parts(unary_union(parts))
 
 
 def point_in(parts, lon: float, lat: float) -> bool:
@@ -575,7 +701,7 @@ def main() -> None:
     arguments = parser.parse_args()
     manifest = load_manifest(arguments.store)
     crops = {record["id"]: record for record in manifest["outputs"]}
-    present_day_land = load_present_day_land()
+    present_day_land, coast_charts, observed_parts = load_drawn_present_day_land()
 
     features = []
     footprint_reports = {}
@@ -635,6 +761,7 @@ def main() -> None:
                 **{key: (round(value, 3) if isinstance(value, float) else value)
                    for key, value in report.items()},
             })
+        pieces = disjoint(pieces)
         parts = rounded(MultiPolygon(pieces) if len(pieces) != 1 else pieces[0],
                         COORDINATE_DECIMALS)
         parts_by_footprint[footprint_id] = parts
@@ -710,9 +837,11 @@ def main() -> None:
             "id": "etopo-2022-eustatic-lowstand-contour-v1",
             "description": ("boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the "
                             "source grid, polygonised on cell boundaries as maximal rectangles, "
-                            "unioned, present-day Natural Earth 1:50m land eroded by "
-                            f"{MODERN_LAND_OVERLAP_KM:g} km and subtracted so only the exposed "
-                            f"shelf remains, opened at {MINIMUM_SHELF_WIDTH_KM:g} km so no "
+                            "unioned, the present-day land the application draws at 0 Ma "
+                            "(emitted Cao v2.4 shapes_coasts charts plus the observed-land "
+                            f"omission correction) eroded by {MODERN_LAND_OVERLAP_KM:g} km and "
+                            "subtracted so only the exposed shelf remains, opened at "
+                            f"{MINIMUM_SHELF_WIDTH_KM:g} km so no "
                             "needle thinner than one source cell survives the subtraction, "
                             f"parts below {MIN_PIECE_KM2:g} km2 dropped, "
                             f"simplified at {SIMPLIFY_DEGREES} degrees with topology preserved, "
@@ -720,16 +849,38 @@ def main() -> None:
                             "removed, "
                             f"coordinates rounded to {COORDINATE_DECIMALS} decimals"),
             "presentDayLandSubtracted": {
-                "sourceId": "natural-earth-countries-50m",
-                "dataset": NE_ARCHIVE.name,
-                "version": NE_VERSION,
-                "bytes": NE_PINNED[0],
-                "sha256": NE_PINNED[1],
+                "definition": ("the present-day land the application draws at 0 Ma, so the "
+                               "exposed shelf is its exact complement above the datum"),
                 "overlapKilometres": MODERN_LAND_OVERLAP_KM,
+                "inputs": [
+                    {
+                        "sourceId": "cao-v2.4-native-coasts",
+                        "dataset": CAO_COASTS.name,
+                        "version": "2.4",
+                        "bytes": CAO_COASTS_PINNED[0],
+                        "sha256": CAO_COASTS_PINNED[1],
+                        "selection": ("polygons valid at 0 Ma whose chart id is emitted by the "
+                                      "shipped Cao package core.json"),
+                        "charts": coast_charts,
+                    },
+                    {
+                        "correctionId": "earthhistory-observed-land-omission-v1",
+                        "path": str(OBSERVED_LAND_GEOJSON.relative_to(ROOT)),
+                        "sha256": hashlib.sha256(OBSERVED_LAND_GEOJSON.read_bytes()).hexdigest(),
+                        "features": observed_parts,
+                        "selection": ("the tracked 0 Ma repair that adds observed modern land "
+                                      "the Cao charts miss; it is drawn as land, so it is not "
+                                      "exposed shelf"),
+                    },
+                ],
                 "reason": ("the layer ships the ground the lowstand added to the coastline, "
-                           "never the ground that is dry today; present-day land is eroded "
-                           "before the subtraction so the shelf laps over the modern coast "
-                           "and no hairline of bare sphere opens along it"),
+                           "never the ground that is dry today. The mask must complement the "
+                           "land that is *drawn*: Natural Earth 1:50m, used until 2026-09-16, "
+                           "generalises estuaries, firths, fjords and belt seas as land where "
+                           "the drawn coast has water, and subtracting it punched holes in the "
+                           "shelf that the sphere's shelf tint needled through at 21 ka. Drawn "
+                           "land is eroded before the subtraction so the shelf laps over the "
+                           "drawn coast and no hairline of bare sphere opens along it"),
             },
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
             "minimumShelfWidthKilometres": MINIMUM_SHELF_WIDTH_KM,

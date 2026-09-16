@@ -103,11 +103,13 @@ globe draws.
    cells, unioned. No contour position is interpolated between two source
    cells, so every vertex of the raw polygon lies on a real grid line and the
    geometry cannot claim precision the 1 arc-minute grid does not have;
-4. subtract present-day land — the pinned Natural Earth 1:50m admin-0 land
-   (version 5.1.1, sha256 `5fed4333…`), clipped to one degree beyond the crop so
-   the crop's own rectangle edge never behaves like a coastline, and eroded by
-   1.5 km in a local equirectangular frame so the shelf and the modern land
-   overlap rather than meet;
+4. subtract **the present-day land the application draws** — the emitted Cao
+   v2.4 `shapes_coasts` charts valid at 0 Ma (sha256 `c660bc07…`, selected by
+   the chart ids the shipped package emits) plus the tracked observed-land
+   omission correction — clipped to one degree beyond the crop so the crop's own
+   rectangle edge never behaves like a coastline, and eroded by 1.5 km in a
+   local equirectangular frame so the shelf and the drawn land overlap rather
+   than meet. Natural Earth 1:50m stood here until 2026-09-16; see §4.2;
 5. **open the result at 1.5 km** — erode by 750 m and dilate by 750 m again, in
    a cos(latitude)-scaled frame so one unit means the same distance along both
    axes. Step 4 cuts a generalised 1:50m coastline into a mask whose cells are
@@ -118,7 +120,7 @@ globe draws.
 6. drop parts below 25 km² (the pipeline's floor everywhere else), simplify at
    0.02° with topology preserved, drop again, remove vertices whose interior
    angle is under 3°, round to 4 decimals;
-7. write `lgm-lowstand-v1.geojson` (169,481 bytes) and its manifest.
+7. write `lgm-lowstand-v1.geojson` (179,361 bytes) and its manifest.
 
 The erosion removes present-day islands narrower than about 3 km entirely, so a
 handful of small modern islands remain inside the shipped rings. That is a
@@ -182,28 +184,73 @@ enough to be several times the quantisation error, so nothing that survives can
 be folded inside out later, and narrow enough that no feature the 1 arc-minute
 grid can actually resolve is removed.
 
+## 4.2 Why the subtraction follows the drawn coast, not Natural Earth
+
+Until 2026-09-16 step 4 subtracted Natural Earth 1:50m admin-0 land. The 0.1.15
+capture at 21 ka, closest zoom over the North Sea, showed teal needle-shaped
+shards over Doggerland and the surrounding coasts. They were not an outline
+defect: the LGM rings were clean, and the shards were the native `shelf` class
+of the 0 Ma composition showing through holes in the exposed shelf.
+
+**Cause.** The application fills present-day land from the emitted Cao v2.4
+`shapes_coasts` charts plus the observed-land omission correction. Natural Earth
+1:50m is a different cartographer at a different generalisation, and it draws
+estuaries, firths, fjords and belt seas as land where the drawn coast has open
+water: the Solway, Clyde, Tay, Humber, Morecambe Bay, the Tyne, the Ems and the
+Dollart, the Schlei, Kiel Fjord, Vejle Fjord, the Limfjord, the Great Belt and
+the North Frisian Wadden. Subtracting it punched a hole in the exposed shelf at
+exactly the places the drawn coast leaves as water, and nothing filled them.
+The shards were present with the palaeo layer off and at 0 Ma too; the LGM
+interval only made them conspicuous, because there the surrounding sea became
+land and the holes stood out against it.
+
+**Change.** The mask now complements the land the application actually draws:
+the Cao coast charts at 0 Ma plus the observed-land omission correction. The
+1.5 km erosion is unchanged, so the shelf still laps over the drawn coast; the
+depth test is unchanged, so anything below −120 m in ETOPO — the Norwegian
+Channel, the Devil's Hole trenches, the Silver Pit, the deep fjords — stays
+water.
+
+**Before and after.** Over the thirteen named estuaries above, counting
+connected components of "above the datum, drawn as water, and not covered by the
+shipped shelf" at 1 km² and larger:
+
+| | shelf holes inside the drawn water | their area |
+|---|---|---|
+| before (Natural Earth subtraction) | 34 | 751.7 km² |
+| after (drawn-coast subtraction) | 3 | 5.4 km² |
+
+The shipped shelf gained 1,701.6 km² inside those thirteen windows and
+23,124.6 km² across the whole North Sea footprint, and lost 12,407.1 km² where
+the Cao coast reaches further seaward than Natural Earth does. Net, the North
+Sea footprint moved +1.544 %, Sunda −0.180 % and Beringia +0.606 %.
+
+The two interior holes at the Devil's Hole trenches (~37 km², more than 200 m
+deep) are correct water and are still holes.
+
 ## 5. Measured areas
 
-Only the last column ships. "Present-day land" is Natural Earth 1:50m inside the
-footprint; the exposed shelf is the area of the rings actually written, after the
+Only the last column ships. "Present-day land" is the land the application draws
+at 0 Ma inside the footprint; the exposed shelf is the area of the rings
+actually written, after the
 1.5 km erosion, the 1.5 km opening, the 25 km² floor and the 0.02° reduction, so
 it is not exactly the difference of the other two columns.
 
 | Footprint | LGM land (unsubtracted) | present-day land | **exposed shelf (shipped)** |
 |---|---|---|---|
-| North Sea box (−6…12 E, 49…62 N) | 1,397,480 km² | 741,253 km² | **693,373 km²** |
-| Sunda box (95…120 E, −10…12 N) | 4,086,177 km² | 1,775,969 km² | **2,343,127 km²** |
-| Beringia box (160 E…−150 E, 55…72 N) | 3,640,901 km² | 1,977,937 km² | **1,692,103 km²** |
-| total | 9,124,558 km² | 4,495,159 km² | **4,728,603 km²** |
+| North Sea box (−6…12 E, 49…62 N) | 1,397,480 km² | 749,683 km² | **704,078 km²** |
+| Sunda box (95…120 E, −10…12 N) | 4,086,177 km² | 1,785,334 km² | **2,338,902 km²** |
+| Beringia box (160 E…−150 E, 55…72 N) | 3,640,901 km² | 1,970,324 km² | **1,702,363 km²** |
+| total | 9,124,558 km² | 4,505,341 km² | **4,745,343 km²** |
 
 The footprint boxes are far larger than the landscapes the literature names, so
 one named sub-window per footprint is measured beside them:
 
 | Sub-window | Bounds | LGM land | exposed shelf |
 |---|---|---|---|
-| southern North Sea plain ("Doggerland") | −2…9 E, 51…57 N | 477,876 km² | **310,998 km²** |
-| Sunda shelf core | 99…118 E, −6…8 N | 2,832,082 km² | 1,590,962 km² |
-| eastern Bering land bridge | −180…−160 E, 60…70 N | 1,002,946 km² | 673,412 km² |
+| southern North Sea plain ("Doggerland") | −2…9 E, 51…57 N | 477,876 km² | **314,048 km²** |
+| Sunda shelf core | 99…118 E, −6…8 N | 2,832,082 km² | 1,589,754 km² |
+| eastern Bering land bridge | −180…−160 E, 60…70 N | 1,002,946 km² | 669,976 km² |
 
 **Comparison with the literature, and its limits.** Sturt et al. 2013 [6] model
 **127,422 km²** submerged in the North Sea zone across the Holocene. That is a
@@ -217,14 +264,14 @@ numbers are the same order of magnitude and are not evidence of agreement. No
 figure in Coles 1998 or Gaffney et al. 2009 is used as a target.
 
 The published payload is compared against the contract's shipped exposed-shelf
-total, 4,728,603 km², inside the gate's tolerance that absorbs cookie-cutting, the
+total, 4,745,343 km², inside the gate's tolerance that absorbs cookie-cutting, the
 25 km² floor and int16 quantisation.
 
 ## 6. What ships
 
 | Item | Value |
 |---|---|
-| landmass payload | `lm/palaeo-lm-lgm.ehpr`; exposed shelf only, 223 contract pieces and 9,270 contract vertices before cookie-cutting |
+| landmass payload | `lm/palaeo-lm-lgm.ehpr`; exposed shelf only, 237 contract pieces and 9,844 contract vertices before cookie-cutting |
 | shallow-marine payload | `sm/palaeo-sm-lgm.ehpr`, **32 bytes** — a header and nothing else |
 | interval index | 24, the 25th and last row of both class catalogs, declared in `detachedIntervalIds` |
 | triangles at 1° | 14,662 estimated; far below every other interval |
@@ -275,6 +322,8 @@ triangulated mesh by `palaeoCoastlineAssets.test.ts`.
 | Norwegian Trench | 4 E, 58.5 N | not land | −254 m, far below the datum |
 | Makassar Strait | 118.5 E, −2 N | not land | never closed by a lowstand (Hall 2009 [7]) |
 | Aleutian Basin | −175 E, 57 N | not land | deep ocean south of the shelf break |
+| Inner Humber | −0.709 E, 53.653 N | land | drawn as open water at 0 Ma and above the datum, so exposed shelf. The witness for §4.2: Natural Earth generalises the estuary as land and used to leave a hole here |
+| Devil's Hole | 0.7 E, 56.6 N | not land | trenches more than 200 m deep inside the exposed shelf; correct water, and still an interior hole |
 | South Atlantic | −60 E, −20 N | not land | outside every footprint; the mode falls back there |
 | any point at 0 Ma | — | no interval | the present day is outside every published interval |
 
@@ -288,7 +337,7 @@ The northern North Sea is shallower than 120 m over most of its area.
   needed. Pins the crop digests, the datum, the window, the footprint bounds,
   the measured areas, the required limitations and references, the empty
   shallow-marine payload, the detached declaration and every witness. Its
-  `--self-test` proves 15 mutations red, including: the datum changed to
+  `--self-test` proves 16 mutations red, including: the datum changed to
   −130 m, a corrupted crop digest, a footprint area that no longer matches, the
   glacio-isostatic limitation dropped, the eustatic reference dropped, a payload
   shifted half a degree east (which turns the Norwegian Trench into land while
@@ -311,6 +360,8 @@ The northern North Sea is shallower than 120 m over most of its area.
 8. Gaffney V., Fitch S., Smith D. 2009. Europe's Lost World: the Rediscovery of Doggerland. CBA Research Report 160, Council for British Archaeology, York. No DOI; two ISBNs circulate in published reviews.
 
 All eight are citation-only except [1], whose derivative rings are what the
-layer ships, and the Natural Earth 1:50m admin-0 land (public domain, "made with
-Natural Earth") that is subtracted from them. No figure, map plate or coordinate
+layer ships, and the present-day land subtracted from them: the Cao et al. 2024
+v2.4 `shapes_coasts` collection (CC BY 4.0) and the observed-land omission
+correction derived from Natural Earth 1:50m admin-0 land (public domain, "made
+with Natural Earth"). No figure, map plate or coordinate
 list from [2]–[8] is traced, digitised or redistributed.

@@ -4,6 +4,41 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-09-16
+
+### Fixed
+
+- **The LGM exposed shelf now complements the coast the app actually draws.**
+  At 21 ka, closest zoom over the North Sea, teal needle-shaped shards stood
+  over Doggerland and the coasts around it. They were the native `shelf` class
+  of the 0 Ma composition showing through holes in the exposed-shelf polygon,
+  and they sat exactly on modern estuaries, firths, fjords and belt seas — the
+  Solway, Clyde, Tay, Humber, Morecambe Bay, the Tyne, the Ems and Dollart, the
+  Schlei, Kiel Fjord, Vejle, the Limfjord, the Great Belt and the North Frisian
+  Wadden. The derivation subtracted Natural Earth 1:50m land from the −120 m
+  ETOPO mask, and Natural Earth generalises those inlets as land where the
+  drawn Cao coast has water, so the mask had a hole wherever the land fill had
+  none. The subtraction now uses the present-day land the application draws —
+  the emitted Cao v2.4 `shapes_coasts` charts at 0 Ma plus the observed-land
+  omission correction — so the shelf is that land's exact complement above the
+  datum. The 1.5 km erosion and the −120 m depth test are unchanged, so the
+  shelf still laps over the drawn coast and the Norwegian Channel, Devil's
+  Hole, the Silver Pit and the deep fjords stay water. Across the thirteen
+  named inlets the shelf holes inside drawn water fall from **34 (751.7 km²)**
+  to **3 (5.4 km²)**; the shipped exposed shelf moves North Sea +1.544 %, Sunda
+  −0.180 %, Beringia +0.606 %. Two new witnesses pin it: the inner Humber
+  (−0.709, 53.653) is land at the lowstand and Devil's Hole (0.7, 56.6) is not.
+  `palaeo_coastlines_compile.py --intervals lgm` no longer divides by zero on a
+  class the LGM interval does not populate.
+- **The runtime validator reads every exterior ring of a piece.** An EHPR piece
+  carries a sequence of polygons — each ring without the hole bit opens a new
+  exterior — but `point_in_payload` read only the first one, so a witness inside
+  any later polygon of a multi-polygon piece silently answered "not land". The
+  wider LGM shelf packs the whole southern North Sea into one such piece and
+  exposed it. The helper now walks the rings the way the compiler's own
+  `piece_geometry` does; all 16 self-test mutations, including both shifted
+  payloads, still come back red.
+
 ## [0.1.15] - 2026-09-16
 
 ### Changed

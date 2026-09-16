@@ -57,7 +57,7 @@ LGM_OLDEST_MA = 0.0265
 LGM_YOUNGEST_EXCLUSIVE_MA = 0.0195
 LGM_DATUM_METRES = -120.0
 LGM_METHOD = "etopo-2022-eustatic-lowstand-contour-v1"
-LGM_PAYLOAD_SHA256 = "095b00e2502502be5b411d276bced51e1bca45a0a3695f2948ea198c02399f73"
+LGM_PAYLOAD_SHA256 = "350615c2e501796f4e4f116c080a3bfaff226155b5a812e259a4195dfc5aa2a6"
 # The exact ETOPO 2022 60 arc-second surface crops the polygons were contoured
 # from, pinned so a re-download cannot change the coastline unnoticed.
 LGM_CROPS = {
@@ -78,18 +78,20 @@ LGM_FOOTPRINT_BOUNDS = {
     "beringia": [160.0, 55.0, -150.0, 72.0],
 }
 # Measured by `palaeo_coastlines_lgm_derive.py` from the pinned crops. What ships
-# is the *exposed shelf*: present-day Natural Earth 1:50m land, eroded 1.5 km so
-# the two still overlap, is subtracted from the -120 m contour, because the state
-# adds coastline to today's composition rather than re-drawing ground that is dry
-# now. The published payload is cookie-cut, quantised to the int16 ring grid and
-# has sub-25 km2 pieces dropped, so it is compared within a tolerance rather than
-# for equality; 1 % is far tighter than the drift any of those steps produces.
-# Re-measured 2026-09-16 after the 1.5 km morphological opening that removes the
-# sub-cell needles the Natural Earth subtraction left along indented coasts: the
-# three footprints moved -0.341 %, -0.184 % and -0.233 %, all far inside the 1 %
-# the opening was allowed to cost.
-LGM_FOOTPRINT_EXPOSED_SHELF_KM2 = {"north-sea": 693_372.8, "sundaland": 2_343_127.3,
-                                   "beringia": 1_692_103.2}
+# is the *exposed shelf*: the present-day land the application draws at 0 Ma -
+# the emitted Cao v2.4 shapes_coasts charts plus the observed-land omission
+# correction - eroded 1.5 km so the two still overlap, is subtracted from the
+# -120 m contour, because the state adds coastline to today's composition rather
+# than re-drawing ground that is dry now. The published payload is cookie-cut,
+# quantised to the int16 ring grid and has sub-25 km2 pieces dropped, so it is
+# compared within a tolerance rather than for equality; 1 % is far tighter than
+# the drift any of those steps produces.
+# Re-measured 2026-09-16 after the subtraction moved off Natural Earth 1:50m,
+# which generalises estuaries, firths, fjords and belt seas as land and so left
+# holes in the shelf exactly where the drawn coast has water: +1.544 %,
+# -0.180 % and +0.606 % on the three footprints.
+LGM_FOOTPRINT_EXPOSED_SHELF_KM2 = {"north-sea": 704_078.4, "sundaland": 2_338_901.7,
+                                   "beringia": 1_702_362.5}
 LGM_TOTAL_EXPOSED_SHELF_KM2 = sum(LGM_FOOTPRINT_EXPOSED_SHELF_KM2.values())
 # The published payload's pieces deliberately overlap: the compiler grows every
 # piece of a multi-piece record back across its cookie-cut seams so no hairline
@@ -100,7 +102,7 @@ LGM_TOTAL_EXPOSED_SHELF_KM2 = sum(LGM_FOOTPRINT_EXPOSED_SHELF_KM2.values())
 LGM_AREA_TOLERANCE_PERCENT = 4.0
 LGM_REQUIRED_SOURCE_IDS = ("noaa-etopo-2022", "lambeck-2014-sea-level", "clark-lgm-2009",
                            "coles-1998-doggerland", "gaffney-2009-doggerland",
-                           "natural-earth-countries-50m")
+                           "natural-earth-countries-50m", "cao-v2.4-native-coasts")
 # Every limitation the layer must keep saying out loud, matched as a substring.
 LGM_REQUIRED_LIMITATIONS = ("eustatic only", "no glacio-isostatic adjustment",
                             "ice sheets are not drawn", "modern bathymetry", "regional",
@@ -120,6 +122,13 @@ LGM_WITNESSES = (
      "Schleswig-Holstein: dry land today, inside the crop rectangle"),
     ("norwegian-trench", 4.0, 58.5, False, "Norwegian Trench, far below the datum"),
     ("makassar-strait", 118.5, -2.0, False, "Makassar Strait, never closed by a lowstand"),
+    # The estuary pair. The exposed shelf is the complement of the coast the
+    # application *draws*, so an estuary the drawn coast leaves as water is
+    # shelf; a trench below the datum inside that shelf stays water.
+    ("humber-estuary", -0.709, 53.653, True,
+     "inner Humber: drawn as water at 0 Ma, sea bed above the datum, so exposed shelf"),
+    ("devils-hole", 0.7, 56.6, False,
+     "Devil's Hole: trenches more than 200 m deep inside the exposed shelf, still water"),
     ("aleutian-basin", -175.0, 57.0, False, "deep Aleutian Basin"),
     ("outside-every-footprint", -60.0, -20.0, False,
      "Atlantic off Brazil: outside all three footprints, so the mode falls back there"),
@@ -294,10 +303,25 @@ def point_in_ring(ring: list[tuple[float, float]], lon: float, lat: float) -> bo
 
 
 def point_in_payload(decoded: dict, lon: float, lat: float) -> bool:
+    """Is the point inside one of the payload's pieces?
+
+    A piece carries a *sequence* of polygons, not one: every ring without the
+    hole bit opens a new exterior and the hole-bit rings after it belong to that
+    exterior, exactly as `piece_geometry` in the compiler reads them. Reading
+    only the first exterior, as this did until 2026-09-16, silently answers "not
+    land" for every polygon after the first in a multi-polygon piece - and the
+    LGM exposed shelf packs the whole southern North Sea into one such piece.
+    """
     for shape in decoded["pieces"]:
-        exterior, holes = shape[0][0], [ring for ring, hole in shape[1:] if hole]
-        if point_in_ring(exterior, lon, lat) and not any(point_in_ring(hole, lon, lat)
-                                                         for hole in holes):
+        inside = False
+        for ring, hole in shape:
+            if not hole:
+                if inside:
+                    return True
+                inside = point_in_ring(ring, lon, lat)
+            elif inside and point_in_ring(ring, lon, lat):
+                inside = False
+        if inside:
             return True
     return False
 
