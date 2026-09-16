@@ -770,20 +770,33 @@ export default function App() {
       });
     };
 
-    // Warm the neighbour the moment this interval is the current one, not once
-    // the gesture has rested: a continuous scrub never rests, so a settle-timed
-    // prefetch was cleared on every sample and the crossing paid the whole
-    // fetch, decode and triangulation with the gesture waiting on it. One
-    // warm-up per interval and direction; the store's own residency bound (two
-    // intervals) is what keeps this from accumulating.
+    // Warm both neighbours the moment this interval is the current one, not
+    // once the gesture has rested: a continuous scrub never rests, so a
+    // settle-timed prefetch was cleared on every sample and the crossing paid
+    // the whole fetch, decode and triangulation with the gesture waiting on it.
+    // Both sides, because a scrub that reverses direction crossed back into an
+    // interval the one-sided warm-up had just let go. The one in the current
+    // direction is warmed first and the other only after it settles: the store
+    // takes two unsettled loads at a time, and a foreground request for a third
+    // interval must never have to wait for a prefetch to free a slot. One
+    // warm-up per interval; the store's residency bound (three intervals) is
+    // what keeps this from accumulating.
     const prefetchNeighbour = (index: number) => {
-      const direction = palaeoAgeDirectionRef.current;
-      const key = `${index}|${direction}`;
+      const key = `${index}`;
       if (state.prefetchedFrom === key) return;
       state.prefetchedFrom = key;
-      const neighbour = PALAEO_MAP_INTERVALS[neighbourPalaeoIntervalIndex(index, direction)];
-      if (neighbour === undefined) return;
-      void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+      const direction = palaeoAgeDirectionRef.current;
+      // A resting scrub (direction 0) warms the younger neighbour first, which
+      // is the direction `neighbourPalaeoIntervalIndex` already treats as rest.
+      const ordered = [neighbourPalaeoIntervalIndex(index, direction),
+        neighbourPalaeoIntervalIndex(index, direction > 0 ? -1 : 1)];
+      void (async () => {
+        for (const neighbourIndex of ordered) {
+          const neighbour = PALAEO_MAP_INTERVALS[neighbourIndex];
+          if (neighbour === undefined || state.disposed) continue;
+          await runtime.prefetchPalaeoInterval(neighbour.oldestMa);
+        }
+      })();
     };
 
     const pump = () => {

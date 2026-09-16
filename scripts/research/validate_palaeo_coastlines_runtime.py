@@ -128,8 +128,8 @@ EHPR_RING_BYTES = 2
 EHPR_LONGITUDE_SCALE = 32767.0 / 180.0
 EHPR_LATITUDE_SCALE = 32767.0 / 90.0
 MAXIMUM_EDGE_DEGREES = 1.0
-# The interval store holds at most two resident intervals at a time.
-RESIDENT_INTERVAL_MULTIPLE = 2
+# The interval store holds the current interval and both of its neighbours.
+RESIDENT_INTERVAL_MULTIPLE = 3
 TONE_MAGIC = b"EHPT"
 
 
@@ -431,7 +431,7 @@ def validate(root: Path = ROOT) -> dict:
     require(reservation["maxIntervalTriangles"] >= worst_triangles,
             "the declared triangle reservation is below the worst interval the catalogs index")
     require(reservation["maxResidentSourceBytes"] >= worst_bytes * RESIDENT_INTERVAL_MULTIPLE,
-            "the declared resident byte bound cannot hold two intervals")
+            "the declared resident byte bound cannot hold three intervals")
     for entry in classes:
         require(json.loads((root / PACKAGE / next(
             row["catalog"]["url"] for row in palaeo["classes"]
@@ -515,7 +515,7 @@ def self_test() -> dict:
         for field, value, label in (
             ("maxEdgeDegrees", 1.28, "an edge bound relaxed past the chord-sag contract"),
             ("maxIntervalTriangles", 1_000, "a triangle reservation below the worst interval"),
-            ("maxResidentSourceBytes", 1_000, "a resident byte bound too small for two intervals"),
+            ("maxResidentSourceBytes", 1_000, "a resident byte bound too small for three intervals"),
         ):
             package = json.loads(clean_package)
             package["palaeoCoastlines"]["reservation"][field] = value

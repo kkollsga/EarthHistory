@@ -74,8 +74,9 @@ RUNTIME_REFINEMENT_FACTOR = 2.0
 # Measured worst ratio of refined vertices to refined triangles is 0.614
 # (262,202 / 427,088); 0.65 is that with the same headroom.
 RUNTIME_VERTICES_PER_TRIANGLE = 0.65
-# The interval store holds at most two resident intervals and two unsettled
-# loads, so four worst-case intervals bound its resident payload bytes.
+# The interval store holds three resident intervals — the current one and both
+# neighbours — so four worst-case intervals bound its resident payload bytes
+# with one interval of headroom over the window it can actually retain.
 RESIDENT_INTERVAL_MULTIPLE = 4
 
 

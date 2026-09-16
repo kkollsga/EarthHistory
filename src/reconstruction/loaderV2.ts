@@ -549,7 +549,18 @@ export async function loadVerifiedCaoBatchState(
  * every compiled class sit far inside this; the bound exists so a scrub that
  * walks the timeline cannot accumulate decoded intervals without an owner.
  */
-export const PALAEO_INTERVAL_STORE_MAX_BYTES = 4 * 1024 * 1024;
+export const PALAEO_INTERVAL_STORE_MAX_BYTES = 6 * 1024 * 1024;
+
+/**
+ * Resident map intervals: the current one and both of its neighbours.
+ *
+ * Two was one neighbour, and a scrub that reversed direction — or crossed a
+ * boundary less than the prefetch lead time after the last one — found the
+ * interval it was entering cold. The manifest's `maxResidentSourceBytes` is
+ * four worst-case interval payloads, so three residents stay inside the bound
+ * the package declares; the byte guard below is still what enforces it.
+ */
+export const PALAEO_RESIDENT_INTERVAL_COUNT = 3;
 
 export interface LoadedPalaeoIntervalClass {
   readonly surfaceClass: PalaeoSurfaceClass;
@@ -680,11 +691,16 @@ interface PendingPalaeoInterval {
 }
 
 /**
- * Two resident map intervals — the active one and one prefetched neighbour —
- * and two unsettled loads, bounded by bytes as well as by count. Copied from
- * `CaoCheckpointStore` because the failure it guards against is the same: a
- * scrub across many intervals must not leave decoded geometry behind, and a
- * fetcher that ignores its abort signal must not be able to pin one.
+ * Three resident map intervals — the current one and both prefetched
+ * neighbours — and two unsettled loads, bounded by bytes as well as by count.
+ * Copied from `CaoCheckpointStore` because the failure it guards against is the
+ * same: a scrub across many intervals must not leave decoded geometry behind,
+ * and a fetcher that ignores its abort signal must not be able to pin one.
+ *
+ * Eviction drops the interval whose age range is farthest from the age the
+ * runtime last asked for, not the least recently read one: a prefetched
+ * neighbour is never read until the crossing that needs it, so an LRU order
+ * evicted exactly the interval the prefetch had just paid for.
  */
 export class CaoPalaeoIntervalStore {
   private readonly resident = new Map<string, { value: LoadedPalaeoInterval; used: number }>();
@@ -694,6 +710,8 @@ export class CaoPalaeoIntervalStore {
   private readonly maximumResidentBytes: number;
   private clock = 0;
   private closed = false;
+  /** Age the runtime last asked for; the distance eviction measures against. */
+  private currentAgeMa: number | null = null;
 
   constructor(
     private readonly palaeo: PalaeoCoastlineAssets,
@@ -709,7 +727,7 @@ export class CaoPalaeoIntervalStore {
     return Object.freeze({ residentCount: this.resident.size, pendingCount: this.pending.size,
       residentSourceBytes: [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
       pendingReservedSourceBytes: [...this.pending.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
-      maximumResidentCount: 2, maximumPendingCount: 2,
+      maximumResidentCount: PALAEO_RESIDENT_INTERVAL_COUNT, maximumPendingCount: 2,
       maximumResidentSourceBytes: this.maximumResidentBytes });
   }
 
@@ -719,6 +737,15 @@ export class CaoPalaeoIntervalStore {
    * moving the age can never start a fetch the foreground request did not ask
    * for.
    */
+  /**
+   * The age the runtime is drawing, so eviction can keep the intervals around
+   * it. Recording it is not a request: it starts no load and touches no
+   * residency order.
+   */
+  noteCurrentAge(requestedAgeMa: number): void {
+    if (Number.isFinite(requestedAgeMa)) this.currentAgeMa = requestedAgeMa;
+  }
+
   residentInterval(intervalId: string): LoadedPalaeoInterval | null {
     const cached = this.resident.get(intervalId);
     if (!cached) return null;
@@ -796,13 +823,26 @@ export class CaoPalaeoIntervalStore {
     });
   }
 
+  /** Ma between the noted current age and an interval's own `(toAge, fromAge]`. */
+  private ageDistance(interval: LoadedPalaeoInterval): number {
+    const age = this.currentAgeMa;
+    if (age === null) return 0;
+    if (age > interval.fromAgeMa) return age - interval.fromAgeMa;
+    if (age <= interval.toAgeMa) return interval.toAgeMa - age;
+    return 0;
+  }
+
   private evict(): void {
-    const oldest = () => [...this.resident].sort((left, right) => left[1].used - right[1].used)[0]!;
-    while (this.resident.size > 2) this.resident.delete(oldest()[0]);
+    // Farthest from the current age first; the least recently read one breaks a
+    // tie, which is the whole order when no age has been noted yet.
+    const farthest = () => [...this.resident].sort((left, right) =>
+      this.ageDistance(right[1].value) - this.ageDistance(left[1].value)
+        || left[1].used - right[1].used)[0]!;
+    while (this.resident.size > PALAEO_RESIDENT_INTERVAL_COUNT) this.resident.delete(farthest()[0]);
     while (this.resident.size > 1
       && [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0)
         > this.maximumResidentBytes) {
-      this.resident.delete(oldest()[0]);
+      this.resident.delete(farthest()[0]);
     }
   }
 
