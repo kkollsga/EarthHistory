@@ -17,6 +17,7 @@ import {
   Share2,
   Waves,
 } from "lucide-react";
+import { APP_VERSION, APP_VERSION_LABEL } from "./appVersion";
 import { GlobeView, type PeriodCoordinateRenderState } from "./render";
 import {
   environmentForAge,
@@ -1420,7 +1421,14 @@ export default function App() {
   return (
     <main className="atlas-shell" data-map-key-open={mapKeyOpen}>
       <header className="site-header">
-        <button className="brand" type="button" onClick={() => changeAge(0)} aria-label="Earth History, return to today">
+        <button
+          className="brand"
+          type="button"
+          onClick={() => changeAge(0)}
+          title={APP_VERSION_LABEL}
+          data-app-version={APP_VERSION}
+          aria-label={`Earth History, version ${APP_VERSION}, return to today`}
+        >
           <span className="brand-orbit" aria-hidden="true"><span /></span>
           <span><b>EARTH</b><i>HISTORY</i></span>
         </button>

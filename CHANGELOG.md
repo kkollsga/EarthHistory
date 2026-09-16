@@ -4,6 +4,16 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- **The logo names the running build.** Hovering the "EARTH HISTORY" logo in
+  the upper left shows an `EarthHistory v<version>` tooltip, its accessible
+  name carries the same version, and the button exposes `data-app-version`, so
+  a screenshot or a bug report identifies the exact build without opening the
+  artifact manifest. The version is inlined from `package.json` by Vite's
+  `define`, and a unit test fails if the constant drifts from the manifest or
+  is left as an unreplaced token.
+
 ## [0.1.13] - 2026-09-16
 
 ### Changed
