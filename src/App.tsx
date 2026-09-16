@@ -785,6 +785,14 @@ export default function App() {
       const key = `${index}`;
       if (state.prefetchedFrom === key) return;
       state.prefetchedFrom = key;
+      // The LGM state is detached: about 2 Myr of no published map separate it
+      // from the youngest Cao 2017 interval, so neither table neighbour is an
+      // interval a scrub can cross into. Warming one would fetch, decode and
+      // triangulate a whole Cao 2017 map the age cannot reach without passing
+      // through the fallback first, and park it in the store's two pending
+      // slots and three residency slots while the interval actually on screen
+      // is the one that has to stay there.
+      if (palaeoIntervalIsDetached(PALAEO_MAP_INTERVALS[index] ?? null)) return;
       const direction = palaeoAgeDirectionRef.current;
       // A resting scrub (direction 0) warms the younger neighbour first, which
       // is the direction `neighbourPalaeoIntervalIndex` already treats as rest.
@@ -793,7 +801,10 @@ export default function App() {
       void (async () => {
         for (const neighbourIndex of ordered) {
           const neighbour = PALAEO_MAP_INTERVALS[neighbourIndex];
-          if (neighbour === undefined || state.disposed) continue;
+          // The same gap from the other side: the youngest Cao 2017 interval
+          // does not adjoin the detached LGM state either.
+          if (neighbour === undefined || palaeoIntervalIsDetached(neighbour)
+            || state.disposed) continue;
           await runtime.prefetchPalaeoInterval(neighbour.oldestMa);
         }
       })();

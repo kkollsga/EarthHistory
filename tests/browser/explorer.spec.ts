@@ -2311,3 +2311,53 @@ test("poses the palaeo charts on the same frame as the native surface while scru
   expect(longestBlankRun, publishedReport).toBeLessThanOrEqual(1);
   expect(longestHold, publishedReport).toBeLessThanOrEqual(8);
 });
+
+// The detached LGM state has no neighbouring map: about 2 Myr of fallback
+// separate it from the youngest Cao 2017 interval. Warming a "neighbour" there
+// fetches, decodes and triangulates a whole Cao 2017 map the age cannot reach
+// without crossing that gap, and parks it in the interval store beside the one
+// interval that has to stay resident - the one on screen. The camera reaching
+// the closest zoom is where a viewer actually looks at a regional lowstand, so
+// the publication is asserted through the zoom as well.
+test("warms no Cao 2017 map beside the detached LGM state", async ({ page }) => {
+  test.setTimeout(120_000);
+  const intervalPayloads: string[] = [];
+  page.on("request", (request) => {
+    const name = new URL(request.url()).pathname.split("/").pop() ?? "";
+    if (name.endsWith(".ehpr")) intervalPayloads.push(name);
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("./#age=0.021&at=3,55");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "lgm");
+
+  // Pin high detail: the adaptive setting drops a software-rendered run to
+  // "low", which pins the surface detail at "coarse" and never spends the
+  // close-zoom path at all.
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /Rendering quality/ }).click();
+  await page.getByRole("button", { name: /^High detail/ }).click();
+  await page.getByRole("button", { name: "Close" }).click();
+
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to zoom into");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let step = 0; step < 10; step += 1) {
+    await page.mouse.wheel(0, -240);
+    await page.waitForTimeout(150);
+  }
+  await expect.poll(() => globe(page).getAttribute("data-camera-distance"),
+    { timeout: 10_000 }).toBe("1.1500");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 10_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "lgm");
+
+  // One payload per shipped class, all of them the LGM state's own.
+  expect(intervalPayloads.length, `interval payloads fetched: ${intervalPayloads.join(", ")}`)
+    .toBeGreaterThan(0);
+  expect(intervalPayloads.filter((name) => !name.endsWith("-lgm.ehpr")),
+    "a Cao 2017 map warmed beside the detached LGM state").toEqual([]);
+});
