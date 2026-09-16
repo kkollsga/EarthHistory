@@ -106,6 +106,55 @@ All notable changes to EarthHistory will be recorded here.
   after are the same — at this harness's ~235 ms cadence the promise and the
   commit both fit inside one frame — so this removes the hop and a redundant
   second evaluation per sample rather than a lag it measured.
+### Changed
+
+- **The correction validators run in parallel and skip what nothing changed.**
+  `make check-corrections` ran thirty-eight validator lines strictly one after
+  the other: **164.8 s**, of which the palaeo compile oracle was 75.9 s, the
+  Panama land unit tests 41.1 s and the requested-age motion-tile self-test
+  18.8 s. `scripts/run_corrections.py` now runs the six mutating `apply_*`
+  validators first and one at a time, then the other thirty-two in a bounded
+  pool of six: **80.8 s** cold, all thirty-eight passing. It also records, per
+  validator, every project file that validator opened, renamed or listed on its
+  last green run — through a `sys.addaudithook` recorder, so the input set is
+  observed rather than declared by hand — and reports a validator whose command,
+  script, imported modules, inputs and outputs still hash to the recorded digest
+  as `cached pass (digest …)`. On an unchanged tree that is **0.3–0.7 s**.
+  Nothing a validator asserts changed: the commands and their arguments are the
+  Makefile's own, their output is printed in the same order, and mutating a
+  tracked input re-runs exactly the validators that read it and still fails
+  them — proved by editing
+  `data/corrections/north-sea-restoration/restoration-contract.json`, which
+  re-ran and failed `validate_north_sea_restoration` and its self-test while the
+  other thirty-six stayed cached. The cache lives in gitignored
+  `.cache/corrections/`, holds one small entry per declared validator and prunes
+  entries for validators that no longer exist; `make check-corrections-all` or
+  `CORRECTIONS_CACHE=--no-cache` ignores it, and
+  `python3 scripts/run_corrections.py --self-test` — now part of
+  `make self-test-gates` — proves the cache cannot report a pass for a mutated
+  input.
+- **The browser suite runs two tests at a time.** The tests share nothing but a
+  read-only static server: no `beforeAll`, no shared context, no browser
+  storage, no file writes. `playwright.config.ts` therefore moves from
+  `workers: 1, fullyParallel: false` to `fullyParallel: true` with two workers
+  (`EARTHHISTORY_TEST_WORKERS` overrides), and no test needed a change for
+  parallel safety. The default is two rather than four because Chromium renders
+  this scene through swiftshader and one browser already occupies most of a
+  ten-core machine. Measured baseline on that machine: **1818.0 s** for 48 tests
+  at one worker. The two-worker comparison run reached its 48th test in
+  **1071.6 s** but was terminated before it could write its report, so the
+  after figure is an in-flight reading, not a completed measurement, and the
+  suite's own pass/fail tally under two workers is still unmeasured. The
+  seventeen palaeo-coastline tests now carry a `@palaeo` tag and
+  `npm run test:e2e:palaeo` runs that subset.
+- **`make gate-fast` is the iteration gate.** Typecheck, unit/data tests, the
+  correction validators whose inputs changed, build and the artifact bounds:
+  **≈16 s** warm, against **180.2 s** for `make gate` before this change. The
+  Makefile header now says which gate is for what — `gate-fast` while
+  iterating, `gate` per commit (it adds `check-dev-docs`, `check-agents` and the
+  build-cache bound), `gate-full` as the batch or release confidence reset and
+  the only one that needs Chromium. No gate asserts less than it did:
+  `gate-fast` only leaves out the local working-state and adapter-mirror checks.
 
 ## [0.1.12] - 2026-09-16
 

@@ -2,11 +2,16 @@ import { defineConfig } from "@playwright/test";
 
 const port = process.env.EARTHHISTORY_TEST_PORT ?? "4174";
 const baseURL = `http://127.0.0.1:${port}/EarthHistory/`;
+// The tests share nothing but the read-only static server, so they can run side
+// by side. Chromium renders this scene through swiftshader, and one browser
+// already occupies most of a ten-core machine, so the default worker count is
+// deliberately small; raise it with EARTHHISTORY_TEST_WORKERS on a bigger host.
+const workers = Number(process.env.EARTHHISTORY_TEST_WORKERS ?? 2);
 
 export default defineConfig({
   testDir: "tests/browser",
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers,
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: "line",

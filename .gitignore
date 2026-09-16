@@ -5,7 +5,8 @@
 /inbox/
 
 # Installed dependencies and reproducible build/test output.
-/node_modules/
+# No trailing slash: a worktree links node_modules rather than holding one.
+/node_modules
 /dist/
 *.tsbuildinfo
 /test-results/
@@ -17,3 +18,6 @@
 
 # Python bytecode
 scripts/**/__pycache__/
+
+# Local validator digest cache; scripts/run_corrections.py owns its bound.
+/.cache/
