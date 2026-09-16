@@ -75,6 +75,16 @@ STORE = ROOT.parent / "EarthHistory-data/palaeomap-study/palaeo-coastlines"
 
 DEGREE_KM = 2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0
 
+# The cookie cut introduces edges the source never had: the partition polygon's
+# own boundary. A partition edge is recorded as two points and the planar cut
+# keeps it as a lon/lat-straight chord, so after triangulation the boundary runs
+# across the sphere as a straight line beside a coastline that follows great
+# circles. Every cut piece is therefore re-sampled on the great circle at a
+# quarter degree - four times finer than the source densification, whose samples
+# this only subdivides - and node reduction removes again every sample whose
+# deviation from the chord is under its tolerance.
+CUT_DENSIFY_DEGREES = 0.25
+
 FORMAT_ID = "EHPR"
 FORMAT_VERSION = 1
 HEADER_BYTES = 32
@@ -651,15 +661,39 @@ def record_polygon(row: dict, densify: bool):
     return polygonal(Polygon(exterior, holes))
 
 
-def densify_geometry(geometry):
+def densify_geometry(geometry, max_degrees: float = audit.DENSIFY_DEGREES):
     parts = []
     for part in polygon_parts(geometry):
-        exterior = audit.densify(list(part.exterior.coords))
-        holes = [audit.densify(list(interior.coords)) for interior in part.interiors]
+        exterior = audit.densify(list(part.exterior.coords), max_degrees)
+        holes = [audit.densify(list(interior.coords), max_degrees) for interior in part.interiors]
         parts.append(Polygon(exterior, holes))
     if not parts:
         return Polygon()
     return polygonal(parts[0] if len(parts) == 1 else MultiPolygon(parts))
+
+
+def mountain_underlay_records(rows: list[dict]) -> list[dict]:
+    """The mountain geometry the land class has to underlie, with its lifecycles.
+
+    A mountain is land that stands up; the two classes are separate polygon sets
+    in Cao 2017 and this compiler cuts and node-reduces them independently, so
+    where a mountain ring reaches past the landmass ring beneath it the land ends
+    inside the mountain's own outline and the hairline between them shows the
+    darker crust, or the sphere, at closest zoom. Handing these records to the
+    land class makes it a superset of the mountain class *before* node reduction,
+    which is the only place the two reductions can be stopped from opening a gap
+    against one another. ``m`` still compiles and ships as its own class, drawn
+    on top; ``sm`` is not touched.
+    """
+    kept, _ = quarantine(rows)
+    records = []
+    for row in kept:
+        geometry = record_polygon(row, densify=True)
+        if geometry.is_empty:
+            continue
+        records.append({"geometry": geometry, "fromAge": float(row["fromAge"]),
+                        "toAge": float(row["toAge"])})
+    return records
 
 
 def quarantine(rows: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -855,7 +889,12 @@ def merge_sliver(pieces: list[list], sliver) -> bool:
 
 
 def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tuple[int, object, float]], float, int]:
-    """Cut one source ring into disjoint pieces, each owned by exactly one partition."""
+    """Cut one source ring into disjoint pieces, each owned by exactly one partition.
+
+    Every kept piece is re-sampled at ``CUT_DENSIFY_DEGREES`` before it is
+    returned: the edges the cut introduced are the partition polygon's own, and
+    those are lon/lat-straight chords the source ring never had.
+    """
     candidates = sorted((int(index) for index in tree.query(geometry)),
                         key=lambda index: owner_priority(partitions[index]))
     pieces: list[list] = []
@@ -887,7 +926,8 @@ def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tu
             continue
         dropped_area += area_km2(sliver)
         dropped_pieces += 1
-    return [(entry[0], entry[1], entry[2]) for entry in pieces], dropped_area, dropped_pieces
+    return ([(entry[0], densify_geometry(entry[1], CUT_DENSIFY_DEGREES), entry[2])
+             for entry in pieces], dropped_area, dropped_pieces)
 
 
 def seam_gap_inside(entries: list[dict]) -> bool:
@@ -1676,10 +1716,17 @@ def load_country_segments() -> dict:
                             offset=index_offset).reshape(-1, 2)
     left = positions[indices[:, 0]]
     right = positions[indices[:, 1]]
-    midpoints = left + right
-    midpoints /= np.linalg.norm(midpoints, axis=1, keepdims=True)
-    longitudes = np.degrees(np.arctan2(midpoints[:, 1], midpoints[:, 0]))
-    latitudes = np.degrees(np.arcsin(np.clip(midpoints[:, 2], -1.0, 1.0)))
+
+    def spherical(vectors) -> tuple:
+        unit = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        return (np.degrees(np.arctan2(unit[:, 1], unit[:, 0])),
+                np.degrees(np.arcsin(np.clip(unit[:, 2], -1.0, 1.0))))
+
+    longitudes, latitudes = spherical(left + right)
+    # Both endpoints travel with the midpoint: a segment that crosses the edge of
+    # a class has a midpoint on one side of it and is drawn across both.
+    first_longitudes, first_latitudes = spherical(left)
+    second_longitudes, second_latitudes = spherical(right)
     chart_rows = read_core()["charts"]
     segment_charts = charts[indices[:, 0]]
     plates = np.zeros(segment_count, dtype=np.int64)
@@ -1698,6 +1745,8 @@ def load_country_segments() -> dict:
         youngest[index] = chart["lifecycle"]["validTimeMa"]["youngest"]
         oldest[index] = chart["lifecycle"]["validTimeMa"]["oldest"]
     return {"segmentCount": int(segment_count), "longitudes": longitudes, "latitudes": latitudes,
+            "firstLongitudes": first_longitudes, "firstLatitudes": first_latitudes,
+            "secondLongitudes": second_longitudes, "secondLatitudes": second_latitudes,
             "plateIds": plates, "youngestMa": youngest, "oldestMa": oldest,
             "geometrySha256": sha256_bytes(binary), "coreSha256": sha256_path(PUBLIC / "core.json")}
 
@@ -1715,8 +1764,12 @@ def build_tone_tables(segments: dict, intervals: list[dict],
     ``(i & 3) * 2``, least significant pair first. Tables run oldest to youngest,
     the same order as the canonical interval list.
 
-    Tone 0 is dark ink: the segment midpoint is inside a landmass or mountain
-    piece owned by the same plate as the segment's own static fragment. Tone 1 is
+    Tone 0 is dark ink: the segment midpoint **or either endpoint** is inside a
+    landmass or mountain piece owned by the same plate as the segment's own static
+    fragment. Mountain ground is land ground, and the whole segment is drawn: a
+    segment that straddles the edge between two classes, or the edge of the land
+    itself, took the sea tone from its midpoint and flipped tone in the middle of
+    a mountain. Testing all three points gives it the land tone instead. Tone 1 is
     light over shallow ground: mapped shallow marine of the same plate, or Cao
     2024 continental crust of that plate, whose depth the model does not state.
     Tone 2 is light over deep or unmapped ground. Tone 3 means the
@@ -1729,6 +1782,11 @@ def build_tone_tables(segments: dict, intervals: list[dict],
     struct.pack_into("<HHIII", payload, 4, 1, 32, len(intervals), count, stride)
     points = [shapely.Point(float(lon), float(lat))
               for lon, lat in zip(segments["longitudes"], segments["latitudes"])]
+    endpoints = [(shapely.Point(float(first_lon), float(first_lat)),
+                  shapely.Point(float(second_lon), float(second_lat)))
+                 for first_lon, first_lat, second_lon, second_lat
+                 in zip(segments["firstLongitudes"], segments["firstLatitudes"],
+                        segments["secondLongitudes"], segments["secondLatitudes"])]
     rows = []
     for order, interval in enumerate(intervals):
         age = interval["midAgeMa"]
@@ -1752,6 +1810,7 @@ def build_tone_tables(segments: dict, intervals: list[dict],
                          "darkSegments": counters[TONE_DARK],
                          "lightShelfSegments": counters[TONE_LIGHT_SHELF],
                          "lightDeepSegments": counters[TONE_LIGHT_DEEP],
+                         "darkByEndpointSegments": 0,
                          "inactiveSegments": counters[TONE_INACTIVE]})
             continue
         dark_entries = land_by_interval.get(interval["intervalId"], [])
@@ -1762,15 +1821,28 @@ def build_tone_tables(segments: dict, intervals: list[dict],
         shelf_tree = STRtree([geometry for _, geometry in shelf_entries]) if shelf_entries else None
         base = 32 + stride * order
         counters = [0, 0, 0, 0]
+
+        def on_land(plate: int, probe) -> bool:
+            """Whether one probe point sits on land - landmass or mountain - of its own plate."""
+            if dark_tree is None:
+                return False
+            return any(dark_entries[candidate][0] == plate
+                       and dark_entries[candidate][1].contains(probe)
+                       for candidate in dark_tree.query(probe))
+
+        dark_by_endpoint = 0
         for index, point in enumerate(points):
             plate = int(segments["plateIds"][index])
+            endpoint_only = False
             if not (segments["youngestMa"][index] <= age <= segments["oldestMa"][index]):
                 tone = TONE_INACTIVE
-            elif dark_tree is not None and any(
-                    dark_entries[candidate][0] == plate
-                    and dark_entries[candidate][1].contains(point)
-                    for candidate in dark_tree.query(point)):
+            elif on_land(plate, point):
                 tone = TONE_DARK
+            elif any(on_land(plate, probe) for probe in endpoints[index]):
+                # The segment crosses a class edge. It is drawn over that land, so
+                # it takes the land tone rather than flipping tone mid-mountain.
+                tone = TONE_DARK
+                endpoint_only = True
             elif shelf_tree is not None and any(
                     shelf_entries[candidate][0] == plate
                     and shelf_entries[candidate][1].contains(point)
@@ -1779,12 +1851,17 @@ def build_tone_tables(segments: dict, intervals: list[dict],
             else:
                 tone = TONE_LIGHT_DEEP
             counters[tone] += 1
+            dark_by_endpoint += endpoint_only
             payload[base + (index >> 2)] |= tone << ((index & 3) * 2)
         rows.append({"intervalId": interval["intervalId"], "detached": False,
                      "fromAgeMa": interval["fromAgeMa"], "toAgeMa": interval["toAgeMa"],
                      "darkSegments": counters[TONE_DARK],
                      "lightShelfSegments": counters[TONE_LIGHT_SHELF],
                      "lightDeepSegments": counters[TONE_LIGHT_DEEP],
+                     # Dark only because an endpoint is on land: the segments this
+                     # rule changed, and the measure of what the midpoint test alone
+                     # was flipping to the sea tone.
+                     "darkByEndpointSegments": dark_by_endpoint,
                      "inactiveSegments": counters[TONE_INACTIVE]})
     catalog = {
         "schemaVersion": 1,
@@ -1798,15 +1875,18 @@ def build_tone_tables(segments: dict, intervals: list[dict],
         "bitLayout": "segment i in byte (i >> 2) at bit offset (i & 3) * 2, least significant pair first",
         "tableOrder": "oldest to youngest, the canonical interval order",
         "values": {
-            "0": "dark ink: the segment midpoint is inside a landmass or mountain piece of the same plate",
+            "0": ("dark ink: the segment midpoint, or either of its endpoints, is inside a landmass "
+                  "or mountain piece of the same plate"),
             "1": "light over shallow ground: mapped shallow marine of the same plate, or Cao 2024 "
                  "continental crust of that plate whose depth the model does not state",
             "2": "light over deep or unmapped ground",
             "3": "inactive: the country-reference chart is not active at the interval mid-age",
         },
-        "method": ("midpoint of every country-reference segment, decoded from country-reference.ehgl, "
-                   "tested against the simplified pieces whose owning static partition carries the same "
-                   "plate id as the segment's own static fragment; evaluated at the interval mid-age"),
+        "method": ("midpoint and both endpoints of every country-reference segment, decoded from "
+                   "country-reference.ehgl, tested against the simplified pieces whose owning static "
+                   "partition carries the same plate id as the segment's own static fragment; a "
+                   "segment is dark where any of the three is on land, and light over shallow ground "
+                   "only on its midpoint; evaluated at the interval mid-age"),
         "limitations": ["a tone is a legibility aid over the palaeo classes, never evidence that the "
                         "modern country existed",
                         "a detached interval - the LGM lowstand state - draws over the present-day "
@@ -1833,7 +1913,8 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                   overrides: dict[str, list[int]], simplification: dict, basins: list[dict],
                   store: Path, staging: Path, estimate_triangles: bool,
                   canonical_intervals: list[dict] | None = None,
-                  lgm_contract: dict | None = None) -> dict:
+                  lgm_contract: dict | None = None,
+                  mountain_underlay: list[dict] | None = None) -> dict:
     started = time.time()
     kept_rows, quarantined = quarantine(rows)
     geometries = {row["index"]: record_polygon(row, densify=True) for row in kept_rows}
@@ -1851,6 +1932,45 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                             max((row["index"] for row in kept_rows), default=-1) + 1):
             kept_rows.append(row)
             geometries[row["index"]] = record_polygon(row, densify=True)
+
+    # Mountains are land. The union runs here - after the basin edits, before the
+    # cookie cut and therefore before any node reduction - so the land the
+    # mountain stands on is part of the same source ring and the two classes are
+    # reduced from ground that already agrees. A record is only widened by a
+    # mountain whose own (TOAGE, FROMAGE] lifecycle overlaps its own, and only
+    # where the two rings actually meet: a mountain that touches no land of its
+    # age is not land the source placed somewhere else.
+    underlay_area_by_record: dict[int, float] = {}
+    if mountain_underlay:
+        underlay_tree = STRtree([entry["geometry"] for entry in mountain_underlay])
+        for row in kept_rows:
+            geometry = geometries[row["index"]]
+            if geometry.is_empty:
+                continue
+            youngest, oldest = float(row["toAge"]), float(row["fromAge"])
+            additions = []
+            for candidate in underlay_tree.query(geometry):
+                entry = mountain_underlay[int(candidate)]
+                if not (youngest < entry["fromAge"] and entry["toAge"] < oldest):
+                    continue
+                if geometry.intersects(entry["geometry"]):
+                    additions.append(entry["geometry"])
+            if not additions:
+                continue
+            try:
+                merged = polygonal(unary_union([geometry, *additions]))
+            except shapely.errors.GEOSException:
+                # A planar Boolean that will not run is not a reason to ship a
+                # broken ring: the record keeps the land the source gave it and
+                # the hairline over that mountain is measured by the harness.
+                continue
+            added = area_km2(merged) - area_km2(geometry)
+            if merged.is_empty or added <= 0.0:
+                # The mountain already sits inside this land record; the union is
+                # the record itself and nothing is changed or reported.
+                continue
+            geometries[row["index"]] = merged
+            underlay_area_by_record[row["index"]] = added
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
     # Every override plate, whatever class this is: the conflict belongs to the
@@ -2061,8 +2181,14 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         interval_retain_reasons: dict[str, int] = {}
         base_triangles = 0
         refined_triangles = 0
+        interval_underlay_area = 0.0
+        interval_underlay_records = 0
         for row in selected:
             interval_source_area += area_km2(geometries[row["index"]])
+            underlay_added = underlay_area_by_record.get(row["index"], 0.0)
+            if underlay_added > 0.0:
+                interval_underlay_area += underlay_added
+                interval_underlay_records += 1
             lost_area, lost_count = dropped_by_record.get(row["index"], (0.0, 0))
             interval_below_floor_area += lost_area
             interval_below_floor_pieces += lost_count
@@ -2211,6 +2337,11 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "detached": interval_is_detached(interval),
             "sourceRecords": len(selected),
             "sourceAreaSquareKilometres": round(interval_source_area, 3),
+            # Ground the mountain class already carried, added to the land class
+            # so it underlies it. It is inside `source` and `emitted` alike, on
+            # both sides of every area ratio.
+            "mountainUnderlayAreaSquareKilometres": round(interval_underlay_area, 3),
+            "mountainUnderlayRecords": interval_underlay_records,
             "emittedAreaSquareKilometres": round(interval_cut_area, 3),
             # The declared overlap the seam buffer added to `emitted`. It is not
             # new ground: it is the same ground counted twice where two pieces of
@@ -2276,7 +2407,18 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                            "overlap instead of gapping after independent node reduction; the "
                            "record's own outline never moves and the overlap area is declared "
                            "per interval as seamOverlapAreaSquareKilometres"),
-            "densification": f"great-circle samples every {audit.DENSIFY_DEGREES} degree before any planar Boolean",
+            "densification": (f"great-circle samples every {audit.DENSIFY_DEGREES} degree before any "
+                              f"planar Boolean, and every {CUT_DENSIFY_DEGREES} degree on each cut "
+                              "piece afterwards, so the edges the partitions introduced follow great "
+                              "circles instead of rendering as lon/lat-straight chords"),
+            "mountainUnderlay": (
+                "the land class is a superset of the mountain class: every mountain record whose "
+                "lifecycle overlaps a land record it meets is unioned into that record before the "
+                "cookie cut, so the land underlies the mountain drawn on top of it and the two "
+                "independent node reductions cannot open a hairline between the classes; the area "
+                "this added is declared per interval as mountainUnderlayAreaSquareKilometres"
+                if mountain_underlay else
+                "not applied: this class is not the land class"),
             "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
             "frameConflictKilometres": FRAME_CONFLICT_KM,
@@ -2574,6 +2716,11 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
     tree = STRtree([partition["geometry"] for partition in partitions])
     palette, by_plate = load_palette()
 
+    # Built once, whatever subset `--classes` names: the land class is a superset
+    # of the mountain class whether or not this run also compiles `m`, or the two
+    # would disagree between a development run and the published compile.
+    mountain_underlay = mountain_underlay_records(rows_by_class["m"]) if "lm" in classes else None
+
     store.mkdir(parents=True, exist_ok=True)
     summary: dict[str, dict] = {}
     catalogs: dict[str, dict] = {}
@@ -2585,7 +2732,8 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         result = compile_class(class_name, rows_by_class[class_name], intervals, partitions, tree,
                                rotations, by_plate, palette, overrides, simplification, basins,
                                store / "original" / class_name, store / "staging" / class_name,
-                               estimate_triangles, canonical_intervals, lgm)
+                               estimate_triangles, canonical_intervals, lgm,
+                               mountain_underlay if class_name == "lm" else None)
         catalog = result["catalog"]
         provenance = result["provenance"]
         provenance["inputs"] = inputs
@@ -2634,6 +2782,11 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
             "worstInterval": provenance["totals"]["worstIntervalByVertices"],
             "worstIntervalVertices": provenance["totals"]["worstIntervalVertices"],
             "worstIntervalEstimatedTriangles": provenance["totals"]["worstIntervalEstimatedTriangles"],
+            "mountainUnderlayAreaSquareKilometres": round(sum(
+                row["mountainUnderlayAreaSquareKilometres"]
+                for row in provenance["intervals"]), 3),
+            "mountainUnderlayRecords": max(
+                (row["mountainUnderlayRecords"] for row in provenance["intervals"]), default=0),
             "areaRatioPercent": provenance["areaAudit"]["areaRatioPercent"],
             "simplificationAreaErrorPercent": provenance["simplification"]["areaErrorPercent"],
             "coMovingUnder25KmPercent": provenance["poseAudit"]["coMovingAreaPercent"]["under25Km"],
@@ -2665,7 +2818,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         # The legend has to name the classes this table was actually built from,
         # or it would promise dark ink over a class the build does not publish.
         tone_catalog["values"]["0"] = (
-            "dark ink: the segment midpoint is inside a "
+            "dark ink: the segment midpoint, or either of its endpoints, is inside a "
             + " or ".join(CLASS_NAMES[name] for name in tone_catalog["darkClassesUsed"])
             + " piece of the same plate")
         tone_catalog["values"]["1"] = (
