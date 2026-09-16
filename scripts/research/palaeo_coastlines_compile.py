@@ -2511,14 +2511,18 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "seamOverlapPieces": seam_overlap_pieces,
             "seamRetainedUnsimplifiedRecords": seam_retained_records,
             "seamRegrownRecords": seam_retry_records,
+            # Guarded on the denominator, not on `per_interval`: a class can be
+            # asked for intervals it has no source area in at all (`--intervals
+            # lgm` for `sm` and `m`, which the LGM interval does not populate),
+            # and then the rows exist while the source area is zero.
             "areaRatioPercent": round(
                 100.0 * sum(row["cutAreaSquareKilometres"] for row in per_interval)
                 / sum(row["sourceAreaSquareKilometres"] for row in per_interval), 4)
-                if per_interval else 0.0,
+                if sum(row["sourceAreaSquareKilometres"] for row in per_interval) else 0.0,
             "emittedRatioPercent": round(
                 100.0 * sum(row["emittedAreaSquareKilometres"] for row in per_interval)
                 / sum(row["sourceAreaSquareKilometres"] for row in per_interval), 4)
-                if per_interval else 0.0,
+                if sum(row["sourceAreaSquareKilometres"] for row in per_interval) else 0.0,
             "perRecordCookieCut": {
                 "sourceAreaSquareKilometres": round(source_area, 3),
                 "cutAreaSquareKilometres": round(cut_area, 3),

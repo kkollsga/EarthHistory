@@ -3062,7 +3062,7 @@
   ]
  },
  "catalogId": "palaeo-coastlines-lm-v2",
- "chartCount": 7390,
+ "chartCount": 7404,
  "class": "lm",
  "className": "landmass",
  "detachedIntervalIds": [
@@ -3539,7 +3539,7 @@
   },
   {
    "appearance": "palaeo-land",
-   "editorial": "EarthHistory modification after noaa-etopo-2022, natural-earth-countries-50m, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
+   "editorial": "EarthHistory modification after noaa-etopo-2022, natural-earth-countries-50m, cao-v2.4-native-coasts, lambeck-2014-sea-level, clark-lgm-2009, coles-1998-doggerland, gaffney-2009-doggerland, sturt-2013-inundation, bradley-2023-palaeo-sea-level, hall-2009-sundaland",
    "limitations": [
     "the LGM lowstand interval is not a Cao et al. (2017) map interval; it is 2 Myr younger than the whole published band and is drawn over the present-day composition, not instead of it",
     "a eustatic lowstand state, not a reconstruction: ETOPO 2022 present-day surface elevation at or above -120 m (Lambeck et al. 2014) inside three footprints and nowhere else",
@@ -3553,6 +3553,7 @@
    "sourceIds": [
     "noaa-etopo-2022",
     "natural-earth-countries-50m",
+    "cao-v2.4-native-coasts",
     "lambeck-2014-sea-level",
     "clark-lgm-2009",
     "coles-1998-doggerland",
@@ -3617,7 +3618,7 @@
    44369,
    39062,
    43124,
-   11342
+   11857
   ],
   "bytes": [
    105174,
@@ -3644,7 +3645,7 @@
    210542,
    187894,
    204836,
-   51684
+   54378
   ],
   "collapsedRings": [
    2,
@@ -3699,7 +3700,7 @@
    239658,
    120076,
    127122,
-   14662
+   15189
   ],
   "fromAgeMa": [
    402.0,
@@ -3834,7 +3835,7 @@
    1428,
    1402,
    1483,
-   307
+   325
   ],
   "rings": [
    941,
@@ -3861,7 +3862,7 @@
    1697,
    1921,
    2218,
-   510
+   553
   ],
   "sha256": [
    "e69e71aa1a53c31f73c71405e9bc1a90f5a9b63fe0f6ac17a8b795ac1ef663b3",
@@ -3888,7 +3889,7 @@
    "0f951e553dbd4b1b640c2afa2d440fbfab348581bffa331366724e95ec50e267",
    "2aa37c7447d3b19d3650fe03dfe34f565a11064f2e52d2b9b63eecf1b23467a8",
    "0a7c052e5dbff2a9c9e87125adf9adc8376daafc3571f7e51bfc62929156c0b8",
-   "4a10d83ba138900a9af40d5ef0d796eada865daf2a1aeaf9c5265bbfd4eaa726"
+   "9042429b2bd7b5afaa33c65b109bbcd97f49a8a19facbd12233e7c7017c5851f"
   ],
   "toAgeMa": [
    380.01,
@@ -3942,7 +3943,7 @@
    47495,
    41799,
    45643,
-   11737
+   12335
   ]
  },
  "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
@@ -4091,10 +4092,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-lm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 703244,
+  "bytes": 704879,
   "path": "provenance/palaeo-lm-provenance.json",
-  "records": 7390,
-  "sha256": "9560fca09853371a9bae6d3df6a0918d2ca27705c41b99bb6825a5a4bfa0d560",
+  "records": 7404,
+  "sha256": "cc6b4a83c4679f53d2e2d32f9a42e0bfc3823dcc7ac1839d32f34e3a20726c04",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2
