@@ -3,6 +3,24 @@
 All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
+### Changed
+
+- **A map interval is requested once the scrub settles in it, not the instant
+  the age crosses into it.** A fast scrub crosses several Cao 2017 boundaries in
+  a second, and every map it passed through was fetched, triangulated and
+  published only to be discarded by the next crossing — the gesture waiting
+  behind loads for ages the user never stopped at. The pump now takes its
+  decision from a pure `decideIntervalRequest`: a crossing into a map that is
+  already prepared is requested at once, because publishing it is a swap and
+  costs nothing; otherwise the request waits until the age has stood still for
+  120 ms or the scrub is slower than 2 Ma per 100 ms. Until then the outgoing
+  map stays drawn and is posed at the live age by the renderer's synchronous
+  path, a held crossing never blocks the one after it, and the neighbour
+  prefetch is unchanged. Unit cases cover a fast sweep across four boundaries
+  requesting only the map it stops in, a slow scrub requesting each, a prepared
+  map requested immediately, the settle timer firing after 120 ms of stillness,
+  and the layer going off cancelling that timer; proven by mutation (a decision
+  that never holds fails the sweep case, and the mutation was restored).
 
 ## [0.1.20] - 2026-09-16
 ### Fixed

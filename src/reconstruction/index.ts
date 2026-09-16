@@ -17,3 +17,4 @@ export * from "./palaeoRings";
 export * from "./palaeoTriangulate";
 export * from "./palaeoIntervalV2";
 export * from "./outlineTones";
+export * from "./intervalSettle";

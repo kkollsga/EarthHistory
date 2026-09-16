@@ -58,13 +58,15 @@ import {
   PALAEO_MAP_INTERVALS,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
+  createSettleTimer,
+  decideIntervalRequest,
   palaeoCoastlineEvidenceSummary,
   palaeoIntervalEvidenceStatus,
   palaeoIntervalIsDetached,
   palaeoIntervalKeyLine,
   selectPalaeoInterval,
   type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
-  type PreparedCaoPalaeoInterval, type PreparedCaoRevision,
+  type PreparedCaoPalaeoInterval, type PreparedCaoRevision, type SettleTimer,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -354,6 +356,15 @@ export default function App() {
   /** Sign of the last age step; +1 is scrubbing towards older ages. */
   const palaeoAgeDirectionRef = useRef(0);
   const palaeoLastAgeRef = useRef(initial.age);
+  /** When that age arrived, on the same clock the settle decision is made on. */
+  const palaeoLastAgeAtRef = useRef(Number.NEGATIVE_INFINITY);
+  /**
+   * The age sample before the live one, and when it arrived: the pump measures
+   * scrub velocity and stillness against it to decide whether a boundary
+   * crossing is worth a map load yet. No previous sample means the first pump
+   * of the session, which must not be delayed.
+   */
+  const palaeoAgeSampleRef = useRef({ ageMa: initial.age, atMs: Number.NEGATIVE_INFINITY });
   const palaeoPumpRef = useRef<{ pump(): void } | null>(null);
   // The scene reports a publication it refused. Until it did, the pump believed
   // its own bookkeeping, short-circuited on an interval that was never on
@@ -737,7 +748,10 @@ export default function App() {
   // above returns early from, so the map pump gets its own age watch.
   useEffect(() => {
     palaeoAgeDirectionRef.current = Math.sign(ageMa - palaeoLastAgeRef.current);
+    palaeoAgeSampleRef.current = { ageMa: palaeoLastAgeRef.current,
+      atMs: palaeoLastAgeAtRef.current };
     palaeoLastAgeRef.current = ageMa;
+    palaeoLastAgeAtRef.current = performance.now();
     palaeoPumpRef.current?.pump();
   }, [ageMa]);
 
@@ -791,6 +805,8 @@ export default function App() {
       frameSerial: 0,
       /** The `<interval>|<direction>` the neighbour warm-up has already been asked for. */
       prefetchedFrom: "",
+      /** The pending settle re-evaluation of a held crossing, once it exists. */
+      settle: null as SettleTimer | null,
       // Consecutive recoveries attempted for one interval. A publication that
       // keeps failing is a real defect and must end in a visible error, not in
       // a request loop.
@@ -866,11 +882,40 @@ export default function App() {
       })();
     };
 
+    // Whether a map is already in hand, asked at the middle of the interval so
+    // the answer is about the map and not about one age inside it.
+    const intervalIsPrepared = (index: number) => {
+      const interval = PALAEO_MAP_INTERVALS[index];
+      if (interval === undefined) return false;
+      return runtime.palaeoMotionResidentAt((interval.oldestMa + interval.youngestMa) / 2);
+    };
+
     const pump = () => {
       if (state.disposed || state.inFlight) return;
       const targetAgeMa = requestedAgeRef.current;
       const index = selectPalaeoInterval(PALAEO_MAP_INTERVALS, targetAgeMa);
-      if (index < 0) {
+      const preparedIntervalId = palaeoPreparedRef.current?.intervalId ?? null;
+      const decision = decideIntervalRequest({
+        nowMs: performance.now(),
+        ageMa: targetAgeMa,
+        lastAgeMa: palaeoAgeSampleRef.current.ageMa,
+        lastAgeAtMs: palaeoAgeSampleRef.current.atMs,
+        currentIntervalIndex: index,
+        preparedIntervalIndex: preparedIntervalId === null ? -1
+          : PALAEO_MAP_INTERVALS.findIndex((interval) => interval.id === preparedIntervalId),
+        isPrepared: intervalIsPrepared,
+      });
+      if (decision.kind === "hold") {
+        // A fast scrub crosses maps it never stops in. Loading each one costs
+        // a fetch, a triangulation and a publication that the next crossing
+        // discards, with the gesture waiting behind them; the outgoing map
+        // stays drawn and is posed at the live age by the renderer's own
+        // synchronous path until the scrub settles here or leaves.
+        state.settle?.arm(decision.settleInMs);
+        return;
+      }
+      state.settle?.cancel();
+      if (decision.kind === "none") {
         // No published map covers this age: fall back to today's composition
         // and drop the lease rather than holding a map the age does not reach.
         const previous = palaeoPreparedRef.current;
@@ -888,7 +933,7 @@ export default function App() {
         state.recoveringIntervalId = intervalId;
         state.recoveries = 0;
       }
-      if (palaeoPreparedRef.current?.intervalId === intervalId) {
+      if (decision.kind === "satisfied") {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
         prefetchNeighbour(index);
@@ -976,9 +1021,13 @@ export default function App() {
 
     palaeoPumpRef.current = { pump };
     palaeoPublishFailedRef.current = publishFailed;
+    // The held crossing's own trigger: the age effect wakes the pump while the
+    // scrub moves, and this wakes it when the scrub has stopped moving.
+    state.settle = createSettleTimer(() => { pump(); });
     pump();
     return () => {
       state.disposed = true;
+      state.settle?.cancel();
       if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
       if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
       palaeoPreparedRef.current?.release();
