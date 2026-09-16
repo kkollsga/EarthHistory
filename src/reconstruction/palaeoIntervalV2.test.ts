@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
+import { chartPickStateFromMotionFrame } from "./motionFrameV2";
 import { CaoPalaeoIntervalStore, loadVerifiedPalaeoClassCatalogs, selectPalaeoIntervalForAge,
   type LoadedPalaeoClassCatalog } from "./loaderV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
@@ -341,6 +342,41 @@ describe("palaeo-coastline interval frame", () => {
     runtime.dispose();
     store.dispose();
     runner.dispose();
+  });
+
+  // Folded in from the deleted `palaeoPublication.test.ts`, which proved these
+  // on the adapter that used to wrap an interval as a revision. The prepared
+  // interval now states them itself, so they are asserted on the real one.
+  it("states every absence a map interval has rather than leaving it to be inferred", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    expect(prepared.lineBatches).toEqual([]);
+    expect(prepared.anchorIds).toEqual([]);
+    expect(prepared.nativeBoundary).toMatchObject({ kind: "unavailable", reason: "source-absent" });
+    expect(prepared.topologyOwnership).toMatchObject({ kind: "unavailable" });
+    expect(prepared.materialCorrectionIdentity).toBeNull();
+    expect(prepared.materialCorrections.qualifiedActiveCharts).toBe(0);
+    // Every palaeo palette entry carries the same activation at both ends, so
+    // the display fraction the renderer mixes with is a fixed 0, not a bracket.
+    expect(prepared.display).toEqual({ youngerAgeMa: prepared.requestedAgeMa,
+      olderAgeMa: prepared.requestedAgeMa, fraction: 0 });
+    expect(prepared.resolveAnchor("anything")).toBeNull();
+    expect(() => prepared.resolveAddress({} as never)).toThrow(/no material addresses/);
+    expect(() => prepared.addressForChartDirection(0, [1, 0, 0])).toThrow(/no material addresses/);
+    // The frame a scrub retargets with carries the same absence, so the renderer
+    // is handed one shape whether it is publishing or re-posing.
+    const frame = runtime.evaluatePalaeoMotionNow(390, "402-380")!;
+    expect(frame.materialCorrections).toBe(prepared.materialCorrections);
+    // One pose pair per chart, and the activation bit is the support verdict:
+    // at 390 Ma the off-schedule piece has ended and is not drawn.
+    const pick = chartPickStateFromMotionFrame(frame);
+    expect(pick.chartPoses).toHaveLength(frame.charts.length * 8);
+    expect([...pick.chartActive]).toEqual([1, 0]);
+    prepared.release();
+    runtime.dispose();
   });
 
   it("prepares the static-geometry copy the surface renderer consumes", async () => {

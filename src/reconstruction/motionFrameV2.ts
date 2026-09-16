@@ -469,7 +469,15 @@ export function evaluateCaoMotionFrame(
   });
 }
 
-export function chartPickStateFromMotionFrame(frame: CaoMotionFrame): {
+/**
+ * The pose tables the renderer picks and draws with, in the order the
+ * publication indexes the charts. Any posed frame answers it — a Cao 2024
+ * motion frame or a Cao 2017 map-interval frame — because the only thing read
+ * is each chart's pose pair and whether its support holds at this age.
+ */
+export function chartPickStateFromMotionFrame(
+  frame: Readonly<{ charts: readonly PreparedCaoChartIdentity[] }>,
+): {
   chartPoses: Float32Array;
   chartActive: Uint8Array;
 } {

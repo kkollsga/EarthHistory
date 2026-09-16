@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GlobeStats, LayerVisibility, LonLat, SurfaceStage, WorldSnapshot } from "../data";
 import {
   buildPalaeoOutlineToneTexels,
+  chartPickStateFromMotionFrame,
   decodePalaeoOutlineToneTables,
   gplatesToRendererDirection,
   numberScalarOps,
@@ -51,11 +52,6 @@ import {
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
   type SurfaceVisibilityResolution,
 } from "./reconstruction/surfaceVisibility";
-import {
-  NO_PALAEO_MATERIAL_CORRECTIONS,
-  palaeoChartPickState,
-  preparedCaoRevisionForPalaeoInterval,
-} from "./reconstruction/palaeoPublication";
 import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
@@ -1057,7 +1053,7 @@ export class GlobeScene {
           `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
       }
       const diagnostics = this.caoFoundationRenderer.publish(
-        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration, "interval");
+        interval, this.verticalExaggeration, "interval");
       this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
       this.palaeoStaticIntervalId = interval.intervalId;
@@ -1072,7 +1068,7 @@ export class GlobeScene {
       // names the reason in the dataset rather than throwing out of a React
       // effect and blanking the globe. The guards themselves — an unarmed
       // geometry swap, a reservation miss — are proven red in
-      // `palaeoPublication.test.ts`, where the throw is the assertion.
+      // `caoFoundation.test.ts`, where the throw is the assertion.
       this.clearPalaeoPublication();
       this.updatePalaeoDomainVisibility();
       this.palaeoPublicationFailureReason =
@@ -1112,10 +1108,10 @@ export class GlobeScene {
   retargetPalaeoMotion(frame: CaoPalaeoIntervalFrame): CaoFoundationDiagnostics | null {
     if (this.publishedPalaeoIntervalId === null
         || this.publishedPalaeoIntervalId !== frame.intervalId) return null;
-    const pick = palaeoChartPickState(frame.charts);
+    const pick = chartPickStateFromMotionFrame(frame);
     const diagnostics = this.caoFoundationRenderer.retargetMotion(
       frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
-      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS, "interval");
+      frame.requestedAgeMa, frame.materialCorrections, "interval");
     if (this.motionProbeRecording) {
       const sampled = this.motionProbePose(
         pick.chartPoses, pick.chartActive, this.motionProbePalaeoChart);

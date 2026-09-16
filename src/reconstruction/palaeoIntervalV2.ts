@@ -13,7 +13,8 @@
  */
 
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoChartIdentity,
-  type PreparedCaoSpatialBatch } from "./facadeV2";
+  type PreparedCaoRevision, type PreparedCaoSpatialBatch,
+  type PreparedMaterialCorrections } from "./facadeV2";
 import { prepareSurfaceBatch } from "./surfaceSource";
 import { inverseQuaternion, numberScalarOps, slerpQuaternion, type QuaternionWxyz } from "./arithmetic";
 import type { LoadedPalaeoInterval, LoadedPalaeoIntervalClass } from "./loaderV2";
@@ -70,7 +71,28 @@ export interface CaoPalaeoIntervalFrame {
   readonly classChartOffsets: ReadonlyMap<PalaeoSurfaceClass, number>;
   readonly activeSourceIds: readonly string[];
   readonly activeLimitations: readonly string[];
+  /** Always `NO_PALAEO_MATERIAL_CORRECTIONS`; a map interval has no correction catalog. */
+  readonly materialCorrections: PreparedMaterialCorrections;
 }
+
+/**
+ * No correction catalog participates in a map interval, so every counter is
+ * zero. The frame and the prepared interval both carry it so that the palaeo
+ * path hands the renderer the same fields a native motion frame or revision
+ * does, rather than an adapter re-stating the absences at the call site.
+ */
+const NO_PALAEO_MATERIAL_CORRECTIONS: PreparedMaterialCorrections = Object.freeze({
+  observedActiveCharts: 0,
+  classifiedShallowMarineActiveCharts: 0,
+  qualifiedActiveCharts: 0,
+  uncertainActiveCharts: 0,
+  formationUncertainActiveCharts: 0,
+  restoredCollisionMarginActiveCharts: 0,
+  modelInferredPoseActiveCharts: 0,
+  overriddenNativeCharts: 0,
+  activeSourceIds: Object.freeze([]),
+  correctionIds: Object.freeze([]),
+});
 
 function evidenceStatus(status: PalaeoCoastlineEvidenceRecord["status"]):
 "model-output" | "derived-overlay" {
@@ -399,30 +421,33 @@ export function evaluateCaoPalaeoIntervalFrame(
     classChartOffsets: identity.classChartOffsets,
     activeSourceIds: scratch.activeSourceIds,
     activeLimitations: scratch.activeLimitations,
+    materialCorrections: NO_PALAEO_MATERIAL_CORRECTIONS,
   });
 }
 
-export interface PreparedCaoPalaeoInterval {
-  readonly identity: string;
-  readonly requestId: number;
-  readonly packageId: string;
-  readonly packageRevision: string;
-  readonly frameIdentity: string;
-  readonly requestedAgeMa: number;
+/**
+ * One prepared map interval, in the shape the surface renderer publishes.
+ *
+ * It *is* a `PreparedCaoRevision`: `CaoFoundationSurfaceRenderer` consumes one
+ * prepared revision, and the palaeo instance is the same renderer with
+ * different bounds and an armed static-geometry swap. A map interval is
+ * narrower than a Cao 2024 revision — no country outlines, no exact-knot
+ * boundary or ownership layers, no anchors and no material corrections — so
+ * `createPreparedCaoPalaeoInterval` states each of those absences explicitly
+ * rather than letting the renderer infer them. The interval-only fields below
+ * are what the streaming unit adds on top.
+ */
+export interface PreparedCaoPalaeoInterval extends PreparedCaoRevision {
   readonly intervalId: string;
   readonly intervalIndex: number;
   readonly fromAgeMa: number;
   readonly toAgeMa: number;
   readonly maximumEdgeDegrees: number;
-  readonly motionPalette: Readonly<{ stride: typeof PREPARED_MOTION_PALETTE_STRIDE;
-    entryCount: number; createValuesCopy(): Float32Array }>;
-  readonly batches: readonly PreparedCaoSpatialBatch[];
+  /** Narrower than a revision's charts: every palaeo chart names its class and catalog status. */
   readonly charts: readonly CaoPalaeoChartIdentity[];
   readonly activeChartCount: number;
   readonly activeSourceIds: readonly string[];
   readonly activeLimitations: readonly string[];
-  readonly activeSourceBytes: number;
-  release(): void;
 }
 
 export interface PreparedCaoPalaeoIntervalIdentity {
@@ -464,9 +489,17 @@ function preparedBatch(
 }
 
 /**
- * Wraps one evaluated frame and its resident geometry in the prepared shape the
- * surface renderer consumes. The lease keeps the resident interval reachable;
- * releasing it is what lets the interval store evict the payload.
+ * Wraps one evaluated frame and its resident geometry in the prepared revision
+ * the surface renderer consumes. The lease keeps the resident interval
+ * reachable; releasing it is what lets the interval store evict the payload.
+ *
+ * The display bracket is degenerate on purpose: every palaeo palette entry
+ * carries the same activation at both ends, so the display fraction the
+ * renderer mixes with has no effect, and both display heights are zero because
+ * the renderer's shell table already owns the offset each palaeo class draws
+ * at. The address and anchor queries throw rather than answering null — nothing
+ * in the palaeo mode holds a material address, and a caller that reached them
+ * would be asking the wrong instance.
  */
 export function createPreparedCaoPalaeoInterval(
   interval: LoadedPalaeoInterval,
@@ -499,6 +532,8 @@ export function createPreparedCaoPalaeoInterval(
     paletteValues = null;
     onRelease(revisionIdentity);
   };
+  const unavailable = Object.freeze({ kind: "unavailable" as const,
+    requestedAgeMa: frame.requestedAgeMa, reason: "source-absent" as const });
   return Object.freeze({
     identity: revisionIdentity,
     requestId: identity.requestId,
@@ -506,6 +541,21 @@ export function createPreparedCaoPalaeoInterval(
     packageRevision: identity.packageRevision,
     frameIdentity: identity.frameIdentity,
     requestedAgeMa: frame.requestedAgeMa,
+    materialCorrectionIdentity: null,
+    materialCorrections: NO_PALAEO_MATERIAL_CORRECTIONS,
+    display: Object.freeze({ youngerAgeMa: frame.requestedAgeMa,
+      olderAgeMa: frame.requestedAgeMa, fraction: 0 }),
+    lineBatches: Object.freeze([]),
+    nativeBoundary: unavailable,
+    topologyOwnership: unavailable,
+    anchorIds: Object.freeze([]),
+    addressForChartDirection: () => {
+      throw new Error("palaeo-coastline charts carry no material addresses");
+    },
+    resolveAddress: () => {
+      throw new Error("palaeo-coastline charts carry no material addresses");
+    },
+    resolveAnchor: () => null,
     intervalId: interval.intervalId,
     intervalIndex: interval.intervalIndex,
     fromAgeMa: interval.fromAgeMa,
