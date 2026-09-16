@@ -1490,14 +1490,22 @@ def check_frame_conflict_oracle(store: Store, view: ClassView,
             # bound to India by the partition rule were drawn 6,474-6,837 km
             # away and made up 46 % of the mountain area over India at 94-81 Ma.
             # The compiler drops these now; this proves none survived.
-            # 5 % of slack: the compiler measures the unsimplified, unquantised
-            # piece and a shipped ring cannot reproduce its samples exactly, so a
-            # piece sitting on the drop threshold re-derives a little either side
-            # of it. The defect this catches was 6,474-6,837 km out.
-            if separation > compiler.FRAME_CONFLICT_DROP_KM * 1.05:
+            # The drop is the compiler's ``frame_body_separation`` - the median
+            # of the same samples - not their maximum, which is what the flag
+            # above uses. The rotation difference grows with a piece's extent, so
+            # a worst-vertex drop test is a threshold on piece size: asserting it
+            # here condemned the 82,150 km2 Sunda shelf piece whose median sits
+            # 710 km inside the rule and whose north-east corner reads 1,015 km.
+            # Same quantity and threshold as the compiler, so the two sides
+            # agree. 5 % of slack: the compiler measures the unquantised ring and
+            # this measures the shipped one. The defect this catches was
+            # 6,474-6,837 km out.
+            body_separation = compiler.frame_body_separation(
+                geometry, binding["bindingPlateId"], chart["plateId1"], age, rotation)
+            if body_separation > compiler.FRAME_CONFLICT_DROP_KM * 1.05:
                 raise CorrectionError(
                     f"{class_name} {interval_id}: a piece on PLATEID1 {chart['plateId1']} bound to "
-                    f"plate {binding['bindingPlateId']} is {separation:.0f} km from its PLATEID1 "
+                    f"plate {binding['bindingPlateId']} is {body_separation:.0f} km from its PLATEID1 "
                     f"position, past the {compiler.FRAME_CONFLICT_DROP_KM:.0f} km drop threshold")
             checked += 1
     return {"checkedPieces": checked, "intervals": list(interval_ids)}

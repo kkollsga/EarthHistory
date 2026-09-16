@@ -51,6 +51,7 @@ import hashlib
 import json
 import math
 import struct
+import statistics
 import sys
 import time
 import zipfile
@@ -133,11 +134,14 @@ LAT_SCALE = 32767.0 / 90.0
 MIN_PIECE_KM2 = audit.MIN_PIECE_KM2
 FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
 # Beyond this the partition binding is not an approximation of the source frame,
-# it is a different place on Earth. A piece carried further than this from its
-# own PLATEID1 position, with no override entry to justify it, is dropped and
-# counted rather than drawn.
+# it is a different place on Earth. A piece whose *body* - the representative
+# point of each of its parts - is carried further than this from its own
+# PLATEID1 position, with no override entry to justify it, is dropped and
+# counted rather than drawn. The drop reads the body and not the sampled outline
+# because the rotation difference grows with a piece's extent, so a worst-vertex
+# test is a threshold on size rather than on displacement.
 FRAME_CONFLICT_DROP_KM = 1000.0
-# How many outline points per part the frame-conflict rule is measured at. The
+# How many outline points per part the frame-conflict *flag* is measured at. The
 # rotation difference varies smoothly over a piece, so an evenly spaced sample
 # of the outline finds the extreme; the cap keeps the measurement bounded for
 # rings with tens of thousands of vertices.
@@ -855,9 +859,22 @@ def frame_separation(geometry, binding_plate: int, source_plate: int, age: float
     an evenly spaced sample of its outline, so the cost is bounded however many
     vertices the ring carries.
     """
+    return max(frame_separation_samples(geometry, binding_plate, source_plate, age, rotation),
+               default=0.0)
+
+
+def frame_separation_samples(geometry, binding_plate: int, source_plate: int, age: float,
+                             rotation) -> list[float]:
+    """Every distance the two frames put between the same ground, one per sample.
+
+    Each part contributes its representative point and an evenly spaced sample of
+    its outline, so the cost is bounded however many vertices the ring carries.
+    Both frame measures read this one set: the flag takes its maximum, the drop
+    its median.
+    """
     binding_rotation = rotation(age, binding_plate)
     source_rotation = rotation(age, source_plate)
-    worst = 0.0
+    distances: list[float] = []
     for part in polygon_parts(geometry):
         points = [part.representative_point().coords[0]]
         ring = list(part.exterior.coords)
@@ -865,9 +882,45 @@ def frame_separation(geometry, binding_plate: int, source_plate: int, age: float
         points.extend(ring[::step])
         for longitude, latitude in points:
             probe = pygplates.PointOnSphere(latitude, longitude)
-            worst = max(worst, audit.great_circle_km(binding_rotation * probe,
-                                                     source_rotation * probe))
-    return worst
+            distances.append(audit.great_circle_km(binding_rotation * probe,
+                                                   source_rotation * probe))
+    return distances
+
+
+def frame_body_separation(geometry, binding_plate: int, source_plate: int, age: float,
+                          rotation) -> float:
+    """How far the binding carries the *body* of this ground from its own frame.
+
+    The drop rule asks whether a piece is drawn in a different place, and that is
+    a property of the piece's body, not of its farthest corner. Two rotations
+    differ by a different amount at every point on Earth, so the worst point on an
+    outline grows with the piece's extent: measuring the drop at that point turns
+    ``FRAME_CONFLICT_DROP_KM`` into a threshold on piece size. Measured 2026-09-16
+    on sm 29-20: 18 pieces totalling 921,505 km2 whose body sits well inside the
+    rule were dropped on a single outline sample 1.5-10 % past it, among them the
+    82,150 km2 Sunda shelf piece (record 2526, PLATEID1 604 on partition 61403)
+    that carries the Sarawak Oligocene witness - 544 km at its nearest sample,
+    710 km median, 1,015 km at one north-east corner. The ground the rule exists
+    for - Qiangtang and Tarim at 6,474-6,837 km, and the 166-146 pieces at 8,566
+    and 10,573 km - is thousands of kilometres out at every sample, and is still
+    dropped.
+
+    The median of the same sample set ``frame_separation`` takes its maximum from,
+    because the drop has to be re-derivable from the payload and no single point
+    of a piece is. ``expand_over_seam`` can buffer a record's cut fragments into
+    one connected polygon and int16 quantisation can sever that buffer again, so
+    a representative point is a property of which tier you measure: one sm
+    166-146 piece of three Alpine fragments reads 866 km as the grown polygon and
+    1,091 km as the three parts it ships as, while its median is 944 km on both.
+    A median over an evenly spaced outline sample moves by rounding, not by
+    topology, so the compiler and the correction oracle agree.
+
+    The sampled maximum stays in ``frame_separation``, which still sets
+    ``FLAG_FRAME_CONFLICT`` and the co-moving buckets, so a kept piece whose edge
+    runs far from its own frame is still declared.
+    """
+    distances = frame_separation_samples(geometry, binding_plate, source_plate, age, rotation)
+    return statistics.median(distances) if distances else 0.0
 
 
 def merge_sliver(pieces: list[list], sliver) -> bool:
@@ -2235,19 +2288,35 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     interval_unposable_pieces += 1
                     continue
                 # How far the binding carries this ground from where its own
-                # source record puts it, measured before anything is counted,
-                # and measured over the whole piece rather than one
-                # representative point. A piece is inside the rule only if all
-                # of it is: a cut piece that a sliver merge made multipart, or a
-                # long thin piece that follows a partition edge, has ends the
-                # centre says nothing about, and it is the far end that would be
-                # drawn in the wrong place. Sampled at
+                # source record puts it, measured over the whole piece rather
+                # than one representative point: a cut piece that a sliver merge
+                # made multipart, or a long thin piece that follows a partition
+                # edge, has ends the centre says nothing about, and it is the far
+                # end that would be drawn in the wrong place. Sampled at
                 # ``FRAME_CONFLICT_SAMPLES`` points per part so the cost stays
-                # bounded for the largest rings.
+                # bounded for the largest rings. This is the declared quantity -
+                # ``FLAG_FRAME_CONFLICT`` and the co-moving buckets, and what the
+                # correction oracle re-derives from the shipped ring.
                 separation = (frame_separation(entry["original"], binding_plate, source_plate,
                                                interval["midAgeMa"], rotation)
                               if source_plate is not None else 0.0)
-                if separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
+                # The drop is judged on the body, the flag on the sampled
+                # outline: a corner 1.5 % past the rule is a large piece, not a
+                # displaced one, and dropping the whole piece for it punches a
+                # hole in correctly seated ground.
+                #
+                # Measured on the piece that will be drawn, not on the grown one.
+                # ``expand_over_seam`` can buffer a record's cut fragments into a
+                # single connected polygon, and a single polygon has a single
+                # representative point: one sm 166-146 piece of three Alpine
+                # fragments read 866 km grown and 1,091 km as the three parts it
+                # ships as, so a drop judged on the grown geometry is a drop the
+                # correction oracle cannot re-derive from the payload.
+                drawn = entry["simplified"] if not entry["simplified"].is_empty else entry["original"]
+                body_separation = (frame_body_separation(drawn, binding_plate,
+                                                         source_plate, interval["midAgeMa"], rotation)
+                                   if source_plate is not None else 0.0)
+                if body_separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
                     # Ground drawn thousands of kilometres from where its own
                     # PLATEID1 puts it is not a flagged approximation, it is a
                     # different place. Measured 2026-09-15: Qiangtang and Tarim
