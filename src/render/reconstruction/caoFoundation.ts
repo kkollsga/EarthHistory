@@ -308,6 +308,11 @@ export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[]
   Object.freeze({ surfaceClass: "palaeo-land" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES,
     renderOrder: 1.7, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
+  // Every mountain batch is also drawn once at the palaeo-land shell above,
+  // under itself, because the two classes are node-reduced apart and their
+  // shared coast is not a shared edge — see `createPalaeoLandUnderlayMesh`.
+  // That underlay is a `palaeo-land` mesh in every respect, so this table stays
+  // the whole stacking contract and no class is added by it.
   Object.freeze({ surfaceClass: "palaeo-mountain" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES,
     renderOrder: 1.8, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
@@ -2169,6 +2174,56 @@ function createChartPickState(revision: PreparedCaoRevision): {
   return { chartPoses, chartActive };
 }
 
+/**
+ * The mountain batch drawn a second time as land, underneath itself.
+ *
+ * The `m` and `lm` pieces are node-reduced independently offline, so the coast
+ * they share does not come back as one shared edge: at the closest zoom a one
+ * to two pixel sliver of the deep-sea sphere shows between a mountain polygon
+ * and the land polygon it borders. Nothing may show through mapped land, and
+ * the only ground certain to reach into that sliver is the mountain's own
+ * geometry drawn once more at the land shell, in the land colour, under the
+ * mountain that then paints over it.
+ *
+ * It shares the mountain's `BufferGeometry`, so it costs one draw call and zero
+ * GPU bytes. It is not a new surface class: it declares `palaeo-land` and takes
+ * that class's shell, draw order, depth write and per-mode visibility whole,
+ * which is also why it appears and disappears in exactly the bands the mountain
+ * does. Picking and coverage read the geometry batches rather than the meshes,
+ * so the mountain still wins over land wherever both cover a direction.
+ *
+ * The colour uses the mode mix `correction-shelf` already uses: the batch's own
+ * package colour answers for its declared mountain appearance, and the palaeo
+ * mode mixes it to the compiled `palaeo-land` default, so the underlay reads as
+ * the land level it stands in for.
+ */
+function createPalaeoLandUnderlayMesh(
+  batch: CaoFoundationBatchResource,
+  paletteTexture: THREE.DataTexture,
+  paletteWidth: number,
+  display: PreparedCaoDisplayControlsCopy,
+  displayFractionValue: number,
+  verticalExaggeration: number,
+  palaeoCoastlineMode: boolean,
+): Readonly<{ graph: CaoFoundationMaterialGraph; mesh: THREE.Mesh }> {
+  const shell = caoFoundationSurfaceShell("palaeo-land");
+  const graph = createCaoFoundationMaterial(paletteTexture, paletteWidth, display,
+    displayFractionValue, verticalExaggeration, shell.shellOffsetMetres,
+    batch.appearance, "palaeo-land", palaeoCoastlineMode ? 1 : 0);
+  const mesh = new THREE.Mesh(batch.geometry, graph.material);
+  mesh.frustumCulled = false;
+  graph.material.depthTest = true;
+  graph.material.depthWrite = shell.writesDepth;
+  mesh.renderOrder = shell.renderOrder;
+  mesh.userData.surfaceClass = shell.surfaceClass;
+  mesh.userData.palaeoAppearanceMix = graph.palaeoAppearanceMix;
+  // The batch this stands under, so a reader of the group can tell the underlay
+  // from the band's own land batches without comparing geometries.
+  mesh.userData.palaeoLandUnderlayOf = batch.batchId;
+  mesh.visible = palaeoCoastlineMode ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
+  return Object.freeze({ graph, mesh });
+}
+
 function createPublicationResource(
   revision: PreparedCaoRevision,
   geometry: CaoFoundationGeometryResource,
@@ -2232,6 +2287,18 @@ function createPublicationResource(
       // can drift out of step with the group it repaints.
       mesh.userData.palaeoAppearanceMix = graph.palaeoAppearanceMix;
       mesh.visible = palaeoCoastlineMode ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
+      // A mountain batch is drawn twice: once as land below, to close the
+      // hairline its independently reduced edge leaves against the land pieces,
+      // and once as itself on top. The underlay is added first so the group
+      // reads in draw order, which is also the order its render orders impose.
+      if (batch.surfaceClass === "palaeo-mountain") {
+        const underlay = createPalaeoLandUnderlayMesh(batch, paletteTexture, packed.width,
+          display, revision.display.fraction, verticalExaggeration, palaeoCoastlineMode);
+        materials.push(underlay.graph.material);
+        displayFractions.push(underlay.graph.displayFraction);
+        verticalExaggerations.push(underlay.graph.verticalExaggeration);
+        group.add(underlay.mesh);
+      }
       group.add(mesh);
     }
     for (let index = 0; index < geometry.lineBatches.length; index += 1) {
