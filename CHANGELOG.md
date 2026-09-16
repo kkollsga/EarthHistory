@@ -4,6 +4,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-09-16
+
 ### Changed
 
 - One surface-source preparation path for native and realistic classes (no
