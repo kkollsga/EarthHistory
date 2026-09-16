@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractId": "lgm-lowstand-v1",
   "title": "Last Glacial Maximum lowstand state (eustatic, regional)",
-  "compiledUtc": "2026-09-15T15:58:41.862203+00:00",
+  "compiledUtc": "2026-09-16T12:06:43.567410+00:00",
   "intervalId": "lgm",
   "oldestMa": 0.0265,
   "youngestExclusiveMa": 0.0195,
@@ -19,7 +19,7 @@
   "frame": "present-day WGS84, like the Cao et al. (2017) source polygons",
   "method": {
     "id": "etopo-2022-eustatic-lowstand-contour-v1",
-    "description": "boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the source grid, polygonised on cell boundaries as maximal rectangles, unioned, present-day Natural Earth 1:50m land eroded by 1.5 km and subtracted so only the exposed shelf remains, parts below 25 km2 dropped, simplified at 0.02 degrees with topology preserved, coordinates rounded to 4 decimals",
+    "description": "boolean mask of ETOPO 2022 60 arc-second surface >= -120 m on the source grid, polygonised on cell boundaries as maximal rectangles, unioned, present-day Natural Earth 1:50m land eroded by 1.5 km and subtracted so only the exposed shelf remains, opened at 1.5 km so no needle thinner than one source cell survives the subtraction, parts below 25 km2 dropped, simplified at 0.02 degrees with topology preserved, vertices sharper than 3 degrees removed, coordinates rounded to 4 decimals",
     "presentDayLandSubtracted": {
       "sourceId": "natural-earth-countries-50m",
       "dataset": "ne_50m_admin_0_countries.zip",
@@ -30,6 +30,8 @@
       "reason": "the layer ships the ground the lowstand added to the coastline, never the ground that is dry today; present-day land is eroded before the subtraction so the shelf laps over the modern coast and no hairline of bare sphere opens along it"
     },
     "minimumPieceSquareKilometres": 25.0,
+    "minimumShelfWidthKilometres": 1.5,
+    "minimumInteriorAngleDegrees": 3.0,
     "simplifyDegrees": 0.02,
     "coordinateDecimals": 4
   },
@@ -95,7 +97,7 @@
     "service": "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/exportImage",
     "license": "NOAA / US Government work, public domain; attribution requested",
     "attribution": "NOAA National Centers for Environmental Information (2022). ETOPO 2022 15 Arc-Second Global Relief Model. NOAA NCEI. https://doi.org/10.25921/fd45-gt74",
-    "store": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-data/palaeomap-study/geography/etopo-lgm-crops",
+    "store": "/Volumes/EksternalHome/Koding/HTML/EarthHistory-worktrees/EarthHistory-data/palaeomap-study/geography/etopo-lgm-crops",
     "crops": [
       {
         "id": "north-sea",
@@ -170,9 +172,9 @@
   "measurements": {
     "footprints": {
       "north-sea": {
-        "pieces": 38,
-        "vertices": 2307,
-        "exposedShelfSquareKilometres": 695746.7,
+        "pieces": 54,
+        "vertices": 2175,
+        "exposedShelfSquareKilometres": 693372.8,
         "lgmLandSquareKilometres": 1397480.1,
         "presentDayLandSquareKilometres": 741252.7,
         "namedSubWindow": {
@@ -185,14 +187,14 @@
             ],
             "note": "the southern North Sea plain between England, the Netherlands, north-west Germany and Denmark",
             "lgmLandSquareKilometres": 477875.5,
-            "exposedShelfSquareKilometres": 310998.2
+            "exposedShelfSquareKilometres": 310980.9
           }
         }
       },
       "sundaland": {
-        "pieces": 139,
-        "vertices": 4770,
-        "exposedShelfSquareKilometres": 2347445.5,
+        "pieces": 146,
+        "vertices": 4554,
+        "exposedShelfSquareKilometres": 2343127.3,
         "lgmLandSquareKilometres": 4086177.0,
         "presentDayLandSquareKilometres": 1775968.6,
         "namedSubWindow": {
@@ -205,14 +207,14 @@
             ],
             "note": "the Sunda shelf between Sumatra, the Malay peninsula, Borneo and Java",
             "lgmLandSquareKilometres": 2832081.8,
-            "exposedShelfSquareKilometres": 1590961.7
+            "exposedShelfSquareKilometres": 1590579.7
           }
         }
       },
       "beringia": {
-        "pieces": 19,
-        "vertices": 2711,
-        "exposedShelfSquareKilometres": 1696055.1,
+        "pieces": 23,
+        "vertices": 2541,
+        "exposedShelfSquareKilometres": 1692103.2,
         "lgmLandSquareKilometres": 3640900.5,
         "presentDayLandSquareKilometres": 1977936.7,
         "namedSubWindow": {
@@ -225,7 +227,7 @@
             ],
             "note": "the eastern half of the Bering land bridge, Chukchi to Norton Sound",
             "lgmLandSquareKilometres": 1002946.1,
-            "exposedShelfSquareKilometres": 673412.2
+            "exposedShelfSquareKilometres": 673297.9
           }
         }
       }
@@ -237,14 +239,16 @@
         "rectangles": 2715,
         "lgmLandSquareKilometres": 1397480.1,
         "presentDayLandSquareKilometres": 741252.7,
-        "exposedShelfSquareKilometres": 695530.1,
-        "partsIn": 234,
-        "droppedBeforeSimplify": 191,
-        "droppedBeforeSimplifyKm2": 806.498,
-        "droppedAfterSimplify": 5,
-        "droppedAfterSimplifyKm2": 108.893,
-        "holesDropped": 215,
-        "holesDroppedKm2": 1112.604
+        "exposedShelfSquareKilometres": 694360.3,
+        "partsIn": 167,
+        "droppedBeforeSimplify": 107,
+        "droppedBeforeSimplifyKm2": 766.677,
+        "droppedAfterSimplify": 6,
+        "droppedAfterSimplifyKm2": 135.662,
+        "holesDropped": 96,
+        "holesDroppedKm2": 708.576,
+        "spikeVerticesRemoved": 0,
+        "needleSquareKilometresRemoved": 1169.81
       },
       {
         "crop": "sundaland",
@@ -252,14 +256,16 @@
         "rectangles": 4946,
         "lgmLandSquareKilometres": 4086177.0,
         "presentDayLandSquareKilometres": 1775968.6,
-        "exposedShelfSquareKilometres": 2347387.3,
-        "partsIn": 369,
-        "droppedBeforeSimplify": 218,
-        "droppedBeforeSimplifyKm2": 1745.838,
-        "droppedAfterSimplify": 12,
-        "droppedAfterSimplifyKm2": 240.908,
-        "holesDropped": 206,
-        "holesDroppedKm2": 1590.727
+        "exposedShelfSquareKilometres": 2345992.9,
+        "partsIn": 386,
+        "droppedBeforeSimplify": 225,
+        "droppedBeforeSimplifyKm2": 1733.026,
+        "droppedAfterSimplify": 15,
+        "droppedAfterSimplifyKm2": 291.642,
+        "holesDropped": 161,
+        "holesDroppedKm2": 1372.637,
+        "spikeVerticesRemoved": 0,
+        "needleSquareKilometresRemoved": 1394.409
       },
       {
         "crop": "beringia-west",
@@ -267,14 +273,16 @@
         "rectangles": 605,
         "lgmLandSquareKilometres": 1270258.4,
         "presentDayLandSquareKilometres": 935344.3,
-        "exposedShelfSquareKilometres": 345566.5,
-        "partsIn": 17,
-        "droppedBeforeSimplify": 11,
-        "droppedBeforeSimplifyKm2": 50.795,
+        "exposedShelfSquareKilometres": 344678.3,
+        "partsIn": 15,
+        "droppedBeforeSimplify": 7,
+        "droppedBeforeSimplifyKm2": 47.513,
         "droppedAfterSimplify": 0,
         "droppedAfterSimplifyKm2": 0.0,
-        "holesDropped": 28,
-        "holesDroppedKm2": 177.768
+        "holesDropped": 20,
+        "holesDroppedKm2": 106.041,
+        "spikeVerticesRemoved": 0,
+        "needleSquareKilometresRemoved": 888.189
       },
       {
         "crop": "beringia-east",
@@ -282,20 +290,22 @@
         "rectangles": 1803,
         "lgmLandSquareKilometres": 2370642.1,
         "presentDayLandSquareKilometres": 1042592.4,
-        "exposedShelfSquareKilometres": 1349856.0,
-        "partsIn": 79,
-        "droppedBeforeSimplify": 66,
-        "droppedBeforeSimplifyKm2": 317.323,
+        "exposedShelfSquareKilometres": 1349021.9,
+        "partsIn": 78,
+        "droppedBeforeSimplify": 63,
+        "droppedBeforeSimplifyKm2": 339.448,
         "droppedAfterSimplify": 0,
         "droppedAfterSimplifyKm2": 0.0,
-        "holesDropped": 137,
-        "holesDroppedKm2": 644.734
+        "holesDropped": 66,
+        "holesDroppedKm2": 421.698,
+        "spikeVerticesRemoved": 1,
+        "needleSquareKilometresRemoved": 834.098
       }
     ]
   },
   "literatureComparison": {
-    "northSeaFootprintExposedShelfSquareKilometres": 695746.7,
-    "doggerlandSubWindowExposedShelfSquareKilometres": 310998.2,
+    "northSeaFootprintExposedShelfSquareKilometres": 693372.8,
+    "doggerlandSubWindowExposedShelfSquareKilometres": 310980.9,
     "sturt2013SubmergedNorthSeaZoneSquareKilometres": 127422,
     "note": "Sturt et al. 2013 model 127,422 km2 of the North Sea zone submerged across the Holocene, a different quantity over a different window and under glacial isostatic adjustment; it is quoted as an order-of-magnitude anchor, not as agreement.",
     "sourceId": "sturt-2013-inundation"
@@ -477,7 +487,7 @@
   ],
   "payload": {
     "path": "lgm-lowstand-v1.geojson",
-    "bytes": 172225,
-    "sha256": "d292906763448b582e58407ebe1725913febb66497020466db6b0dbe0ffa2754"
+    "bytes": 169481,
+    "sha256": "095b00e2502502be5b411d276bced51e1bca45a0a3695f2948ea198c02399f73"
   }
 }

@@ -108,9 +108,17 @@ globe draws.
    the crop's own rectangle edge never behaves like a coastline, and eroded by
    1.5 km in a local equirectangular frame so the shelf and the modern land
    overlap rather than meet;
-5. drop parts below 25 km² (the pipeline's floor everywhere else), simplify at
-   0.02° with topology preserved, drop again, round to 4 decimals;
-6. write `lgm-lowstand-v1.geojson` (172,225 bytes) and its manifest.
+5. **open the result at 1.5 km** — erode by 750 m and dilate by 750 m again, in
+   a cos(latitude)-scaled frame so one unit means the same distance along both
+   axes. Step 4 cuts a generalised 1:50m coastline into a mask whose cells are
+   1.85 km across; where the modern coast is indented the two resolutions
+   disagree and leave needles far thinner than a single source cell. The opening
+   deletes anything narrower than 1.5 km and leaves everything wider where it
+   is. See §5.1;
+6. drop parts below 25 km² (the pipeline's floor everywhere else), simplify at
+   0.02° with topology preserved, drop again, remove vertices whose interior
+   angle is under 3°, round to 4 decimals;
+7. write `lgm-lowstand-v1.geojson` (169,481 bytes) and its manifest.
 
 The erosion removes present-day islands narrower than about 3 km entirely, so a
 handful of small modern islands remain inside the shipped rings. That is a
@@ -124,19 +132,69 @@ the owner plate through `palaeo-binding-entry-v1`, and given the contract's own
 own node reduction leaves the rings alone rather than moving a coastline the
 derivation already measured.
 
+## 4.1 Why the outline is opened before it is written
+
+Steps 5 and 6 were added on 2026-09-16 after the 0.1.14 capture at 21 ka showed
+dozens of needle-shaped shards poking into the land along the Norwegian coast,
+the Skagerrak and the Dogger Bank margin at closest zoom.
+
+The needles were not a renderer defect and not the cell-boundary polygonisation.
+Measured on the shipped v1 contract, the rings carried **no** edges under 200 m
+and only 10 vertices under 5°, and a morphological opening at half a source cell
+moved the area by 0.05 % — the mask side was already clean. The artefact was
+born in step 4 and only became visible two steps later:
+
+- subtracting the generalised Natural Earth coastline from the 1 arc-minute mask
+  left wedges a few hundred metres wide along indented coasts;
+- the compiler quantises ring vertices to the int16 grid, 0.0055° of longitude
+  by 0.0027° of latitude — up to ~170 m of movement per vertex at 60 °N. That is
+  the same order as the wedges, so quantisation pushed the two walls of a wedge
+  past one another and the ring self-intersected;
+- the renderer's ear-clip triangulation of a self-intersecting ring fills it with
+  hairline triangles and leaves wedges of it unfilled, which is what read on
+  screen as teal needles inside the land.
+
+Counted on the payload the browser actually loads, `palaeo-lm-lgm.ehpr`:
+
+| | vertices sharper than 5° | self-intersecting rings |
+|---|---|---|
+| before (0.1.14) | 15 | 8 |
+| after | 2 | 4 |
+
+The residual two and four are the compiler's own seam-growth step, which
+deliberately grows every piece of a multi-piece record back across its
+cookie-cut seams; they are not created by this derivation. Measured on the
+tracked contract before quantisation, self-intersections after a simulated
+int16 pass fall from 4 to 0 and sharp vertices from 15 to 1.
+
+The opening costs area, and the budget for it was 1 %: North Sea −0.341 %,
+Sunda −0.184 %, Beringia −0.233 %. Inside the named sub-windows the cost is
+smaller still (Doggerland −0.006 %, Sunda shelf core −0.024 %, Bering land
+bridge −0.017 %), because the needles lived on the outer margins rather than in
+the landscapes the literature names. The payload shrank from 172,225 to 169,481
+bytes. The witnesses are unchanged: Dogger Bank, the central Sunda shelf and the
+Bering land bridge are land; London, the north German plain, interior Borneo,
+interior Alaska, the Norwegian Trench, the Makassar Strait and the Aleutian
+Basin are not.
+
+1.5 km is chosen as just under one source cell (1.85 km at these latitudes): wide
+enough to be several times the quantisation error, so nothing that survives can
+be folded inside out later, and narrow enough that no feature the 1 arc-minute
+grid can actually resolve is removed.
+
 ## 5. Measured areas
 
 Only the last column ships. "Present-day land" is Natural Earth 1:50m inside the
 footprint; the exposed shelf is the area of the rings actually written, after the
-1.5 km erosion, the 25 km² floor and the 0.02° reduction, so it is not exactly
-the difference of the other two columns.
+1.5 km erosion, the 1.5 km opening, the 25 km² floor and the 0.02° reduction, so
+it is not exactly the difference of the other two columns.
 
 | Footprint | LGM land (unsubtracted) | present-day land | **exposed shelf (shipped)** |
 |---|---|---|---|
-| North Sea box (−6…12 E, 49…62 N) | 1,397,480 km² | 741,253 km² | **695,747 km²** |
-| Sunda box (95…120 E, −10…12 N) | 4,086,177 km² | 1,775,969 km² | **2,347,446 km²** |
-| Beringia box (160 E…−150 E, 55…72 N) | 3,640,901 km² | 1,977,937 km² | **1,696,055 km²** |
-| total | 9,124,558 km² | 4,495,159 km² | **4,739,247 km²** |
+| North Sea box (−6…12 E, 49…62 N) | 1,397,480 km² | 741,253 km² | **693,373 km²** |
+| Sunda box (95…120 E, −10…12 N) | 4,086,177 km² | 1,775,969 km² | **2,343,127 km²** |
+| Beringia box (160 E…−150 E, 55…72 N) | 3,640,901 km² | 1,977,937 km² | **1,692,103 km²** |
+| total | 9,124,558 km² | 4,495,159 km² | **4,728,603 km²** |
 
 The footprint boxes are far larger than the landscapes the literature names, so
 one named sub-window per footprint is measured beside them:
@@ -159,17 +217,17 @@ numbers are the same order of magnitude and are not evidence of agreement. No
 figure in Coles 1998 or Gaffney et al. 2009 is used as a target.
 
 The published payload is compared against the contract's shipped exposed-shelf
-total, 4,739,247 km², inside a 1 % tolerance that absorbs cookie-cutting, the
+total, 4,728,603 km², inside the gate's tolerance that absorbs cookie-cutting, the
 25 km² floor and int16 quantisation.
 
 ## 6. What ships
 
 | Item | Value |
 |---|---|
-| landmass payload | `lm/palaeo-lm-lgm.ehpr`; exposed shelf only, 196 contract pieces and 9,788 contract vertices before cookie-cutting |
+| landmass payload | `lm/palaeo-lm-lgm.ehpr`; exposed shelf only, 223 contract pieces and 9,270 contract vertices before cookie-cutting |
 | shallow-marine payload | `sm/palaeo-sm-lgm.ehpr`, **32 bytes** — a header and nothing else |
 | interval index | 24, the 25th and last row of both class catalogs, declared in `detachedIntervalIds` |
-| triangles at 1° | 16,343 estimated; far below every other interval |
+| triangles at 1° | 14,662 estimated; far below every other interval |
 | tone table | all-dark, the 25th table |
 
 The shallow-marine payload is empty on purpose and the validator fails if it is

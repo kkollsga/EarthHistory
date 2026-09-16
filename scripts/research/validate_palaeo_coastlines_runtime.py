@@ -57,7 +57,7 @@ LGM_OLDEST_MA = 0.0265
 LGM_YOUNGEST_EXCLUSIVE_MA = 0.0195
 LGM_DATUM_METRES = -120.0
 LGM_METHOD = "etopo-2022-eustatic-lowstand-contour-v1"
-LGM_PAYLOAD_SHA256 = "d292906763448b582e58407ebe1725913febb66497020466db6b0dbe0ffa2754"
+LGM_PAYLOAD_SHA256 = "095b00e2502502be5b411d276bced51e1bca45a0a3695f2948ea198c02399f73"
 # The exact ETOPO 2022 60 arc-second surface crops the polygons were contoured
 # from, pinned so a re-download cannot change the coastline unnoticed.
 LGM_CROPS = {
@@ -84,8 +84,12 @@ LGM_FOOTPRINT_BOUNDS = {
 # now. The published payload is cookie-cut, quantised to the int16 ring grid and
 # has sub-25 km2 pieces dropped, so it is compared within a tolerance rather than
 # for equality; 1 % is far tighter than the drift any of those steps produces.
-LGM_FOOTPRINT_EXPOSED_SHELF_KM2 = {"north-sea": 695_746.7, "sundaland": 2_347_445.5,
-                                   "beringia": 1_696_055.1}
+# Re-measured 2026-09-16 after the 1.5 km morphological opening that removes the
+# sub-cell needles the Natural Earth subtraction left along indented coasts: the
+# three footprints moved -0.341 %, -0.184 % and -0.233 %, all far inside the 1 %
+# the opening was allowed to cost.
+LGM_FOOTPRINT_EXPOSED_SHELF_KM2 = {"north-sea": 693_372.8, "sundaland": 2_343_127.3,
+                                   "beringia": 1_692_103.2}
 LGM_TOTAL_EXPOSED_SHELF_KM2 = sum(LGM_FOOTPRINT_EXPOSED_SHELF_KM2.values())
 # The published payload's pieces deliberately overlap: the compiler grows every
 # piece of a multi-piece record back across its cookie-cut seams so no hairline

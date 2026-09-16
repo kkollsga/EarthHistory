@@ -905,12 +905,12 @@
   {
    "classes": {
     "lm": {
-     "bytes": 53648,
-     "estimatedTriangles": 15298,
+     "bytes": 51684,
+     "estimatedTriangles": 14662,
      "path": "lm/palaeo-lm-lgm.ehpr",
-     "pieces": 284,
-     "sha256": "1492504cf02409bf077bbda715e01a958f3bccaf5d77b8c0855292cdd4ff049c",
-     "vertices": 12300
+     "pieces": 307,
+     "sha256": "4a10d83ba138900a9af40d5ef0d796eada865daf2a1aeaf9c5265bbfd4eaa726",
+     "vertices": 11737
     },
     "m": {
      "bytes": 32,
@@ -930,12 +930,12 @@
     }
    },
    "detached": true,
-   "estimatedTriangles": 15298,
+   "estimatedTriangles": 14662,
    "intervalId": "lgm",
    "midAgeMa": 0.023,
    "oldestAgeMa": 0.0265,
    "tableIndex": 24,
-   "vertices": 12300,
+   "vertices": 11737,
    "youngestAgeMa": 0.0195,
    "youngestExclusive": true
   }

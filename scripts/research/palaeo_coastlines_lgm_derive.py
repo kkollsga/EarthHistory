@@ -79,6 +79,21 @@ COORDINATE_DECIMALS = 4
 # along the modern coastline. Same-class overdraw is invisible; a gap is not.
 MODERN_LAND_OVERLAP_KM = 1.5
 EARTH_RADIUS_KM = 6371.0088
+KM_PER_DEGREE = EARTH_RADIUS_KM * math.pi / 180.0
+# Narrowest exposed shelf this layer will draw. Subtracting the generalised
+# Natural Earth coastline from a 1 arc-minute raster mask leaves needles far
+# thinner than the 1.85 km source cell along an indented coast - the Norwegian
+# fjords and the Skagerrak worst of all. They are an artefact of two
+# incompatible resolutions meeting, never a claim about the lowstand shore, and
+# once int16 quantisation (0.0055 deg lon, 0.0027 deg lat) moves their walls
+# past one another the ring self-intersects and the renderer's ear-clip fills it
+# with hairline triangles. A morphological opening at half this width removes
+# them before either step can see them. Set well above the quantisation error so
+# no surviving wedge is narrow enough for quantisation to turn inside out.
+MINIMUM_SHELF_WIDTH_KM = 1.5
+# Vertices sharper than this are spikes, not shore. Applied after simplification
+# so it judges the shipped ring, not the staircase it came from.
+MINIMUM_INTERIOR_ANGLE_DEGREES = 3.0
 
 # One entry per named footprint; a footprint may be covered by several crops
 # (Beringia spans the antimeridian and is therefore two).
@@ -393,6 +408,100 @@ def mask_rectangles(mask: np.ndarray, bounds, width: int, height: int) -> list:
     return rectangles
 
 
+def metric_open(geometry, minimum_width_km: float):
+    """Morphological opening at ``minimum_width_km``, measured in kilometres.
+
+    Longitude is scaled by cos(latitude) first so one unit means the same
+    distance along both axes; without that a buffer in raw degrees would erode
+    roughly twice as hard north-south as east-west at these latitudes. Erode by
+    half the width, then dilate by the same amount: anything narrower than the
+    width disappears, everything wider keeps its position.
+    """
+    if geometry.is_empty:
+        return geometry
+    west, south, east, north = geometry.bounds
+    cosine = max(math.cos(math.radians((south + north) / 2.0)), 0.1)
+    radius = (minimum_width_km / 2.0) / KM_PER_DEGREE
+
+    def squeeze(x, y, z=None):
+        return (x * cosine, y)
+
+    def stretch(x, y, z=None):
+        return (x / cosine, y)
+
+    scaled = transform(squeeze, geometry)
+    opened = scaled.buffer(-radius, quad_segs=2).buffer(radius, quad_segs=2)
+    if opened.is_empty:
+        return opened
+    return polygonal(transform(stretch, opened))
+
+
+def _interior_angle_degrees(before, vertex, after, cosine: float) -> float:
+    ax = (before[0] - vertex[0]) * cosine
+    ay = before[1] - vertex[1]
+    bx = (after[0] - vertex[0]) * cosine
+    by = after[1] - vertex[1]
+    first = math.hypot(ax, ay)
+    second = math.hypot(bx, by)
+    if first == 0.0 or second == 0.0:
+        return 0.0
+    cosine_angle = max(-1.0, min(1.0, (ax * bx + ay * by) / (first * second)))
+    return math.degrees(math.acos(cosine_angle))
+
+
+def despike_ring(coordinates, minimum_degrees: float, cosine: float):
+    """Drop vertices whose interior angle is below ``minimum_degrees``.
+
+    A spike is a vertex whose two edges double back along each other; removing
+    it closes the needle without moving any other vertex. Removal can expose a
+    new spike at a neighbour, so the pass repeats until the ring is clean or too
+    short to be a ring at all. Returns the ring and how many vertices went.
+    """
+    points = list(coordinates)
+    if len(points) >= 2 and points[0] == points[-1]:
+        points = points[:-1]
+    removed = 0
+    while len(points) > 3:
+        total = len(points)
+        sharpest = None
+        for index in range(total):
+            angle = _interior_angle_degrees(points[index - 1], points[index],
+                                            points[(index + 1) % total], cosine)
+            if angle < minimum_degrees and (sharpest is None or angle < sharpest[0]):
+                sharpest = (angle, index)
+        if sharpest is None:
+            break
+        points.pop(sharpest[1])
+        removed += 1
+    if len(points) < 3:
+        return None, removed
+    return points + [points[0]], removed
+
+
+def despiked(parts, minimum_degrees: float) -> tuple[list, int]:
+    """Run :func:`despike_ring` over every exterior and hole of every part."""
+    cleaned = []
+    removed = 0
+    for part in parts:
+        west, south, east, north = part.bounds
+        cosine = max(math.cos(math.radians((south + north) / 2.0)), 0.1)
+        exterior, gone = despike_ring(part.exterior.coords, minimum_degrees, cosine)
+        removed += gone
+        if exterior is None:
+            continue
+        holes = []
+        for interior in part.interiors:
+            hole, gone = despike_ring(interior.coords, minimum_degrees, cosine)
+            removed += gone
+            if hole is not None:
+                holes.append(hole)
+        candidate = Polygon(exterior, holes)
+        if not candidate.is_valid:
+            candidate = candidate.buffer(0)
+        cleaned.extend(audit.polygon_parts(candidate))
+    return cleaned, removed
+
+
 def cleaned_parts(geometry, tolerance: float) -> tuple[list, dict]:
     """Drop sub-floor parts, simplify, drop again; report what each pass removed."""
     report = {"partsIn": 0, "droppedBeforeSimplify": 0, "droppedBeforeSimplifyKm2": 0.0,
@@ -488,8 +597,17 @@ def main() -> None:
             # subtracted, eroded by MODERN_LAND_OVERLAP_KM so the two overlap.
             eroded, present_in_crop = eroded_land_for_crop(
                 present_day_land, tuple(record["bounds"]), MODERN_LAND_OVERLAP_KM)
-            exposed = polygonal(merged.difference(eroded)) if not eroded.is_empty else merged
+            subtracted = polygonal(merged.difference(eroded)) if not eroded.is_empty else merged
+            # The generalised coastline cut into a 1 arc-minute mask leaves
+            # needles thinner than one source cell. Open them away here, before
+            # simplification can stretch them and quantisation can fold them.
+            exposed = metric_open(subtracted, MINIMUM_SHELF_WIDTH_KM)
             crop_parts, report = cleaned_parts(exposed, SIMPLIFY_DEGREES)
+            crop_parts, spikes_removed = despiked(crop_parts,
+                                                  MINIMUM_INTERIOR_ANGLE_DEGREES)
+            report["spikeVerticesRemoved"] = spikes_removed
+            report["needleSquareKilometresRemoved"] = round(
+                audit.area_km2(subtracted) - audit.area_km2(exposed), 3)
             pieces.extend(crop_parts)
             raw_km2 = audit.area_km2(merged)
             exposed_km2 = audit.area_km2(exposed)
@@ -594,8 +712,12 @@ def main() -> None:
                             "source grid, polygonised on cell boundaries as maximal rectangles, "
                             "unioned, present-day Natural Earth 1:50m land eroded by "
                             f"{MODERN_LAND_OVERLAP_KM:g} km and subtracted so only the exposed "
-                            f"shelf remains, parts below {MIN_PIECE_KM2:g} km2 dropped, "
+                            f"shelf remains, opened at {MINIMUM_SHELF_WIDTH_KM:g} km so no "
+                            "needle thinner than one source cell survives the subtraction, "
+                            f"parts below {MIN_PIECE_KM2:g} km2 dropped, "
                             f"simplified at {SIMPLIFY_DEGREES} degrees with topology preserved, "
+                            f"vertices sharper than {MINIMUM_INTERIOR_ANGLE_DEGREES:g} degrees "
+                            "removed, "
                             f"coordinates rounded to {COORDINATE_DECIMALS} decimals"),
             "presentDayLandSubtracted": {
                 "sourceId": "natural-earth-countries-50m",
@@ -610,6 +732,8 @@ def main() -> None:
                            "and no hairline of bare sphere opens along it"),
             },
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
+            "minimumShelfWidthKilometres": MINIMUM_SHELF_WIDTH_KM,
+            "minimumInteriorAngleDegrees": MINIMUM_INTERIOR_ANGLE_DEGREES,
             "simplifyDegrees": SIMPLIFY_DEGREES,
             "coordinateDecimals": COORDINATE_DECIMALS,
         },
