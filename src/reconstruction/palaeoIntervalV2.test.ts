@@ -669,6 +669,24 @@ describe("palaeo-coastline manifest availability and the assets one enablement f
       // A second read inside the same enablement is the same bytes, not a second fetch.
       expect(await runtime.loadPalaeoOutlineToneTables()).toBe(tones);
       expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(1);
+      // And the ledger says them once, as a resident asset of the mode rather
+      // than of an interval. The renderer's per-interval byte diagnostic used
+      // to carry this constant, which made every interval look 311 KiB heavier
+      // than its payload and made the shipped outline's fourfold growth read as
+      // a per-interval regression.
+      const toneBytes = runtime.ledger.palaeo.outlineToneSourceBytes;
+      expect(toneBytes).toBe(tones.byteLength);
+      const afterFirst = runtime.ledger.palaeo.totalSourceBytes;
+      const second = await runtime.requestPalaeoInterval(370).prepared;
+      expect(second.intervalId).not.toBe(prepared.intervalId);
+      expect(runtime.ledger.palaeo.outlineToneSourceBytes).toBe(toneBytes);
+      // The second interval adds its own payload and nothing else: no catalog,
+      // no tone table, and no second copy of either in the total.
+      expect(runtime.ledger.palaeo.totalSourceBytes)
+        .toBe(afterFirst + second.activeSourceBytes);
+      expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(1);
+      expect(fixture.requestedUrls.filter((url) => url === CATALOG_URL)).toHaveLength(1);
+      second.release();
       prepared.release();
       // Turning the mode off drops them; turning it back on fetches once more.
       runtime.setPalaeoCoastlinesEnabled(false);

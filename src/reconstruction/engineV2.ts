@@ -140,6 +140,7 @@ export class CaoReconstructionRuntime {
   private resolvedPalaeoCatalogs: readonly LoadedPalaeoClassCatalog[] | null = null;
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
   private palaeoOutlineTones: Promise<Uint8Array> | null = null;
+  private palaeoOutlineTonesResident = false;
 
   readonly manifest: ReconstructionPackageManifestV2;
 
@@ -221,6 +222,8 @@ export class CaoReconstructionRuntime {
     this.palaeoRunner = null;
     this.palaeoCatalogs = null;
     this.resolvedPalaeoCatalogs = null;
+    this.palaeoOutlineTones = null;
+    this.palaeoOutlineTonesResident = false;
     for (const chain of Object.values(this.chains)) {
       for (const release of [...chain.leases.values()]) release();
     }
@@ -247,9 +250,18 @@ export class CaoReconstructionRuntime {
     const palaeoStore = this.surfaces.intervalLedger;
     const palaeoCatalogBytes = this.resolvedPalaeoCatalogs
       ? this.resolvedPalaeoCatalogs.reduce((sum, entry) => sum + entry.asset.bytes, 0) : 0;
+    // The tone tables are the mode's third resident asset beside the catalogs
+    // and the interval payloads: one fetch per enablement, held until the mode
+    // is turned off. They were missing here, so the only place the runtime
+    // reported them was folded into the *drawn interval's* bytes by the
+    // renderer — a 311 KiB constant charged to every interval in turn. The
+    // store total says them once; `activeSourceBytes` stays the interval alone.
+    const palaeoToneBytes = this.palaeoOutlineTonesResident
+      ? this.manifest.palaeoCoastlines?.outlineTones.binary.bytes ?? 0 : 0;
     const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
+      outlineToneSourceBytes: palaeoToneBytes,
       intervalStore: palaeoStore, preparedLeaseCount: this.chains.interval.leases.size,
-      totalSourceBytes: palaeoCatalogBytes + palaeoStore.residentSourceBytes
+      totalSourceBytes: palaeoCatalogBytes + palaeoToneBytes + palaeoStore.residentSourceBytes
         + palaeoStore.pendingReservedSourceBytes });
     return Object.freeze({ foundationResidentSourceBytes,
       foregroundReservedSourceBytes,
@@ -485,6 +497,7 @@ export class CaoReconstructionRuntime {
     this.palaeoRunner?.dispose();
     this.palaeoRunner = null;
     this.palaeoOutlineTones = null;
+    this.palaeoOutlineTonesResident = false;
   }
 
   get palaeoCoastlinesEnabled(): boolean {
@@ -516,10 +529,12 @@ export class CaoReconstructionRuntime {
 
   /**
    * The EHPT outline tone tables, fetched and digest-verified once per
-   * enablement. The bytes are the whole 24-table set — about 72 KiB for the
-   * shipped outline — so the interval change that follows a scrub is a decode
-   * and an upload, never a second fetch; turning the mode off drops them with
-   * everything else the mode owns.
+   * enablement. The bytes are the whole 24-table set — 311 KiB for the shipped
+   * Natural Earth 1:50m outline, four times the 72 KiB of the 1:110m one it
+   * replaced — so the interval change that follows a scrub is a decode and an
+   * upload, never a second fetch; turning the mode off drops them with
+   * everything else the mode owns. The ledger counts these bytes once, under
+   * `palaeo.outlineToneSourceBytes`; they are not an interval's bytes.
    */
   async loadPalaeoOutlineToneTables(signal?: AbortSignal): Promise<Uint8Array> {
     const palaeo = this.manifest.palaeoCoastlines;
@@ -530,6 +545,7 @@ export class CaoReconstructionRuntime {
     ).then((bytes) => new Uint8Array(bytes));
     pending.catch(() => { if (this.palaeoOutlineTones === pending) this.palaeoOutlineTones = null; });
     const tones = await pending;
+    if (this.palaeoOutlineTones === pending) this.palaeoOutlineTonesResident = true;
     if (signal?.aborted || !this.palaeoEnabled) {
       throw new DOMException("stale palaeo-coastline tone table", "AbortError");
     }

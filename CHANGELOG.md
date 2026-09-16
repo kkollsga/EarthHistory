@@ -26,6 +26,22 @@ All notable changes to EarthHistory will be recorded here.
   untouched. Proven by mutation in both directions: dropping the dispose call
   and counting released batches as resident each fail the new case, and both
   mutations were restored.
+- **The palaeo interval byte ledger counts the outline tone tables once, not
+  once per interval.** The P6 record read `caoPalaeoAssetBytes` rising 59-196 %
+  per interval for unchanged triangle counts (90 Ma 431,850 to 686,652; 250 Ma
+  312,426 to 560,854; 21 ka 126,044 to 373,416). A request log over the built
+  dist at 90, 80 and 250 Ma shows every palaeo URL fetched exactly once — three
+  class catalogs, `outline-tones.ehpt`, and three `.ehpr` payloads per drawn and
+  prefetched interval — so nothing is re-fetched. The whole rise is accounting:
+  the diagnostic adds the once-per-enablement tone payload to the drawn
+  interval's payload bytes, and that payload grew 75,332 to 319,082 bytes when
+  the Natural Earth 1:50m country outlines shipped. Every figure resolves
+  exactly: 367,570 + 319,082 = 686,652, 241,772 + 319,082 = 560,854,
+  54,334 + 319,082 = 373,416, and 356,518 + 75,332 = 431,850 at the baseline
+  commit. The real per-interval payload change is +2.0 % to +7.1 %. The runtime
+  ledger now reports the tone bytes as `palaeo.outlineToneSourceBytes`, a
+  resident asset of the mode counted once and included in
+  `palaeo.totalSourceBytes`, where it had been missing entirely.
 
 - **Needle rings and spikes removed from every palaeo interval, and the Iceland
   seam measured by plate ownership.** The 3-degree spike filter and the 1.5 km
@@ -150,9 +166,6 @@ All notable changes to EarthHistory will be recorded here.
   native land and shelf GPU buffers it replaces; the renderer records that set
   and releases nothing yet. No visual change: every ledger shape, every
   `data-cao-*` value and all three compositions draw exactly as before.
-
-### Fixed
-
 - **The outgoing map keeps moving with the outlines across an interval
   boundary.** Once a scrub crossed into the next map interval, the interval
   still on screen was posed at its own edge age until the incoming one

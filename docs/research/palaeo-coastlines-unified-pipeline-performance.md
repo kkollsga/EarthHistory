@@ -78,3 +78,28 @@ in use; 15 of 48 samples waited for the load gate, against 37 of 48 in the
 baseline. The machine was confirmed free of Playwright, `scripts/research`
 validators and vitest for two checks 30 s apart before the run, and a contention
 monitor armed for the whole run fired no event.
+
+## Correction, 2026-09-16: the per-interval byte rise was accounting, not I/O
+
+The `caoPalaeoAssetBytes` rise reported above (90 Ma 431,850 → 686,652; 250 Ma
+312,426 → 560,854; 21 ka 126,044 → 373,416, all at unchanged triangle counts) is
+not re-fetching. A request log over the built dist on port 4400, loading
+`#age=90` with the layer on and scrubbing to 80 and 250 Ma through the
+application's own age control, records every palaeo URL exactly once: the three
+class catalogs, `outline-tones.ehpt`, and three `.ehpr` payloads for each drawn
+and each prefetched neighbour interval (94-81, its neighbours 117-94 and 81-58,
+then 269-248 with 285-269 and 248-224). No catalog, tone table or payload is
+requested twice, which `palaeoIntervalV2.test.ts` also proves at the unit level.
+
+The diagnostic adds the once-per-enablement outline tone payload to the drawn
+interval's payload bytes, and that payload grew 75,332 → 319,082 bytes at
+`be56995` when the Natural Earth 1:50m country outlines replaced the 1:110m set.
+Every figure resolves to the byte: 367,570 + 319,082 = 686,652,
+241,772 + 319,082 = 560,854, 54,334 + 319,082 = 373,416, and at the baseline
+commit `49ccb43`, 356,518 + 75,332 = 431,850, 237,094 + 75,332 = 312,426,
+50,712 + 75,332 = 126,044. The real per-interval payload change over the same
+span is +3.1 % (90 Ma), +2.0 % (250 Ma) and +7.1 % (21 ka), from the despike and
+recompile commits. The runtime ledger now carries the tone bytes once as
+`palaeo.outlineToneSourceBytes`; splitting the renderer's dataset key into the
+drawn interval's payload bytes and a separate resident-bytes key is the
+remaining half of the repair.
