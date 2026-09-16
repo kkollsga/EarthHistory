@@ -4,6 +4,76 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-09-16
+
+### Added
+
+- **The palaeogeography layer is exportable as a citable dataset.**
+  `make dataset` writes `earth-history-palaeogeography-2026.1.tar.gz` and its
+  `.sha256` sidecar from the promoted public tree and the tracked contracts. The
+  archive holds the 75 EHPR payloads, the three class catalogs, the
+  country-outline tone tables, the restored-margin correction with the batch and
+  catalog rows it ships as, every basin edit contract, the override table, the
+  simplification budget and the LGM contract, plus a dataset `manifest.json`
+  (the 75 batch records copied from the package manifest, the class catalog
+  index, the reservation, the schedule and a digest per member), a `README.md`
+  specifying the EHPR v1 rings, the batch record, the class semantics
+  ("maximum transgression per interval, class not depth"), the detached LGM
+  state and its non-Cao ETOPO origin, the hard dependency on the Cao 2024 v2.4
+  rotation model and the present-day WGS84 frame, and how a consumer poses a
+  piece, a `CITATION.cff`, a `PROVENANCE.json` naming every input with its
+  version, digest and retrieval date alongside the EarthHistory modifications by
+  type with counts, and a `LICENSE.md` placing the compilation under CC BY 4.0
+  with each source's own terms reproduced verbatim from
+  `THIRD_PARTY_NOTICES.md`. The exporter recompiles nothing and re-hashes every
+  payload against the digest the package manifest already publishes, so a
+  shipped payload that disagrees with its published digest, a batch-record count
+  that is not 3 classes x 25 map states, a scientific reference that resolves in
+  neither `src/data/sources.ts` nor its own complete citation, licence text that
+  has drifted from the notices, and a redistributed input whose licence a CC BY
+  4.0 compilation cannot carry are each a refused export rather than a published
+  archive. `make check-dataset` proves the first three gates fail on a
+  deliberate mutation and runs in the `gate-fast` loop at 0.2 s;
+  `--verify <archive>` re-hashes every member of a written archive, and
+  `make clean-dataset` owns the bounded output tier.
+
+### Changed
+
+- **Realistic coastlines ship in the Cao 2024 package structure.** The package
+  manifest now publishes the Cao 2017 palaeogeography as **75 spatial batch
+  records** (3 classes x 25 intervals) under `palaeoCoastlines.realisticBatches`,
+  in the same record shape the native `core.json` spatial batches use: an id, the
+  declared appearance, the map interval, a verified geometry asset, an encoding
+  and the interned chart-record columns. The one declared difference from a
+  native batch is `encoding: "ehpr-v1-i16lonlat-rings"` - rings triangulated in
+  the browser worker - because pre-triangulated per-interval geometry measured
+  45-96 MiB against a 50 MiB bundle. Both halves are now checked by the same
+  record validator, extended with the EHPR byte layout and the interval fields, so
+  a wrong digest, an unknown encoding, or a chart count that no longer implies the
+  payload's byte count is rejected before a fetch. `loadVerifiedPalaeoInterval`
+  resolves an interval through the batch records and refuses a record that
+  disagrees with the class catalog it re-shapes. The `.ehpr` payloads are
+  byte-identical - this re-shapes the published structure, it recompiles no
+  geometry - and the class catalogs still ship and still own the interned tables.
+  The manifest grows from 41,538 to 76,685 bytes; the palaeo layer stays at
+  8.191 MiB against its 8.5 MiB budget.
+- **One polyline helper owns the country outline.** The modern-country
+  reference overlay's whole line path — decoding the EHGL line batch into the
+  screen-space quad geometry (four corners and two triangles per segment, 200
+  bytes each), the two-tone `mix(darkInk, lightInk, toneMix)` ink with its EHPT
+  tone-table upload and change comparison, the vertex and fragment horizon
+  terms, the shell and the one-CSS-pixel core — moves out of
+  `caoFoundation.ts` into `src/render/reconstruction/polyline.ts`, behind
+  `createPolylineBatch` (and the two halves `createPolylineQuadGeometry` /
+  `createPolylineMaterial` the renderer calls at its own two lifetimes). Shell,
+  ink and width are inputs rather than country constants, and the pose is
+  injected, so the helper carries no reconstruction state. No rendered output
+  changes: the country overlay keeps its 1 800 m shell, its inks and its
+  1 CSS px width, and `caoFoundation.ts` re-exports the existing
+  `CAO_FOUNDATION_COUNTRY_LINE_*` names as aliases of the helper's. The
+  plate-boundary lines (`boundary-*.ehnb`, 2 200 m) are **not** migrated; the
+  helper is meant to take them next.
+
 ## [0.1.18] - 2026-09-16
 
 ### Changed

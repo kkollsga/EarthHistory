@@ -7,7 +7,9 @@ and validated in the offline store, and the provenance sidecars and the
 unsimplified ``original`` payloads never enter a build at all.
 
 Two manifests are written. The package manifest gains the ``palaeoCoastlines``
-section `validatePalaeoCoastlineAssets` reads; the outer data inventory gains one
+section `validatePalaeoCoastlineAssets` reads, including one ``realisticBatches``
+spatial-batch record per class per interval in the same record shape the native
+``core.json`` batches use; the outer data inventory gains one
 declared output per promoted file, with bytes and sha256 measured here and
 re-measured by ``emit_cao_material_corrections.refresh_outer_manifest`` on every
 correction run, so no digest in either document is ever hand-written.
@@ -123,6 +125,72 @@ def reservation(catalogs: dict[str, dict]) -> dict:
     }
 
 
+# EHPR v1 on the wire: a 32-byte header, then 12 bytes per piece, 2 per ring and
+# 4 per vertex. The batch record declares the three counts, so the byte count is
+# derived here and re-derived by `validateRealisticSurfaceBatchesV2`; a record
+# that disagrees with the file it names is rejected before a fetch.
+EHPR_HEADER_BYTES = 32
+EHPR_PIECE_BYTES = 12
+EHPR_RING_BYTES = 2
+EHPR_VERTEX_BYTES = 4
+
+# The drawing class each compiled class is published as, identical to
+# `REALISTIC_SURFACE_BATCH_APPEARANCES` in src/reconstruction/packageV2.ts.
+APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
+
+
+def realistic_batches(catalogs: dict[str, dict]) -> list[dict]:
+    """One spatial batch per class per interval, in the native batch-record shape.
+
+    Everything is read off the class catalogs the compiler already wrote: this
+    re-shapes the published structure, it never recompiles geometry, so the
+    ``.ehpr`` payloads stay byte-identical and their digests are carried across
+    rather than re-measured from a different source.
+    """
+    batches: list[dict] = []
+    for class_name in SHIPPED_CLASSES:
+        catalog = catalogs[class_name]
+        detached = set(catalog.get("detachedIntervalIds", []))
+        tables = {
+            "bindings": catalog["bindings"]["count"],
+            "evidence": len(catalog["evidence"]),
+            "lifecycles": catalog["lifecycles"]["count"],
+        }
+        for row in interval_rows(catalog):
+            interval_id = row["intervalId"]
+            expected = (EHPR_HEADER_BYTES + EHPR_PIECE_BYTES * row["pieces"]
+                        + EHPR_RING_BYTES * row["rings"] + EHPR_VERTEX_BYTES * row["vertices"])
+            if expected != row["bytes"]:
+                raise SystemExit(
+                    f"palaeo-{class_name}-{interval_id}.ehpr declares {row['bytes']} bytes; its "
+                    f"piece, ring and vertex counts imply {expected}")
+            # Measured on the promoted file, never copied from the catalog: one
+            # code path owns every digest the package declares.
+            measured = asset(PALAEO_DIR / class_name / f"palaeo-{class_name}-{interval_id}.ehpr")
+            if measured["bytes"] != row["bytes"] or measured["sha256"] != row["sha256"]:
+                raise SystemExit(
+                    f"promoted palaeo-{class_name}-{interval_id}.ehpr is not the file its class "
+                    f"catalog indexes")
+            batches.append({
+                "id": f"palaeo-{class_name}-{interval_id}",
+                "appearance": APPEARANCE[class_name],
+                "surfaceClass": class_name,
+                "interval": {
+                    "id": interval_id,
+                    "index": row["intervalIndex"],
+                    "fromAgeMa": row["fromAgeMa"],
+                    "toAgeMa": row["toAgeMa"],
+                    "detached": interval_id in detached,
+                },
+                "geometryAsset": measured,
+                "encoding": "ehpr-v1-i16lonlat-rings",
+                "ringCount": row["rings"],
+                "vertexCount": row["vertices"],
+                "charts": {"records": row["pieces"], **tables},
+            })
+    return batches
+
+
 def copy_shipped(staging: Path) -> list[Path]:
     """Replace the published palaeo directory with exactly what ships."""
     # The compiler decides which classes colour a tone table and appear in its
@@ -182,6 +250,7 @@ def write_package_section(catalogs: dict[str, dict]) -> dict:
             "binary": asset(PALAEO_DIR / "outline-tones.ehpt"),
         },
         "reservation": reservation(catalogs),
+        "realisticBatches": realistic_batches(catalogs),
     }
     package["palaeoCoastlines"] = section
     manifest_path.write_bytes(emitter.canonical_json(package))
@@ -200,6 +269,7 @@ def main(staging: Path) -> None:
         "bytes": sum(path.stat().st_size for path in copied),
         "classes": [entry["surfaceClass"] for entry in section["classes"]],
         "intervals": catalogs["lm"]["intervals"]["count"],
+        "realisticBatches": len(section["realisticBatches"]),
         "reservation": section["reservation"],
     }, indent=1))
 
