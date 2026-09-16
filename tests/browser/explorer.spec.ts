@@ -136,7 +136,7 @@ async function globeLuminance(page: Page) {
  *
  * The three base colours are far enough apart to separate on the lit globe: a
  * Cao 2017 landmass is the olive `#9aa86b` (green channel highest), a mapped
- * shallow sea the teal `#14606b` and the "depth unmapped" shelf the dimmed blue
+ * shallow sea the teal `#12545e` and the "depth unmapped" shelf the dimmed blue
  * the native stack has always drawn, both with blue highest and the shallow sea
  * the brighter of the two. Anything else - sky, clouds, outlines, the unlit
  * limb - falls in no bucket.
@@ -1755,9 +1755,10 @@ const PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX = 12;
  * the same lighting before it is charged as native land showing through, in
  * 8-bit RGB distance.
  *
- * The mapped shallow sea renders around 116,186,182 against a native land tone
- * of 201,206,169 at this site - 89 apart - so the radius has a wide gap to sit
- * in on that side. The tight side is the Cao 2017 land olive at 214,214,188,
+ * The mapped shallow sea rendered around 116,186,182 against a native land tone
+ * of 201,206,169 at this site - 89 apart - when this radius was measured, and
+ * the 0.1.14 darkening (12 % in linear light) moves it a predicted 9 luma
+ * further away, so the radius has a wide gap to sit in on that side. The tight side is the Cao 2017 land olive at 214,214,188,
  * only 24 away: the radius has to stay inside that or a mapped landmass would
  * be charged as a native one, and wide enough to clear the few units a 3x3
  * median still leaves so a correction patch cannot slip under it by a shade.

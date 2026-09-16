@@ -4,6 +4,28 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The palaeo shallow seas are slightly darker.** The
+  `palaeo-shallow-marine` base colour loses 12 % of its linear light at the same
+  hue: `#14606b` to `#12545e` (187.9 against 187.6 degrees, saturation 0.81
+  either way). Base colours are *linear albedo*, so the on-screen effect was
+  solved through the 0.1.12 band model - per-band light factors 1.0355 / 0.7970
+  / 0.5260, then ACES at exposure 1.02 and the sRGB transfer, the model that
+  predicted the 0.1.13 mountain tone to within 12/255 - which puts the rendered
+  tone at **93,174,180** in full light, **70,156,163** at mid lighting and
+  **39,125,132** near the terminator, against 104,183,188 / 80,165,172 /
+  46,135,142 before. Nothing the colour has to clear moves the wrong way: the
+  light `#d0d4d5` outline/label ink gains contrast over it (5.7:1 against 4.8:1
+  on the albedo the unit test measures, 1.7:1 against 1.6:1 on the rendered
+  tone), the sea stays the brightest water on the globe at 54 / 54 / 44 of luma
+  over the 0.58-dimmed shelf, it stays above the 95-luma floor that separates
+  shallow sea from shelf in the painted-class census (107.2 in its tightest
+  band, against 116.6), and the palaeo-land separation *widens* from 44.3 to
+  53.7 luma. The map key's shallow-sea swatch now follows the rendered tone, as
+  the mountain swatch already did, instead of showing the albedo. Predictions,
+  not measurements: the browser census owns the rendered contract.
+
 ### Added
 
 - **The logo names the running build.** Hovering the "EARTH HISTORY" logo in

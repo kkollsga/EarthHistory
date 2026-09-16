@@ -368,9 +368,17 @@ export function caoFoundationShellOffsetMetres(
  *
  * `palaeo-land` is the muted olive of a Cao 2017 landmass polygon.
  * `palaeo-shallow-marine` is a saturated teal held dark enough that the light
- * outline/label ink `#d0d4d5` keeps a 5.4:1 luminance contrast over it, while
+ * outline/label ink `#d0d4d5` keeps a 5.7:1 luminance contrast over it, while
  * reading as a distinctly greener, brighter body of water than the 0.58-dimmed
- * shelf blue it sits on.
+ * shelf blue it sits on. 0.1.14 took 12 % out of it in linear light - `#14606b`
+ * to `#12545e`, the same hue at 187.9 against 187.6 degrees - because the lit
+ * teal read brighter on screen than a sea should. The 0.1.12 band model
+ * (per-band light factors 1.0355 / 0.7970 / 0.5260, ACES at exposure 1.02, the
+ * sRGB transfer) predicts the rendered tone moves 104,183,188 / 80,165,172 /
+ * 46,135,142 to 93,174,180 / 70,156,163 / 39,125,132: still the brightest water
+ * on the globe by 54 / 54 / 44 of luma over the dimmed shelf, and still over
+ * the 95-luma floor `paintedSurfaceClasses` separates shallow sea from shelf
+ * with (107.2 near the terminator, its tightest band).
  *
  * `palaeo-mountain` is a dark reddish brown *on screen*, which is why the value
  * here is a deep saturated red-brown rather than the tone itself. These triples
@@ -411,7 +419,7 @@ Readonly<Record<CaoFoundationBatchAppearance, readonly [number, number, number]>
   land: Object.freeze([0.45, 0.55, 0.3] as const),
   shelf: Object.freeze([0.0431, 0.2863, 0.3922] as const),
   "palaeo-land": Object.freeze([0x9a / 255, 0xa8 / 255, 0x6b / 255] as const),
-  "palaeo-shallow-marine": Object.freeze([0x14 / 255, 0x60 / 255, 0x6b / 255] as const),
+  "palaeo-shallow-marine": Object.freeze([0x12 / 255, 0x54 / 255, 0x5e / 255] as const),
   "palaeo-mountain": Object.freeze([0x71 / 255, 0x22 / 255, 0x0e / 255] as const),
 });
 

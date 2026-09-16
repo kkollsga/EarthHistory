@@ -187,9 +187,13 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .surface-swatch { width: 10px; height: 10px; margin-top: 2px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 50%; }
 .surface-swatch-land { background: rgb(115, 140, 77); }
 .surface-swatch-shelf { background: rgb(28, 82, 101); }
-/* The three palaeo classes carry the renderer's own base colours. */
+/* The two land-like palaeo classes carry the renderer's own base colours. */
 .surface-swatch-palaeo-land { background: rgb(154, 168, 107); }
-.surface-swatch-palaeo-shallow { background: rgb(20, 96, 107); }
+/* Like the mountain swatch below, the shallow-sea swatch is the tone the globe
+   renders, not its linear albedo: after the 0.1.14 darkening the band model
+   puts #12545e on screen at 93,174,180 in full light, and the albedo alone
+   would show the key a teal the map never draws. */
+.surface-swatch-palaeo-shallow { background: rgb(93, 174, 180); }
 /* The mountain swatch is the tone the globe renders (measured 201,126,79 in
    full light by the tone census), not its linear albedo: the albedo is
    pre-compensated for the ACES wash and would show the key a brown the map
