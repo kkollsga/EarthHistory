@@ -4,6 +4,7 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-09-16
 ### Fixed
 
 - **The Cao 2024 GPU buffers a realistic composition replaces are reported as
