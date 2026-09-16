@@ -2,13 +2,14 @@
 	check-dev-docs check-corrections check-corrections-changed check-corrections-all \
 	check-build-cache check-app-artifacts check-agents self-test-gates \
 	check-palaeo-compile check-precollision-extent check-restored-margins \
-	prune-build-cache sync-agents
+	prune-build-cache sync-agents dataset check-dataset clean-dataset
 
 # Which gate to run when
 # ---------------------
 #   gate-fast  iteration, seconds: types, unit/data tests, the correction
-#              validators that changed, build, artifact bounds. It asserts
-#              exactly what those checks assert; it just skips the local
+#              validators that changed, the dataset-export gates, build,
+#              artifact bounds. It asserts exactly what those checks
+#              assert; it just skips the local
 #              working-state and adapter-mirror checks and reuses the
 #              validator digest cache.
 #   gate       per commit: gate-fast's checks plus check-dev-docs,
@@ -29,6 +30,7 @@ DIST_MAX_FILE_MB ?= 9
 gate:
 	@$(MAKE) check-dev-docs
 	@$(MAKE) check-corrections
+	@$(MAKE) check-dataset
 	@$(MAKE) check-build-cache
 	@$(MAKE) check-agents
 	@$(MAKE) typecheck
@@ -45,14 +47,16 @@ gate-fast:
 	@$(MAKE) typecheck
 	@$(MAKE) test
 	@$(MAKE) check-corrections
+	@$(MAKE) check-dataset
 	@$(MAKE) build
 	@$(MAKE) check-app-artifacts
-	@echo "gate-fast: types, unit/data tests, correction validators, build, and artifact checks passed"
+	@echo "gate-fast: types, unit/data tests, correction validators, dataset gates, build, and artifact checks passed"
 
 # CI has no gitignored skill authority; keep the mirror check in the local gate.
 gate-ci:
 	@$(MAKE) check-dev-docs
 	@$(MAKE) check-corrections
+	@$(MAKE) check-dataset
 	@$(MAKE) check-build-cache
 	@$(MAKE) typecheck
 	@$(MAKE) test
@@ -178,6 +182,25 @@ self-test-gates:
 	@python3 scripts/prune-build-cache.py --self-test
 	@python3 scripts/sync_agents.py --self-test
 	@python3 scripts/run_corrections.py --self-test
+	@python3 scripts/research/export_earthhistory_palaeogeography.py --self-test
+
+# The citable palaeogeography dataset export. `dataset` writes the archive and
+# its sha256 sidecar from the promoted public tree and the tracked contracts;
+# it recompiles nothing and refuses to write when a shipped payload disagrees
+# with its published digest. R4: the archive lives in the gitignored
+# dev-docs/bench/out/dataset tier, one name that each build overwrites, and
+# `clean-dataset` is its cleanup owner.
+dataset:
+	@python3 scripts/research/export_earthhistory_palaeogeography.py
+
+# Fast (0.2 s): proves the export's digest, reference and record-count gates
+# each fail on a deliberate mutation of a sandbox copy, and that an unmutated
+# copy still exports.
+check-dataset:
+	@python3 scripts/research/export_earthhistory_palaeogeography.py --self-test
+
+clean-dataset:
+	@python3 scripts/research/export_earthhistory_palaeogeography.py --clean
 
 prune-build-cache:
 	@python3 scripts/prune-build-cache.py --max-mb "$(BUILD_CACHE_MAX_MB)" --prune

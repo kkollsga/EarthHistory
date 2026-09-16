@@ -207,6 +207,43 @@ neither class keeps its own "depth unmapped" meaning and is never drawn as deep
 marine. A country outline over a Cao 2017 sea is drawn in light ink; the tone is
 a legibility aid and never evidence that the modern country existed.
 
+### Dataset export
+
+The palaeo-coastline layer is also published as a citable dataset,
+`earth-history-palaeogeography-2026.1`. `make dataset` runs
+`scripts/research/export_earthhistory_palaeogeography.py`, which writes the
+archive and its `.sha256` sidecar to the gitignored
+`dev-docs/bench/out/dataset/` tier; `make clean-dataset` is that tier's cleanup
+owner, and one archive name is overwritten by each build.
+
+The exporter recompiles nothing. It reads the promoted public tree and the
+tracked contracts, and it re-hashes every payload it copies against the digest
+`palaeoCoastlines` already publishes, so the archive carries exactly the bytes
+the application serves. The archive holds the 75 EHPR payloads, the three class
+catalogs, the outline tone tables, the restored-margin correction with the batch
+and catalog rows it ships as, every basin edit contract, the override table, the
+simplification budget and the LGM contract, plus `manifest.json` (dataset
+identity, the 75 batch records copied from the package manifest, the class
+catalog index, the reservation, the schedule and a digest per member),
+`README.md` (the EHPR schema, the batch record, the class semantics, the LGM
+state, the rotation-model dependency and how a consumer poses a piece),
+`PROVENANCE.json` (every input with its version, digest and retrieval date, and
+the EarthHistory modifications by type with counts), `CITATION.cff` and
+`LICENSE.md`.
+
+The compilation is CC BY 4.0. `LICENSE.md` reproduces each source's own terms
+verbatim from `THIRD_PARTY_NOTICES.md`, which stays the authority: the exporter
+asserts that each block it reuses is still present there and refuses to write an
+archive when the two have drifted apart. It also refuses when a redistributed
+input carries a licence a CC BY 4.0 compilation cannot relicense.
+
+`make check-dataset` is the fast gate (0.2 s, in `gate-fast`): it proves on a
+sandbox copy that a tampered payload digest, a basin reference that resolves in
+neither `src/data/sources.ts` nor its own complete citation, and a batch-record
+count that is not 3 classes x 25 map states are each rejected, and that an
+unmutated copy still exports. `--verify <archive>` re-hashes every member of a
+written archive against the manifest inside it.
+
 ## Storage and resource ownership
 
 | Asset | Contents |

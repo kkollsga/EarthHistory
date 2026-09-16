@@ -4,6 +4,37 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- **The palaeogeography layer is exportable as a citable dataset.**
+  `make dataset` writes `earth-history-palaeogeography-2026.1.tar.gz` and its
+  `.sha256` sidecar from the promoted public tree and the tracked contracts. The
+  archive holds the 75 EHPR payloads, the three class catalogs, the
+  country-outline tone tables, the restored-margin correction with the batch and
+  catalog rows it ships as, every basin edit contract, the override table, the
+  simplification budget and the LGM contract, plus a dataset `manifest.json`
+  (the 75 batch records copied from the package manifest, the class catalog
+  index, the reservation, the schedule and a digest per member), a `README.md`
+  specifying the EHPR v1 rings, the batch record, the class semantics
+  ("maximum transgression per interval, class not depth"), the detached LGM
+  state and its non-Cao ETOPO origin, the hard dependency on the Cao 2024 v2.4
+  rotation model and the present-day WGS84 frame, and how a consumer poses a
+  piece, a `CITATION.cff`, a `PROVENANCE.json` naming every input with its
+  version, digest and retrieval date alongside the EarthHistory modifications by
+  type with counts, and a `LICENSE.md` placing the compilation under CC BY 4.0
+  with each source's own terms reproduced verbatim from
+  `THIRD_PARTY_NOTICES.md`. The exporter recompiles nothing and re-hashes every
+  payload against the digest the package manifest already publishes, so a
+  shipped payload that disagrees with its published digest, a batch-record count
+  that is not 3 classes x 25 map states, a scientific reference that resolves in
+  neither `src/data/sources.ts` nor its own complete citation, licence text that
+  has drifted from the notices, and a redistributed input whose licence a CC BY
+  4.0 compilation cannot carry are each a refused export rather than a published
+  archive. `make check-dataset` proves the first three gates fail on a
+  deliberate mutation and runs in the `gate-fast` loop at 0.2 s;
+  `--verify <archive>` re-hashes every member of a written archive, and
+  `make clean-dataset` owns the bounded output tier.
+
 ### Changed
 
 - **Realistic coastlines ship in the Cao 2024 package structure.** The package
