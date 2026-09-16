@@ -467,6 +467,37 @@ measured worst of 427,088), and `palaeoCoastlineAssets.test.ts` re-measures ever
 interval against the declared numbers. The estimate is a size class, not a
 prediction of the runtime's output.
 
+## Ring hygiene
+
+Every shipped ring passes two filters after node reduction and before int16
+quantisation, in `scripts/research/palaeo_coastlines_rings.py`, which both the
+interval compiler and the LGM derivation import:
+
+- **spikes** — a vertex whose interior angle is under 3° has two edges that
+  double back along each other. It is deleted; no other vertex moves. The pass
+  repeats, because removing one spike can expose its neighbour.
+- **needle holes** — an interior ring whose mean width (`4 × area / perimeter`)
+  is under 1.5 km, or whose area is under the 25 km² piece floor, is dropped
+  whole. Below the quantisation error (0.0055° of longitude by 0.0027° of
+  latitude) the two walls of such a ring cross, the ring self-intersects and the
+  renderer's ear-clip fills it with hairline triangles instead of leaving a hole.
+
+Exterior rings are never dropped here, and a piece the edit would leave invalid
+keeps its unpolished rings and is counted as `declinedPieces`: the seam and
+assembly rules above already accepted that piece with the component and hole
+counts it has.
+
+Until 2026-09-16 only the LGM derivation ran the spike filter, and no stage ran
+the width filter. Measured on the shipped set at `0.1.14`: 920 interior rings
+were narrower than 1.5 km — 359 in `palaeo-lm-11-2.ehpr` and 209 in
+`palaeo-lm-20-11.ehpr`, many of them zero-area three-vertex rings around
+Iceland. `palaeo-coastlines-lgm-lowstand.md` §4.1 is the worked case that
+measured the mechanism.
+
+The per-class counts are declared in the provenance sidecar as `ringHygiene`,
+and the area the dropped holes gave back is inside the 0.05 % per-class
+simplification-error gate that `palaeo_coastlines_correction.py` enforces.
+
 ## Provenance sidecar
 
 `provenance/palaeo-<class>-provenance.json` is the offline half of the split. It
@@ -489,6 +520,10 @@ measurement it re-derives.
   (url, bytes, sha256, pieces, rings, vertices).
 - `bindings`, `gapSets`, `evidence`, `lifecycles` — the same tables the catalog
   ships, so the sidecar stands alone.
+- `ringHygiene` — the spike and needle-hole filter's own record: the two
+  thresholds, the vertices and interior rings it removed, the area those rings
+  gave back, and how many pieces it polished and declined. Counted once per cut
+  piece, not once per interval the piece is drawn in.
 - `areaAudit`, `poseAudit`, `simplification`, `sourceRecords`, `method`,
   `flags`, `basinEdits`, `basinContracts`, `inputs`, `partitions`,
   `rotationCheck`, `totals`, `generatedBy`, `generatedAt`, `runtime` — the

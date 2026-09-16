@@ -72,6 +72,28 @@ const REPETITIONS = 3;
  * threshold, never make it unmeasured.
  */
 const TRANSACTION_TIMEOUT_MS = 180_000;
+/**
+ * The frame metric needs an uncapped browser so a p50 cannot pin at the vsync
+ * cap; the transactions do not, because they are wall-clock durations and not
+ * frame intervals. They are measured in a second browser without
+ * `--disable-frame-rate-limit`, and that is not a convenience: with that flag
+ * the 94 -> 80 Ma crossing never completes. Diagnosed 2026-09-16 against the
+ * built `dist/` by launching the same driver four ways - the flag trio, the
+ * trio without `reducedMotion`, the trio after a 10 s warm settle, and no
+ * flags - and then one flag at a time. Every arm carrying
+ * `--disable-frame-rate-limit` left the layer at `mode=loading` with an empty
+ * interval id past 60 s while the age had already reached 80 Ma; without it the
+ * crossing landed in 258 ms, and `--disable-gpu-vsync` and
+ * `--disable-gpu-frame-rate-limit` each landed it alone (284 ms, 339 ms). Timer
+ * service was measured in the stuck page and is not the cause: a 0 ms timer
+ * fired in 2.9 ms and rAF still ran at ~400 Hz while the interval load sat
+ * unresolved. So the uncapped flag is kept where it is needed and dropped where
+ * it destroys the measurement.
+ */
+const FRAME_METRIC_ARGS = [
+  "--disable-frame-rate-limit", "--disable-gpu-vsync", "--disable-gpu-frame-rate-limit",
+];
+const TRANSACTION_ARGS = ["--disable-gpu-vsync", "--disable-gpu-frame-rate-limit"];
 const SETTLE_MS = 2_500;
 const SAMPLE_MS = 5_000;
 
@@ -211,10 +233,8 @@ const canvasValues = () => {
 async function main() {
   mkdirSync(path.dirname(outFile), { recursive: true });
   const server = await startServer();
-  const browser = await chromium.launch({
-    channel: "chrome",
-    args: ["--disable-frame-rate-limit", "--disable-gpu-vsync", "--disable-gpu-frame-rate-limit"],
-  });
+  const browser = await chromium.launch({ channel: "chrome", args: FRAME_METRIC_ARGS });
+  const transactionBrowser = await chromium.launch({ channel: "chrome", args: TRANSACTION_ARGS });
   const rows = transactionsOnly ? priorRecord.rows : [];
   const transactions = [];
   const network = transactionsOnly ? priorRecord.network : [];
@@ -274,7 +294,7 @@ async function main() {
     async function transaction(id, run) {
       process.stderr.write(`${new Date().toISOString()} transaction ${id}\n`);
       const machine = await waitForQuietMachine();
-      const context = await browser.newContext({ viewport: { width: 1440, height: 900 },
+      const context = await transactionBrowser.newContext({ viewport: { width: 1440, height: 900 },
         deviceScaleFactor: 2, reducedMotion: "reduce" });
       const page = await context.newPage();
       try {
@@ -357,7 +377,12 @@ async function main() {
       const beforeToggle = fetched.length;
       await openLayers(page);
       const started = await page.evaluate(() => performance.now());
-      await page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ }).click();
+      // The layer's own control, by its current label. It was renamed from
+      // "Palaeo-coastlines (Cao 2017)" to "Realistic coastlines" after the
+      // 2026-09-15 run, and the stale name matched nothing: the click expired
+      // at 30 s in both browsers, which is what left this transaction with
+      // three failures and no number on 2026-09-16.
+      await page.getByRole("button", { name: /^Realistic coastlines/ }).click();
       await page.waitForFunction(() => {
         const data = document.querySelector("canvas")?.dataset;
         return data?.caoPalaeoCoastlineMode === "on" && Number(data.caoPalaeoTriangles) > 0;
@@ -371,6 +396,7 @@ async function main() {
     }
   } finally {
     await browser.close();
+    await transactionBrowser.close();
     server.kill();
   }
 
@@ -449,13 +475,20 @@ async function main() {
     method: {
       build: "npm run build, served by tests/browser/server.mjs at the Pages subpath",
       browser: "Chrome (playwright channel) with --disable-frame-rate-limit --disable-gpu-vsync",
+      transactionBrowser: "a second Chrome without --disable-frame-rate-limit"
+        + " (--disable-gpu-vsync --disable-gpu-frame-rate-limit only): with the frame-rate limit"
+        + " removed the 94 -> 80 Ma crossing never completes, which is why threshold 3 had no"
+        + " number. Transactions are wall-clock durations, so the uncapped frame rate the frame"
+        + " metric needs buys them nothing.",
       metric: `requestAnimationFrame interval, ${SAMPLE_MS} ms after a ${SETTLE_MS} ms settle`,
       viewport: "1440x900 CSS px, deviceScaleFactor 2",
       repetitions: REPETITIONS, armOrder: "alternated off/on within each age and profile",
       loadGuard: `one-minute load average below ${STOP_RULE.maxLoadAverage} before every repetition`,
       transactionDriver: "the application's own timeline range and Layers & relief control;"
         + " the URL fragment is read once at load and a later change to it moves nothing"
-        + " (probed 2026-09-15: age and layers both stayed put)",
+        + " (probed 2026-09-15: age and layers both stayed put)."
+        + " Selecting the phanerozoic scale re-renders the range and discards a value written in"
+        + " the same tick, so it is done in setup with a settle, outside the measured window.",
     },
     machine: hardware(),
     stopRuleThresholds: STOP_RULE,

@@ -518,8 +518,14 @@ export interface PackedCaoPalette {
 
 export interface CaoFoundationBatchResource {
   readonly batchId: string;
+  /** The prepared batch's geometry identity; what a replacement is judged against. */
+  readonly staticGeometryIdentity: string;
+  /** Whether this batch may be replaced within the renderer's lifetime. */
+  readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoStaticGeometryCopy;
+  /** Vertex and index buffer bytes this batch holds on the GPU. */
+  readonly trackedGpuBytes: number;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly nativePrecedence: boolean;
@@ -535,10 +541,27 @@ export interface CaoFoundationBatchResource {
 
 export interface CaoFoundationLineBatchResource {
   readonly batchId: string;
+  readonly staticGeometryIdentity: string;
+  readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoLineGeometryCopy;
+  /** Quad vertex and index buffer bytes this batch holds on the GPU. */
+  readonly trackedGpuBytes: number;
   readonly vertexCount: number;
   readonly segmentCount: number;
+}
+
+/**
+ * Quads the resident country-line geometry draws, read off the expanded
+ * geometry itself: `polyline.ts` drops one copy of every shared border at load,
+ * so this is below the package's own segment count.
+ */
+function countryLineDrawnSegments(
+  geometry: CaoFoundationGeometryResource | null | undefined,
+): number {
+  return geometry?.lineBatches.reduce((sum, batch) =>
+    sum + batch.geometry.getAttribute("position").count
+      / POLYLINE_QUAD_VERTICES_PER_SEGMENT, 0) ?? 0;
 }
 
 export interface CaoFoundationGeometryResource {
@@ -599,6 +622,14 @@ export interface CaoFoundationDiagnostics {
   readonly countryLineBatches: number;
   readonly countryLineVertices: number;
   readonly countryLineSegments: number;
+  /**
+   * Quads actually drawn, and the source segments the load-time dedupe dropped.
+   * A land border is emitted once in each adjacent country's outline, so the
+   * package states it twice; only the first copy is expanded. `segments` stays
+   * the source count because the published outline tone table is indexed by it.
+   */
+  readonly countryLineDrawnSegments: number;
+  readonly countryLineDuplicateSegments: number;
   /** Outline segments the resident tone table draws in each ink; dark is the default. */
   readonly countryLineToneDarkSegments: number;
   readonly countryLineToneLightSegments: number;
@@ -606,7 +637,23 @@ export interface CaoFoundationDiagnostics {
   readonly nativeBoundarySourceAgeMa: number | null;
   readonly topologyOwnershipRings: number;
   readonly topologyOwnershipSourceAgeMa: number | null;
+  /**
+   * The unit's static geometry budget: retained source copies plus the GPU
+   * buffers the resource owns, released or not. Stable in meaning across
+   * builds; see `createCaoFoundationGeometryResource` for the sum.
+   */
   readonly retainedStaticBytes: number;
+  /** `retainedStaticBytes` split by side, so a move in it names its half. */
+  readonly retainedStaticSourceBytes: number;
+  readonly retainedStaticGpuBytes: number;
+  /**
+   * GPU buffer bytes the unit's geometries hold right now. Unlike
+   * `retainedStaticGpuBytes` this drops by exactly the buffers a D1 release
+   * hands back, which is what makes the release observable from the browser.
+   */
+  readonly gpuResidentBytes: number;
+  /** The surface classes whose GPU buffers are released right now. */
+  readonly releasedSurfaceClasses: readonly CaoFoundationSurfaceClass[];
   readonly activeSourceBytes: number;
   readonly retainedPublicationBytes: number;
   readonly pendingRetirementBytes: number;
@@ -642,6 +689,18 @@ function allFinite(values: ArrayLike<number>): boolean {
     if (!Number.isFinite(values[index])) return false;
   }
   return true;
+}
+
+/**
+ * Whether a geometry still owns the arrays its GPU buffers are uploaded from.
+ *
+ * `THREE.BufferGeometry.dispose()` frees the backend buffers and leaves
+ * `attributes` in place — that is what lets a released batch be drawn again
+ * without rebuilding it — so this is not a disposal test. It catches a geometry
+ * torn down elsewhere; the released-batch set is the authority on D1.
+ */
+function geometryHoldsGpuBuffers(geometry: THREE.BufferGeometry): boolean {
+  return geometry.getAttribute("position") !== undefined && geometry.index !== null;
 }
 
 function staticGeometryByteLength(batch: PreparedCaoStaticGeometryCopy): number {
@@ -1115,7 +1174,10 @@ export function createCaoFoundationGeometryResource(
         prepared.triangleCount, revision.charts.length, shellOffsetMetres);
       retainedCpuBytes = safeAdd(retainedCpuBytes,
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
-      resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
+      resources.push(Object.freeze({ batchId: prepared.batchId,
+        staticGeometryIdentity: prepared.staticGeometryIdentity,
+        staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
+        trackedGpuBytes: gpuBytes,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
         nativePrecedence: prepared.nativePrecedence, appearance, surfaceClass, shellOffsetMetres,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
@@ -1133,9 +1195,32 @@ export function createCaoFoundationGeometryResource(
         CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
       const geometry = expanded.geometry;
       trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, expanded.gpuBytes, "Cao tracked line GPU");
-      lineResources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
+      lineResources.push(Object.freeze({ batchId: prepared.batchId,
+        staticGeometryIdentity: prepared.staticGeometryIdentity,
+        staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
+        trackedGpuBytes: expanded.gpuBytes,
         vertexCount: prepared.vertexCount, segmentCount: prepared.segmentCount }));
     }
+    // `byteLength` is a residency budget over both sides, not a CPU figure: the
+    // source copies and the spatial index (`retainedCpuBytes`), plus the vertex,
+    // entry and index buffers the backend uploads (`trackedGpuBufferBytes`).
+    // The surface attributes wrap `source.referenceDirections`, `.indices` and
+    // `.preparedEntryIndices` without copying, so those three arrays are counted
+    // on both sides deliberately — one resident JavaScript array and one GPU
+    // buffer really do exist. Country-line quads are newly built arrays and are
+    // counted once, on the GPU side.
+    //
+    // Two consequences the diagnostics must state rather than leave inferred.
+    // `trackedGpuBufferBytes` is fixed at build time and covers every batch the
+    // geometry owns, so a D1 release does not move `retainedStaticBytes` at all;
+    // `gpuResidentBytes` is the key that answers residency. And the sum's
+    // meaning is why `retainedStaticBytes` may not be compared across builds
+    // without its split: this formula has not changed since the foundation
+    // landed, so the 30.6 % rise between the 2026-09-15 baseline (30,595,912)
+    // and the unified-pipeline record (39,956,632) at the same 574,075 native
+    // triangles is a change in the arrays, not in the arithmetic.
+    // `retainedStaticSourceBytes` and `retainedStaticGpuBytes` publish the two
+    // halves so the next measurement names which array grew instead of guessing.
     const byteLength = safeAdd(retainedCpuBytes, trackedGpuBufferBytes, "Cao geometry");
     if (byteLength > reservation) throw new Error("Cao geometry exceeded its preflight reservation");
     return {
@@ -1275,6 +1360,26 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
       const mix = child.userData.palaeoAppearanceMix as
         UniformNode<"float", number> | null | undefined;
       if (mix) mix.value = on ? 1 : 0;
+    }
+  }
+
+  /**
+   * Draws exactly the classes the composition's slots assign, and repaints the
+   * one class whose appearance depends on the mode. Overlay children — the
+   * borders and tectonics layers — carry no surface class and are left to the
+   * layer switch, so a hidden layer is not resurrected by a composition change.
+   */
+  setVisibleSurfaceClasses(
+    visible: ReadonlySet<CaoFoundationSurfaceClass>,
+    palaeoAppearance: boolean,
+  ): void {
+    for (const child of this.group.children) {
+      const surfaceClass = child.userData.surfaceClass as CaoFoundationSurfaceClass | undefined;
+      if (surfaceClass === undefined) continue;
+      child.visible = visible.has(surfaceClass);
+      const mix = child.userData.palaeoAppearanceMix as
+        UniformNode<"float", number> | null | undefined;
+      if (mix) mix.value = palaeoAppearance ? 1 : 0;
     }
   }
 
@@ -2139,26 +2244,65 @@ export interface CaoFoundationLayerVisibility {
 
 export interface CaoFoundationRendererOptions {
   /**
-   * Whether this instance may swap its static geometry. The native instance
-   * must not: one Cao package ships one geometry for the whole session, and a
-   * key change there is a compile or loader defect. The palaeo instance streams
-   * one map interval at a time, so replacement is its normal path — but only
-   * after `armStaticGeometryChange` has named the reason, so an unexpected key
-   * change still fails loudly.
-   */
-  readonly allowStaticGeometryReplacement?: boolean;
-  /**
    * Owner that retires a replaced static geometry after the renderer's
-   * submitted work. Required whenever replacement is allowed: disposing the
-   * buffers inline can destroy a buffer the last submission still references.
+   * submitted work. Required before any batch is actually replaced: disposing
+   * the buffers inline can destroy a buffer the last submission still
+   * references. Whether a replacement may happen at all is a property of the
+   * batches themselves — see `staticGeometryReplaceable` — not of the renderer.
    */
   readonly staticGeometryRetirement?: GpuRetirementOwner;
 }
 
-/** The read-only surface view a composite coverage or pick query consumes. */
+/**
+ * Batch ids an incoming revision would replace that refuse replacement.
+ *
+ * One renderer now holds both the Cao 2024 stack and the Cao 2017 map interval,
+ * so "may this geometry change?" is no longer a property of the instance: the
+ * same publication carries `batch-land`, which ships once per session, beside
+ * `palaeo-land`, which is streamed one interval at a time. A batch is judged
+ * against the resident batch of the same id — added and removed ids count as
+ * changes too, because a set that gains or loses a native batch mid-lifetime is
+ * the same compile or loader defect the per-instance flag used to catch.
+ */
+export function caoFoundationRefusedStaticGeometryReplacements(
+  resident: CaoFoundationGeometryResource,
+  revision: PreparedCaoRevision,
+): readonly string[] {
+  const residentById = new Map<string, { identity: string; replaceable: boolean }>();
+  for (const batch of [...resident.batches, ...resident.lineBatches]) {
+    residentById.set(batch.batchId, { identity: batch.staticGeometryIdentity,
+      replaceable: batch.staticGeometryReplaceable });
+  }
+  const refused: string[] = [];
+  const incoming = new Set<string>();
+  for (const batch of [...revision.batches, ...revision.lineBatches]) {
+    incoming.add(batch.batchId);
+    const replaceable = batch.staticGeometryReplaceable === true;
+    const current = residentById.get(batch.batchId);
+    if (current === undefined) {
+      if (!replaceable) refused.push(batch.batchId);
+      continue;
+    }
+    if (current.identity === batch.staticGeometryIdentity) continue;
+    if (!current.replaceable || !replaceable) refused.push(batch.batchId);
+  }
+  for (const [batchId, current] of residentById) {
+    if (!incoming.has(batchId) && !current.replaceable) refused.push(batchId);
+  }
+  return Object.freeze(refused);
+}
+
+/** One member of the surface set, as a coverage or pick query consumes it. */
 export interface CaoFoundationSurfaceView {
   readonly geometry: CaoFoundationGeometryResource;
   readonly publication: CaoFoundationPickState;
+  /**
+   * The stack this member draws. It travels with the view so a set query needs
+   * no per-instance argument: the member holding the Cao 2017 batches is read in
+   * the palaeo mode whatever the Cao 2024 member is doing, which is exactly the
+   * LGM band, where the lowstand shelf is drawn over today's land.
+   */
+  readonly mode: CaoFoundationSurfaceMode;
 }
 
 /**
@@ -2166,15 +2310,124 @@ export interface CaoFoundationSurfaceView {
  * geometry key; requested ages replace only a bounded palette/material
  * publication.
  */
+/**
+ * The streaming units one surface set draws.
+ *
+ * `native` is the Cao 2024 package: one static geometry for the whole session,
+ * a palette republished per requested age. `interval` is the Cao 2017 map
+ * interval on screen, streamed one at a time. They are units and not renderers:
+ * one publisher, one set of limits and one retirement pair cover both, and a
+ * publication of either is a publication of the whole set.
+ */
+export type CaoSurfaceUnit = "native" | "interval";
+
+export const CAO_SURFACE_UNITS: readonly CaoSurfaceUnit[] =
+  Object.freeze(["native", "interval"] as const);
+
+/**
+ * One publication of the surface set: the member resources on screen, and which
+ * of them this publication is responsible for retiring.
+ *
+ * A publication of one unit must not tear down the other, so ownership moves.
+ * The incoming set adopts every member the outgoing one still owns — its group
+ * and its retirement both — and the outgoing set is then left owning exactly
+ * the member that was replaced, which is what the publisher retires. Adoption
+ * happens between `stage` and `commit`, so a staged publication that goes stale
+ * disposes only the member it built and leaves the surfaces on screen alone.
+ */
+class CaoSurfaceSetResource implements OwnedPrototypeResources {
+  private readonly owned: Set<CaoSurfaceUnit>;
+
+  constructor(
+    private readonly members: Map<CaoSurfaceUnit, CaoFoundationPublicationResource>,
+    owned: Iterable<CaoSurfaceUnit>,
+  ) {
+    this.owned = new Set(owned);
+  }
+
+  member(unit: CaoSurfaceUnit): CaoFoundationPublicationResource | null {
+    return this.members.get(unit) ?? null;
+  }
+
+  entries(): readonly (readonly [CaoSurfaceUnit, CaoFoundationPublicationResource])[] {
+    return [...this.members];
+  }
+
+  /** Takes over every member `previous` still owns and this set also carries. */
+  adopt(previous: CaoSurfaceSetResource | null): void {
+    if (previous === null) return;
+    for (const [unit, member] of previous.members) {
+      if (!previous.owned.has(unit) || this.members.get(unit) !== member) continue;
+      previous.owned.delete(unit);
+      this.owned.add(unit);
+    }
+  }
+
+  /** Undoes `adopt` when the publication it was staged for never committed. */
+  disown(previous: CaoSurfaceSetResource | null): void {
+    if (previous === null) return;
+    for (const [unit, member] of previous.members) {
+      if (previous.owned.has(unit) || this.members.get(unit) !== member) continue;
+      this.owned.delete(unit);
+      previous.owned.add(unit);
+    }
+  }
+
+  get byteLength(): number {
+    let bytes = 0;
+    for (const unit of this.owned) bytes += this.members.get(unit)?.byteLength ?? 0;
+    return bytes;
+  }
+
+  disposeUnsubmitted(): void {
+    for (const unit of [...this.owned]) {
+      this.owned.delete(unit);
+      this.members.get(unit)?.disposeUnsubmitted();
+    }
+  }
+
+  retireAfterGpuWork(): Promise<void> {
+    return Promise.all([...this.owned].map(async (unit) => {
+      await this.members.get(unit)!.retireAfterGpuWork();
+      // Dropped from the ledger one member at a time: a refusal leaves the
+      // member it refused owned here, and the publisher disposes it.
+      this.owned.delete(unit);
+    })).then(() => {});
+  }
+}
+
+interface CaoSurfaceUnitState {
+  staticGeometry: CaoFoundationGeometryResource | null;
+  domainVisible: boolean;
+  publishedIdentity: string | null;
+}
+
+/**
+ * Owns the Cao surface set: the Cao 2024 stack and the Cao 2017 map interval
+ * that replaces it in the land, continents and mountain slots.
+ *
+ * Static source geometry is copied once per unit per geometry key; a requested
+ * age replaces only that unit's bounded palette/material publication, and a map
+ * interval replaces only its own. One `AtomicPrototypePublisher` publishes the
+ * set, so the two members can never disagree about which publication is on
+ * screen, and one pair of retirement owners — publications, and the static
+ * geometry a map-interval change replaces — covers both.
+ */
 export class CaoFoundationSurfaceRenderer {
-  private readonly publisher = new AtomicPrototypePublisher<CaoFoundationPublicationResource>();
-  private staticGeometry: CaoFoundationGeometryResource | null = null;
+  private readonly publisher = new AtomicPrototypePublisher<CaoSurfaceSetResource>();
+  private readonly units: ReadonlyMap<CaoSurfaceUnit, CaoSurfaceUnitState> = new Map([
+    ["native", { staticGeometry: null, domainVisible: true, publishedIdentity: null }],
+    // The map interval starts off screen: no age has asked for one yet, and a
+    // fallback age never shows one.
+    ["interval", { staticGeometry: null, domainVisible: false, publishedIdentity: null }],
+  ] as const);
   private disposed = false;
-  private domainVisible = true;
   private palaeoCoastlineMode = false;
   private countryLineToneTable: Uint8Array | null = null;
   private armedStaticGeometryChange: string | null = null;
-  private readonly allowStaticGeometryReplacement: boolean;
+  private releasableSurfaceClasses: readonly CaoFoundationSurfaceClass[] = Object.freeze([]);
+  /** Batch ids whose GPU buffers are currently released; their CPU source is retained. */
+  private readonly releasedStaticGeometryBatches = new Set<string>();
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
 
   constructor(
@@ -2183,11 +2436,22 @@ export class CaoFoundationSurfaceRenderer {
     private readonly limits: CaoFoundationLimits,
     options: CaoFoundationRendererOptions = {},
   ) {
-    this.allowStaticGeometryReplacement = options.allowStaticGeometryReplacement === true;
     this.staticGeometryRetirement = options.staticGeometryRetirement ?? null;
-    if (this.allowStaticGeometryReplacement && this.staticGeometryRetirement === null) {
-      throw new Error("Cao static geometry replacement requires a retirement owner");
-    }
+  }
+
+  private unitState(unit: CaoSurfaceUnit): CaoSurfaceUnitState {
+    const state = this.units.get(unit);
+    if (!state) throw new Error("unknown Cao surface unit");
+    return state;
+  }
+
+  /**
+   * The stack a unit draws and answers picks from. The map interval carries
+   * only Cao 2017 batches, so it is always read in the palaeo stack; the Cao
+   * 2024 unit follows the composition.
+   */
+  surfaceMode(unit: CaoSurfaceUnit = "native"): CaoFoundationSurfaceMode {
+    return unit === "interval" || this.palaeoCoastlineMode ? "palaeo" : "native";
   }
 
   /**
@@ -2195,19 +2459,58 @@ export class CaoFoundationSurfaceRenderer {
    * geometry, and why. Consumed by exactly one replacement.
    */
   armStaticGeometryChange(reason: string): void {
-    if (!this.allowStaticGeometryReplacement) {
-      throw new Error("Cao foundation renderer does not allow static geometry replacement");
-    }
     if (!reason) throw new Error("Cao static geometry change requires a reason");
     this.armedStaticGeometryChange = reason;
   }
 
-  publish(revision: PreparedCaoRevision, verticalExaggeration: number): CaoFoundationDiagnostics {
+  /**
+   * Vertices, triangles and retained source bytes the whole set would hold with
+   * `incoming` published into `unit`. The ceilings bound the set, not a unit:
+   * both members are resident at once inside the Cao 2017 band.
+   */
+  private setTotalsWith(unit: CaoSurfaceUnit, incoming: PreparedCaoRevision): void {
+    let vertices = 0;
+    let triangles = 0;
+    let sourceBytes = 0;
+    for (const batch of incoming.batches) {
+      vertices += batch.vertexCount;
+      triangles += batch.triangleCount;
+      sourceBytes += batch.staticGeometryBytes;
+    }
+    for (const batch of incoming.lineBatches) {
+      vertices += batch.segmentCount * POLYLINE_QUAD_VERTICES_PER_SEGMENT;
+      triangles += batch.segmentCount * 2;
+      sourceBytes += batch.staticGeometryBytes;
+    }
+    for (const [otherUnit, state] of this.units) {
+      if (otherUnit === unit || state.staticGeometry === null) continue;
+      for (const batch of state.staticGeometry.batches) {
+        vertices += batch.vertexCount;
+        triangles += batch.triangleCount;
+      }
+      for (const batch of state.staticGeometry.lineBatches) {
+        vertices += batch.segmentCount * POLYLINE_QUAD_VERTICES_PER_SEGMENT;
+        triangles += batch.segmentCount * 2;
+      }
+      sourceBytes += state.staticGeometry.retainedCpuBytes;
+    }
+    if (vertices > this.limits.maxVertices || triangles > this.limits.maxTriangles
+        || sourceBytes > this.limits.maxRetainedSourceBytes) {
+      throw new Error("Cao foundation surface set exceeds renderer limit");
+    }
+  }
+
+  publish(
+    revision: PreparedCaoRevision,
+    verticalExaggeration: number,
+    unit: CaoSurfaceUnit = "native",
+  ): CaoFoundationDiagnostics {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
     if (!Number.isFinite(revision.requestedAgeMa) || revision.requestedAgeMa < 0) {
       revision.release();
       throw new Error("Cao foundation requested age is invalid");
     }
+    const state = this.unitState(unit);
     const token = this.publisher.begin(revision.identity);
     let resource: CaoFoundationPublicationResource | null = null;
     // Set while a replacement geometry is built but not yet committed, so a
@@ -2216,23 +2519,33 @@ export class CaoFoundationSurfaceRenderer {
     let uncommittedReplacement: CaoFoundationGeometryResource | null = null;
     try {
       const reservation = estimateCaoFoundationGeometryReservation(revision, this.limits);
+      this.setTotalsWith(unit, revision);
       const expectedStaticKey = `${revision.packageId}@${revision.packageRevision}:${[
         ...revision.batches.map((batch) => batch.staticGeometryIdentity),
         ...revision.lineBatches.map((batch) => batch.staticGeometryIdentity),
       ].join("|")}`;
       let retiredStaticGeometry: CaoFoundationGeometryResource | null = null;
-      if (!this.staticGeometry || this.staticGeometry.key !== expectedStaticKey) {
-        if (this.staticGeometry && !(this.allowStaticGeometryReplacement
-            && this.armedStaticGeometryChange !== null)) {
-          throw new Error("Cao foundation static geometry changed within renderer lifetime");
+      if (!state.staticGeometry || state.staticGeometry.key !== expectedStaticKey) {
+        if (state.staticGeometry) {
+          if (this.armedStaticGeometryChange === null) {
+            throw new Error("Cao foundation static geometry changed within renderer lifetime");
+          }
+          const refused = caoFoundationRefusedStaticGeometryReplacements(state.staticGeometry, revision);
+          if (refused.length > 0) {
+            throw new Error("Cao foundation renderer does not allow static geometry replacement: "
+              + refused.join(", "));
+          }
+          if (this.staticGeometryRetirement === null) {
+            throw new Error("Cao static geometry replacement requires a retirement owner");
+          }
         }
-        const replaced = this.staticGeometry;
+        const replaced = state.staticGeometry;
         const next = createCaoFoundationGeometryResource(revision, this.limits);
         if (next.byteLength > reservation) {
           next.dispose();
           throw new Error("Cao static geometry reservation mismatch");
         }
-        this.staticGeometry = next;
+        state.staticGeometry = next;
         retiredStaticGeometry = replaced;
         uncommittedReplacement = replaced;
       }
@@ -2242,32 +2555,48 @@ export class CaoFoundationSurfaceRenderer {
         "Cao publication"), estimateNativeBoundaryBufferBytes(revision), "Cao publication"),
       estimateTopologyOwnershipBytes(revision), "Cao publication"),
       estimateCountryLineToneTextureBytes(revision), "Cao publication");
+      // The ledger is the set's: the other member's publication is retained
+      // beside this one, and the incoming member has to fit beside both it and
+      // whatever is still retiring.
       if (!Number.isSafeInteger(this.limits.maxPublicationBytes) || this.limits.maxPublicationBytes < 1
           || publicationBytes > this.limits.maxPublicationBytes - this.publisher.retainedBytes()) {
         throw new Error("Cao foundation palette publication exceeds limit");
       }
       const previous = this.publisher.current();
-      if (previous && (this.retirement.pendingCount() + 1 > this.retirement.maxPendingResources
-          || this.retirement.pendingBytes() + previous.resources.byteLength > this.retirement.maxPendingBytes)) {
+      // Only the member being replaced is retired by this publication; the
+      // other members are adopted by the incoming set.
+      const replacedMember = previous?.resources.member(unit) ?? null;
+      const retiredMemberBytes = replacedMember?.byteLength ?? 0;
+      if (retiredMemberBytes > 0 && (this.retirement.pendingCount() + 1 > this.retirement.maxPendingResources
+          || this.retirement.pendingBytes() + retiredMemberBytes > this.retirement.maxPendingBytes)) {
         throw new Error("Cao foundation GPU retirement backpressure bound exceeded");
       }
-      resource = createPublicationResource(revision, this.staticGeometry, packed,
-        verticalExaggeration, this.retirement, this.palaeoCoastlineMode);
+      resource = createPublicationResource(revision, state.staticGeometry, packed,
+        verticalExaggeration, this.retirement, this.surfaceMode(unit) === "palaeo");
       // A publication is built with the all-dark table, so the retained one has
       // to be reapplied before the group is shown: otherwise every scrub sample
       // would flash the outline back to a single ink for one frame.
       resource.setCountryLineToneTable(this.countryLineToneTable);
-      if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", resource)) {
+      const members = new Map(previous?.resources.entries() ?? []);
+      members.set(unit, resource);
+      const nextSet = new CaoSurfaceSetResource(members, [unit]);
+      if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", nextSet)) {
         throw new Error("Cao foundation publication became stale");
       }
+      // Members are parented one at a time rather than through a set-owned
+      // group: the scene graph is the same shape it has always been, and an
+      // adopted member is never re-parented by a publication of the other unit.
       this.parent.add(resource.group);
+      nextSet.adopt(previous?.resources ?? null);
       const publication = this.publisher.commit(token);
       if (!publication) {
+        nextSet.disown(previous?.resources ?? null);
         this.parent.remove(resource.group);
         throw new Error("Cao foundation publication commit failed");
       }
-      if (previous) this.parent.remove(previous.resources.group);
-      this.domainVisible = true;
+      if (replacedMember) this.parent.remove(replacedMember.group);
+      state.domainVisible = true;
+      state.publishedIdentity = revision.identity;
       resource = null;
       // Exactly one retirement per replacement, and only once the new geometry
       // is the committed publication's own.
@@ -2278,28 +2607,43 @@ export class CaoFoundationSurfaceRenderer {
           byteLength: retiredStaticGeometry.byteLength,
           dispose: () => retiredStaticGeometry!.dispose(),
         });
+        // The incoming geometry carries its own buffers; whatever the outgoing
+        // one had released is not a claim about them.
+        for (const batch of retiredStaticGeometry.batches) {
+          this.releasedStaticGeometryBatches.delete(batch.batchId);
+        }
       }
+      // A batch built while its class is released must be released too, or
+      // publishing inside the Cao 2017 band would silently re-upload it.
+      this.applyReleasableSurfaceClasses();
       revision.release();
-      return this.diagnostics();
+      return this.diagnostics(unit);
     } catch (error) {
       resource?.disposeUnsubmitted();
       if (uncommittedReplacement !== null) {
-        this.staticGeometry?.dispose();
-        this.staticGeometry = uncommittedReplacement;
+        state.staticGeometry?.dispose();
+        state.staticGeometry = uncommittedReplacement;
       }
       revision.release();
       throw error;
     }
   }
 
-  diagnostics(): CaoFoundationDiagnostics {
-    const current = this.publisher.current();
-    const batches = this.staticGeometry?.batches ?? [];
+  /**
+   * One unit's slice of the set's diagnostics. The dataset keys the browser
+   * suite reads are per unit — `caoFoundation*` is the Cao 2024 member and
+   * `caoPalaeo*` the map interval — so each answer is scoped to the member that
+   * owns it rather than summed over the set.
+   */
+  diagnostics(unit: CaoSurfaceUnit = "native"): CaoFoundationDiagnostics {
+    const state = this.unitState(unit);
+    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    const batches = state.staticGeometry?.batches ?? [];
     return Object.freeze({
-      identity: current?.requestId ?? null,
-      staticGeometryIdentity: this.staticGeometry?.key ?? null,
-      materialCorrectionIdentity: current?.resources.materialCorrectionIdentity ?? null,
-      materialCorrections: current?.resources.materialCorrections ?? Object.freeze({
+      identity: member === null ? null : state.publishedIdentity,
+      staticGeometryIdentity: state.staticGeometry?.key ?? null,
+      materialCorrectionIdentity: member?.materialCorrectionIdentity ?? null,
+      materialCorrections: member?.materialCorrections ?? Object.freeze({
         observedActiveCharts: 0,
         classifiedShallowMarineActiveCharts: 0,
         qualifiedActiveCharts: 0,
@@ -2310,31 +2654,40 @@ export class CaoFoundationSurfaceRenderer {
         activeSourceIds: Object.freeze([]),
         correctionIds: Object.freeze([]),
       }),
-      requestedAgeMa: current?.resources.requestedAgeMa ?? current?.ageMa ?? null,
+      requestedAgeMa: member?.requestedAgeMa ?? null,
       batches: batches.length,
       vertices: batches.reduce((sum, batch) => sum + batch.vertexCount, 0),
       triangles: batches.reduce((sum, batch) => sum + batch.triangleCount, 0),
       chartRanges: batches.reduce((sum, batch) => sum + batch.chartRanges.length / 4, 0),
-      palaeoCoastlineMode: this.palaeoCoastlineMode,
-      drawCount: this.domainVisible
-        ? current?.resources.group.children.filter((child) => child.visible).length ?? 0 : 0,
-      countryLineBatches: this.staticGeometry?.lineBatches.length ?? 0,
-      countryLineVertices: this.staticGeometry?.lineBatches.reduce(
+      palaeoCoastlineMode: this.surfaceMode(unit) === "palaeo",
+      drawCount: state.domainVisible
+        ? member?.group.children.filter((child) => child.visible).length ?? 0 : 0,
+      countryLineBatches: state.staticGeometry?.lineBatches.length ?? 0,
+      countryLineVertices: state.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.vertexCount, 0) ?? 0,
-      countryLineSegments: this.staticGeometry?.lineBatches.reduce(
+      countryLineSegments: state.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.segmentCount, 0) ?? 0,
-      countryLineToneDarkSegments: current?.resources.outlineToneCounts().darkSegments ?? 0,
-      countryLineToneLightSegments: current?.resources.outlineToneCounts().lightSegments ?? 0,
-      nativeBoundarySegments: this.domainVisible ? current?.resources.nativeBoundarySegments ?? 0 : 0,
-      nativeBoundarySourceAgeMa: this.domainVisible ? current?.resources.nativeBoundarySourceAgeMa ?? null : null,
-      topologyOwnershipRings: this.domainVisible ? current?.resources.topologyOwnership?.rings.length ?? 0 : 0,
-      topologyOwnershipSourceAgeMa: this.domainVisible
-        ? current?.resources.topologyOwnership?.sourceAgeMa ?? null : null,
-      retainedStaticBytes: this.staticGeometry?.byteLength ?? 0,
-      activeSourceBytes: current?.resources.activeSourceBytes ?? 0,
+      countryLineDrawnSegments: countryLineDrawnSegments(state.staticGeometry),
+      countryLineDuplicateSegments: (state.staticGeometry?.lineBatches.reduce(
+        (sum, batch) => sum + batch.segmentCount, 0) ?? 0)
+        - countryLineDrawnSegments(state.staticGeometry),
+      countryLineToneDarkSegments: member?.outlineToneCounts().darkSegments ?? 0,
+      countryLineToneLightSegments: member?.outlineToneCounts().lightSegments ?? 0,
+      nativeBoundarySegments: state.domainVisible ? member?.nativeBoundarySegments ?? 0 : 0,
+      nativeBoundarySourceAgeMa: state.domainVisible ? member?.nativeBoundarySourceAgeMa ?? null : null,
+      topologyOwnershipRings: state.domainVisible ? member?.topologyOwnership?.rings.length ?? 0 : 0,
+      topologyOwnershipSourceAgeMa: state.domainVisible
+        ? member?.topologyOwnership?.sourceAgeMa ?? null : null,
+      retainedStaticBytes: state.staticGeometry?.byteLength ?? 0,
+      retainedStaticSourceBytes: state.staticGeometry?.retainedCpuBytes ?? 0,
+      retainedStaticGpuBytes: state.staticGeometry?.trackedGpuBufferBytes ?? 0,
+      gpuResidentBytes: this.gpuResidentBytes(unit),
+      releasedSurfaceClasses: this.releasedSurfaceClasses(unit),
+      activeSourceBytes: member?.activeSourceBytes ?? 0,
+      // Set-wide: one publisher holds every member's publication.
       retainedPublicationBytes: this.publisher.retainedBytes(),
       pendingRetirementBytes: this.retirement.pendingBytes(),
-      paletteEntries: current?.resources.paletteEntries ?? 0,
+      paletteEntries: member?.paletteEntries ?? 0,
       shellOffsetMetres: CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
     });
   }
@@ -2343,85 +2696,101 @@ export class CaoFoundationSurfaceRenderer {
     rayOrigin: Vec3Tuple,
     rayDirection: Vec3Tuple,
     maximumTestedTriangles = 65_536,
+    unit: CaoSurfaceUnit = "native",
   ): CaoFoundationSurfaceHit | null {
-    const view = this.surfaceView();
+    const view = this.surfaceView(unit);
     if (view === null) return null;
     return intersectCaoFoundationSurface(view.geometry, view.publication,
-      rayOrigin, rayDirection, maximumTestedTriangles, this.surfaceMode());
-  }
-
-  surfaceMode(): CaoFoundationSurfaceMode {
-    return this.palaeoCoastlineMode ? "palaeo" : "native";
+      rayOrigin, rayDirection, maximumTestedTriangles, view.mode);
   }
 
   /**
-   * The identity of the publication on screen, or null when nothing is
-   * published. `diagnostics().identity` is the same answer; this one costs no
-   * reductions over the batch tables, which is what lets the frame loop ask it
-   * before it applies a composition.
+   * The identity of a unit's publication, or null when it has none.
+   * `diagnostics().identity` is the same answer; this one costs no reductions
+   * over the batch tables, which is what lets the frame loop ask it before it
+   * applies a composition.
    */
-  publishedIdentity(): string | null {
-    return this.publisher.current()?.requestId ?? null;
+  publishedIdentity(unit: CaoSurfaceUnit = "native"): string | null {
+    return this.publisher.current()?.resources.member(unit) === null
+      ? null : this.unitState(unit).publishedIdentity;
   }
 
   /**
-   * The surface currently on screen, or null when the domain is hidden or
-   * nothing is published — the same condition `intersectRay` answers null on.
-   * Exposed so the composite can rank two instances against one precedence
-   * table instead of each answering in isolation.
+   * One unit's surface as it is on screen, or null when the unit is hidden or
+   * has nothing published — the same condition `intersectRay` answers null on.
    */
-  surfaceView(): CaoFoundationSurfaceView | null {
-    const current = this.publisher.current();
-    if (!this.domainVisible || !this.staticGeometry || !current) return null;
-    return { geometry: this.staticGeometry, publication: current.resources };
+  surfaceView(unit: CaoSurfaceUnit = "native"): CaoFoundationSurfaceView | null {
+    const state = this.unitState(unit);
+    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    if (!state.domainVisible || !state.staticGeometry || member === null) return null;
+    return { geometry: state.staticGeometry, publication: member, mode: this.surfaceMode(unit) };
   }
 
   /**
-   * Whether the surface currently on screen covers this direction with land,
-   * shelf or correction material. Read-only and allocation-light; returns false
-   * whenever the domain is hidden or nothing is published, matching intersectRay.
+   * Every unit on screen, in draw order — the set a pick, a coverage query or
+   * the surface probe reads. A unit that is hidden or unpublished is absent.
+   */
+  surfaceSetView(): readonly CaoFoundationSurfaceView[] {
+    const views: CaoFoundationSurfaceView[] = [];
+    for (const unit of CAO_SURFACE_UNITS) {
+      const view = this.surfaceView(unit);
+      if (view !== null) views.push(view);
+    }
+    return views;
+  }
+
+  /**
+   * Whether a unit's surface covers this direction with land, shelf or
+   * correction material. Read-only and allocation-light; returns false whenever
+   * the unit is hidden or unpublished, matching intersectRay.
    */
   coversDirection(
     rendererDirection: UnitDirection,
     options: CaoFoundationCoverageOptions = {},
+    unit: CaoSurfaceUnit = "native",
   ): boolean {
-    const view = this.surfaceView();
+    const view = this.surfaceView(unit);
     if (view === null) return false;
     return caoFoundationSurfaceCoversDirection(view.geometry, view.publication,
       [...rendererDirection] as unknown as Vec3Tuple, options);
   }
 
   identifyTopology(rendererDirection: UnitDirection): InstantaneousOwnershipResult | null {
-    const current = this.publisher.current();
-    return this.domainVisible ? current?.resources.identifyTopology(rendererDirection) ?? null : null;
+    const state = this.unitState("native");
+    const member = this.publisher.current()?.resources.member("native") ?? null;
+    return state.domainVisible ? member?.identifyTopology(rendererDirection) ?? null : null;
   }
 
-  setDomainVisibility(visible: boolean): CaoFoundationDiagnostics {
-    this.domainVisible = visible;
-    const current = this.publisher.current();
-    if (current) current.resources.group.visible = visible;
-    return this.diagnostics();
+  setDomainVisibility(visible: boolean, unit: CaoSurfaceUnit = "native"): CaoFoundationDiagnostics {
+    const state = this.unitState(unit);
+    state.domainVisible = visible;
+    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    if (member) member.group.visible = visible;
+    return this.diagnostics(unit);
   }
 
   setLayerVisibility(layers: CaoFoundationLayerVisibility): void {
     this.setPalaeoCoastlineMode(layers.palaeoCoastlines);
     const current = this.publisher.current();
     if (!current) return;
-    for (const child of current.resources.group.children) {
-      if (child.userData.overlayLayer === "borders") child.visible = layers.borders;
-      if (child.userData.overlayLayer === "tectonics") child.visible = layers.tectonics;
+    for (const [, member] of current.resources.entries()) {
+      for (const child of member.group.children) {
+        if (child.userData.overlayLayer === "borders") child.visible = layers.borders;
+        if (child.userData.overlayLayer === "tectonics") child.visible = layers.tectonics;
+      }
+      member.setNativeBoundaryLayerVisibility(layers.tectonics);
     }
-    current.resources.setNativeBoundaryLayerVisibility(layers.tectonics);
   }
 
   /**
    * Loads the outline tone table for the active Cao 2017 map interval, or
    * clears it with `null`. The table is retained so the next publication — a
-   * scrub sample or a map-interval swap — keeps the same tones.
+   * scrub sample or a map-interval swap — keeps the same tones. It belongs to
+   * the Cao 2024 unit: the country reference is that unit's only line batch.
    */
   setCountryLineToneTable(texels: Uint8Array | null): PolylineToneCounts {
     this.countryLineToneTable = texels;
-    this.publisher.current()?.resources.setCountryLineToneTable(texels);
+    this.publisher.current()?.resources.member("native")?.setCountryLineToneTable(texels);
     return this.countryLineToneCounts();
   }
 
@@ -2431,23 +2800,146 @@ export class CaoFoundationSurfaceRenderer {
    * reductions over the batch tables to build.
    */
   countryLineToneCounts(): PolylineToneCounts {
-    return this.publisher.current()?.resources.outlineToneCounts()
+    return this.publisher.current()?.resources.member("native")?.outlineToneCounts()
       ?? Object.freeze({ darkSegments: 0, lightSegments: 0 });
   }
 
   /**
-   * Suppresses native land in favour of palaeo-coastline charts, and switches
-   * this instance's pick and coverage answers to the palaeo precedence stack.
+   * The D1 residency policy: the classes whose GPU buffers the composition
+   * replaces outright, and whose vertex and index buffers are therefore handed
+   * back for as long as it lasts.
+   *
+   * Only the GPU side is released. The CPU source copies stay — picking,
+   * coverage and the guide-label ink read them, and reloading a package to come
+   * back from a scrub across 402 Ma would cost far more than the buffers save.
+   * Leaving the composition marks every attribute for upload again, so the
+   * first frame that draws the class carries its buffers back.
+   *
+   * `resolveReleasableNativeSurfaceClasses` in `surfaceVisibility` is the only
+   * intended caller: it refuses every composition but `realistic`, because the
+   * LGM band draws the native stack under the lowstand overlay and a fallback
+   * or still-loading age has nothing else on screen.
    */
-  setPalaeoCoastlineMode(on: boolean): CaoFoundationDiagnostics {
-    this.palaeoCoastlineMode = on;
-    this.publisher.current()?.resources.setPalaeoCoastlineMode(on);
-    return this.diagnostics();
+  setReleasableSurfaceClasses(classes: readonly CaoFoundationSurfaceClass[]): void {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    this.releasableSurfaceClasses = Object.freeze([...classes]);
+    this.applyReleasableSurfaceClasses();
+  }
+
+  /** The classes the composition allows releasing; see `setReleasableSurfaceClasses`. */
+  get releasableNativeSurfaceClasses(): readonly CaoFoundationSurfaceClass[] {
+    return this.releasableSurfaceClasses;
   }
 
   /**
-   * Continuous scrub path: update the resident palette/poses/display fraction
-   * without tearing down static geometry or blanking the globe.
+   * GPU buffer bytes one unit's geometries hold right now: every surface batch
+   * whose buffers are uploaded, plus the country-line quads.
+   *
+   * The residency answer `retainedStaticBytes` cannot give. That ledger counts
+   * the tracked GPU bytes of every batch the resource owns whether or not the
+   * buffers are on the GPU, so it does not move when D1 releases them; this
+   * drops by exactly the released batches' buffers and rises again on exit.
+   */
+  gpuResidentBytes(unit: CaoSurfaceUnit = "native"): number {
+    const state = this.unitState(unit);
+    let bytes = 0;
+    for (const batch of state.staticGeometry?.batches ?? []) {
+      if (this.releasedStaticGeometryBatches.has(batch.batchId)) continue;
+      if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
+      bytes += batch.trackedGpuBytes;
+    }
+    for (const batch of state.staticGeometry?.lineBatches ?? []) {
+      if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
+      bytes += batch.trackedGpuBytes;
+    }
+    return bytes;
+  }
+
+  /**
+   * The classes a unit has actually released, read off the released batches
+   * rather than off `releasableNativeSurfaceClasses`: the policy states what a
+   * composition allows, this states what is gone.
+   */
+  releasedSurfaceClasses(unit: CaoSurfaceUnit = "native"): readonly CaoFoundationSurfaceClass[] {
+    const classes = new Set<CaoFoundationSurfaceClass>();
+    for (const batch of this.unitState(unit).staticGeometry?.batches ?? []) {
+      if (this.releasedStaticGeometryBatches.has(batch.batchId)) classes.add(batch.surfaceClass);
+    }
+    return Object.freeze([...classes].sort());
+  }
+
+  /** GPU bytes currently handed back under the release policy. */
+  releasedStaticGpuBytes(): number {
+    let bytes = 0;
+    for (const state of this.units.values()) {
+      for (const batch of state.staticGeometry?.batches ?? []) {
+        if (this.releasedStaticGeometryBatches.has(batch.batchId)) bytes += batch.trackedGpuBytes;
+      }
+    }
+    return bytes;
+  }
+
+  private applyReleasableSurfaceClasses(): void {
+    const releasable = new Set(this.releasableSurfaceClasses);
+    for (const state of this.units.values()) {
+      for (const batch of state.staticGeometry?.batches ?? []) {
+        const released = this.releasedStaticGeometryBatches.has(batch.batchId);
+        if (releasable.has(batch.surfaceClass)) {
+          if (released) continue;
+          // Frees the backend's vertex and index buffers and leaves the
+          // attributes' arrays in place, which is what lets the same geometry be
+          // drawn again without rebuilding it.
+          batch.geometry.dispose();
+          this.releasedStaticGeometryBatches.add(batch.batchId);
+          continue;
+        }
+        if (!released) continue;
+        for (const attribute of Object.values(batch.geometry.attributes)) {
+          (attribute as THREE.BufferAttribute).needsUpdate = true;
+        }
+        if (batch.geometry.index) batch.geometry.index.needsUpdate = true;
+        this.releasedStaticGeometryBatches.delete(batch.batchId);
+      }
+    }
+  }
+
+  /**
+   * Suppresses native land in favour of palaeo-coastline charts, and switches
+   * the Cao 2024 unit's pick and coverage answers to the palaeo precedence
+   * stack. The map interval is always drawn in that stack and is unaffected.
+   */
+  setPalaeoCoastlineMode(on: boolean): CaoFoundationDiagnostics {
+    this.palaeoCoastlineMode = on;
+    this.publisher.current()?.resources.member("native")?.setPalaeoCoastlineMode(on);
+    return this.diagnostics("native");
+  }
+
+  /**
+   * Applies one resolved composition to the whole set: the classes its slots
+   * assign are the classes drawn, in every member.
+   *
+   * The slot table is the source — `land` carries the Cao 2024 coast fill in
+   * the native composition and the Cao 2017 `lm` batch in the realistic one, and
+   * the mountain slot is filled only there — so the renderer no longer derives
+   * what to draw from a mode flag. The appearance mix stays a Cao 2024 answer:
+   * the restored margin is repainted as shallow sea where the map replaces land,
+   * while the map interval's own charts are always drawn in their own tones.
+   */
+  applySurfaceComposition(
+    visibleClasses: ReadonlySet<CaoFoundationSurfaceClass>,
+    nativeSurfaceMode: CaoFoundationSurfaceMode,
+  ): CaoFoundationDiagnostics {
+    this.palaeoCoastlineMode = nativeSurfaceMode === "palaeo";
+    for (const [unit, member] of this.publisher.current()?.resources.entries() ?? []) {
+      member.setVisibleSurfaceClasses(visibleClasses,
+        unit === "native" ? this.palaeoCoastlineMode : true);
+    }
+    return this.diagnostics("native");
+  }
+
+  /**
+   * Continuous scrub path: update one unit's resident palette/poses/display
+   * fraction without tearing down static geometry or blanking the globe.
    */
   retargetMotion(
     paletteValues: Float32Array,
@@ -2457,43 +2949,87 @@ export class CaoFoundationSurfaceRenderer {
     chartActive: Uint8Array,
     requestedAgeMa: number,
     materialCorrections: PreparedCaoRevision["materialCorrections"],
+    unit: CaoSurfaceUnit = "native",
   ): CaoFoundationDiagnostics {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
-    const current = this.publisher.current();
-    if (!current) throw new Error("Cao foundation has no published surface to retarget");
+    const state = this.unitState(unit);
+    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    if (member === null) throw new Error("Cao foundation has no published surface to retarget");
     const packed = packCaoPaletteValues(paletteValues, entryCount, this.limits.maxTextureSize);
-    current.resources.retargetMotion(
+    member.retargetMotion(
       packed, displayFraction, chartPoses, chartActive, requestedAgeMa, materialCorrections,
     );
-    this.domainVisible = true;
-    current.resources.group.visible = true;
-    return this.diagnostics();
+    state.domainVisible = true;
+    member.group.visible = true;
+    return this.diagnostics(unit);
   }
 
+  /**
+   * The Cao 2024 unit's exaggeration. The map interval draws at the shell
+   * offsets its classes declare and takes the value it was published with.
+   */
   setVerticalExaggeration(value: number): void {
     if (!Number.isFinite(value) || value < 1 || value > 30) {
       throw new Error("Cao vertical exaggeration is outside the supported range");
     }
-    this.publisher.current()?.resources.setVerticalExaggeration(value);
+    this.publisher.current()?.resources.member("native")?.setVerticalExaggeration(value);
   }
 
-  clear(): void {
+  /**
+   * Retires one unit's publication, or the whole set when no unit is named.
+   * Dropping one member republishes the set without it, so the other member
+   * stays on screen and is never rebuilt.
+   */
+  clear(unit?: CaoSurfaceUnit): void {
     if (this.disposed) return;
     const current = this.publisher.current();
-    if (current) this.parent.remove(current.resources.group);
-    this.publisher.dispose();
+    if (unit === undefined) {
+      this.removePublishedMembers();
+      this.publisher.dispose();
+      for (const state of this.units.values()) state.publishedIdentity = null;
+      return;
+    }
+    const state = this.unitState(unit);
+    const dropped = current?.resources.member(unit) ?? null;
+    if (!current || dropped === null) return;
+    const remaining = current.resources.entries().filter(([memberUnit]) => memberUnit !== unit);
+    state.publishedIdentity = null;
+    if (remaining.length === 0) {
+      this.removePublishedMembers();
+      this.publisher.dispose();
+      return;
+    }
+    const token = this.publisher.begin(`${current.requestId}:without:${unit}`);
+    const nextSet = new CaoSurfaceSetResource(new Map(remaining), []);
+    if (!this.publisher.stage(token, current.ageMa, "settled", nextSet)) {
+      throw new Error("Cao foundation publication became stale");
+    }
+    nextSet.adopt(current.resources);
+    if (!this.publisher.commit(token)) {
+      nextSet.disown(current.resources);
+      throw new Error("Cao foundation publication commit failed");
+    }
+    this.parent.remove(dropped.group);
+  }
+
+  private removePublishedMembers(): void {
+    for (const [, member] of this.publisher.current()?.resources.entries() ?? []) {
+      this.parent.remove(member.group);
+    }
   }
 
   /** Renderer loop must be stopped; backend teardown follows immediately. */
   disposeForRendererTeardown(): void {
     if (this.disposed) return;
     this.disposed = true;
-    const current = this.publisher.current();
-    if (current) this.parent.remove(current.resources.group);
+    this.removePublishedMembers();
     this.publisher.dispose();
     // The backend teardown immediately following this call owns the final GPU
     // release. Dispatching BufferGeometry.dispose() before that teardown can
     // destroy a buffer still referenced by the renderer's last submission.
-    this.staticGeometry = null;
+    for (const state of this.units.values()) {
+      state.staticGeometry = null;
+      state.publishedIdentity = null;
+    }
   }
 }

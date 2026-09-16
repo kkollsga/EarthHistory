@@ -201,6 +201,63 @@ const SCRUB_SETTLE_MS = 300;
 /** A pending foreground age changes the presented map-key status only after this long. */
 const PENDING_STATUS_DELAY_MS = 180;
 
+/** What the map key reports about the surface the globe is drawing right now. */
+export type MapKeySurfaceState = "error" | "ready" | "editorial" | "loading";
+
+/** Everything the collapsed map-key pill's one line is allowed to depend on. */
+export interface MapKeySummaryState {
+  /** Readiness of the foreground reconstruction for the requested age. */
+  readonly surfaceState: MapKeySurfaceState;
+  /** The requested age, in Ma. */
+  readonly ageMa: number;
+  /** The age actually posed on the globe, when it still trails the request. */
+  readonly displayedAgeMa: number | undefined;
+  /**
+   * Whether the whole motion palette has landed. Until it does no age can be
+   * posed at all, so the line names the payload instead of the age.
+   */
+  readonly motionPaletteResident: boolean;
+  /**
+   * Background checkpoint warming over the whole manifest. It is
+   * age-independent, runs for minutes after the requested age is on screen,
+   * and yields to every gesture, so it must never contribute pill text: a map
+   * that is finished drawing may not claim to be loading. It is carried here
+   * so this contract is stated and tested rather than implied by omission.
+   */
+  readonly timelineWarming: CaoTimelineLoadingState["status"];
+}
+
+/**
+ * The single line the collapsed map key shows.
+ *
+ * Only the foreground reconstruction for the requested age can produce a
+ * "Loading …" line. Once that surface is ready the line states what is drawn
+ * and nothing else; background warming reaches the viewer through
+ * `mapKeyTimelineHint` and the status rows inside the open panel.
+ */
+export function mapKeySummary(state: MapKeySummaryState): string {
+  if (state.surfaceState === "error") return "Surface withheld";
+  if (state.surfaceState === "ready") return "Cao surface";
+  if (state.surfaceState === "editorial") return "Editorial surface";
+  if (!state.motionPaletteResident) return "Loading motion palette…";
+  if (state.displayedAgeMa !== undefined && state.displayedAgeMa !== state.ageMa) {
+    return `Loading ${formatAge(state.ageMa)} · Showing ${formatAge(state.displayedAgeMa)}`;
+  }
+  return `Loading ${formatAge(state.ageMa)}…`;
+}
+
+/**
+ * The hover text on the map key's status dot: how the background timeline
+ * warm-up is doing, offered without claiming the map itself is unfinished.
+ */
+export function mapKeyTimelineHint(
+  timelineWarming: CaoTimelineLoadingState["status"],
+): string | undefined {
+  if (timelineWarming === "loading") return "Timeline data still warming in the background";
+  if (timelineWarming === "paused") return "Background timeline warming paused; open the map key to retry";
+  return undefined;
+}
+
 export default function App() {
   const initial = useRef(parseInitialState()).current;
   const initialPoi = pointsOfInterest.find((poi) => poi.id === initial.focus);
@@ -1010,20 +1067,17 @@ export default function App() {
           : periodCoordinateState.status === "ready" ? "rendered" : "updating";
   const surfaceInfoState = caoLoadError !== null || periodCoordinateState.status === "error" ? "error"
     : foundationStatus === "rendered" ? "ready" : foundationStatus === "outside compiled domain" ? "editorial" : "loading";
-  const surfaceInfoSummary = surfaceInfoState === "error" ? "Surface withheld"
-    : surfaceInfoState === "ready" && caoTimelineLoading.status === "loading"
-      ? `${formatAge(ageMa)} ready · Loading timeline…`
-      : surfaceInfoState === "ready" && caoTimelineLoading.status === "paused"
-        ? `${formatAge(ageMa)} ready · Timeline loading paused`
-        : surfaceInfoState === "ready" ? "Cao surface"
-          : surfaceInfoState === "editorial" ? "Editorial surface"
-            // The whole motion palette is the only motion path, so until it
-            // lands no age can be posed: name the payload, not the age.
-            : caoRevision === null && caoTimelineLoading.foregroundStatus !== "ready"
-              ? "Loading motion palette…"
-            : displayedSurfaceAgeMa !== undefined && displayedSurfaceAgeMa !== ageMa
-              ? `Loading ${formatAge(ageMa)} · Showing ${formatAge(displayedSurfaceAgeMa)}`
-              : `Loading ${formatAge(ageMa)}…`;
+  // The whole motion palette is the only motion path, so until it lands no age
+  // can be posed and the line names the payload rather than the age.
+  const motionPaletteResident = !(caoRevision === null && caoTimelineLoading.foregroundStatus !== "ready");
+  const surfaceInfoSummary = mapKeySummary({
+    surfaceState: surfaceInfoState,
+    ageMa,
+    displayedAgeMa: displayedSurfaceAgeMa,
+    motionPaletteResident,
+    timelineWarming: caoTimelineLoading.status,
+  });
+  const surfaceTimelineHint = mapKeyTimelineHint(caoTimelineLoading.status);
   const observedMaterialVisible = (displayedCao?.materialCorrections.observedActiveCharts ?? 0) > 0;
   const classifiedShallowMarineVisible =
     (displayedCao?.materialCorrections.classifiedShallowMarineActiveCharts ?? 0) > 0;
@@ -1567,7 +1621,7 @@ export default function App() {
         >
           <summary aria-label={`Open map key. ${surfaceInfoSummary}. Cao reconstruction ${foundationStatus}.`}>
             <Info size={14} aria-hidden="true" />
-            <span className="surface-status-dot" aria-hidden="true" />
+            <span className="surface-status-dot" aria-hidden="true" title={surfaceTimelineHint} />
             <span className="surface-info-label">Map key</span>
             <strong role="status">{surfaceInfoSummary}</strong>
             <i aria-hidden="true" />
@@ -1580,7 +1634,7 @@ export default function App() {
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
               {nativeLandDrawn && (
-                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color. The outline is Cao 2024 coastline-class geometry at about 14 km between vertices, so estuaries and sea lochs read as spikes at close zoom</span></li>
               )}
               {palaeoClassInKey("lm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>

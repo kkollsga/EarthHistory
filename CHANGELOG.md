@@ -4,6 +4,181 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-09-16
+### Fixed
+
+- **The Cao 2024 GPU buffers a realistic composition replaces are reported as
+  released, not merely as budgeted.** `data-cao-foundation-static-bytes` is the
+  static geometry's residency budget — its retained source copies plus the
+  vertex, entry and index buffers the resource owns whether or not they are on
+  the GPU — so it reads the same inside and outside the Cao 2017 band and could
+  never show the D1 release. Two keys now say what is actually uploaded:
+  `data-cao-foundation-gpu-bytes`, summed over the batches whose buffers are
+  live, and `data-cao-foundation-released-classes`, which names the classes gone
+  from the GPU right now rather than the classes the composition permits
+  releasing. The budget is also published split, as
+  `data-cao-foundation-static-source-bytes` and
+  `data-cao-foundation-static-gpu-bytes`, so a move in it names its half instead
+  of being attributed by guess. The release itself was already real —
+  `BufferGeometry.dispose()` frees the backend buffers and leaves the attribute
+  arrays in place — and a unit case now proves the realistic composition drops
+  today's land and shelf from GPU residency by exactly their tracked bytes,
+  restores them on exit, and leaves the CPU source picking and coverage read
+  untouched. Proven by mutation in both directions: dropping the dispose call
+  and counting released batches as resident each fail the new case, and both
+  mutations were restored.
+- **The palaeo interval byte ledger counts the outline tone tables once, not
+  once per interval.** The P6 record read `caoPalaeoAssetBytes` rising 59-196 %
+  per interval for unchanged triangle counts (90 Ma 431,850 to 686,652; 250 Ma
+  312,426 to 560,854; 21 ka 126,044 to 373,416). A request log over the built
+  dist at 90, 80 and 250 Ma shows every palaeo URL fetched exactly once — three
+  class catalogs, `outline-tones.ehpt`, and three `.ehpr` payloads per drawn and
+  prefetched interval — so nothing is re-fetched. The whole rise is accounting:
+  the diagnostic adds the once-per-enablement tone payload to the drawn
+  interval's payload bytes, and that payload grew 75,332 to 319,082 bytes when
+  the Natural Earth 1:50m country outlines shipped. Every figure resolves
+  exactly: 367,570 + 319,082 = 686,652, 241,772 + 319,082 = 560,854,
+  54,334 + 319,082 = 373,416, and 356,518 + 75,332 = 431,850 at the baseline
+  commit. The real per-interval payload change is +2.0 % to +7.1 %. The runtime
+  ledger now reports the tone bytes as `palaeo.outlineToneSourceBytes`, a
+  resident asset of the mode counted once and included in
+  `palaeo.totalSourceBytes`, where it had been missing entirely.
+
+- **Needle rings and spikes removed from every palaeo interval, and the Iceland
+  seam measured by plate ownership.** The 3-degree spike filter and the 1.5 km
+  hole-width floor the LGM derivation already used now run over all 24 Cao map
+  intervals as well, from the shared `scripts/research/palaeo_coastlines_rings.py`
+  the compiler and the LGM derivation both import; the compiler applies them to
+  the reduced piece after the seam and assembly rules and before int16
+  quantisation and declares the counts per class as `ringHygiene` in the
+  provenance sidecar. Measured over the whole compiled set, before to after:
+  landmass 739 to 0 needle interior rings, 119 to 0 sub-floor holes, 711 to 313
+  spike vertices, 3,529,672 to 3,510,508 bytes; shallow marine 161 to 0, 35 to
+  0, 1,821 to 685, 3,369,032 to 3,355,760 bytes; mountain 20 to 2, 6 to 0, 177
+  to 82, 1,196,994 to 1,195,834 bytes. The promoted public set moves 8,589,288
+  to 8,555,688 bytes and class area by at most 0.0008 %, against a 0.05 % gate.
+  Dropping the needles exposed a defect in the Iceland contract's seam witness:
+  it paired every western ground segment on a parallel against every eastern one
+  and kept the smallest gap, so a needle hole inside the western half ended a
+  segment at its wall 0.77 km from eastern ground the compiler's seam buffer had
+  already carried west of it, and that wall was read as the plate seam. The
+  separation is now measured between the two plates' facing extremities — the
+  west plate's easternmost ground on the parallel against the east plate's
+  westernmost — which no interior structure can reach. The four pinned parallels
+  are unchanged and so is the disagreement the witness records: 65.4 N 56.1 to
+  62.2 km, 65.6 N 57.5 to 58.6, 65.8 N 45.5 to 39.0, 66.0 N 19.7 to 19.7, all
+  inside the contract's 75 km tolerance, with the 5 km drift allowance kept
+  rather than widened.
+
+### Changed
+
+- **One renderer publishes the whole surface set, in slots.** The globe no
+  longer runs a second surface instance for the Cao 2017 maps. One renderer
+  owns both streaming units and one publisher publishes them together, so the
+  two can never disagree about what is on screen: a publication of either unit
+  adopts the other rather than rebuilding it, and one pair of retirement owners
+  — publications, and the static geometry a map-interval change replaces —
+  covers the set. What is drawn is now the composition's slot assignment
+  instead of a mode flag: the `land` and `continents` slots carry the Cao 2024
+  coast fill and crust shelf outside the Cao 2017 band and the mapped `lm` land
+  and `sm` shallow sea inside it, the mountain slot is filled only inside it,
+  the land-appearance corrections are hidden wherever the map replaces the land
+  they repaint, and a restored pre-collision margin stays and is repainted as
+  shallow sea. The detached Last Glacial Maximum lowstand still draws over
+  today's composition rather than instead of it. Because the realistic
+  composition replaces today's land and crust shelf outright, their GPU vertex
+  and index buffers are handed back while it lasts and uploaded again on the
+  way out; their CPU source stays resident, so picking, coverage and the
+  guide-label ink are unchanged, and no other composition releases anything.
+  Whether a batch may be replaced at all is now declared per batch rather than
+  per renderer: a Cao 2024 batch refuses, a map-interval batch allows it, and a
+  mixed set enforces both. The set reserves the union of what the two instances
+  reserved — 1.00 M vertices, 1.28 M triangles, 512 batches, 64 MiB of retained
+  source — and 4 MiB of publication ledger, which is the one ceiling that is
+  not simply the larger of the two, because both members' publications are
+  resident at once beside the one a scrub sample is replacing. Every
+  `data-cao-*` value is unchanged, and all three compositions draw what they
+  drew.
+- **The map key stops saying "Loading timeline…" once the map is ready.** The
+  collapsed pill read `90 Ma ready · Loading timeline…` for minutes after the
+  globe finished drawing, because its suffix followed the background checkpoint
+  warm-up over the whole manifest — work that is age-independent, yields to
+  every gesture, and only reaches a terminal state once every checkpoint is
+  resident. The pill's line is now one tested function of the foreground
+  reconstruction alone: only a pending requested age produces a "Loading …"
+  line, and a ready surface reads `Cao surface`. Background warming, and a
+  paused warm-up, stay visible as hover text on the map key's status dot and as
+  the existing status rows with their Retry button inside the open panel. Every
+  `data-cao-*` diagnostic is unchanged.
+- **A shared country border is drawn once.** A land border between two
+  countries is stated in each country's own outline, so the country-reference
+  package hands the renderer the same segment twice. `createPolylineQuadGeometry`
+  now drops the repeat at load: two source segments merge when they span the
+  same two decoded endpoint directions, in either order, *and* carry the same
+  motion-palette entry, which is what makes them pose identically at every age.
+  The palette entry is part of the key on purpose — coincident reference
+  geometry on two plates that the reconstruction moves apart must keep both
+  lines, and a merge there would draw one border where the model has two. Only
+  the first copy is expanded into a quad, the GPU ledger is charged on the quads
+  actually built, and each drawn quad carries the index of the *source* segment
+  it was kept for, so the published outline tone table keeps its shipped shape
+  and its per-segment rows still resolve. The renderer reports the drawn and
+  dropped counts as `data-cao-foundation-country-line-drawn-segments` and
+  `data-cao-foundation-country-line-duplicates`;
+  `data-cao-foundation-country-line-segments` stays the *source* count, because
+  it is what `GlobeScene` decodes the palaeo outline tone tables against.
+  Measured on the shipped `cao-v2.4` country batch, this drops 0 of 51,048
+  segments today: 7,420 of them are geometric repeats, but each country's
+  outline is bound to its own palette entry, so no pair matches on the binding
+  and the guard holds every line. The dedupe is the load-time contract, not a
+  measured saving.
+- **The interval-crossing transaction is measurable, and the captures reach the
+  LGM.** `scripts/bench/palaeo-coastlines-performance.mjs` drives its
+  transactions in a second Chrome without `--disable-frame-rate-limit`: with
+  that flag the 94 -> 80 Ma crossing never completes — the age arrives but the
+  layer stays at `mode=loading` with an empty interval id past 60 s — which is
+  why threshold 3 of the Phase 10 stop rule had no number. One flag at a time
+  isolated it, and the stuck page's timers were measured and cleared (a 0 ms
+  timer fired in 2.9 ms). The frame metric keeps the uncapped browser it needs;
+  the transactions are wall-clock and never did. `capture-palaeo-coastlines.mjs`
+  gains the LGM lowstand pair `11-21ka-doggerland-closest-{off,on}` at 21 ka
+  over the southern North Sea, zoomed by camera distance rather than by a fixed
+  wheel count and released by the published interval id `lgm` under a
+  first-publication budget of its own. The layer-toggle transaction in the same
+  runner was clicking a control by its old label, "Palaeo-coastlines (Cao
+  2017)", which the product renamed to "Realistic coastlines": the click
+  expired at 30 s in both browsers, so that transaction is now driven by the
+  current label. All nine transactions are measured. Thresholds are unchanged;
+  no product code moved.
+
+- **One residency store and one request chain behind the surface pipeline.**
+  The two streaming units — a Cao 2024 checkpoint addressed by its age and a
+  Cao 2017 map interval addressed by its published id — are named once as a
+  `SurfaceUnitId`, and one residency store answers which bounded cache a unit
+  belongs to, whether the palaeo half exists at all, and the two ledgers
+  reported upward. The native and palaeo request chains collapse into one chain
+  shape whose differences are data: separate lease budgets (two revisions, two
+  intervals) and whether a request for the same unit supersedes the one in
+  flight. The surface preparation path moved below the renderer, so
+  `src/reconstruction/**` imports nothing from `src/render/**`, and a unit test
+  scans every product module in that directory to keep it that way. The
+  residency policy states the pinned units and the interval LRU bounds in one
+  place and carries the knob that lets the realistic composition release the
+  native land and shelf GPU buffers it replaces; the renderer records that set
+  and releases nothing yet. No visual change: every ledger shape, every
+  `data-cao-*` value and all three compositions draw exactly as before.
+- **The outgoing map keeps moving with the outlines across an interval
+  boundary.** Once a scrub crossed into the next map interval, the interval
+  still on screen was posed at its own edge age until the incoming one
+  published, so the palaeogeographic polygons stood still for a beat while the
+  country outlines drawn over them kept rotating. The pose age and the support
+  age are now separate: the charts are posed at the live requested age, because
+  the rotation palette is one continuous global history and the outlines are
+  already riding it, while the lifecycles stay judged just inside the drawn
+  interval so its retiring pieces keep their last honest support verdict instead
+  of blanking. A jump of more than 30 Ma outside the drawn interval is not a
+  crossing and falls back to the held pose rather than extrapolating.
+
 ## [0.1.19] - 2026-09-16
 
 ### Added

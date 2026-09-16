@@ -370,7 +370,7 @@ export const PALAEO_INTERVAL_INITIAL_SELECTION: PalaeoIntervalSelection =
 
 /**
  * One-frame hysteresis on the interval index, matching the domain-boundary
- * hysteresis in `palaeoComposite.ts`.
+ * hysteresis in `surfaceVisibility.ts`.
  *
  * A scrub resting on an interval bound alternates between two answers frame by
  * frame, and each change swaps a whole geometry and re-uploads a tone table.

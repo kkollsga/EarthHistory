@@ -15,7 +15,61 @@ import {
   type CaoFoundationSurfaceClass,
   type CaoFoundationSurfaceMode,
 } from "./caoFoundation";
-import type { CaoPalaeoCoastlineMode, CaoPalaeoDomainBand } from "./palaeoComposite";
+import { DEFAULT_SURFACE_RESIDENCY_POLICY,
+  type SurfaceResidencyPolicy } from "../../reconstruction/loaderV2";
+
+/**
+ * Ages the Cao 2017 palaeogeography maps cover: the 24 published intervals run
+ * from 402 Ma to 2.01 Ma. Outside it — including the present day — the mode
+ * falls back to today's composition with a map-key notice.
+ */
+export const CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA = Object.freeze({
+  youngest: 2.01,
+  oldest: 402,
+} as const);
+
+/**
+ * The detached Last Glacial Maximum lowstand band, `(19.5 ka, 26.5 ka]`.
+ * Half-open at the young end like every other interval in the pipeline, so
+ * 19.4 ka and 26.6 ka are outside it and 21 ka is inside.
+ */
+export const CAO_PALAEO_LGM_AGE_BAND_MA = Object.freeze({
+  youngestExclusive: 0.0195,
+  oldest: 0.0265,
+} as const);
+
+/**
+ * Which band of the palaeo domain an age belongs to.
+ *
+ * The two bands are not the same kind of claim and the renderer treats them
+ * differently: `cao-2017` is a whole-Earth palaeogeography that *replaces*
+ * today's land, while `lgm` is a regional eustatic lowstand state drawn *over*
+ * it in three footprints. Anything else falls back.
+ */
+export type CaoPalaeoDomainBand = "none" | "cao-2017" | "lgm";
+
+export function caoPalaeoCoastlineDomainBand(ageMa: number | null): CaoPalaeoDomainBand {
+  if (ageMa === null || !Number.isFinite(ageMa)) return "none";
+  if (ageMa >= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.youngest
+      && ageMa <= CAO_PALAEO_COASTLINE_AGE_DOMAIN_MA.oldest) return "cao-2017";
+  if (ageMa > CAO_PALAEO_LGM_AGE_BAND_MA.youngestExclusive
+      && ageMa <= CAO_PALAEO_LGM_AGE_BAND_MA.oldest) return "lgm";
+  return "none";
+}
+
+export function caoPalaeoCoastlineAgeInsideDomain(ageMa: number | null): boolean {
+  return caoPalaeoCoastlineDomainBand(ageMa) !== "none";
+}
+
+/**
+ * What the palaeo-coastline layer resolves to on screen, as the map key and the
+ * canvas diagnostics name it.
+ *
+ * `fallback` is an age with no Cao 2017 map interval — including the present
+ * day — and `loading` an age inside the domain whose interval has not been
+ * published yet.
+ */
+export type CaoPalaeoCoastlineMode = "off" | "fallback" | "loading" | "on";
 
 /**
  * The renderer slots a composition assigns. They are the drawing positions the
@@ -80,6 +134,38 @@ const LGM_SLOTS: SurfaceSlotComposition = Object.freeze({
 export function surfaceSlotComposition(composition: SurfaceComposition): SurfaceSlotComposition {
   return composition === "realistic" ? REALISTIC_SLOTS
     : composition === "lgm" ? LGM_SLOTS : NATIVE_SLOTS;
+}
+
+/**
+ * The native classes a composition replaces outright, and whose GPU buffers the
+ * residency policy therefore allows releasing until the composition is left.
+ *
+ * Only `realistic` qualifies. `lgm` draws the native stack underneath the
+ * lowstand overlay, and `native` — which is also what a fallback age and a
+ * still-loading interval show — has nothing else on screen: releasing there
+ * would blank the globe rather than save memory. The knob exists so the cost
+ * can be measured, and turning it off must leave every composition drawing the
+ * same thing.
+ *
+ * P4 note: the renderer records this set and releases nothing. P5 wires the
+ * release and the re-upload on exit into the resource set.
+ */
+export function resolveReleasableNativeSurfaceClasses(
+  composition: SurfaceComposition,
+  policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
+): readonly CaoFoundationSurfaceClass[] {
+  if (!policy.releaseReplacedNativeGpuBuffers || composition !== "realistic") {
+    return Object.freeze([]);
+  }
+  const slots = surfaceSlotComposition(composition);
+  // The classes the realistic slots took over: today's land fill and the Cao
+  // 2024 crust shelf. Read from the native slot table rather than listed again,
+  // so a slot change cannot leave this claiming a class that is still drawn.
+  const native = surfaceSlotComposition("native");
+  return Object.freeze([native.land, native.continents].filter((surfaceClass):
+    surfaceClass is CaoFoundationSurfaceClass => surfaceClass !== null
+      && surfaceClass !== slots.land && surfaceClass !== slots.continents
+      && !slots.overlay.includes(surfaceClass)));
 }
 
 function visibleClassesInMode(mode: CaoFoundationSurfaceMode): CaoFoundationSurfaceClass[] {

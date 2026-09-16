@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
-import { CaoPalaeoIntervalStore, loadVerifiedPalaeoClassCatalogs, selectPalaeoIntervalForAge,
-  type LoadedPalaeoClassCatalog } from "./loaderV2";
+import { chartPickStateFromMotionFrame } from "./motionFrameV2";
+import { CaoSurfaceResidencyStore, intervalUnit, loadVerifiedPalaeoClassCatalogs,
+  selectPalaeoIntervalForAge, type LoadedPalaeoClassCatalog,
+  type LoadedPalaeoInterval } from "./loaderV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -146,6 +148,22 @@ Promise<ReconstructionPackageManifestV2> {
   return { ...manifest, palaeoCoastlines: section };
 }
 
+/**
+ * The residency store with only its palaeo half attached. The interval cache
+ * lives on `CaoSurfaceResidencyStore`, so the tests below drive it through the
+ * unit API the runtime uses rather than through a store of its own.
+ */
+async function intervalResidency(
+  section: PalaeoCoastlineAssets,
+  catalogs: readonly LoadedPalaeoClassCatalog[],
+  fetcher: StaticAssetFetcher,
+  runner: ReturnType<typeof createPalaeoTriangulationRunner>,
+): Promise<CaoSurfaceResidencyStore> {
+  const store = new CaoSurfaceResidencyStore(await manifestWithPalaeo(section), fetcher);
+  store.attachIntervals(section, catalogs, runner);
+  return store;
+}
+
 describe("palaeo-coastline manifest section", () => {
   const domain = { youngest: 0, oldest: 1_800 };
   const corrupt = (mutate: (section: PalaeoCoastlineAssets) => void): PalaeoCoastlineAssets => {
@@ -191,21 +209,21 @@ describe("palaeo-coastline interval store", () => {
   it("keeps the current interval and both neighbours resident", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       fixture.fetcher, runner);
     store.noteCurrentAge(370);
-    await store.load("380-360");
-    await store.load("402-380");
-    await store.load("360-340");
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("360-340"));
     // Three, not two: a crossing in either direction must find its neighbour
     // already decoded, and a reversal must not have thrown one away.
-    expect(store.ledger.residentCount).toBe(3);
-    expect(store.ledger.maximumResidentCount).toBe(3);
+    expect(store.intervalLedger.residentCount).toBe(3);
+    expect(store.intervalLedger.maximumResidentCount).toBe(3);
     const before = fixture.requestedUrls.length;
-    expect(store.residentInterval("402-380")).not.toBeNull();
-    expect(store.residentInterval("360-340")).not.toBeNull();
-    await store.load("402-380");
-    await store.load("360-340");
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("360-340"))).not.toBeNull();
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("360-340"));
     expect(fixture.requestedUrls.length).toBe(before);
     store.dispose();
     runner.dispose();
@@ -216,7 +234,7 @@ describe("palaeo-coastline interval store", () => {
     const runner = createPalaeoTriangulationRunner();
     const twoIntervals = fixture.catalog.intervals[0]!.payload.bytes
       + fixture.catalog.intervals[1]!.payload.bytes;
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: twoIntervals } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
@@ -224,13 +242,13 @@ describe("palaeo-coastline interval store", () => {
     // interval, which is the one being drawn; the distance order evicts the far
     // 360-340 instead.
     store.noteCurrentAge(395);
-    await store.load("402-380");
-    await store.load("380-360");
-    await store.load("360-340");
-    expect(store.ledger.residentCount).toBe(2);
-    expect(store.residentInterval("402-380")).not.toBeNull();
-    expect(store.residentInterval("380-360")).not.toBeNull();
-    expect(store.residentInterval("360-340")).toBeNull();
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("360-340"));
+    expect(store.intervalLedger.residentCount).toBe(2);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("380-360"))).not.toBeNull();
+    expect(store.resident(intervalUnit("360-340"))).toBeNull();
     store.dispose();
     runner.dispose();
   });
@@ -239,14 +257,14 @@ describe("palaeo-coastline interval store", () => {
     const fixture = palaeoFixture();
     const oneInterval = fixture.catalog.intervals[0]!.payload.bytes;
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: oneInterval } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
-    await store.load("402-380");
-    await store.load("380-360");
-    expect(store.ledger.residentCount).toBe(1);
-    expect(store.ledger.residentSourceBytes).toBeLessThanOrEqual(oneInterval);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.intervalLedger.residentSourceBytes).toBeLessThanOrEqual(oneInterval);
     store.dispose();
     runner.dispose();
   });
@@ -254,11 +272,11 @@ describe("palaeo-coastline interval store", () => {
   it("refuses an interval larger than the whole resident bound", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(
+    const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation, maxResidentSourceBytes: 1 } },
       await loadedCatalogs(fixture), fixture.fetcher, runner);
-    await expect(store.load("402-380")).rejects.toThrow(/resident byte bound/);
-    expect(store.ledger.residentCount).toBe(0);
+    await expect(store.load(intervalUnit("402-380"))).rejects.toThrow(/resident byte bound/);
+    expect(store.intervalLedger.residentCount).toBe(0);
     store.dispose();
     runner.dispose();
   });
@@ -275,23 +293,23 @@ describe("palaeo-coastline interval store", () => {
       return fixture.fetcher(url, signal, options);
     };
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       gatedFetcher, runner);
     const first = new AbortController();
-    const pendingFirst = store.load("402-380", first.signal);
-    const pendingSecond = store.load("380-360");
+    const pendingFirst = store.load(intervalUnit("402-380"), first.signal);
+    const pendingSecond = store.load(intervalUnit("380-360"));
     await new Promise((settle) => setTimeout(settle, 10));
-    expect(store.ledger.pendingCount).toBe(2);
-    expect(store.ledger.pendingReservedSourceBytes).toBeGreaterThan(0);
+    expect(store.intervalLedger.pendingCount).toBe(2);
+    expect(store.intervalLedger.pendingReservedSourceBytes).toBeGreaterThan(0);
     first.abort();
     await expect(pendingFirst).rejects.toThrow(/aborted/);
     for (const release of gates.values()) release();
     await pendingSecond;
-    expect(store.ledger.residentCount).toBe(1);
-    expect(store.ledger.pendingCount).toBe(0);
-    await expect(store.load("402-380", AbortSignal.abort())).rejects.toThrow(/aborted/);
+    expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.intervalLedger.pendingCount).toBe(0);
+    await expect(store.load(intervalUnit("402-380"), AbortSignal.abort())).rejects.toThrow(/aborted/);
     store.dispose();
-    await expect(store.load("360-340")).rejects.toThrow(/disposed/);
+    await expect(store.load(intervalUnit("360-340"))).rejects.toThrow(/disposed/);
     runner.dispose();
   });
 
@@ -303,9 +321,9 @@ describe("palaeo-coastline interval store", () => {
       return bytes;
     };
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, await loadedCatalogs(fixture),
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
       corruptFetcher, runner);
-    await expect(store.load("402-380")).rejects.toThrow(/verification failed/);
+    await expect(store.load(intervalUnit("402-380"))).rejects.toThrow(/verification failed/);
     store.dispose();
     runner.dispose();
   });
@@ -316,8 +334,9 @@ describe("palaeo-coastline interval frame", () => {
     const fixture = palaeoFixture();
     const catalogs = await loadedCatalogs(fixture);
     const runner = createPalaeoTriangulationRunner();
-    const store = new CaoPalaeoIntervalStore(fixture.section, catalogs, fixture.fetcher, runner);
-    const interval = await store.load("402-380");
+    const store = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner);
+    const loaded = await store.load(intervalUnit("402-380"));
+    const interval = loaded.value as LoadedPalaeoInterval;
     const entries = new Map<string, PreparedPaletteEntry>();
     // No palette entry resolves: every piece reports missing motion, not "active".
     const unposed = evaluateCaoPalaeoIntervalFrame(interval, entries, 398);
@@ -341,6 +360,41 @@ describe("palaeo-coastline interval frame", () => {
     runtime.dispose();
     store.dispose();
     runner.dispose();
+  });
+
+  // Folded in from the deleted `palaeoPublication.test.ts`, which proved these
+  // on the adapter that used to wrap an interval as a revision. The prepared
+  // interval now states them itself, so they are asserted on the real one.
+  it("states every absence a map interval has rather than leaving it to be inferred", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    expect(prepared.lineBatches).toEqual([]);
+    expect(prepared.anchorIds).toEqual([]);
+    expect(prepared.nativeBoundary).toMatchObject({ kind: "unavailable", reason: "source-absent" });
+    expect(prepared.topologyOwnership).toMatchObject({ kind: "unavailable" });
+    expect(prepared.materialCorrectionIdentity).toBeNull();
+    expect(prepared.materialCorrections.qualifiedActiveCharts).toBe(0);
+    // Every palaeo palette entry carries the same activation at both ends, so
+    // the display fraction the renderer mixes with is a fixed 0, not a bracket.
+    expect(prepared.display).toEqual({ youngerAgeMa: prepared.requestedAgeMa,
+      olderAgeMa: prepared.requestedAgeMa, fraction: 0 });
+    expect(prepared.resolveAnchor("anything")).toBeNull();
+    expect(() => prepared.resolveAddress({} as never)).toThrow(/no material addresses/);
+    expect(() => prepared.addressForChartDirection(0, [1, 0, 0])).toThrow(/no material addresses/);
+    // The frame a scrub retargets with carries the same absence, so the renderer
+    // is handed one shape whether it is publishing or re-posing.
+    const frame = runtime.evaluatePalaeoMotionNow(390, "402-380")!;
+    expect(frame.materialCorrections).toBe(prepared.materialCorrections);
+    // One pose pair per chart, and the activation bit is the support verdict:
+    // at 390 Ma the off-schedule piece has ended and is not drawn.
+    const pick = chartPickStateFromMotionFrame(frame);
+    expect(pick.chartPoses).toHaveLength(frame.charts.length * 8);
+    expect([...pick.chartActive]).toEqual([1, 0]);
+    prepared.release();
+    runtime.dispose();
   });
 
   it("prepares the static-geometry copy the surface renderer consumes", async () => {
@@ -615,6 +669,24 @@ describe("palaeo-coastline manifest availability and the assets one enablement f
       // A second read inside the same enablement is the same bytes, not a second fetch.
       expect(await runtime.loadPalaeoOutlineToneTables()).toBe(tones);
       expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(1);
+      // And the ledger says them once, as a resident asset of the mode rather
+      // than of an interval. The renderer's per-interval byte diagnostic used
+      // to carry this constant, which made every interval look 311 KiB heavier
+      // than its payload and made the shipped outline's fourfold growth read as
+      // a per-interval regression.
+      const toneBytes = runtime.ledger.palaeo.outlineToneSourceBytes;
+      expect(toneBytes).toBe(tones.byteLength);
+      const afterFirst = runtime.ledger.palaeo.totalSourceBytes;
+      const second = await runtime.requestPalaeoInterval(370).prepared;
+      expect(second.intervalId).not.toBe(prepared.intervalId);
+      expect(runtime.ledger.palaeo.outlineToneSourceBytes).toBe(toneBytes);
+      // The second interval adds its own payload and nothing else: no catalog,
+      // no tone table, and no second copy of either in the total.
+      expect(runtime.ledger.palaeo.totalSourceBytes)
+        .toBe(afterFirst + second.activeSourceBytes);
+      expect(fixture.requestedUrls.filter((url) => url.endsWith(".ehpt"))).toHaveLength(1);
+      expect(fixture.requestedUrls.filter((url) => url === CATALOG_URL)).toHaveLength(1);
+      second.release();
       prepared.release();
       // Turning the mode off drops them; turning it back on fetches once more.
       runtime.setPalaeoCoastlinesEnabled(false);
@@ -679,6 +751,47 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.setPalaeoCoastlinesEnabled(false);
     expect(runtime.palaeoMotionResidentAt(385)).toBe(false);
     expect(runtime.evaluatePalaeoMotionNow(385)).toBeNull();
+    prepared.release();
+    runtime.dispose();
+  });
+
+  it("keeps posing the outgoing interval live once the age has crossed out of it", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    // The age has crossed into 380-360, but 402-380 is still the geometry on
+    // screen. The pose follows the live age — the country outlines drawn over
+    // this map already do — while only the lifecycle verdict is held inside the
+    // published interval's own range, so its pieces are not called consumed.
+    const crossing = runtime.evaluatePalaeoMotionNow(379.5, "402-380")!;
+    expect(crossing.intervalId).toBe("402-380");
+    expect(crossing.requestedAgeMa).toBe(379.5);
+    expect(crossing.supportAgeMa).toBeCloseTo(380.001, 6);
+    expect(crossing.charts.map((chart) => chart.support.kind)).toContain("supported");
+    // The regression this pins: two samples past the boundary must not pose
+    // identically. Held at the edge they did, and the map stood still under
+    // outlines that were still moving. The frame reuses its buffers, so the
+    // quaternion is copied before the next evaluation rewrites it.
+    const atCrossing = [...crossing.charts[0]!.poseQuaternion];
+    const further = runtime.evaluatePalaeoMotionNow(378.5, "402-380")!;
+    expect(further.requestedAgeMa).toBe(378.5);
+    expect([...further.charts[0]!.poseQuaternion]).not.toEqual(atCrossing);
+    // A crossing the other way is live in the same way.
+    const older = runtime.evaluatePalaeoMotionNow(410, "402-380")!;
+    expect(older.requestedAgeMa).toBe(410);
+    expect(older.supportAgeMa).toBe(402);
+    // A jump of tens of megayears is not a crossing, and rotating this map to
+    // an age its geometry never described would be extrapolation. Past the
+    // excursion limit the pose falls back to the held support age.
+    const jump = runtime.evaluatePalaeoMotionNow(345, "402-380")!;
+    expect(jump.requestedAgeMa).toBeCloseTo(380.001, 6);
+    expect(jump.supportAgeMa).toBeCloseTo(380.001, 6);
+    // An age still inside the published interval carries one age, not two.
+    const inside = runtime.evaluatePalaeoMotionNow(385, "402-380")!;
+    expect(inside.requestedAgeMa).toBe(385);
+    expect(inside.supportAgeMa).toBe(385);
     prepared.release();
     runtime.dispose();
   });

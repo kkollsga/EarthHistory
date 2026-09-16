@@ -1721,25 +1721,89 @@ def _parallel_segments(geometry, line):
 
 def _seam_longitude(west_geometry, east_geometry, latitude: float,
                     window: tuple, abutment_degrees: float) -> float | None:
-    """Where the two plate halves are cut apart on one parallel, or None.
+    """Where the two plate halves abut on one parallel, by ownership, or None.
 
-    A seam crossing is a pair of ground segments - one on each plate - that ABUT
-    on the parallel. Taking the eastern limit of all western ground and the
-    western limit of all eastern ground instead would measure the gap between two
-    separate lobes wherever the parallel misses the cut, and Iceland has exactly
-    that: the Tertiary outcrop is absent along the neovolcanic zones, which is
-    also roughly where the partition seam runs. ``abutment_degrees`` is the widest
-    gap still read as one cut, and it has to allow for the int16 quantisation and
-    the per-piece simplification of the two cut edges.
+    The seam is the boundary between the ground the WEST plate owns and the ground
+    the EAST plate owns, so it is measured between those two ownerships' facing
+    extremities: the easternmost longitude the west plate's ground reaches on this
+    parallel, against the westernmost longitude the east plate's ground reaches.
+    Only an extremity can be a seam edge; every other segment end on the parallel
+    is interior structure.
+
+    Pairing every western segment against every eastern one and keeping the
+    smallest gap - what this measured before 2026-09-16 - reads that interior
+    structure instead. A needle hole inside the western ground ends a segment at
+    its wall, and because the compiler grows every piece back across its
+    cookie-cut seam the two halves overlap slightly, so the hole wall sits just
+    west of real eastern ground and pairs with it at a fraction of a kilometre.
+    The 65.4 N and 65.6 N values pinned before that date were measuring a 0.77 km
+    hole wall on exactly that pairing.
+
+    The two facing extremities may overlap (the seam buffer) or leave a gap (the
+    int16 quantisation and the per-piece simplification of the two cut edges), so
+    ``abutment_degrees`` bounds the SEPARATION in either direction. Wider than
+    that and the parallel misses the cut altogether - Iceland's Tertiary outcrop
+    is absent along the neovolcanic zones, which is roughly where the partition
+    seam runs - and there is no seam here to measure.
     """
     line = LineString([(window[0], latitude), (window[2], latitude)])
-    best = None
-    for west in _parallel_segments(west_geometry, line):
-        for east in _parallel_segments(east_geometry, line):
-            gap = east.bounds[0] - west.bounds[2]
-            if -1e-9 <= gap <= abutment_degrees and (best is None or gap < best[1]):
-                best = ((west.bounds[2] + east.bounds[0]) / 2.0, gap)
-    return None if best is None else best[0]
+    west = _parallel_segments(west_geometry, line)
+    east = _parallel_segments(east_geometry, line)
+    if not west or not east:
+        return None
+    west_end = max(segment.bounds[2] for segment in west)
+    east_start = min(segment.bounds[0] for segment in east)
+    if abs(east_start - west_end) > abutment_degrees:
+        return None
+    return (west_end + east_start) / 2.0
+
+
+# The synthetic parallel the ownership rule is proved on: western ground carrying
+# one needle hole, eastern ground overlapping its eastern end the way the seam
+# buffer does. Every number is degrees in the check's own window.
+_SEAM_PROOF_WINDOW = (-27.0, 62.0, -12.0, 68.0)
+_SEAM_PROOF_LATITUDE = 65.4
+_SEAM_PROOF_ABUTMENT = 0.3
+
+
+def check_seam_ownership(measure=_seam_longitude) -> dict:
+    """The seam measurement reads plate ownership, never an interior hole wall.
+
+    Cheap and synthetic, and it runs on every validation rather than only in the
+    self-test, because the pinned Iceland separations are only meaningful while
+    the rule that produced them is the ownership rule. ``measure`` is the injection
+    point the self-test mutates: handing this the old nearest-pair rule has to be
+    rejected here, which is what makes the four pinned numbers a gate rather than
+    four numbers.
+    """
+    # The eastern ground starts 0.05 degrees west of where the western ground ends:
+    # that overlap is the compiler's seam buffer. The needle hole is 0.01 degrees
+    # wide - about 0.46 km here, the scale of the real one - and sits so that its
+    # WESTERN wall falls 0.02 degrees west of the eastern ground's start. The old
+    # nearest-pair rule reads that wall, because the real pair overlaps and a
+    # negative gap was never a candidate.
+    west = shapely.box(-22.0, 65.3, -19.0, 65.5).difference(
+        shapely.box(-19.07, 65.35, -19.06, 65.45))
+    east = shapely.box(-19.05, 65.3, -14.0, 65.5)
+    expected = (-19.0 + -19.05) / 2.0
+    hole_wall = (-19.07 + -19.05) / 2.0
+    seam = measure(west, east, _SEAM_PROOF_LATITUDE, _SEAM_PROOF_WINDOW,
+                   _SEAM_PROOF_ABUTMENT)
+    if seam is None:
+        raise CorrectionError(
+            "seam ownership: the measurement found no seam between two halves that "
+            "abut across a 0.05 degree buffer overlap")
+    if abs(seam - hole_wall) < abs(seam - expected):
+        raise CorrectionError(
+            f"seam ownership: the measurement returned {seam:.4f} E, nearer the needle "
+            f"hole's wall at {hole_wall:.4f} E than the ownership boundary at "
+            f"{expected:.4f} E; a seam may only be measured between the west plate's "
+            "eastern extremity and the east plate's western extremity")
+    if abs(seam - expected) > 1e-9:
+        raise CorrectionError(
+            f"seam ownership: the measurement returned {seam:.4f} E where the two "
+            f"ownerships' facing extremities put the seam at {expected:.4f} E")
+    return {"ownershipSeamDeg": round(expected, 4), "holeWallSeamDeg": round(hole_wall, 4)}
 
 
 def check_iceland_seam(store: Store, classes: list[str], basins: list[dict]) -> dict:
@@ -1756,7 +1820,7 @@ def check_iceland_seam(store: Store, classes: list[str], basins: list[dict]) -> 
     here: every compiled piece that lies wholly inside the contract window binds
     to one of the declared partition plates, and each latitude's measured
     separation matches the value the contract pins. The contract does NOT claim
-    the two seams agree - they are 19.7 to 60.6 km apart - so this gate detects
+    the two seams agree - they are 19.7 to 62.2 km apart - so this gate detects
     drift in either construction rather than asserting an agreement.
     """
     basin = next((row for row in basins if row["basinId"] == ICELAND_BASIN_ID), None)
@@ -1770,6 +1834,7 @@ def check_iceland_seam(store: Store, classes: list[str], basins: list[dict]) -> 
     drift_km = float(spec["driftToleranceKilometres"])
     abutment = float(spec["abutmentToleranceDeg"])
     pinned = spec["measuredSeparationKilometres"]
+    ownership = check_seam_ownership()
 
     by_plate: dict[int, list] = {}
     checked_pieces = 0
@@ -1860,7 +1925,8 @@ def check_iceland_seam(store: Store, classes: list[str], basins: list[dict]) -> 
         raise CorrectionError(
             f"iceland: {len(rows)} latitudes compared against {len(pinned)} pinned values")
     return {"checkedPieces": checked_pieces, "toleranceKilometres": tolerance_km,
-            "worstSeparationKilometres": round(worst, 2), "rows": rows}
+            "worstSeparationKilometres": round(worst, 2), "ownership": ownership,
+            "rows": rows}
 
 
 def check_basin_acceptance_ages(basins: list[dict], intervals: list[dict]) -> dict:
@@ -2377,12 +2443,36 @@ def self_test(store: Store, class_name: str = "lm") -> dict:
 
     # 11. the Iceland contract's own two checks. The seam gate does NOT assert
     # that the palaeo 102/301 cut and the material correction's 101/301 cut agree
-    # - they are 19.7 to 60.6 km apart - so what has to be proven failable is the
-    # drift detector and the partition-plate assertion, not an agreement.
+    # - they are 19.7 to 62.2 km apart - so what has to be proven failable is the
+    # drift detector, the partition-plate assertion and the ownership rule the
+    # pinned separations are measured by, not an agreement.
     iceland = next((basin for basin in basins if basin["basinId"] == ICELAND_BASIN_ID), None)
     if iceland is None:
         raise CorrectionError("self-test: no iceland basin contract is tracked")
     check_iceland_seam(store, [class_name], basins)
+
+    def nearest_pair_seam(west_geometry, east_geometry, latitude, window, abutment_degrees):
+        """The rule this measurement used before 2026-09-16, kept as the mutation.
+
+        It pairs every western segment against every eastern one and keeps the
+        smallest non-negative gap, so an interior hole wall that happens to lie
+        just west of overlapping eastern ground wins over the real ownership
+        boundary. That is the defect the 65.4 and 65.6 N values were pinned on.
+        """
+        line = LineString([(window[0], latitude), (window[2], latitude)])
+        best = None
+        for west in _parallel_segments(west_geometry, line):
+            for east in _parallel_segments(east_geometry, line):
+                gap = east.bounds[0] - west.bounds[2]
+                if -1e-9 <= gap <= abutment_degrees and (best is None or gap < best[1]):
+                    best = ((west.bounds[2] + east.bounds[0]) / 2.0, gap)
+        return None if best is None else best[0]
+
+    check_seam_ownership()
+    results.append(expect_failure(
+        "the Iceland seam measured by nearest segment pair, which reads a hole wall",
+        lambda: check_seam_ownership(nearest_pair_seam)))
+    check_seam_ownership()
     moved_seam = deepcopy(basins)
     for basin in moved_seam:
         if basin["basinId"] == ICELAND_BASIN_ID:

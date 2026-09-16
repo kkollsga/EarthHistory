@@ -1,0 +1,328 @@
+{
+  "measurement": "D1 retained static bytes and 90->0 re-upload cost",
+  "measuredAt": "2026-09-16T20:17:08.091Z",
+  "retained": [
+    {
+      "ageMa": 90,
+      "rep": 1,
+      "machine": {
+        "loadAverage": {
+          "one": 2.15,
+          "five": 2.85,
+          "fifteen": 4.51
+        },
+        "freeMemoryBytes": 1141735424,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:43.523Z"
+      },
+      "status": "ready",
+      "requestedAgeMa": 90,
+      "palaeoMode": "on",
+      "palaeoIntervalId": "94-81",
+      "palaeoTriangles": 432362,
+      "palaeoAssetBytes": 686652,
+      "foundationTriangles": 574075,
+      "foundationVertices": 404888,
+      "foundationStaticBytes": 39956632,
+      "foundationSourceBytes": 25370686,
+      "foundationPublicationBytes": 848488,
+      "foundationPendingRetirementBytes": 0,
+      "foundationBatches": 6,
+      "jsHeapBytes": 133809211
+    },
+    {
+      "ageMa": 90,
+      "rep": 2,
+      "machine": {
+        "loadAverage": {
+          "one": 2.7,
+          "five": 2.95,
+          "fifteen": 4.54
+        },
+        "freeMemoryBytes": 1151123456,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:47.469Z"
+      },
+      "status": "ready",
+      "requestedAgeMa": 90,
+      "palaeoMode": "on",
+      "palaeoIntervalId": "94-81",
+      "palaeoTriangles": 432362,
+      "palaeoAssetBytes": 686652,
+      "foundationTriangles": 574075,
+      "foundationVertices": 404888,
+      "foundationStaticBytes": 39956632,
+      "foundationSourceBytes": 25370686,
+      "foundationPublicationBytes": 593382,
+      "foundationPendingRetirementBytes": 0,
+      "foundationBatches": 6,
+      "jsHeapBytes": 141967040
+    },
+    {
+      "ageMa": 0,
+      "rep": 1,
+      "machine": {
+        "loadAverage": {
+          "one": 2.72,
+          "five": 2.95,
+          "fifteen": 4.53
+        },
+        "freeMemoryBytes": 1295482880,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:51.386Z"
+      },
+      "status": "ready",
+      "requestedAgeMa": 0,
+      "palaeoMode": "fallback",
+      "palaeoIntervalId": "",
+      "palaeoTriangles": 0,
+      "palaeoAssetBytes": 0,
+      "foundationTriangles": 574075,
+      "foundationVertices": 404888,
+      "foundationStaticBytes": 39956632,
+      "foundationSourceBytes": 25450968,
+      "foundationPublicationBytes": 676177,
+      "foundationPendingRetirementBytes": 0,
+      "foundationBatches": 6,
+      "jsHeapBytes": 89845097
+    },
+    {
+      "ageMa": 0,
+      "rep": 2,
+      "machine": {
+        "loadAverage": {
+          "one": 2.5,
+          "five": 2.9,
+          "fifteen": 4.5
+        },
+        "freeMemoryBytes": 1270743040,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:55.295Z"
+      },
+      "status": "ready",
+      "requestedAgeMa": 0,
+      "palaeoMode": "fallback",
+      "palaeoIntervalId": "",
+      "palaeoTriangles": 0,
+      "palaeoAssetBytes": 0,
+      "foundationTriangles": 574075,
+      "foundationVertices": 404888,
+      "foundationStaticBytes": 39956632,
+      "foundationSourceBytes": 25450968,
+      "foundationPublicationBytes": 676177,
+      "foundationPendingRetirementBytes": 0,
+      "foundationBatches": 6,
+      "jsHeapBytes": 88795009
+    }
+  ],
+  "scrubs": [
+    {
+      "rep": 1,
+      "machine": {
+        "loadAverage": {
+          "one": 2.5,
+          "five": 2.9,
+          "fifteen": 4.5
+        },
+        "freeMemoryBytes": 2019164160,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:55.416Z"
+      },
+      "elapsedMs": 225,
+      "startedAt": 3835,
+      "before": {
+        "status": "ready",
+        "requestedAgeMa": 90,
+        "palaeoMode": "on",
+        "palaeoIntervalId": "94-81",
+        "palaeoTriangles": 432362,
+        "palaeoAssetBytes": 686652,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25370686,
+        "foundationPublicationBytes": 593382,
+        "foundationPendingRetirementBytes": 0,
+        "foundationBatches": 6,
+        "jsHeapBytes": 129737060
+      },
+      "after": {
+        "status": "updating",
+        "requestedAgeMa": 0,
+        "palaeoMode": "fallback",
+        "palaeoIntervalId": "",
+        "palaeoTriangles": 0,
+        "palaeoAssetBytes": 0,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25450968,
+        "foundationPublicationBytes": 1269559,
+        "foundationPendingRetirementBytes": 593382,
+        "foundationBatches": 6,
+        "jsHeapBytes": 141023036
+      },
+      "trace": [
+        {
+          "t": 3833.9000000953674,
+          "status": "ready",
+          "age": 90,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 3932.5,
+          "status": "updating",
+          "age": 0,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 4004.2000000476837,
+          "status": "ready",
+          "age": 0,
+          "staticBytes": 39956632
+        }
+      ]
+    },
+    {
+      "rep": 2,
+      "machine": {
+        "loadAverage": {
+          "one": 2.5,
+          "five": 2.9,
+          "fifteen": 4.5
+        },
+        "freeMemoryBytes": 2030813184,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:16:59.586Z"
+      },
+      "elapsedMs": 229.8,
+      "startedAt": 3840.2000000476837,
+      "before": {
+        "status": "ready",
+        "requestedAgeMa": 90,
+        "palaeoMode": "on",
+        "palaeoIntervalId": "94-81",
+        "palaeoTriangles": 432362,
+        "palaeoAssetBytes": 686652,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25370686,
+        "foundationPublicationBytes": 593382,
+        "foundationPendingRetirementBytes": 0,
+        "foundationBatches": 6,
+        "jsHeapBytes": 127960399
+      },
+      "after": {
+        "status": "updating",
+        "requestedAgeMa": 0,
+        "palaeoMode": "fallback",
+        "palaeoIntervalId": "",
+        "palaeoTriangles": 0,
+        "palaeoAssetBytes": 0,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25450968,
+        "foundationPublicationBytes": 1269559,
+        "foundationPendingRetirementBytes": 593382,
+        "foundationBatches": 6,
+        "jsHeapBytes": 138334203
+      },
+      "trace": [
+        {
+          "t": 3839.300000190735,
+          "status": "ready",
+          "age": 90,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 3936.100000143051,
+          "status": "updating",
+          "age": 0,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 4010.5,
+          "status": "ready",
+          "age": 0,
+          "staticBytes": 39956632
+        }
+      ]
+    },
+    {
+      "rep": 3,
+      "machine": {
+        "loadAverage": {
+          "one": 2.86,
+          "five": 2.97,
+          "fifteen": 4.51
+        },
+        "freeMemoryBytes": 1969192960,
+        "swap": "total = 15360,00M  used = 14013,44M  free = 1346,56M  (encrypted)",
+        "at": "2026-09-16T20:17:03.760Z"
+      },
+      "elapsedMs": 231,
+      "startedAt": 3839,
+      "before": {
+        "status": "ready",
+        "requestedAgeMa": 90,
+        "palaeoMode": "on",
+        "palaeoIntervalId": "94-81",
+        "palaeoTriangles": 432362,
+        "palaeoAssetBytes": 686652,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25370686,
+        "foundationPublicationBytes": 593382,
+        "foundationPendingRetirementBytes": 0,
+        "foundationBatches": 6,
+        "jsHeapBytes": 129807588
+      },
+      "after": {
+        "status": "ready",
+        "requestedAgeMa": 0,
+        "palaeoMode": "fallback",
+        "palaeoIntervalId": "",
+        "palaeoTriangles": 0,
+        "palaeoAssetBytes": 0,
+        "foundationTriangles": 574075,
+        "foundationVertices": 404888,
+        "foundationStaticBytes": 39956632,
+        "foundationSourceBytes": 25450968,
+        "foundationPublicationBytes": 1269559,
+        "foundationPendingRetirementBytes": 593382,
+        "foundationBatches": 6,
+        "jsHeapBytes": 161307421
+      },
+      "trace": [
+        {
+          "t": 3838.0999999046326,
+          "status": "ready",
+          "age": 90,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 3936.7000000476837,
+          "status": "updating",
+          "age": 0,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 4009.7999999523163,
+          "status": "ready",
+          "age": 0,
+          "staticBytes": 39956632
+        },
+        {
+          "t": 4079.5999999046326,
+          "status": "updating",
+          "age": 0,
+          "staticBytes": 39956632
+        }
+      ]
+    }
+  ],
+  "browserErrors": []
+}

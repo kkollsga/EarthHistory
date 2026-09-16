@@ -49,7 +49,24 @@ const DIAGNOSTIC_KEYS = [
 ];
 const FOUNDATION_READY_TIMEOUT_MS = 40_000;
 const PALAEO_MODE_TIMEOUT_MS = 30_000;
+/**
+ * A capture that names its interval waits for that interval to be *published*,
+ * not merely selected. The LGM lowstand state is a detached band: reaching it
+ * is a cold fetch, decode and triangulation of a map no neighbour prefetch can
+ * warm, so its first publication is the slowest one this harness asks for and
+ * gets a budget of its own.
+ */
+const PALAEO_INTERVAL_TIMEOUT_MS = 90_000;
 const SETTLE_MS = 1_500;
+/**
+ * Zoom is driven by the wheel, so the closest regional framing is expressed as
+ * the camera distance to reach rather than a step count: the step size is the
+ * application's and a fixed count would silently re-frame if it changed. The
+ * walk stops early when the distance stops falling, which is the zoom stop.
+ */
+const ZOOM_WHEEL_DELTA = -240;
+const ZOOM_MAX_WHEEL_STEPS = 60;
+const ZOOM_DISTANCE_TOLERANCE = 0.005;
 
 /**
  * `on` is only reachable inside the Cao 2017 map-interval domain
@@ -88,6 +105,15 @@ const captures = [
   { file: "10-90ma-present-day-coordinate-on.png", age: 90, at: "-100,45", palaeo: true,
     note: "90 Ma ON with at= set to the present-day Western Interior Seaway coordinate; "
       + "the reconstruction has carried the seaway off-centre" },
+  { file: "11-21ka-doggerland-closest-off.png", age: 0.021, at: "3,55", palaeo: false,
+    zoomToDistance: 1.15,
+    note: "21 ka, southern North Sea / Doggerland, closest regional zoom, OFF "
+      + "(the control for the LGM lowstand shot)" },
+  { file: "11-21ka-doggerland-closest-on.png", age: 0.021, at: "3,55", palaeo: true,
+    zoomToDistance: 1.15, awaitIntervalId: "lgm",
+    note: "21 ka, southern North Sea / Doggerland, closest regional zoom, ON: the detached "
+      + "LGM lowstand state (26.5-19.5 ka, ETOPO 2022 at -120 m eustatic), where Doggerland "
+      + "is emergent land between Britain and the Netherlands" },
 ];
 
 function hashFor({ age, at, palaeo }) {
@@ -111,6 +137,40 @@ function startServer() {
     child.on("exit", (code) => fail(`test server exited early with code ${code}`));
     setTimeout(() => fail("test server did not start within 15 s"), 15_000).unref?.();
   });
+}
+
+/**
+ * Wheels the globe in until the camera reaches `target`, and reports what it
+ * actually reached. Stops at the zoom stop rather than spending the whole step
+ * budget against a distance that is no longer falling.
+ */
+async function zoomToCameraDistance(page, viewport, target) {
+  const readDistance = async () => Number(
+    await page.locator(GLOBE).getAttribute("data-camera-distance").catch(() => null));
+  await page.mouse.move(viewport.width / 2, Math.round(viewport.height * 0.55));
+  let distance = await readDistance();
+  let steps = 0;
+  let stalled = false;
+  while (steps < ZOOM_MAX_WHEEL_STEPS
+    && (!Number.isFinite(distance) || distance > target + ZOOM_DISTANCE_TOLERANCE)) {
+    await page.mouse.wheel(0, ZOOM_WHEEL_DELTA);
+    await page.waitForTimeout(150);
+    steps += 1;
+    const next = await readDistance();
+    if (Number.isFinite(distance) && Number.isFinite(next) && next >= distance - 1e-4) {
+      distance = next;
+      stalled = true;
+      break;
+    }
+    distance = next;
+  }
+  return {
+    targetDistance: target,
+    reachedDistance: Number.isFinite(distance) ? Number(distance.toFixed(4)) : null,
+    wheelSteps: steps,
+    reachedTarget: Number.isFinite(distance) && distance <= target + ZOOM_DISTANCE_TOLERANCE,
+    stoppedAtZoomStop: stalled,
+  };
 }
 
 /** Poll a dataset attribute until `accept` takes it, or the budget runs out. */
@@ -253,6 +313,15 @@ try {
         await page.waitForTimeout(150);
       }
     }
+    const zoom = capture.zoomToDistance === undefined
+      ? null : await zoomToCameraDistance(page, viewport, capture.zoomToDistance);
+    // After the zoom, not before it: the camera move is what the published
+    // interval has to survive, and at the LGM the first publication is a cold
+    // one that the zoom is allowed to overlap.
+    const interval = capture.awaitIntervalId === undefined ? null : await pollDataset(
+      page, "data-cao-palaeo-interval-id",
+      (value) => value === capture.awaitIntervalId, PALAEO_INTERVAL_TIMEOUT_MS,
+    );
     if (capture.openMapKey) {
       await page.locator(".surface-info summary").click();
       await page.waitForTimeout(250);
@@ -284,6 +353,7 @@ try {
       foundationStatusTimedOut: foundation.timedOut,
       interactions: {
         zoomSteps: capture.zoomSteps ?? 0,
+        zoom,
         openedMapKey: Boolean(capture.openMapKey),
         openedLayersPanel: Boolean(capture.openLayers),
       },
@@ -292,14 +362,20 @@ try {
         palaeoMode: capture.palaeo
           ? `poll data-cao-palaeo-coastline-mode in {on, fallback} (<= ${PALAEO_MODE_TIMEOUT_MS} ms)`
           : `poll data-cao-palaeo-coastline-mode === "off" (<= ${PALAEO_MODE_TIMEOUT_MS} ms)`,
+        palaeoIntervalId: capture.awaitIntervalId === undefined ? null
+          : `poll data-cao-palaeo-interval-id === "${capture.awaitIntervalId}" `
+            + `(<= ${PALAEO_INTERVAL_TIMEOUT_MS} ms)`,
         settleMs: SETTLE_MS,
       },
+      expectedPalaeoIntervalId: capture.awaitIntervalId ?? null,
+      palaeoIntervalTimedOut: interval?.timedOut ?? null,
       elapsedMs: Date.now() - started,
       diagnostics,
       paintedGlobePixels: painted,
       consoleErrors,
     });
     console.log(`${capture.file}: mode=${mode.value} interval=${diagnostics.caoPalaeoIntervalId} ` +
+      (zoom ? `distance=${zoom.reachedDistance} ` : "") +
       `triangles=${diagnostics.caoPalaeoTriangles} land=${painted.land} shallow=${painted.shallow}` +
       (consoleErrors.length ? ` errors=${consoleErrors.length}` : ""));
     await context.close();

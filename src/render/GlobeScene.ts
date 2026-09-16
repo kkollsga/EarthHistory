@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { GlobeStats, LayerVisibility, LonLat, SurfaceStage, WorldSnapshot } from "../data";
 import {
   buildPalaeoOutlineToneTexels,
+  chartPickStateFromMotionFrame,
   decodePalaeoOutlineToneTables,
   gplatesToRendererDirection,
   numberScalarOps,
@@ -36,23 +37,21 @@ import {
   CaoFoundationSurfaceRenderer,
   type CaoFoundationDiagnostics,
   type CaoFoundationSurfaceHit,
+  type CaoFoundationSurfaceView,
 } from "./reconstruction/caoFoundation";
 import {
-  caoCompositeCoversDirection,
-  caoCompositeReferenceSurfaceClass,
-  caoPalaeoCoastlineDomainBand,
-  intersectCaoComposite,
-} from "./reconstruction/palaeoComposite";
+  caoSurfaceSetCoversDirection,
+  caoSurfaceSetReferenceSurfaceClass,
+  intersectCaoSurfaceSet,
+  type CaoSurfaceSetView,
+} from "./reconstruction/surfaceSet";
 import {
+  caoPalaeoCoastlineDomainBand,
+  resolveReleasableNativeSurfaceClasses,
   resolveSurfaceVisibility,
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
   type SurfaceVisibilityResolution,
 } from "./reconstruction/surfaceVisibility";
-import {
-  NO_PALAEO_MATERIAL_CORRECTIONS,
-  palaeoChartPickState,
-  preparedCaoRevisionForPalaeoInterval,
-} from "./reconstruction/palaeoPublication";
 import { CAO_SOURCE_AGE_DOMAIN_MA } from "../reconstruction/caoDomain";
 import {
   GpuRetirementOwner,
@@ -502,32 +501,59 @@ function createCaoGpuRetirementOwner(
 }
 
 /**
- * Bounds for the palaeo-coastline instance. It streams one Cao 2017 map
- * interval at a time, so it replaces static geometry where the native instance
- * never may.
+ * Bounds for the whole surface set: the Cao 2024 units and the Cao 2017 map
+ * interval that replaces them in the land, continents and mountain slots.
  *
- * Measured 2026-09-15 over the promoted `lm`+`sm`+`m` set, after the cookie-cut
- * seam buffer and the 1,000 km frame-conflict drop: the worst interval refines
- * to 393,375 vertices and 605,192 triangles (the promoted manifest's own
- * reservation), against 300,697 / 483,487 before the seam buffer. The limits
- * below keep about a quarter of headroom over that, as they did before. The
- * refined counts are roughly 1.9x the compiler's own triangle estimate, because
- * this runtime bisects conformingly while the compiler models each triangle
- * alone; the 1 degree edge bound is the chord-sag contract and cannot be relaxed
- * to bring it down. One resource and 40 MiB of retirement cover a single
- * interval swap; the publication ledger is a palette and per-chart pose table
- * only.
+ * One renderer holds both, so the ceilings are the union of what each instance
+ * reserved before, not the larger of the two. Probed on the loaded public
+ * package 2026-09-16: 404,888 Cao 2024 surface vertices and 574,075 triangles,
+ * plus 51,048 country segments at 1:50m — drawn as screen-space quads, four
+ * expanded corners and two triangles each — preflighting at 609,080 vertices
+ * and 676,171 triangles. Measured 2026-09-15 over the promoted `lm`+`sm`+`m`
+ * set, after the cookie-cut seam buffer and the 1,000 km frame-conflict drop:
+ * the worst map interval refines to 393,375 vertices and 605,192 triangles (the
+ * promoted manifest's own reservation). The refined counts are roughly 1.9x the
+ * compiler's own triangle estimate, because this runtime bisects conformingly
+ * while the compiler models each triangle alone; the 1 degree edge bound is the
+ * chord-sag contract and cannot be relaxed to bring it down.
+ *
+ * The union of the two worst cases is about 1.00 M vertices and 1.28 M
+ * triangles, which the ceilings below carry with the same headroom each
+ * instance kept. Retained source is 48 + 30 MiB minus the headroom that was
+ * duplicated.
+ *
+ * The publication ledger is the one number the union is not simply the larger
+ * of: it now holds both members at once. Measured on the loaded public package
+ * 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a 5,675-entry
+ * palette, its per-chart pose table, the exact-knot boundary and ownership
+ * layers and the outline tone texture. A map-interval publication is a palette
+ * and a pose table only, under the 512 KiB its own instance reserved. Inside
+ * the band a scrub sample must fit beside both of those and beside the
+ * publication it replaces, which is still retiring behind the submission fence:
+ * 676 + 512 + 676 + 676 KiB is over 2 MiB, so 2 MiB would refuse a scrub sample
+ * and blank the globe. 4 MiB carries that worst case with the headroom the Cao
+ * 2024 arm had on its own.
  */
-const CAO_PALAEO_RENDERER_LIMITS = Object.freeze({
-  maxBatches: 64,
-  maxVertices: 500_000,
-  maxTriangles: 760_000,
-  maxRetainedSourceBytes: 30 * 1024 * 1024,
-  maxPublicationBytes: 512 * 1024,
-  maxSpatialIndexBytes: 512 * 1024,
+const CAO_SURFACE_SET_LIMITS = Object.freeze({
+  maxBatches: 512,
+  maxVertices: 1_000_000,
+  maxTriangles: 1_280_000,
+  maxRetainedSourceBytes: 64 * 1024 * 1024,
+  maxPublicationBytes: 4 * 1024 * 1024,
+  maxSpatialIndexBytes: 1024 * 1024,
 });
-const CAO_PALAEO_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_PALAEO_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
+/**
+ * Publications retire one member at a time: a scrub sample replaces the Cao
+ * 2024 member, a crossing replaces the map interval, and a crossing can land in
+ * the frame after a sample. Three resources and 44 MiB cover both in flight —
+ * the two the Cao 2024 arm always allowed, plus the one map-interval
+ * publication the Cao 2017 arm did.
+ */
+const CAO_SURFACE_RETIREMENT_MAX_RESOURCES = 3;
+const CAO_SURFACE_RETIREMENT_MAX_BYTES = 44 * 1024 * 1024;
+/** Only a map-interval change replaces static geometry, one swap at a time. */
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 1;
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -598,7 +624,6 @@ export class GlobeScene {
   private readonly focusMarkerProjectedPosition = new THREE.Vector3();
   private readonly controls: OrbitControls;
   private readonly caoFoundationRenderer: CaoFoundationSurfaceRenderer;
-  private readonly caoPalaeoRenderer: CaoFoundationSurfaceRenderer;
   private readonly globeMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
   private readonly cloudMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   private resizeObserver: ResizeObserver;
@@ -614,12 +639,6 @@ export class GlobeScene {
     layerEnabled: false, band: "none", published: false,
     hysteresis: SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
   });
-  /**
-   * The palaeo-coastline mode last applied to the native instance. Cached
-   * because switching it walks the published group and rebuilds the renderer
-   * diagnostics, and the resolution is applied every frame.
-   */
-  private nativeSurfaceModeIsPalaeo = false;
   private palaeoOutlineToneTable: Uint8Array | null = null;
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
@@ -689,35 +708,19 @@ export class GlobeScene {
     const maximumTextureSize = backend === "webgpu"
       ? renderer.backend?.device?.limits?.maxTextureDimension2D ?? 2_048
       : renderer.capabilities?.maxTextureSize ?? 2_048;
+    // One renderer owns the whole surface set. It keeps two retirement owners —
+    // one for publications, one for the static geometry a map-interval change
+    // replaces — because a single owner bounded at one pending resource cannot
+    // hold both retirements of the same swap.
     this.caoFoundationRenderer = new CaoFoundationSurfaceRenderer(
       this.globeGroup,
-      createCaoGpuRetirementOwner(renderer, backend),
-      // Country-line segments are drawn as screen-space quads, four expanded
-      // corners and two triangles each, so the vertex and triangle ceilings
-      // carry 4x and 2x the segment count rather than the package's own line
-      // vertices. Probed on the loaded public package 2026-09-16: 404,888
-      // surface vertices and 574,075 surface triangles, plus 51,048 country
-      // segments at 1:50m, preflighting at 609,080 vertices and 676,171
-      // triangles. The headroom above is for segments a later package adds.
-      { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
-        maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
-        maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
-    );
-    // A second instance owns the palaeo-coastline charts. It keeps its own
-    // retirement owners — one for publications, one for the static geometry a
-    // map-interval change replaces — because a single owner bounded at one
-    // pending resource cannot hold both retirements of the same swap.
-    this.caoPalaeoRenderer = new CaoFoundationSurfaceRenderer(
-      this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend,
-        CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES),
-      { ...CAO_PALAEO_RENDERER_LIMITS, maxTextureSize: maximumTextureSize },
-      { allowStaticGeometryReplacement: true,
+        CAO_SURFACE_RETIREMENT_MAX_RESOURCES, CAO_SURFACE_RETIREMENT_MAX_BYTES),
+      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize },
+      {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
-          CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES) },
+          CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
     );
-    this.caoPalaeoRenderer.setPalaeoCoastlineMode(true);
-    this.caoPalaeoRenderer.setDomainVisibility(false);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -919,7 +922,11 @@ export class GlobeScene {
     // previous PreparedCaoRevision prop during in-domain age transitions so this
     // path is not used for ordinary scrubbing — that avoids a blank globe.
     if (revision === null) {
-      this.caoFoundationRenderer.clear();
+      // Only the Cao 2024 member: an age outside the Cao domain is outside the
+      // Cao 2017 band as well, and dropping the map interval here would leave
+      // this scene's own record of the published interval disagreeing with the
+      // set.
+      this.caoFoundationRenderer.clear("native");
       this.hasNativePublication = false;
       this.guideLabelTonesStaleSince = performance.now();
       this.preparedAnchors = [];
@@ -969,6 +976,9 @@ export class GlobeScene {
       dataset.caoFoundationTriangles = String(diagnostics.triangles);
       dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
       dataset.caoFoundationStaticBytes = String(diagnostics.retainedStaticBytes);
+      dataset.caoFoundationStaticSourceBytes = String(diagnostics.retainedStaticSourceBytes);
+      dataset.caoFoundationStaticGpuBytes = String(diagnostics.retainedStaticGpuBytes);
+      this.publishCaoResidencyDataset();
       dataset.caoFoundationSourceBytes = String(diagnostics.activeSourceBytes);
       dataset.caoFoundationPublicationBytes = String(diagnostics.retainedPublicationBytes);
       dataset.caoFoundationPendingRetirementBytes = String(diagnostics.pendingRetirementBytes);
@@ -977,6 +987,8 @@ export class GlobeScene {
       dataset.caoFoundationCountryLineBatches = String(diagnostics.countryLineBatches);
       dataset.caoFoundationCountryLineVertices = String(diagnostics.countryLineVertices);
       dataset.caoFoundationCountryLineSegments = String(diagnostics.countryLineSegments);
+      dataset.caoFoundationCountryLineDrawnSegments = String(diagnostics.countryLineDrawnSegments);
+      dataset.caoFoundationCountryLineDuplicates = String(diagnostics.countryLineDuplicateSegments);
       dataset.caoFoundationNativeBoundarySegments = String(diagnostics.nativeBoundarySegments);
       dataset.caoFoundationNativeBoundarySourceAgeMa = diagnostics.nativeBoundarySourceAgeMa === null
         ? "" : String(diagnostics.nativeBoundarySourceAgeMa);
@@ -1040,11 +1052,11 @@ export class GlobeScene {
     }
     try {
       if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
-        this.caoPalaeoRenderer.armStaticGeometryChange(
+        this.caoFoundationRenderer.armStaticGeometryChange(
           `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
       }
-      const diagnostics = this.caoPalaeoRenderer.publish(
-        preparedCaoRevisionForPalaeoInterval(interval), this.verticalExaggeration);
+      const diagnostics = this.caoFoundationRenderer.publish(
+        interval, this.verticalExaggeration, "interval");
       this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
       this.palaeoStaticIntervalId = interval.intervalId;
@@ -1059,7 +1071,7 @@ export class GlobeScene {
       // names the reason in the dataset rather than throwing out of a React
       // effect and blanking the globe. The guards themselves — an unarmed
       // geometry swap, a reservation miss — are proven red in
-      // `palaeoPublication.test.ts`, where the throw is the assertion.
+      // `caoFoundation.test.ts`, where the throw is the assertion.
       this.clearPalaeoPublication();
       this.updatePalaeoDomainVisibility();
       this.palaeoPublicationFailureReason =
@@ -1099,10 +1111,10 @@ export class GlobeScene {
   retargetPalaeoMotion(frame: CaoPalaeoIntervalFrame): CaoFoundationDiagnostics | null {
     if (this.publishedPalaeoIntervalId === null
         || this.publishedPalaeoIntervalId !== frame.intervalId) return null;
-    const pick = palaeoChartPickState(frame.charts);
-    const diagnostics = this.caoPalaeoRenderer.retargetMotion(
+    const pick = chartPickStateFromMotionFrame(frame);
+    const diagnostics = this.caoFoundationRenderer.retargetMotion(
       frame.paletteValues, frame.entryCount, 0, pick.chartPoses, pick.chartActive,
-      frame.requestedAgeMa, NO_PALAEO_MATERIAL_CORRECTIONS);
+      frame.requestedAgeMa, frame.materialCorrections, "interval");
     if (this.motionProbeRecording) {
       const sampled = this.motionProbePose(
         pick.chartPoses, pick.chartActive, this.motionProbePalaeoChart);
@@ -1194,7 +1206,7 @@ export class GlobeScene {
    */
   private clearPalaeoPublication(): void {
     if (this.publishedPalaeoIntervalId === null) return;
-    this.caoPalaeoRenderer.clear();
+    this.caoFoundationRenderer.clear("interval");
     this.publishedPalaeoIntervalId = null;
     this.palaeoIntervalSourceBytes = 0;
     this.guideLabelTonesStaleSince = performance.now();
@@ -1337,7 +1349,6 @@ export class GlobeScene {
     this.controls.removeEventListener("end", this.handleControlsEnd);
     this.controls.dispose();
     this.caoFoundationRenderer.disposeForRendererTeardown();
-    this.caoPalaeoRenderer.disposeForRendererTeardown();
     this.markerTexture.dispose();
     this.focusLockMarkerTexture.dispose();
     this.focusLockMarker = null;
@@ -1496,10 +1507,9 @@ export class GlobeScene {
    * `updatePalaeoDomainVisibility` applies it, last.
    */
   private applyLayerVisibility(): void {
-    const record = { borders: this.layers.borders, tectonics: this.layers.tectonics,
-      palaeoCoastlines: this.nativeSurfaceModeIsPalaeo };
-    this.caoFoundationRenderer.setLayerVisibility(record);
-    this.caoPalaeoRenderer.setLayerVisibility({ ...record, palaeoCoastlines: true });
+    this.caoFoundationRenderer.setLayerVisibility({ borders: this.layers.borders,
+      tectonics: this.layers.tectonics,
+      palaeoCoastlines: this.caoFoundationRenderer.surfaceMode() === "palaeo" });
     // Turning the mode off releases every palaeo interval lease in the runtime,
     // so a publication left standing here would keep drawing geometry whose
     // payload the interval store is already free to evict.
@@ -1517,27 +1527,58 @@ export class GlobeScene {
    * before the domain visibility is set, which is the same answer as after it:
    * the publication identity does not depend on whether the group is visible.
    */
+  /**
+   * Publishes what the Cao 2024 unit actually holds on the GPU, and which
+   * classes D1 has released. Separate from `caoFoundationStaticBytes`, which is
+   * the resource's fixed budget and does not move when buffers are handed back.
+   */
+  private publishCaoResidencyDataset(): void {
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.gpuResidentBytes());
+    dataset.caoFoundationReleasedClasses =
+      this.caoFoundationRenderer.releasedSurfaceClasses().join(" ");
+  }
+
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
     const resolved = resolveSurfaceVisibility({
       layerEnabled: this.layers.palaeoCoastlines,
       band: caoPalaeoCoastlineDomainBand(this.palaeoRequestedAgeMa),
-      published: this.caoPalaeoRenderer.publishedIdentity() !== null,
+      published: this.caoFoundationRenderer.publishedIdentity("interval") !== null,
       hysteresis: this.surfaceVisibility.hysteresis,
       surfaceWithheld: this.caoFoundationWithheld,
       advanceHysteresis,
     });
+    const previousComposition = this.surfaceVisibility.composition;
     this.surfaceVisibility = resolved;
-    const palaeo = this.caoPalaeoRenderer.setDomainVisibility(resolved.hysteresis.visible);
-    // Native land, the composite pick and coverage, and the guide-label ink all
-    // follow the resolved composition, so a fallback age keeps exactly today's
-    // composition instead of hiding land nothing has replaced. The palaeo
-    // instance can be on screen while the native instance stays in its own
-    // stack: that is exactly the detached LGM band, where the lowstand shelf is
-    // drawn over today's land rather than instead of it.
-    const palaeoMode = resolved.nativeSurfaceMode === "palaeo";
-    if (palaeoMode !== this.nativeSurfaceModeIsPalaeo) {
-      this.nativeSurfaceModeIsPalaeo = palaeoMode;
-      this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+    const palaeo = this.caoFoundationRenderer.setDomainVisibility(
+      resolved.hysteresis.visible, "interval");
+    // Native land, the pick and coverage set, and the guide-label ink all follow
+    // the resolved composition, so a fallback age keeps exactly today's
+    // composition instead of hiding land nothing has replaced. The map interval
+    // can be on screen while the Cao 2024 unit stays in its own stack: that is
+    // exactly the detached LGM band, where the lowstand shelf is drawn over
+    // today's land rather than instead of it.
+    //
+    // Keyed on the composition and not on the native mode, because `native` and
+    // `lgm` share that mode and not their class set: the lowstand overlay is
+    // drawn in one and not the other. Applying it walks the published groups, so
+    // a frame that resolves the same composition costs nothing.
+    if (resolved.composition !== previousComposition) {
+      // The slots decide what is drawn: land and continents carry the Cao 2017
+      // `lm`/`sm` batches inside the band and the Cao 2024 fills outside it, the
+      // mountain slot is filled only there, and the land-appearance corrections
+      // are hidden wherever the map replaces land.
+      this.caoFoundationRenderer.applySurfaceComposition(
+        resolved.visibleClasses, resolved.nativeSurfaceMode);
+      // D1. The composition decides which native classes it replaces outright;
+      // their vertex and index buffers are handed back for as long as it lasts
+      // and uploaded again on the way out. The CPU source stays resident, so
+      // picking, coverage and the guide-label ink are unaffected.
+      this.caoFoundationRenderer.setReleasableSurfaceClasses(
+        resolveReleasableNativeSurfaceClasses(resolved.composition));
+      // The release happens here and nowhere else, so the residency keys are
+      // refreshed here too: a composition change moves them without a publish.
+      this.publishCaoResidencyDataset();
     }
     const drawn = resolved.palaeoDrawn;
     const dataset = this.renderer.domElement.dataset;
@@ -1554,13 +1595,21 @@ export class GlobeScene {
     // tables are fetched once per enablement and stay resident across a scrub,
     // but they tone nothing at a fallback age — `applyCountryLineToneTable`
     // clears the table there — so a fallback reports zero exactly as its
-    // interval id, its charts and its triangles do.
-    const assetBytes = drawn
-      ? this.palaeoIntervalSourceBytes + (this.palaeoTonePayload?.byteLength ?? 0) : 0;
+    // interval id, its charts and its triangles do. `caoPalaeoAssetBytes` keeps
+    // its historical meaning (drawn interval + the resident tone table, the
+    // 2026-09-15 bench rows read it that way); the two halves are published
+    // beside it so a comparison can tell a payload change from a tone-table
+    // change — the 1:50m outlines grew the table 75,332 → 319,082 B, which
+    // read as a per-interval "+59–196 %" in the P6 record until separated.
+    const intervalBytes = drawn ? this.palaeoIntervalSourceBytes : 0;
+    const toneBytes = drawn ? this.palaeoTonePayload?.byteLength ?? 0 : 0;
+    const assetBytes = intervalBytes + toneBytes;
     if (intervalId !== this.reportedPalaeoIntervalId || assetBytes !== this.reportedPalaeoAssetBytes) {
       this.reportedPalaeoIntervalId = intervalId;
       this.reportedPalaeoAssetBytes = assetBytes;
       dataset.caoPalaeoIntervalId = intervalId ?? "";
+      dataset.caoPalaeoIntervalBytes = String(intervalBytes);
+      dataset.caoPalaeoToneBytes = String(toneBytes);
       dataset.caoPalaeoAssetBytes = String(assetBytes);
     }
     this.applyCountryLineToneTable(resolved.mode === "on");
@@ -1609,15 +1658,26 @@ export class GlobeScene {
     dataset.caoOutlineToneLightSegments = String(counts.lightSegments);
   }
 
-  /** Nearest hit across both instances, ranked by one precedence table. */
+  /**
+   * Every surface on screen, in draw order, each carrying the mode it is drawn
+   * in. The Cao 2017 member is in the set exactly while the resolved composition
+   * draws it, which is also the only condition under which its charts are on
+   * screen; a member with nothing published answers null and is absent.
+   */
+  private surfaceSetView(nativeView: CaoFoundationSurfaceView | null): CaoSurfaceSetView {
+    const palaeoView = this.surfaceVisibility.palaeoDrawn
+      ? this.caoFoundationRenderer.surfaceView("interval") : null;
+    return [nativeView, palaeoView].filter((view): view is CaoFoundationSurfaceView =>
+      view !== null);
+  }
+
+  /** Nearest hit across the whole set, ranked by one precedence table. */
   private intersectCompositeRay(
     rayOrigin: [number, number, number],
     rayDirection: [number, number, number],
   ): CaoFoundationSurfaceHit | null {
-    return intersectCaoComposite(this.caoFoundationRenderer.surfaceView(),
-      this.caoPalaeoRenderer.surfaceView(), rayOrigin, rayDirection,
-      { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
+    return intersectCaoSurfaceSet(
+      this.surfaceSetView(this.caoFoundationRenderer.surfaceView()), rayOrigin, rayDirection);
   }
 
   private rebuildOverlays(): void {
@@ -1679,15 +1739,17 @@ export class GlobeScene {
     // the fixed editorial answer.
     const editorialCovered = GUIDE_LABEL_EDITORIAL_TONE === "dark";
     const started = performance.now();
+    // Resolved once for the whole budgeted round rather than per probe: the set
+    // cannot change while this loop runs, and rebuilding it per probe would
+    // allocate once per scanned label.
+    const views = this.surfaceSetView(this.caoFoundationRenderer.surfaceView());
     const step = advanceGuideLabelToneScan(this.guideLabelToneScan,
       GUIDE_LABEL_TONE_PROBE_BUDGET_PER_FRAME, (direction) => native
         // Land only: shelf water and mapped shallow sea are dark backgrounds
-        // like the open ocean, so they take the light ink too. The composite is
-        // what keeps a palaeo landmass dark once native land is hidden.
-        ? caoCompositeCoversDirection(this.caoFoundationRenderer.surfaceView(),
-          this.caoPalaeoRenderer.surfaceView(), [direction.x, direction.y, direction.z],
-          { includeShelf: false, mode: this.caoFoundationRenderer.surfaceMode(),
-            palaeoVisible: this.surfaceVisibility.palaeoDrawn })
+        // like the open ocean, so they take the light ink too. The set is what
+        // keeps a palaeo landmass dark once native land is hidden.
+        ? caoSurfaceSetCoversDirection(views, [direction.x, direction.y, direction.z],
+          { includeShelf: false })
         : editorialCovered);
     this.guideLabelToneRoundProbes += step.probes;
     this.guideLabelToneRoundMs += performance.now() - started;
@@ -2003,12 +2065,10 @@ export class GlobeScene {
     const longitude = longitudeDegrees * Math.PI / 180;
     const latitude = latitudeDegrees * Math.PI / 180;
     const radius = Math.cos(latitude);
-    return caoCompositeReferenceSurfaceClass(
-      this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView(),
-      this.caoPalaeoRenderer.surfaceView(),
-      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)],
-      { mode: this.caoFoundationRenderer.surfaceMode(),
-        palaeoVisible: this.surfaceVisibility.palaeoDrawn });
+    return caoSurfaceSetReferenceSurfaceClass(
+      this.surfaceSetView(
+        this.caoFoundationWithheld ? null : this.caoFoundationRenderer.surfaceView()),
+      [radius * Math.cos(longitude), radius * Math.sin(longitude), Math.sin(latitude)]);
   };
 
   /**
