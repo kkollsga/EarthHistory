@@ -8,6 +8,7 @@ import {
   loadVerifiedCaoStaticFoundation,
   loadVerifiedPalaeoClassCatalogs,
   selectPalaeoIntervalForAge,
+  surfaceUnitsEqual,
   warmVerifiedCaoCheckpointAssets,
   type LoadedCaoFoundation,
   type SurfaceUnitId,
@@ -51,9 +52,59 @@ type MotionSelection = {
   readonly sourceBytes: number;
 };
 
+/**
+ * One request chain, keyed by the kind of `SurfaceUnitId` it streams.
+ *
+ * Both kinds run the same shape — a serial that makes older work stale, one
+ * in-flight abort controller, the unit that work is for, and a bounded set of
+ * prepared leases — and they used to run it twice, in two sets of fields whose
+ * only real difference was three words of policy. The policy is now data:
+ *
+ *  - `maximumLeases`, because the two publications are budgeted separately (two
+ *    native revisions, two map intervals); a chain full of native leases must
+ *    not refuse a map interval.
+ *  - `supersedesSameUnit`, because a native prepare is per-age and every request
+ *    supersedes the last, while an interval is the streaming unit for a whole
+ *    band of ages: restarting it on every scrub sample meant it only ever landed
+ *    once the gesture stopped.
+ *
+ * Keeping them separate *instances* is the point. Turning the mode on, or
+ * scrubbing across a map interval, must not disturb a native prepare in flight,
+ * so neither chain's serial or controller may be the other's.
+ */
+interface SurfaceRequestChain {
+  serial: number;
+  active: AbortController | null;
+  /** The unit the in-flight request is for; null before any catalog resolves. */
+  pendingUnit: SurfaceUnitId | null;
+  readonly leases: Map<string, () => void>;
+  readonly maximumLeases: number;
+  readonly supersedesSameUnit: boolean;
+  readonly leaseBudgetMessage: string;
+}
+
+function createSurfaceRequestChain(
+  maximumLeases: number,
+  supersedesSameUnit: boolean,
+  leaseBudgetMessage: string,
+): SurfaceRequestChain {
+  return { serial: 0, active: null, pendingUnit: null, leases: new Map(), maximumLeases,
+    supersedesSameUnit, leaseBudgetMessage };
+}
+
 export class CaoReconstructionRuntime {
-  private serial = 0;
-  private active: AbortController | null = null;
+  /**
+   * The two chains, keyed by unit kind. `checkpoint` streams the Cao 2024
+   * revision for a requested age — the age is the key even though the display
+   * bracket resolves two checkpoints from it — and `interval` streams one Cao
+   * 2017 map interval.
+   */
+  private readonly chains: Readonly<Record<SurfaceUnitId["kind"], SurfaceRequestChain>> = Object.freeze({
+    checkpoint: createSurfaceRequestChain(2, true,
+      "release a Cao prepared revision before requesting another"),
+    interval: createSurfaceRequestChain(2, false,
+      "release a palaeo-coastline interval before requesting another"),
+  });
   private readonly lifetime = new AbortController();
   private readonly metadata;
   private readonly staticFoundation;
@@ -82,22 +133,12 @@ export class CaoReconstructionRuntime {
    * its question rather than this class's.
    */
   private readonly surfaces: CaoSurfaceResidencyStore;
-  private readonly leases = new Map<string, () => void>();
-  /**
-   * Palaeo-coastline mode runs its own request chain: its own serial, abort
-   * controller, lease counter and interval store, so turning the mode on or
-   * scrubbing across a map interval never disturbs a native prepare in flight.
-   */
   private palaeoEnabled = false;
-  private palaeoSerial = 0;
-  private palaeoActive: AbortController | null = null;
   private palaeoCatalogController: AbortController | null = null;
   private palaeoCatalogs: Promise<readonly LoadedPalaeoClassCatalog[]> | null = null;
   private resolvedPalaeoCatalogs: readonly LoadedPalaeoClassCatalog[] | null = null;
-  private palaeoPendingIntervalId: string | null = null;
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
   private palaeoOutlineTones: Promise<Uint8Array> | null = null;
-  private readonly palaeoLeases = new Map<string, () => void>();
 
   readonly manifest: ReconstructionPackageManifestV2;
 
@@ -124,12 +165,10 @@ export class CaoReconstructionRuntime {
     if (this.lifetime.signal.aborted) throw new Error("Cao reconstruction runtime disposed");
     if (!Number.isFinite(requestedAgeMa) || requestedAgeMa < this.manifest.ageDomainMa.youngest
         || requestedAgeMa > this.manifest.ageDomainMa.oldest) throw new Error("age outside Cao package domain");
-    if (this.leases.size >= 2) throw new Error("release a Cao prepared revision before requesting another");
+    this.guardLeaseBudget("checkpoint");
     this.prioritizeAge(requestedAgeMa);
-    this.active?.abort();
-    const controller = new AbortController();
-    this.active = controller;
-    return { signal: controller.signal, prepared: this.prepare(++this.serial, requestedAgeMa, controller.signal) };
+    const { controller, requestId } = this.beginRequest("checkpoint", checkpointUnit(requestedAgeMa));
+    return { signal: controller.signal, prepared: this.prepare(requestId, requestedAgeMa, controller.signal) };
   }
 
   /**
@@ -171,24 +210,25 @@ export class CaoReconstructionRuntime {
   }
 
   dispose(): void {
-    this.active?.abort();
+    this.chains.checkpoint.active?.abort();
+    this.chains.interval.active?.abort();
     this.background?.abort();
     this.lifetime.abort();
-    this.palaeoActive?.abort();
     this.palaeoCatalogController?.abort();
     this.surfaces.dispose();
     this.palaeoRunner?.dispose();
     this.palaeoRunner = null;
     this.palaeoCatalogs = null;
     this.resolvedPalaeoCatalogs = null;
-    for (const release of [...this.leases.values()]) release();
-    for (const release of [...this.palaeoLeases.values()]) release();
+    for (const chain of Object.values(this.chains)) {
+      for (const release of [...chain.leases.values()]) release();
+    }
     this.timelineListeners.clear();
   }
 
   cancelActive(): void {
-    this.active?.abort();
-    this.active = null;
+    this.chains.checkpoint.active?.abort();
+    this.chains.checkpoint.active = null;
   }
 
   /** Supersedes pending foreground/background I/O before the App pumps the next frame. */
@@ -207,13 +247,13 @@ export class CaoReconstructionRuntime {
     const palaeoCatalogBytes = this.resolvedPalaeoCatalogs
       ? this.resolvedPalaeoCatalogs.reduce((sum, entry) => sum + entry.asset.bytes, 0) : 0;
     const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
-      intervalStore: palaeoStore, preparedLeaseCount: this.palaeoLeases.size,
+      intervalStore: palaeoStore, preparedLeaseCount: this.chains.interval.leases.size,
       totalSourceBytes: palaeoCatalogBytes + palaeoStore.residentSourceBytes
         + palaeoStore.pendingReservedSourceBytes });
     return Object.freeze({ foundationResidentSourceBytes,
       foregroundReservedSourceBytes,
       backgroundReservedSourceBytes: this.backgroundReservedSourceBytes,
-      checkpoint, preparedLeaseCount: this.leases.size, palaeo,
+      checkpoint, preparedLeaseCount: this.chains.checkpoint.leases.size, palaeo,
       totalRuntimeSourceBytes: foundationResidentSourceBytes + foregroundReservedSourceBytes
         + checkpoint.residentSourceBytes
         + checkpoint.pendingReservedSourceBytes + this.backgroundReservedSourceBytes
@@ -309,12 +349,39 @@ export class CaoReconstructionRuntime {
     for (const listener of this.timelineListeners) listener(this.timelineState);
   }
 
+  /**
+   * Refuses a request the chain has no lease left for. Separate from
+   * `beginRequest` because the budget is checked before anything else the
+   * request would do: a refused request must not have moved the foreground age
+   * or aborted the work in flight.
+   */
+  private guardLeaseBudget(kind: SurfaceUnitId["kind"]): void {
+    const chain = this.chains[kind];
+    if (chain.leases.size >= chain.maximumLeases) throw new Error(chain.leaseBudgetMessage);
+  }
+
+  /** Supersedes the work in flight per the chain's policy and opens a new request. */
+  private beginRequest(
+    kind: SurfaceUnitId["kind"],
+    unit: SurfaceUnitId | null,
+  ): { readonly controller: AbortController; readonly requestId: number } {
+    const chain = this.chains[kind];
+    if (chain.supersedesSameUnit
+        || (chain.pendingUnit !== null && !surfaceUnitsEqual(unit, chain.pendingUnit))) {
+      chain.active?.abort();
+    }
+    if (unit !== null) chain.pendingUnit = unit;
+    const controller = new AbortController();
+    chain.active = controller;
+    return { controller, requestId: ++chain.serial };
+  }
+
   private prioritizeAge(requestedAgeMa: number): void {
     if (requestedAgeMa === this.foregroundAgeMa) return;
     this.foregroundAgeMa = requestedAgeMa;
     this.foregroundChangedAt = Date.now();
-    this.active?.abort();
-    this.active = null;
+    this.chains.checkpoint.active?.abort();
+    this.chains.checkpoint.active = null;
     // The motion palette covers every age, so changing the age starts no motion
     // I/O and cancels none: only the resident palette decides readiness.
     // Background timeline warming is age-independent and continues untouched.
@@ -385,11 +452,12 @@ export class CaoReconstructionRuntime {
     if (enabled && !palaeo) throw new Error("Cao package has no palaeo-coastline section");
     if (enabled === this.palaeoEnabled) return;
     this.palaeoEnabled = enabled;
-    // Every in-flight palaeo prepare is stale the moment the mode changes.
-    this.palaeoSerial += 1;
-    this.palaeoActive?.abort();
-    this.palaeoActive = null;
-    this.palaeoPendingIntervalId = null;
+    // Every in-flight interval request is stale the moment the mode changes.
+    const chain = this.chains.interval;
+    chain.serial += 1;
+    chain.active?.abort();
+    chain.active = null;
+    chain.pendingUnit = null;
     if (enabled) {
       const controller = new AbortController();
       this.palaeoCatalogController = controller;
@@ -398,7 +466,7 @@ export class CaoReconstructionRuntime {
       void this.palaeoCatalogs.catch(() => {});
       return;
     }
-    for (const release of [...this.palaeoLeases.values()]) release();
+    for (const release of [...chain.leases.values()]) release();
     this.palaeoCatalogController?.abort();
     this.palaeoCatalogController = null;
     this.palaeoCatalogs = null;
@@ -433,7 +501,7 @@ export class CaoReconstructionRuntime {
 
   /** Outstanding palaeo interval leases. A toggle must always bring this back to 0. */
   get palaeoLeaseCount(): number {
-    return this.palaeoLeases.size;
+    return this.chains.interval.leases.size;
   }
 
   /**
@@ -550,12 +618,12 @@ export class CaoReconstructionRuntime {
     if (!record) return null;
     const interval = this.residentInterval(record.intervalId);
     if (!interval) return null;
-    const serial = this.palaeoSerial;
+    const serial = this.chains.interval.serial;
     const paletteEntries = await this.palaeoPaletteEntries();
     // Re-checked after the only await: a mode toggle or an interval change
     // during the palette wait makes this frame a pose for geometry that is no
     // longer on screen.
-    if (!this.palaeoEnabled || serial !== this.palaeoSerial || this.lifetime.signal.aborted) {
+    if (!this.palaeoEnabled || serial !== this.chains.interval.serial || this.lifetime.signal.aborted) {
       throw new DOMException("stale palaeo-coastline motion evaluation", "AbortError");
     }
     return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
@@ -579,30 +647,25 @@ export class CaoReconstructionRuntime {
         || requestedAgeMa > palaeo.ageDomainMa.oldest) {
       throw new Error("age outside the palaeo-coastline domain");
     }
-    if (this.palaeoLeases.size >= 2) {
-      throw new Error("release a palaeo-coastline interval before requesting another");
-    }
+    this.guardLeaseBudget("interval");
     const intervalId = this.resolvedPalaeoCatalogs
       ? selectPalaeoIntervalForAge(this.resolvedPalaeoCatalogs, requestedAgeMa)?.intervalId ?? null
       : null;
-    if (this.palaeoPendingIntervalId !== null && intervalId !== this.palaeoPendingIntervalId) {
-      this.palaeoActive?.abort();
-    }
-    if (intervalId !== null) this.palaeoPendingIntervalId = intervalId;
-    const controller = new AbortController();
-    this.palaeoActive = controller;
+    const { controller, requestId } = this.beginRequest("interval",
+      intervalId === null ? null : intervalUnit(intervalId));
     return { signal: controller.signal,
-      prepared: this.preparePalaeo(++this.palaeoSerial, requestedAgeMa, controller.signal) };
+      prepared: this.preparePalaeo(requestId, requestedAgeMa, controller.signal) };
   }
 
   /** Warms the interval covering an age without taking a lease or reporting failure. */
   async prefetchPalaeoInterval(requestedAgeMa: number, signal?: AbortSignal): Promise<void> {
     const palaeo = this.manifest.palaeoCoastlines;
     if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return;
-    const serial = this.palaeoSerial;
+    const serial = this.chains.interval.serial;
     try {
       const catalogs = await this.palaeoCatalogs;
-      if (!catalogs || !this.palaeoEnabled || serial !== this.palaeoSerial || signal?.aborted) return;
+      if (!catalogs || !this.palaeoEnabled || serial !== this.chains.interval.serial
+          || signal?.aborted) return;
       this.resolvedPalaeoCatalogs = catalogs;
       const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
       if (!record) return;
@@ -640,7 +703,7 @@ export class CaoReconstructionRuntime {
     // Re-checked after every await: a mode toggle or an interval change makes a
     // prepare stale even though its own fetches are still succeeding.
     const requireCurrent = () => {
-      if (signal.aborted || requestId !== this.palaeoSerial || !this.palaeoEnabled
+      if (signal.aborted || requestId !== this.chains.interval.serial || !this.palaeoEnabled
           || this.lifetime.signal.aborted) {
         throw new DOMException("stale palaeo-coastline interval", "AbortError");
       }
@@ -670,8 +733,8 @@ export class CaoReconstructionRuntime {
     const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
       requestId, packageId: this.manifest.packageId, packageRevision: this.manifest.revision,
       frameIdentity: packageFrameIdentity(this.manifest.frame), baseColorRgb,
-    }, (identity) => { this.palaeoLeases.delete(identity); });
-    this.palaeoLeases.set(prepared.identity, prepared.release);
+    }, (identity) => { this.chains.interval.leases.delete(identity); });
+    this.chains.interval.leases.set(prepared.identity, prepared.release);
     return prepared;
   }
 
@@ -681,7 +744,9 @@ export class CaoReconstructionRuntime {
     const youngerAsset = this.manifest.checkpoints.find((checkpoint) => checkpoint.ageMa === display.youngerAgeMa)!;
     const { foundation: motionFoundation, sourceBytes: motionSourceBytes } =
       await this.foundationForAge(requestedAgeMa);
-    if (signal.aborted || requestId !== this.serial) throw new DOMException("stale Cao revision", "AbortError");
+    if (signal.aborted || requestId !== this.chains.checkpoint.serial) {
+      throw new DOMException("stale Cao revision", "AbortError");
+    }
     this.surfaces.checkpointStore(motionFoundation.core);
     this.checkpointDemandAges.add(youngerAsset.ageMa);
     this.checkpointDemandAges.add(olderAsset.ageMa);
@@ -705,7 +770,9 @@ export class CaoReconstructionRuntime {
     }
     const younger = youngerLoaded.checkpoint;
     const older = olderLoaded.checkpoint;
-    if (signal.aborted || requestId !== this.serial) throw new DOMException("stale Cao revision", "AbortError");
+    if (signal.aborted || requestId !== this.chains.checkpoint.serial) {
+      throw new DOMException("stale Cao revision", "AbortError");
+    }
     const motion = evaluateCaoMotionFrame(this.manifest, motionFoundation, requestedAgeMa);
     const { paletteEntries: _motionEntries, ...foundation } = motionFoundation;
     const boundaryLayer = display.exactCheckpoint ? youngerLoaded.boundary : null;
@@ -779,7 +846,7 @@ export class CaoReconstructionRuntime {
       motionValues = null;
       boundaryPoints = null;
       ownershipPoints = null;
-      this.leases.delete(identity);
+      this.chains.checkpoint.leases.delete(identity);
     };
     const nativeBoundary = boundaryLayer?.kind === "boundary" ? Object.freeze({ kind: "exact-source" as const,
       sourceAgeMa: younger.ageMa, value: Object.freeze({ segments: boundaryLayer.catalog.segments,
@@ -795,7 +862,7 @@ export class CaoReconstructionRuntime {
           return new Float32Array(ownershipPoints.directions); } }) })
       : Object.freeze({ kind: "unavailable" as const, requestedAgeMa,
         reason: display.exactCheckpoint ? "source-absent" as const : "fractional-topology-unqualified" as const });
-    this.leases.set(identity, release);
+    this.chains.checkpoint.leases.set(identity, release);
     return Object.freeze({ identity, requestId, packageId: this.manifest.packageId,
       packageRevision: combinedRevision,
       materialCorrectionIdentity: motion.materialCorrectionIdentity,
