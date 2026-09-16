@@ -72,7 +72,7 @@ import {
   packPreparedCaoPalette,
 } from "./caoFoundation";
 import { GpuRetirementOwner } from "./gpuRetirement";
-import { resolveSurfaceVisibility } from "./surfaceVisibility";
+import { resolveReleasableNativeSurfaceClasses, resolveSurfaceVisibility } from "./surfaceVisibility";
 import { GUIDE_LABEL_LIGHT_INK_STYLE } from "../globeGuides";
 import {
   PALAEO_OUTLINE_TONE_LAND,
@@ -1830,6 +1830,59 @@ describe("Cao foundation renderer boundary", () => {
     expect(position().version).toBe(uploadedVersion + 1);
     expect(land.geometry.index!.version).toBeGreaterThan(0);
     expect(surface.releasedStaticGpuBytes()).toBe(0);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("reports GPU residency dropping by the native buffers the realistic composition releases", () => {
+    const parent = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(parent,
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
+    surface.publish(palaeoRevision(), 8);
+    const batches = surface.surfaceView()!.geometry.batches;
+    const disposed: string[] = [];
+    for (const batch of batches) {
+      batch.geometry.addEventListener("dispose", () => disposed.push(batch.batchId));
+    }
+    const native = batches.filter((batch) => batch.surfaceClass === "land"
+      || batch.surfaceClass === "shelf");
+    const nativeGpuBytes = native.reduce((sum, batch) => sum + batch.trackedGpuBytes, 0);
+    expect(nativeGpuBytes).toBeGreaterThan(0);
+
+    // The budget key is the whole resource and cannot answer residency; the new
+    // key is the sum over the buffers that are actually uploaded.
+    const resident = () => surface.diagnostics().gpuResidentBytes;
+    const budget = surface.diagnostics().retainedStaticBytes;
+    expect(budget).toBe(surface.diagnostics().retainedStaticSourceBytes
+      + surface.diagnostics().retainedStaticGpuBytes);
+    expect(resident()).toBe(surface.diagnostics().retainedStaticGpuBytes);
+    const uploaded = resident();
+
+    const realistic = resolveSurfaceVisibility({ layerEnabled: true, band: "cao-2017",
+      published: true, hysteresis: { visible: true, band: "cao-2017", pendingFrames: 0 } });
+    expect(realistic.composition).toBe("realistic");
+    surface.applySurfaceComposition(realistic.visibleClasses, realistic.nativeSurfaceMode);
+    surface.setReleasableSurfaceClasses(
+      resolveReleasableNativeSurfaceClasses(realistic.composition));
+
+    // The GPU buffers of today's land and shelf are gone: disposed, off the
+    // residency ledger, and named as released.
+    expect([...disposed].sort()).toEqual(["batch-land", "batch-shelf"]);
+    expect(resident()).toBe(uploaded - nativeGpuBytes);
+    expect(surface.diagnostics().releasedSurfaceClasses).toEqual(["land", "shelf"]);
+    // The budget is unmoved, which is exactly why it could not show D1.
+    expect(surface.diagnostics().retainedStaticBytes).toBe(budget);
+    // The CPU side is untouched, so the re-upload is a buffer upload and not a
+    // rebuild: picking, coverage and the guide-label ink keep reading it.
+    for (const batch of native) {
+      expect(batch.source.referenceDirections).toHaveLength(9);
+      expect(batch.geometry.getAttribute("position")).toBeTruthy();
+      expect(batch.geometry.index).toBeTruthy();
+    }
+
+    // Leaving the composition puts every released byte back.
+    surface.setReleasableSurfaceClasses(resolveReleasableNativeSurfaceClasses("native"));
+    expect(resident()).toBe(uploaded);
+    expect(surface.diagnostics().releasedSurfaceClasses).toEqual([]);
     surface.disposeForRendererTeardown();
   });
 });

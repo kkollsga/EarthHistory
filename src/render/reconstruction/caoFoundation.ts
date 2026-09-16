@@ -545,6 +545,8 @@ export interface CaoFoundationLineBatchResource {
   readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoLineGeometryCopy;
+  /** Quad vertex and index buffer bytes this batch holds on the GPU. */
+  readonly trackedGpuBytes: number;
   readonly vertexCount: number;
   readonly segmentCount: number;
 }
@@ -635,7 +637,23 @@ export interface CaoFoundationDiagnostics {
   readonly nativeBoundarySourceAgeMa: number | null;
   readonly topologyOwnershipRings: number;
   readonly topologyOwnershipSourceAgeMa: number | null;
+  /**
+   * The unit's static geometry budget: retained source copies plus the GPU
+   * buffers the resource owns, released or not. Stable in meaning across
+   * builds; see `createCaoFoundationGeometryResource` for the sum.
+   */
   readonly retainedStaticBytes: number;
+  /** `retainedStaticBytes` split by side, so a move in it names its half. */
+  readonly retainedStaticSourceBytes: number;
+  readonly retainedStaticGpuBytes: number;
+  /**
+   * GPU buffer bytes the unit's geometries hold right now. Unlike
+   * `retainedStaticGpuBytes` this drops by exactly the buffers a D1 release
+   * hands back, which is what makes the release observable from the browser.
+   */
+  readonly gpuResidentBytes: number;
+  /** The surface classes whose GPU buffers are released right now. */
+  readonly releasedSurfaceClasses: readonly CaoFoundationSurfaceClass[];
   readonly activeSourceBytes: number;
   readonly retainedPublicationBytes: number;
   readonly pendingRetirementBytes: number;
@@ -671,6 +689,18 @@ function allFinite(values: ArrayLike<number>): boolean {
     if (!Number.isFinite(values[index])) return false;
   }
   return true;
+}
+
+/**
+ * Whether a geometry still owns the arrays its GPU buffers are uploaded from.
+ *
+ * `THREE.BufferGeometry.dispose()` frees the backend buffers and leaves
+ * `attributes` in place — that is what lets a released batch be drawn again
+ * without rebuilding it — so this is not a disposal test. It catches a geometry
+ * torn down elsewhere; the released-batch set is the authority on D1.
+ */
+function geometryHoldsGpuBuffers(geometry: THREE.BufferGeometry): boolean {
+  return geometry.getAttribute("position") !== undefined && geometry.index !== null;
 }
 
 function staticGeometryByteLength(batch: PreparedCaoStaticGeometryCopy): number {
@@ -1168,8 +1198,29 @@ export function createCaoFoundationGeometryResource(
       lineResources.push(Object.freeze({ batchId: prepared.batchId,
         staticGeometryIdentity: prepared.staticGeometryIdentity,
         staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
+        trackedGpuBytes: expanded.gpuBytes,
         vertexCount: prepared.vertexCount, segmentCount: prepared.segmentCount }));
     }
+    // `byteLength` is a residency budget over both sides, not a CPU figure: the
+    // source copies and the spatial index (`retainedCpuBytes`), plus the vertex,
+    // entry and index buffers the backend uploads (`trackedGpuBufferBytes`).
+    // The surface attributes wrap `source.referenceDirections`, `.indices` and
+    // `.preparedEntryIndices` without copying, so those three arrays are counted
+    // on both sides deliberately — one resident JavaScript array and one GPU
+    // buffer really do exist. Country-line quads are newly built arrays and are
+    // counted once, on the GPU side.
+    //
+    // Two consequences the diagnostics must state rather than leave inferred.
+    // `trackedGpuBufferBytes` is fixed at build time and covers every batch the
+    // geometry owns, so a D1 release does not move `retainedStaticBytes` at all;
+    // `gpuResidentBytes` is the key that answers residency. And the sum's
+    // meaning is why `retainedStaticBytes` may not be compared across builds
+    // without its split: this formula has not changed since the foundation
+    // landed, so the 30.6 % rise between the 2026-09-15 baseline (30,595,912)
+    // and the unified-pipeline record (39,956,632) at the same 574,075 native
+    // triangles is a change in the arrays, not in the arithmetic.
+    // `retainedStaticSourceBytes` and `retainedStaticGpuBytes` publish the two
+    // halves so the next measurement names which array grew instead of guessing.
     const byteLength = safeAdd(retainedCpuBytes, trackedGpuBufferBytes, "Cao geometry");
     if (byteLength > reservation) throw new Error("Cao geometry exceeded its preflight reservation");
     return {
@@ -2628,6 +2679,10 @@ export class CaoFoundationSurfaceRenderer {
       topologyOwnershipSourceAgeMa: state.domainVisible
         ? member?.topologyOwnership?.sourceAgeMa ?? null : null,
       retainedStaticBytes: state.staticGeometry?.byteLength ?? 0,
+      retainedStaticSourceBytes: state.staticGeometry?.retainedCpuBytes ?? 0,
+      retainedStaticGpuBytes: state.staticGeometry?.trackedGpuBufferBytes ?? 0,
+      gpuResidentBytes: this.gpuResidentBytes(unit),
+      releasedSurfaceClasses: this.releasedSurfaceClasses(unit),
       activeSourceBytes: member?.activeSourceBytes ?? 0,
       // Set-wide: one publisher holds every member's publication.
       retainedPublicationBytes: this.publisher.retainedBytes(),
@@ -2774,6 +2829,43 @@ export class CaoFoundationSurfaceRenderer {
   /** The classes the composition allows releasing; see `setReleasableSurfaceClasses`. */
   get releasableNativeSurfaceClasses(): readonly CaoFoundationSurfaceClass[] {
     return this.releasableSurfaceClasses;
+  }
+
+  /**
+   * GPU buffer bytes one unit's geometries hold right now: every surface batch
+   * whose buffers are uploaded, plus the country-line quads.
+   *
+   * The residency answer `retainedStaticBytes` cannot give. That ledger counts
+   * the tracked GPU bytes of every batch the resource owns whether or not the
+   * buffers are on the GPU, so it does not move when D1 releases them; this
+   * drops by exactly the released batches' buffers and rises again on exit.
+   */
+  gpuResidentBytes(unit: CaoSurfaceUnit = "native"): number {
+    const state = this.unitState(unit);
+    let bytes = 0;
+    for (const batch of state.staticGeometry?.batches ?? []) {
+      if (this.releasedStaticGeometryBatches.has(batch.batchId)) continue;
+      if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
+      bytes += batch.trackedGpuBytes;
+    }
+    for (const batch of state.staticGeometry?.lineBatches ?? []) {
+      if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
+      bytes += batch.trackedGpuBytes;
+    }
+    return bytes;
+  }
+
+  /**
+   * The classes a unit has actually released, read off the released batches
+   * rather than off `releasableNativeSurfaceClasses`: the policy states what a
+   * composition allows, this states what is gone.
+   */
+  releasedSurfaceClasses(unit: CaoSurfaceUnit = "native"): readonly CaoFoundationSurfaceClass[] {
+    const classes = new Set<CaoFoundationSurfaceClass>();
+    for (const batch of this.unitState(unit).staticGeometry?.batches ?? []) {
+      if (this.releasedStaticGeometryBatches.has(batch.batchId)) classes.add(batch.surfaceClass);
+    }
+    return Object.freeze([...classes].sort());
   }
 
   /** GPU bytes currently handed back under the release policy. */

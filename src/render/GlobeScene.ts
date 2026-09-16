@@ -976,6 +976,9 @@ export class GlobeScene {
       dataset.caoFoundationTriangles = String(diagnostics.triangles);
       dataset.caoFoundationDrawCount = String(diagnostics.drawCount);
       dataset.caoFoundationStaticBytes = String(diagnostics.retainedStaticBytes);
+      dataset.caoFoundationStaticSourceBytes = String(diagnostics.retainedStaticSourceBytes);
+      dataset.caoFoundationStaticGpuBytes = String(diagnostics.retainedStaticGpuBytes);
+      this.publishCaoResidencyDataset();
       dataset.caoFoundationSourceBytes = String(diagnostics.activeSourceBytes);
       dataset.caoFoundationPublicationBytes = String(diagnostics.retainedPublicationBytes);
       dataset.caoFoundationPendingRetirementBytes = String(diagnostics.pendingRetirementBytes);
@@ -1524,6 +1527,18 @@ export class GlobeScene {
    * before the domain visibility is set, which is the same answer as after it:
    * the publication identity does not depend on whether the group is visible.
    */
+  /**
+   * Publishes what the Cao 2024 unit actually holds on the GPU, and which
+   * classes D1 has released. Separate from `caoFoundationStaticBytes`, which is
+   * the resource's fixed budget and does not move when buffers are handed back.
+   */
+  private publishCaoResidencyDataset(): void {
+    const dataset = this.renderer.domElement.dataset;
+    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.gpuResidentBytes());
+    dataset.caoFoundationReleasedClasses =
+      this.caoFoundationRenderer.releasedSurfaceClasses().join(" ");
+  }
+
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
     const resolved = resolveSurfaceVisibility({
       layerEnabled: this.layers.palaeoCoastlines,
@@ -1561,6 +1576,9 @@ export class GlobeScene {
       // picking, coverage and the guide-label ink are unaffected.
       this.caoFoundationRenderer.setReleasableSurfaceClasses(
         resolveReleasableNativeSurfaceClasses(resolved.composition));
+      // The release happens here and nowhere else, so the residency keys are
+      // refreshed here too: a composition change moves them without a publish.
+      this.publishCaoResidencyDataset();
     }
     const drawn = resolved.palaeoDrawn;
     const dataset = this.renderer.domElement.dataset;

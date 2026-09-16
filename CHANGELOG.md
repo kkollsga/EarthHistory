@@ -6,6 +6,27 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- **The Cao 2024 GPU buffers a realistic composition replaces are reported as
+  released, not merely as budgeted.** `data-cao-foundation-static-bytes` is the
+  static geometry's residency budget — its retained source copies plus the
+  vertex, entry and index buffers the resource owns whether or not they are on
+  the GPU — so it reads the same inside and outside the Cao 2017 band and could
+  never show the D1 release. Two keys now say what is actually uploaded:
+  `data-cao-foundation-gpu-bytes`, summed over the batches whose buffers are
+  live, and `data-cao-foundation-released-classes`, which names the classes gone
+  from the GPU right now rather than the classes the composition permits
+  releasing. The budget is also published split, as
+  `data-cao-foundation-static-source-bytes` and
+  `data-cao-foundation-static-gpu-bytes`, so a move in it names its half instead
+  of being attributed by guess. The release itself was already real —
+  `BufferGeometry.dispose()` frees the backend buffers and leaves the attribute
+  arrays in place — and a unit case now proves the realistic composition drops
+  today's land and shelf from GPU residency by exactly their tracked bytes,
+  restores them on exit, and leaves the CPU source picking and coverage read
+  untouched. Proven by mutation in both directions: dropping the dispose call
+  and counting released batches as resident each fail the new case, and both
+  mutations were restored.
+
 - **Needle rings and spikes removed from every palaeo interval, and the Iceland
   seam measured by plate ownership.** The 3-degree spike filter and the 1.5 km
   hole-width floor the LGM derivation already used now run over all 24 Cao map
