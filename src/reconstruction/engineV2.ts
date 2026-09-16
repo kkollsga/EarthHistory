@@ -21,6 +21,7 @@ import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type PalaeoCoastlineSurfaceClassId,
   type ReconstructionPackageManifestV2 } from "./packageV2";
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoRevision } from "./facadeV2";
+import { prepareSurfaceBatch } from "../render/reconstruction/surfaceSource";
 import { evaluateCaoMotionFrame, resolveCaoDisplayBracket, type CaoMotionFrame } from "./motionFrameV2";
 import type { MaterialAddress } from "./types";
 import type { PreparedPaletteEntry } from "./palette";
@@ -720,23 +721,18 @@ export class CaoReconstructionRuntime {
       const color = youngerState.kind === "uniform" && olderState.kind === "uniform"
         ? Object.freeze({ kind: "uniform" as const, value: youngerState.baseColorRgb })
         : (() => { throw new Error("per-vertex Cao checkpoint color preparation is not implemented"); })();
-      return Object.freeze({ batchId: descriptor.batchId,
+      // The renderer copy excludes the EHGB header, and the byte ledger the
+      // surface-source path derives accounts for the chart-index width; both
+      // arms of that path state the same prepared shape.
+      return prepareSurfaceBatch({ kind: "ehgb", batchId: descriptor.batchId,
         staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`,
         vertexCount: descriptor.vertexCount, triangleCount: descriptor.triangleCount,
+        chartCount: foundation.core.charts.length,
         nativePrecedence: descriptor.overlapPolicy === "native-visual-and-picking-precedence",
         surfaceAppearance: descriptor.surfaceAppearance,
-        // Renderer copy excludes the EHGB header. Two narrowed chart-index
-        // arrays together equal the source u32 chart-index storage.
-        staticGeometryBytes: geometry.byteLength - 32
-          + (foundation.core.charts.length <= 65_535 ? 0 : descriptor.vertexCount * 4),
         chartTriangleRanges: geometry.chartTriangleRanges,
-        createStaticGeometryCopy: () => { const current = requirePayload().spatialBatches.get(descriptor.batchId)!;
-          const narrow = foundation.core.charts.length <= 65_535;
-          return { referenceDirections: new Float32Array(current.referenceDirections), indices: new Uint32Array(current.indices),
-            seamIds: new Uint32Array(current.seamIds), preparedEntryIndices: narrow
-              ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices),
-            materialChartIndices: narrow ? new Uint16Array(current.vertexChartIndices) : new Uint32Array(current.vertexChartIndices) }; },
-        createDisplayControlsCopy: () => { requirePayload(); return { displayHeightStart: displayControl(youngerState),
+        requireGeometry: () => requirePayload().spatialBatches.get(descriptor.batchId)!,
+        displayControls: () => { requirePayload(); return { displayHeightStart: displayControl(youngerState),
           displayHeightEnd: displayControl(olderState), baseColor: color }; },
       });
     });

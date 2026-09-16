@@ -2904,6 +2904,16 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
+   * The identity of the publication on screen, or null when nothing is
+   * published. `diagnostics().identity` is the same answer; this one costs no
+   * reductions over the batch tables, which is what lets the frame loop ask it
+   * before it applies a composition.
+   */
+  publishedIdentity(): string | null {
+    return this.publisher.current()?.requestId ?? null;
+  }
+
+  /**
    * The surface currently on screen, or null when the domain is hidden or
    * nothing is published — the same condition `intersectRay` answers null on.
    * Exposed so the composite can rank two instances against one precedence
