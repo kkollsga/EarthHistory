@@ -52,6 +52,34 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Changed
 
+- **Modern-country outlines from Natural Earth 1:50m.** The reference overlay
+  is rebuilt from the 1:50m Admin 0 archive (version 5.1.1, the same pinned
+  archive the Iceland, Panama and observed-land corrections already use),
+  Douglas-Peucker pre-simplified at **0.02 degrees** before the one-degree
+  subdivision that binds it. 1:110m was dropped because its 289 rings omit the
+  island and fjord detail the overlay is read for. The batch grows from 12,045
+  to **51,048 segments** (47,468 bound outline segments plus a 3,580-segment
+  exact-present complement, of which the shared-endpoint bridge rebinds 2,523
+  and 1,057 stay on the exact-present identity), and `country-reference.ehgl`
+  from 481,832 to **2,041,920 bytes**. Thirteen United States segments on plate
+  1731 are dropped rather than carried onto the western-Laurentia replacement
+  domain at reconstructed ages; they remain in the 0 Ma locator complement.
+  Renderer reservation rises from 520,000/660,000 to **680,000/740,000**
+  vertices/triangles: probed on the loaded package, the surface holds 404,888
+  vertices and 574,075 triangles and the country quads add 204,192 and 102,096,
+  preflighting at 609,080 and 676,171. Projected `dist` is **45.17 MiB** of the
+  50 MiB ceiling, up 1.62 MiB. The outline motion precedence now binds
+  `native-recovery-*` entries exactly like `restoration-*` — a chart on a
+  recovered plate follows its recovery entry, never the plate's baseline motion,
+  and the declared sub-microsecond rotation seams inside the recovery windows
+  stay `motionSupportGaps` instead of becoming baseline tiles. The finer source
+  resolves 15 country charts on the recovered plates where 1:110m resolved 10,
+  so the native-triangulation contract's rebound-consumer count moves 314 → 319.
+  The country charts are re-appended at the core tail, so the emitter carries
+  `batch-land.ehgb` and `batch-shelf.ehgb` vertex chart indices through the
+  rebuild (33,841 and 2,348 rewritten) and re-records both batch identities, and
+  the material-correction catalog is re-emitted against the rebuilt core.
+
 - **One motion payload instead of two.** The requested-age motion-tile
   first-paint tier is retired: the 72 published `.ehmt` windows and their
   index (**5,743,096 bytes**, 73 files) are deleted, together with their

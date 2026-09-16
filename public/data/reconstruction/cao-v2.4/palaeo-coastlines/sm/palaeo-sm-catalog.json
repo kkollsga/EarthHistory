@@ -4511,10 +4511,10 @@
  "paletteId": "cao-v2.4-shared-motion-v1",
  "payloadNameTemplate": "palaeo-sm-<intervalId>.ehpr",
  "provenance": {
-  "bytes": 1129112,
+  "bytes": 1129113,
   "path": "provenance/palaeo-sm-provenance.json",
   "records": 13400,
-  "sha256": "1139e935f4b586062da954b1234afca47ed5e22691eeebf0295dce4dc309f1cb",
+  "sha256": "b6382a67d17b8423bc1d42b21fd1970d6d8adc0cbb8f9f90ffb89f7477d740c0",
   "store": "offline only: the source-record provenance and every compile measurement live in the owned palaeo-coastlines store and never ship with the app"
  },
  "schemaVersion": 2

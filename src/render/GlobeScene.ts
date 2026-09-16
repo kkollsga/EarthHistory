@@ -695,9 +695,11 @@ export class GlobeScene {
       // Country-line segments are drawn as screen-space quads, four expanded
       // corners and two triangles each, so the vertex and triangle ceilings
       // carry 4x and 2x the segment count rather than the package's own line
-      // vertices. Today's package preflights at 444 565 vertices and 588 847
-      // triangles; the headroom above is for segments a later package adds.
-      { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
+      // vertices. Probed on the loaded public package 2026-09-16: 404,888
+      // surface vertices and 574,075 surface triangles, plus 51,048 country
+      // segments at 1:50m, preflighting at 609,080 vertices and 676,171
+      // triangles. The headroom above is for segments a later package adds.
+      { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
         maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: maximumTextureSize,
         maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 },
     );

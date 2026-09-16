@@ -1901,7 +1901,78 @@
    "reason": "batch-land chart centroid -8.4E 52.3N on plate 315"
   },
   {
-   "chartIndex": 4500,
+   "chartIndex": 3934,
+   "chartId": "country:imn:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
+   "plateId": 315,
+   "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 420.0,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420.0
+    ]
+   ],
+   "reason": "modern-country outline IMN on plate 315"
+  },
+  {
+   "chartIndex": 3935,
+   "chartId": "country:gbr:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
+   "plateId": 315,
+   "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 420.0,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420.0
+    ]
+   ],
+   "reason": "modern-country outline GBR on plate 315"
+  },
+  {
+   "chartIndex": 3936,
+   "chartId": "country:gbr:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
+   "plateId": 303,
+   "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 303,
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-303-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-303-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-303-505-1080",
+     505.0,
+     600.0
+    ]
+   ],
+   "reason": "modern-country outline GBR on plate 303"
+  },
+  {
+   "chartIndex": 4019,
    "chartId": "country:swe:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
    "plateId": 330,
    "role": "country-reference",
@@ -1938,7 +2009,7 @@
    "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
   },
   {
-   "chartIndex": 4516,
+   "chartIndex": 4212,
    "chartId": "country:pol:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
    "plateId": 330,
    "role": "country-reference",
@@ -1975,29 +2046,7 @@
    "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
   },
   {
-   "chartIndex": 4581,
-   "chartId": "country:irl:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
-   "plateId": 315,
-   "role": "country-reference",
-   "kind": "moving",
-   "motionPlateId": 302,
-   "lifecycleOldestMa": 420.0,
-   "bindings": [
-    [
-     "plate-315-0-130",
-     0.0,
-     130.0
-    ],
-    [
-     "plate-315-130-505",
-     130.0,
-     420.0
-    ]
-   ],
-   "reason": "modern-country outline IRL on plate 315"
-  },
-  {
-   "chartIndex": 4582,
+   "chartIndex": 4516,
    "chartId": "country:irl:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
    "plateId": 303,
    "role": "country-reference",
@@ -2024,7 +2073,61 @@
    "reason": "modern-country outline IRL on plate 303"
   },
   {
-   "chartIndex": 4649,
+   "chartIndex": 4517,
+   "chartId": "country:irl:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
+   "plateId": 315,
+   "role": "country-reference",
+   "kind": "moving",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 420.0,
+   "bindings": [
+    [
+     "plate-315-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-315-130-505",
+     130.0,
+     420.0
+    ]
+   ],
+   "reason": "modern-country outline IRL on plate 315"
+  },
+  {
+   "chartIndex": 4647,
+   "chartId": "country:deu:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
+   "plateId": 330,
+   "role": "country-reference",
+   "kind": "fixed",
+   "motionPlateId": 302,
+   "lifecycleOldestMa": 600.0,
+   "bindings": [
+    [
+     "plate-330-0-130",
+     0.0,
+     130.0
+    ],
+    [
+     "plate-330-130-505",
+     130.0,
+     505.0
+    ],
+    [
+     "plate-330-505-560",
+     505.0,
+     560.0
+    ],
+    [
+     "plate-330-560-600",
+     560.0,
+     600.0
+    ]
+   ],
+   "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
+  },
+  {
+   "chartIndex": 4732,
    "chartId": "country:dnk:plate:330:fragment:GPlates-88cca9e2-ff4a-4bf5-9ffc-3913ab221dd7:0-600",
    "plateId": 330,
    "role": "country-reference",
@@ -2059,55 +2162,6 @@
     ]
    ],
    "reason": "Tornquist Block chart (country-reference) follows Baltica's native motion; the 0.59 degree Tornquist stage is dropped"
-  },
-  {
-   "chartIndex": 4651,
-   "chartId": "country:gbr:plate:303:fragment:GPlates-a28ec81c-ab75-4629-bdd4-a60b1d51a95c:0-600",
-   "plateId": 303,
-   "role": "country-reference",
-   "kind": "moving",
-   "motionPlateId": 303,
-   "lifecycleOldestMa": 600.0,
-   "bindings": [
-    [
-     "plate-303-0-130",
-     0.0,
-     130.0
-    ],
-    [
-     "plate-303-130-505",
-     130.0,
-     505.0
-    ],
-    [
-     "plate-303-505-1080",
-     505.0,
-     600.0
-    ]
-   ],
-   "reason": "modern-country outline GBR on plate 303"
-  },
-  {
-   "chartIndex": 4652,
-   "chartId": "country:gbr:plate:315:fragment:GPlates-b61faf46-6e2a-4775-ad66-6bec892607d5:0-420",
-   "plateId": 315,
-   "role": "country-reference",
-   "kind": "moving",
-   "motionPlateId": 302,
-   "lifecycleOldestMa": 420.0,
-   "bindings": [
-    [
-     "plate-315-0-130",
-     0.0,
-     130.0
-    ],
-    [
-     "plate-315-130-505",
-     130.0,
-     420.0
-    ]
-   ],
-   "reason": "modern-country outline GBR on plate 315"
   }
  ],
  "paletteEntries": [

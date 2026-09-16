@@ -282,11 +282,11 @@ describe("native Cao package v2", () => {
     expect(prepared.lineBatches).toHaveLength(1);
     // Historical reconstructed segments retain their chart ownership; exact 0 Ma
     // adds the pinned modern-reference complement without assigning it into deep time.
-    expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 24_090, segmentCount: 12_045 });
+    expect(prepared.lineBatches[0]).toMatchObject({ vertexCount: 102_096, segmentCount: 51_048 });
     expect(prepared.batches.reduce((sum, batch) => sum + batch.vertexCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(428_978);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.vertexCount, 0)).toBe(506_984);
     expect(prepared.batches.reduce((sum, batch) => sum + batch.triangleCount, 0)
-      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(586_120);
+      + prepared.lineBatches.reduce((sum, batch) => sum + batch.segmentCount, 0)).toBe(625_123);
     for (const batch of prepared.batches) {
       const geometry = batch.createStaticGeometryCopy();
       expect(geometry.referenceDirections).toHaveLength(batch.vertexCount * 3);
@@ -298,7 +298,7 @@ describe("native Cao package v2", () => {
       // Six spatial batches plus the country-reference line batch.
       // Production reservation (GlobeScene): the composed package holds 404,888
       // vertices and 574,075 triangles after the restored pre-collision margins.
-      maxBatches: 7, maxVertices: 520_000, maxTriangles: 660_000,
+      maxBatches: 7, maxVertices: 680_000, maxTriangles: 740_000,
       maxRetainedSourceBytes: 48_000_000, maxTextureSize: 4_096, maxPublicationBytes: 10_000_000,
       maxSpatialIndexBytes: 1024 * 1024,
     });

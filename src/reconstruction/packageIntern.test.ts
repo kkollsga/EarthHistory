@@ -48,7 +48,7 @@ describe("interned Cao package documents", () => {
     expect(interned.chartIdCollapse).toBe("v1");
     const core = expandInternedPackageDocument(interned) as ReconstructionCoreV2;
     const palette = await raw(packageManifest.motionPalette.catalog.url) as MotionPaletteCatalog;
-    expect(core.charts).toHaveLength(4_996);
+    expect(core.charts).toHaveLength(5_266);
     expect((core as unknown as Record<string, unknown>).chartDictionaries).toBeUndefined();
     for (const chart of core.charts) {
       expect(chart.lifecycle.validTimeMa.oldest).toBeGreaterThanOrEqual(0);

@@ -16,17 +16,14 @@ below apply only to the identified third-party software and datasets.
   Unsupported geometry and motion remain explicit. Native model polygons are
   not promoted to observed shorelines or calibrated elevations. The data
   license is separate from GPlates/pyGPlates software licenses.
-- **Natural Earth 1:110m Admin 0 countries** —
+- **Natural Earth 1:50m Admin 0 countries, version 5.1.1** —
   [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
   domain. EarthHistory subdivides and binds present-day reference lines to Cao
   plate coordinates offline, retaining ambiguity and validity limitations.
-  These reference lines do not represent historical political borders.
-  The country-reference overlay remains 1:110m.
-- **Natural Earth 1:50m Admin 0 countries, version 5.1.1** —
-  [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/), public
-  domain. EarthHistory extracts only the finer generalized Iceland polygon as
-  observed modern land at exactly 0 Ma; it is not backdated or used to define
-  the historical material footprint.
+  These reference lines do not represent historical political borders. The same
+  archive supplies the finer generalized Iceland, Panama and observed-land
+  omission polygons as observed modern land at exactly 0 Ma; that extraction is
+  not backdated or used to define the historical material footprint.
 - **Natural Earth 1:10m Bathymetry L_0 and K_200, embedded archive version
   4.1.0** — [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/),
   public domain. EarthHistory derives the exact-modern Iceland generalized

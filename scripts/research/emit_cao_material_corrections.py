@@ -20,6 +20,7 @@ import regional_observed_land_omission_correction as omission_contract
 import regional_lake_void_correction as lake_contract
 import restored_margins_correction as margin_contract
 import cao_package_intern as package_intern
+from cao_domain import MAXIMUM_DOMAIN_MATCH_KM, segment_domain_match
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -386,66 +387,6 @@ def find_geojson_feature(feature, manifest_path):
     return matches[0]
 
 
-def direction_lon_lat(direction):
-    x, y, z = direction
-    return math.degrees(math.atan2(y, x)), math.degrees(math.asin(max(-1, min(1, z))))
-
-
-def sample_direction_arc(start, end, maximum_step_degrees=0.1):
-    cosine = max(-1, min(1, sum(left * right for left, right in zip(start, end))))
-    angle = math.acos(cosine)
-    steps = max(1, math.ceil(math.degrees(angle) / maximum_step_degrees))
-    for step in range(steps + 1):
-        fraction = step / steps
-        if angle < 1e-10:
-            yield start
-        else:
-            scale = math.sin(angle)
-            yield unit(tuple(
-                math.sin((1 - fraction) * angle) / scale * start[axis]
-                + math.sin(fraction * angle) / scale * end[axis]
-                for axis in range(3)
-            ))
-
-
-def local_ring(ring, longitude, latitude):
-    cosine = max(1e-6, math.cos(math.radians(latitude)))
-    return [((((point[0] - longitude + 180) % 360) - 180) * cosine * 111.195,
-             (point[1] - latitude) * 111.195) for point in ring]
-
-
-def point_in_ring_origin(ring):
-    inside = False
-    for index, (left_x, left_y) in enumerate(ring):
-        right_x, right_y = ring[(index + 1) % len(ring)]
-        if ((left_y > 0) != (right_y > 0)
-                and 0 < (right_x - left_x) * (-left_y) / (right_y - left_y) + left_x):
-            inside = not inside
-    return inside
-
-
-def segment_distance_origin(left, right):
-    dx, dy = right[0] - left[0], right[1] - left[1]
-    length_squared = dx * dx + dy * dy
-    if length_squared <= 1e-18:
-        return math.hypot(*left)
-    fraction = max(0, min(1, -(left[0] * dx + left[1] * dy) / length_squared))
-    return math.hypot(left[0] + fraction * dx, left[1] + fraction * dy)
-
-
-def geometry_distance_km(geometry, longitude, latitude):
-    polygons = geometry["coordinates"] if geometry["type"] == "MultiPolygon" else [geometry["coordinates"]]
-    minimum = math.inf
-    for polygon in polygons:
-        rings = [local_ring(ring, longitude, latitude) for ring in polygon]
-        if point_in_ring_origin(rings[0]) and not any(point_in_ring_origin(ring) for ring in rings[1:]):
-            return 0.0
-        for ring in rings:
-            for index, left in enumerate(ring):
-                minimum = min(minimum, segment_distance_origin(left, ring[(index + 1) % len(ring)]))
-    return minimum
-
-
 def country_segment_bindings(native_core, source_country_chart_ids, geojson):
     chart_indices = {index: chart["chartId"] for index, chart in enumerate(native_core["charts"])
                      if chart["chartId"] in source_country_chart_ids}
@@ -467,25 +408,20 @@ def country_segment_bindings(native_core, source_country_chart_ids, geojson):
                 continue
             if vertex_charts[right] != source_index:
                 raise contract.CorrectionError("native country segment crosses its source chart")
-            domain_ids = set()
-            maximum_distance = 0.0
-            for sample in sample_direction_arc(direction_at(left), direction_at(right)):
-                longitude, latitude = direction_lon_lat(sample)
-                distances = [(geometry_distance_km(feature["geometry"], longitude, latitude),
-                              str(feature["id"])) for feature in geojson["features"]]
-                nearest = min(distance for distance, _ in distances)
-                maximum_distance = max(maximum_distance, nearest)
-                domain_ids.update(feature_id for distance, feature_id in distances
-                                  if abs(distance - nearest) <= 1e-6)
-            if maximum_distance > 12:
+            maximum_distance, domain_ids = segment_domain_match(
+                direction_at(left), direction_at(right), geojson["features"])
+            if maximum_distance > MAXIMUM_DOMAIN_MATCH_KM:
+                # emit_cao_country_reference.py drops these from the batch, so one
+                # surviving here means the batch and this binder disagree.
                 raise contract.CorrectionError(
-                    f"country segment {segment_index} is {maximum_distance:.6g} km from its nearest domain"
+                    f"country segment {segment_index} is {maximum_distance:.6g} km from its nearest domain; "
+                    "the country-reference batch must drop it instead of binding it"
                 )
             bindings.append({
                 "batchId": descriptor["batchId"],
                 "segmentIndex": segment_index,
                 "sourceCountryChartId": chart_indices[source_index],
-                "domainFragmentOrCohortIds": sorted(domain_ids),
+                "domainFragmentOrCohortIds": domain_ids,
                 "maximumMatchKm": round(maximum_distance, 6),
             })
     return bindings
@@ -615,10 +551,16 @@ def native_override_rows(native_core):
                     chart, "cao-v2.4-shared-motion-v1",
                     suppression["youngest"], suppression["oldest"],
                 ) == native_signature)
-            if not source_country_chart_ids:
+            # The modern-country overlay is applied after this correction in the build
+            # order, so a package staged before it carries no country-reference chart at
+            # all. The consumer invariant is about an overlay that exists: where one does,
+            # the replaced fragment must still have country consumers on a compatible
+            # binding; where none does, there is nothing yet to keep consistent.
+            overlay_applied = any(chart["role"] == "country-reference" for chart in native_core["charts"])
+            if overlay_applied and not source_country_chart_ids:
                 raise contract.CorrectionError(f"{raw.get('overrideId')}: source country consumers are missing")
             segment_bindings = country_segment_bindings(native_core, source_country_chart_ids, geojson)
-            if not segment_bindings:
+            if overlay_applied and not segment_bindings:
                 raise contract.CorrectionError(f"{raw.get('overrideId')}: source country segments are missing")
             overrides.append({
                 "overrideId": raw["overrideId"], "operation": raw["operation"],
@@ -630,7 +572,7 @@ def native_override_rows(native_core):
                     "countryReferences": "spatial-segment-remap",
                     "sourceCountryChartIds": source_country_chart_ids,
                     "maximumSegmentSampleDegrees": 0.1,
-                    "maximumDomainMatchKm": 12,
+                    "maximumDomainMatchKm": MAXIMUM_DOMAIN_MATCH_KM,
                     "expectedSourceSegmentCount": len(segment_bindings),
                     "countrySegmentBindings": segment_bindings,
                     "anchors": "require-none",

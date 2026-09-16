@@ -66,11 +66,51 @@ polygon vertex indices, nor relabel a neighboring source age as the requested
 age. Continuous continental motion remains available independently.
 
 Modern-country reference lines come from the public-domain Natural Earth
-1:110m Admin 0 dataset. Their offline Cao bindings share the same motion
+1:50m Admin 0 dataset, Douglas-Peucker pre-simplified at 0.02 degrees before
+the one-degree subdivision that binds them. Their offline Cao bindings share the same motion
 palette as geographic charts. The overlay is a modern locator aid, never a
 map of ancient political borders. Binding approximations, native validity and
 unsupported fragments are recorded by the compiler. Country geometry is not
 repeated in each checkpoint.
+
+A Cao plate can carry several motion-palette entries whose validity windows
+overlap, and an outline chart may follow only one of them at any age. The
+emitter tiles each chart's lifetime with one owning entry per age, resolved by a
+fixed, documented precedence implemented as `select_outline_entry` in
+`scripts/research/emit_cao_country_reference.py` and proved rule by rule by its
+`--self-test`:
+
+1. A `restoration-*` or `native-recovery-*` entry owns every age it is live at.
+   Restoration is what keeps the North Sea outlines on the restored
+   Baltica/Avalonia motion; recovery keeps every chart on a recovered plate
+   (626, 8011) on the native triangulation that replaced its source geometry,
+   because a recovery plate never falls back to native motion. The two are not
+   authored on any shared plate; if they ever were, restoration wins.
+2. Otherwise the baseline `plate-*` entry live at that age; where several are,
+   the narrowest validity window wins, then the lowest palette index.
+3. The remaining regional native entries own an age only where no baseline
+   `plate-*` entry is live at it.
+4. `correction-plate-*` entries never own an outline segment: they carry
+   regional material corrections layered onto a plate, not the plate's rigid
+   motion, and a line overlay has no material to correct.
+5. A segment whose plate has no live entry at some age of its lifetime is
+   unsupported and is rebound by the shared-endpoint segment bridge, like every
+   other unsupported segment.
+
+The precedence decides which authored motion an outline follows; it never
+changes the outline's geometry or its epistemic status as a modern locator.
+
+Where a `domain-fragment-replacement` correction suppresses a Cao static
+fragment and replaces it with mapped basement-domain tiles, an outline segment
+that inherited the suppressed fragment's motion must land on one of those tiles.
+The emitter measures the worst nearest-tile distance along each such segment and
+drops it from the reconstructed batch past the shared 12 km tolerance, rather
+than carrying it on a domain it does not touch or remapping it onto a farther
+one. Thirteen United States segments on plate 1731 are dropped this way: they
+are not carried onto the western-Laurentia replacement domain at reconstructed
+ages (they remain in the 0 Ma locator complement). The count is recorded per
+country chart in `country-reference.json` and in the material-correction
+catalog.
 
 POI coordinates in the editorial catalog are present evidence localities
 unless their location notes specify otherwise. Native anchor bindings must

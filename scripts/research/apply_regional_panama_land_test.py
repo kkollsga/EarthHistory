@@ -48,11 +48,17 @@ class PanamaApplyTest(unittest.TestCase):
 
         first_panama = next(index for index, row in enumerate(core["charts"])
                             if row["chartId"].startswith(appender.CHART_PREFIX))
-        self.assertEqual(first_panama, 4841)
-        # Everything after the Panama block is a later append: the present-day
-        # country reference, and the POI anchors that no longer fit the original
-        # anchor block. Truncating here therefore recovers the pre-Panama state.
+        # The Panama block's absolute core index. It moved from 4841 on 2026-09-16,
+        # when the modern-country overlay was rebuilt from Natural Earth 1:50m and its
+        # charts were dropped and re-appended at the core tail.
+        self.assertEqual(first_panama, 3809)
+        # Everything after the Panama block is a later append: the reconstructed
+        # modern-country outline charts (re-appended at the tail by the 1:50m
+        # rebuild), the present-day country reference, and the POI anchors that no
+        # longer fit the original anchor block. Truncating here therefore recovers
+        # the pre-Panama state.
         self.assertTrue(all(row["chartId"].startswith(appender.CHART_PREFIX)
+                            or row["chartId"].startswith("country:")
                             or row["chartId"].startswith("country-present-reference:")
                             or row["chartId"].startswith("poi:")
                             for row in core["charts"][first_panama:]))
@@ -110,6 +116,13 @@ class PanamaApplyTest(unittest.TestCase):
                                           ) and not row["id"].startswith("north-sea-restoration-clock-")]
         restoration = json.loads((appender.ROOT / "data/corrections/north-sea-restoration/restoration-contract.json").read_text())
         for row in restoration["charts"]:
+            if row["chartIndex"] >= len(core["charts"]):
+                # A modern-country outline chart: the 1:50m rebuild re-appends the whole
+                # overlay past the Panama block, so this truncation already removed it and
+                # there is no binding left to put back. Every other pinned chart is a native
+                # Cao chart living before the block.
+                self.assertEqual(row["role"], "country-reference")
+                continue
             chart = core["charts"][row["chartIndex"]]
             self.assertEqual(chart["chartId"], row["chartId"])
             chart["motionBindings"] = [{"paletteId": palette["id"], "entryId": entry_id,
@@ -137,7 +150,7 @@ class PanamaApplyTest(unittest.TestCase):
     def test_staged_apply_preserves_prefixes_and_exact_age(self):
         result = appender.apply(self.package)
         self.assertEqual((result["charts"], result["addedVertices"], result["addedTriangles"]), (5, 291, 272))
-        self.assertEqual(result["chartOffset"], 4841)
+        self.assertEqual(result["chartOffset"], 3809)
         self.assertEqual(result["addedMotionEntries"], [
             "panama-observed-land-plate-229-0",
             "panama-observed-land-plate-230-0",

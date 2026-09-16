@@ -59,7 +59,7 @@ const separationKm = (a: readonly number[], b: readonly number[]) =>
   Math.acos(Math.max(-1, Math.min(1, a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!))) * EARTH_RADIUS_KM;
 
 /** The native instance's own bounds; these probes pick against the full Cao surface. */
-const PICK_LIMITS = { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
+const PICK_LIMITS = { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
   maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: 2_048,
   maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 };
 

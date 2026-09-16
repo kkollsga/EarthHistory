@@ -39,7 +39,12 @@ SOURCE_ID = "natural-earth-countries-50m"
 HEADER_BYTES = 32
 MOTION_RECORD_BYTES = 20
 LAND_SHELL_METRES = 800
-EXPECTED_BASE_CHARTS = 4826
+# The native Cao chart inventory the Panama block is appended to. Re-recorded on
+# 2026-09-16 from 4826: the modern-country overlay was rebuilt from Natural Earth 1:50m
+# and its charts are re-appended at the core tail, after this block, so they no longer
+# count towards the base. A package with fewer native charts predates the approved
+# baseline and is refused.
+EXPECTED_BASE_CHARTS = 3809
 SCOPE_CLAUSE = (
     " Natural Earth 1:50m supplies five exact-modern observed Panama land charts only where "
     "the emitted Cao coast footprint is absent; no historical coast or water depth is inferred."

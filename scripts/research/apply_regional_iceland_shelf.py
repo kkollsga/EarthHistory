@@ -417,7 +417,13 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
         raise BuildError("applied shelf counts mismatch")
     matches = [(index, value) for index, value in enumerate(core["charts"])
                if value["chartId"].startswith(CHART_PREFIX)]
-    if [index for index, _ in matches] != [4824, 4825]:
+    # Absolute core chart indices: `batch-shelf.ehgb` bakes one per vertex, so a
+    # silent renumbering would repaint these two charts' vertices as some other
+    # chart. They moved from 4824/4825 on 2026-09-16, when the modern-country
+    # overlay was rebuilt from Natural Earth 1:50m and its charts were re-appended
+    # at the core tail; `emit_cao_country_reference.remap_batch_chart_indices`
+    # carried the batch's own indices through that rebuild.
+    if [index for index, _ in matches] != [3792, 3793]:
         raise BuildError("Iceland shelf chart indices changed")
     expected_ids = [CHART_PREFIX + value for value in FEATURE_ORDER]
     if [value["chartId"] for _, value in matches] != expected_ids:
@@ -431,7 +437,7 @@ def validate_applied(package: Path, original_geometry: dict | None = None) -> di
     if (len(decoded["directions"]) - 153_904 != EXPECTED_ADDED_VERTICES
             or len(decoded["indices"]) // 3 - 251_187 != EXPECTED_ADDED_TRIANGLES):
         raise BuildError("Iceland shelf appended mesh inventory changed")
-    if set(decoded["charts"][153_904:]) != {4824, 4825}:
+    if set(decoded["charts"][153_904:]) != {3792, 3793}:
         raise BuildError("Iceland shelf geometry is not bound to both exact charts")
     old_count = sum(OLD_HEIGHT_LIMITATION in value.get("evidence", {}).get("limitations", [])
                     for value in core["charts"])

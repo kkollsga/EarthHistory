@@ -13,13 +13,13 @@
   },
   "packageAssets": {
     "core": {
-      "url": "core.json",
-      "bytes": 1427415,
-      "sha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502"
+      "bytes": 1525949,
+      "sha256": "39e3513a96992f526b33f2d0e3d4084ce02e5de370c3cc944b8ba773f3c4a0bf",
+      "url": "core.json"
     },
     "motionPaletteCatalog": {
-      "bytes": 802764,
-      "sha256": "70cf3f2c72912de66453c84616a2a75372e9af1084fff594967587e5d9d27cdd",
+      "bytes": 802763,
+      "sha256": "4debdf884ad8272d89ba1799a59eff31ae67fe9c8b109517c37373c00731dd6b",
       "url": "motion-palette.json"
     },
     "motionPaletteBinary": {
@@ -28,9 +28,9 @@
       "url": "motion-palette.bin"
     },
     "materialCorrectionCatalog": {
-      "url": "corrections/material-v1/catalog.json",
-      "bytes": 243939,
-      "sha256": "d78e016257ae1215aa1327205947a56d5bb1c1dfbf1909c927d9b30dcfe42710"
+      "bytes": 284188,
+      "sha256": "289cca4f394d252add0aaa2fad9b6e7dbc31a75ab582c946e3135698932c3118",
+      "url": "corrections/material-v1/catalog.json"
     }
   },
   "testedPlateIds": [
@@ -269,6 +269,7 @@
     }
   ],
   "packageAssetsRebasedBy": [
-    "earthhistory-cao-package-interning-v1"
+    "earthhistory-cao-package-interning-v1",
+    "earthhistory-country-reference-source-fragment-bridge-v1"
   ]
 }

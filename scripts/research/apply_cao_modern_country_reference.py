@@ -18,7 +18,7 @@ import cao_package_intern as package_intern
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC = (ROOT / "public/data/reconstruction/cao-v2.4").resolve()
 POOL = ROOT.parent / "EarthHistory-data/palaeomap-study/verification/reconstruction-cao-foundation-v1"
-SOURCE = POOL / "source-inputs/natural-earth-countries.geojson"
+SOURCE = POOL / "source-inputs/natural-earth-countries-50m.geojson"
 CONTRACT = ROOT / "data/corrections/country-reference/exact-present-extension-v1.json"
 CHART_PREFIX = "country-present-reference:"
 ENTRY_ID = "country-present-reference-plate-0-identity"
@@ -27,23 +27,26 @@ HEADER_BYTES = 32
 MOTION_RECORD_BYTES = 20
 MAX_EDGE_RADIANS = math.radians(1)
 SCOPE_CLAUSE = (
-    " Natural Earth 1:110m completes the modern-country locator at exact 0 Ma; "
+    " Natural Earth 1:50m completes the modern-country locator at exact 0 Ma; "
     "unassigned segments remain unavailable at every older age."
 )
+# The pinned source is the Douglas-Peucker 0.02 deg reduction of the 1:50m admin-0
+# archive that `emit_cao_country_reference.py` writes and reads, not the raw zip: the
+# complement has to re-derive exactly the subdivision corpus the partitioner saw.
 EXPECTED_SOURCE_METADATA = {
-    "sourceId": "natural-earth-countries-110m",
-    "title": "Natural Earth 1:110m Admin 0 Countries",
-    "url": "https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/",
-    "path": "natural-earth-countries.geojson",
-    "bytes": 838726,
-    "sha256": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f",
+    "sourceId": "natural-earth-countries-50m",
+    "title": "Natural Earth 1:50m Admin 0 Countries",
+    "url": "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip",
+    "path": "natural-earth-countries-50m.geojson",
+    "bytes": 1947332,
+    "sha256": "d8b94b2322121de57b8e7fd3716115fee1d5505d0a7ae61420f4b67932896ed1",
     "publicationOrVersionDate": "5.1.1",
-    "retrievedAt": "2026-09-09",
+    "retrievedAt": "2026-09-16",
     "license": "Public domain",
     "temporalRangeMa": [0, 0],
     "geographicBasis": (
-        "WGS84 generalized present-day country polygons subdivided to at most "
-        "1 degree angular edges"
+        "WGS84 generalized present-day country polygons simplified at 0.02 degrees "
+        "and subdivided to at most 1 degree angular edges"
     ),
     "evidenceRole": "exact-present modern-country locator linework only",
 }
@@ -276,6 +279,20 @@ def encode_palette(catalog: dict, records: list[tuple]) -> bytes:
     return bytes(payload)
 
 
+def identity_entry(sample_offset: int) -> dict:
+    return {
+        "entryId": ENTRY_ID,
+        "plateId": 0,
+        "storedCoordinateBasis": {"kind": "supported-reference", "geometryReferenceAgeMa": 0},
+        "youngestAgeMa": 0,
+        "oldestAgeMa": 0,
+        "sampleOffset": sample_offset,
+        "sampleCount": 1,
+        "sourceIds": ["natural-earth-countries-50m"],
+        "sourceIntervalSetId": INTERVAL_ID,
+    }
+
+
 def chart(country: str, palette_id: str) -> dict:
     return {
         "kind": "rigid",
@@ -295,7 +312,7 @@ def chart(country: str, palette_id: str) -> dict:
         "sourceFeatureTypes": ["NaturalEarthAdmin0Reference"],
         "evidence": {
             "status": "derived-overlay",
-            "sourceIds": ["natural-earth-countries-110m"],
+            "sourceIds": ["natural-earth-countries-50m"],
             "limitations": [
                 "present-day locator only; not historical borders",
                 "no Cao static-fragment ownership; inactive at every age greater than 0 Ma",
@@ -317,8 +334,12 @@ def apply(package: Path) -> dict:
                                json.loads(manifest_path.read_text()), json.loads(palette_path.read_text()))
     if any(row["chartId"].startswith(CHART_PREFIX) for row in core["charts"]):
         raise BuildError("exact-present country extension already applied")
-    if any(row["entryId"] == ENTRY_ID for row in palette["entries"]):
-        raise BuildError("exact-present country identity entry already applied")
+    # The emitter rebuilds the whole country line batch, so a re-emitted package
+    # arrives with its country charts gone but the exact-present identity entry
+    # still in the palette tail-ordered alongside later entries that reference
+    # their own sample offsets. Reuse that entry and its sample rather than
+    # appending a duplicate; nothing else in the palette may move.
+    existing_entry = next((row for row in palette["entries"] if row["entryId"] == ENTRY_ID), None)
     if manifest["core"] != asset(core_path) or manifest["motionPalette"]["catalog"] != asset(palette_path):
         raise BuildError("package catalog identities are stale")
     line_batch = next(row for row in core["lineBatches"] if row["batchId"] == "country-reference")
@@ -355,26 +376,36 @@ def apply(package: Path) -> dict:
     line_batch["segmentCount"] = len(indices) // 2
     line_batch["geometryAsset"] = asset(line_path)
 
-    sample_offset = len(records)
-    records.append((0, 1.0, 0.0, 0.0, 0.0))
-    palette["entries"].append({
-        "entryId": ENTRY_ID,
-        "plateId": 0,
-        "storedCoordinateBasis": {"kind": "supported-reference", "geometryReferenceAgeMa": 0},
-        "youngestAgeMa": 0,
-        "oldestAgeMa": 0,
-        "sampleOffset": sample_offset,
-        "sampleCount": 1,
-        "sourceIds": ["natural-earth-countries-110m"],
-        "sourceIntervalSetId": INTERVAL_ID,
-    })
-    palette["sourceIntervalSets"].append({
+    interval_set = {
         "id": INTERVAL_ID,
         "intervals": [
             {"youngestAgeMa": 0, "oldestAgeMa": 0, "kind": "smooth-motion"},
             {"youngestAgeMa": 0, "oldestAgeMa": 0, "kind": "source-knot"},
         ],
-    })
+    }
+    if existing_entry is None:
+        sample_offset = len(records)
+        records.append((0, 1.0, 0.0, 0.0, 0.0))
+        palette["entries"].append(identity_entry(sample_offset))
+        palette["sourceIntervalSets"].append(interval_set)
+    else:
+        sample_offset = existing_entry["sampleOffset"]
+        pinned = identity_entry(sample_offset)
+        # This entry is owned by this script, so its `sourceIds` follow the contract's
+        # source and are rewritten here when the complement is rebuilt from a different
+        # Natural Earth resolution. Everything that is motion — the plate, the validity,
+        # the interval set and the identity sample itself — must already match.
+        if ({key: value for key, value in existing_entry.items() if key != "sourceIds"}
+                != {key: value for key, value in pinned.items() if key != "sourceIds"}
+                or tuple(records[sample_offset]) != (0, 1.0, 0.0, 0.0, 0.0)
+                or interval_set not in palette["sourceIntervalSets"]):
+            raise BuildError("reused exact-present identity entry is not the pinned identity motion")
+        reused_index = palette["entries"].index(existing_entry)
+        palette["entries"][reused_index] = pinned
+        # The "existing palette entry prefix changed" guard below protects every entry
+        # this script does not own. This one it does own, so its rewritten source id is
+        # the expected prefix, not a violation of it.
+        old_palette_entries[reused_index] = pinned
     palette_binary = encode_palette(palette, records)
     write_atomic(palette_binary_path, palette_binary)
     palette["binary"] = asset(palette_binary_path)
