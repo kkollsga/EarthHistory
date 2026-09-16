@@ -13,8 +13,8 @@
  */
 
 import { PREPARED_MOTION_PALETTE_STRIDE, type PreparedCaoChartIdentity,
-  type PreparedCaoDisplayControlsCopy, type PreparedCaoSpatialBatch,
-  type PreparedCaoStaticGeometryCopy } from "./facadeV2";
+  type PreparedCaoSpatialBatch } from "./facadeV2";
+import { prepareSurfaceBatch } from "../render/reconstruction/surfaceSource";
 import { inverseQuaternion, numberScalarOps, slerpQuaternion, type QuaternionWxyz } from "./arithmetic";
 import type { LoadedPalaeoInterval, LoadedPalaeoIntervalClass } from "./loaderV2";
 import { selectPaletteMotionSubsegment, type PreparedPaletteEntry } from "./palette";
@@ -389,6 +389,12 @@ export interface PreparedCaoPalaeoIntervalIdentity {
   readonly baseColorRgb: Readonly<Record<PalaeoSurfaceClass, readonly [number, number, number]>>;
 }
 
+/**
+ * States one resident class as an EHPR surface source and prepares it through
+ * the one surface-source path. The offset a class starts at is the sum of the
+ * piece counts of the classes before it, which is only known once all classes
+ * of the interval are resident, so it is applied here and not in the worker.
+ */
 function preparedBatch(
   resident: LoadedPalaeoIntervalClass,
   chartOffset: number,
@@ -397,68 +403,19 @@ function preparedBatch(
   requirePayload: () => LoadedPalaeoIntervalClass,
 ): PreparedCaoSpatialBatch {
   const { geometry } = resident;
-  const narrow = chartCount <= 65_535;
-  const entryBytes = geometry.vertexCount * (narrow ? 2 : 4);
-  const staticGeometryBytes = geometry.referenceDirections.byteLength + geometry.indices.byteLength
-    + geometry.vertexCount * 4 + entryBytes * 2;
-  // One per-vertex index array per resident class, built on the first copy and
-  // reused by every later one. The worker cannot build it: the offset a class
-  // starts at is the sum of the piece counts of the classes before it, which is
-  // only known once all three classes of the interval are resident, while each
-  // class is triangulated on its own. Rebuilding it per copy was ~1.2 MiB of
-  // the per-crossing allocation, and the same array answers both the palette
-  // entry index and the material chart index because for a palaeo batch they
-  // are the same number: one piece is one chart and one palette entry.
-  let sharedEntryIndices: Uint16Array | Uint32Array | null = null;
-  const entryIndices = () => {
-    if (sharedEntryIndices) return sharedEntryIndices;
-    const current = requirePayload().geometry.pieceIndices;
-    const indices = narrow ? new Uint16Array(current.length) : new Uint32Array(current.length);
-    for (let vertex = 0; vertex < current.length; vertex += 1) indices[vertex] = chartOffset + current[vertex]!;
-    sharedEntryIndices = indices;
-    return indices;
-  };
-  return Object.freeze({
+  return prepareSurfaceBatch({
+    kind: "ehpr",
     batchId: `palaeo-${resident.surfaceClass}`,
     staticGeometryIdentity:
       `${identity.packageId}@${identity.packageRevision}:palaeo-${resident.surfaceClass}:${resident.record.payload.sha256}`,
     vertexCount: geometry.vertexCount,
     triangleCount: geometry.triangleCount,
-    staticGeometryBytes,
-    nativePrecedence: false,
+    chartCount,
     surfaceAppearance: PALAEO_SURFACE_CLASS_APPEARANCES[resident.surfaceClass],
-    chartTriangleRanges: Object.freeze(geometry.pieceTriangleRanges.map((range) => Object.freeze({
-      chartIndex: chartOffset + range.pieceIndex,
-      firstTriangle: range.firstTriangle,
-      triangleCount: range.triangleCount,
-    }))),
-    // The copy shares the resident interval's own typed arrays rather than
-    // duplicating them. Nothing downstream writes to a static geometry buffer —
-    // the renderer uploads it and reads it for picking — and the interval store
-    // owns the lifetime of the resident arrays, so a crossing no longer pays
-    // ~10 MiB of copies in the one frame that publishes the incoming interval.
-    // `seamIds` comes from the worker with the rest of the geometry.
-    createStaticGeometryCopy: (): PreparedCaoStaticGeometryCopy => {
-      const current = requirePayload().geometry;
-      const preparedEntryIndices = entryIndices();
-      return {
-        referenceDirections: current.referenceDirections,
-        indices: current.indices,
-        seamIds: current.seamIds,
-        preparedEntryIndices,
-        materialChartIndices: preparedEntryIndices,
-      };
-    },
-    createDisplayControlsCopy: (): PreparedCaoDisplayControlsCopy => {
-      requirePayload();
-      // Height is always 0: the renderer's shell table owns the offset each
-      // palaeo class is drawn at, and a second height here would double it.
-      return {
-        displayHeightStart: { kind: "uniform", value: 0 },
-        displayHeightEnd: { kind: "uniform", value: 0 },
-        baseColor: { kind: "uniform", value: identity.baseColorRgb[resident.surfaceClass] },
-      };
-    },
+    chartIndexOffset: chartOffset,
+    pieceTriangleRanges: geometry.pieceTriangleRanges,
+    requireGeometry: () => requirePayload().geometry,
+    baseColorRgb: identity.baseColorRgb[resident.surfaceClass],
   });
 }
 
