@@ -3,23 +3,23 @@
   "bridgeId": "earthhistory-country-reference-source-fragment-bridge-v1",
   "policy": "A Natural Earth 1:110m complement subdivision is bound to the Cao static fragment that the partitioner positively accepted for a baseline subdivision sharing one of its own float32 endpoints. Ownership is taken from the accepted neighbour that shares the complement segment's first endpoint, otherwise from the accepted neighbour that shares its second endpoint; ties resolve on (chartId, segmentIndex). The segment therefore follows authored Cao plate motion that was verified at one of its own endpoints. No pose, plate assignment, or country-wide default is invented, and a complement subdivision with no accepted neighbour keeps the exact-present locator chart and stays unavailable above 0 Ma.",
   "origin": {
-    "coreSha256": "78f95eb44752304c75df0ba57e0549f41d0899ac030583c29d2d35a37f11c34b",
-    "lineSha256": "8cc0fcdf14fe775e8695a36336dd6d4872c6d2fade43b8ac7a79e9025039fd7a"
+    "coreSha256": "87013212e9d77ed674c69042167b0e90dda1e6d49eef0bdd5e9ded27634d59ce",
+    "lineSha256": "bb0e7267e13ee38cbc5c98bb3384a9ef98a16d213506f3359afcfa79d64f5120"
   },
   "lineBatch": {
     "batchId": "country-reference",
-    "baselineSegmentCount": 10014,
-    "baselineVertexCount": 20028,
-    "totalSegmentCount": 12045,
-    "totalVertexCount": 24090
+    "baselineSegmentCount": 47468,
+    "baselineVertexCount": 94936,
+    "totalSegmentCount": 51048,
+    "totalVertexCount": 102096
   },
   "bridge": {
-    "complementSegmentCount": 2031,
-    "bridgedSegmentCount": 1709,
-    "exactPresentBoundSegmentCount": 322,
-    "donorChartCount": 983,
-    "bridgedOwnershipSha256": "6eecfab5e0b271a3654a9bd884dac9d359fa0fc6ea5e04334e1317826099eeb6",
-    "exactPresentOwnershipSha256": "38a07fe4a46d49ec24671da06b6fd3baf765b4c6929eb8a48b3eb85cea9ffe73"
+    "complementSegmentCount": 3580,
+    "bridgedSegmentCount": 2523,
+    "exactPresentBoundSegmentCount": 1057,
+    "donorChartCount": 1126,
+    "bridgedOwnershipSha256": "c3c0c7621de1749537838665e727a8aad17846a81fddb415ccd99ec95307e46f",
+    "exactPresentOwnershipSha256": "f014138da2a001719ccbda853dc4f2d0fc80f8c957d2c48f657f8b71b4db8024"
   },
   "donorEvidence": {
     "limitations": [

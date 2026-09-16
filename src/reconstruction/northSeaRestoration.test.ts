@@ -28,7 +28,7 @@ const direction = (lon: number, lat: number): [number, number, number] => {
 const toRenderer = (d: readonly [number, number, number]): [number, number, number] => [d[0], d[2], -d[1]];
 const km = (a: readonly number[], b: readonly number[]) =>
   Math.acos(Math.min(1, a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!)) * 6371.0088;
-const limits = { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
+const limits = { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
   maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: 2_048,
   maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 };
 

@@ -33,7 +33,7 @@ const gplatesDirection = (lon: number, lat: number): [number, number, number] =>
 };
 const toRenderer = (d: readonly [number, number, number]): [number, number, number] => [d[0], d[2], -d[1]];
 // Production renderer reservation (GlobeScene) so the probe fails where the app would.
-const limits = { maxBatches: 512, maxVertices: 520_000, maxTriangles: 660_000,
+const limits = { maxBatches: 512, maxVertices: 680_000, maxTriangles: 740_000,
   maxRetainedSourceBytes: 48 * 1024 * 1024, maxTextureSize: 2_048,
   maxPublicationBytes: 2 * 1024 * 1024, maxSpatialIndexBytes: 1024 * 1024 };
 

@@ -24,13 +24,13 @@
         {
           "role": "batch-land.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/batch-land.ehgb",
-          "sha256": "423626079128d5bb671f808acc44aa1d689067ec5290a41e6a029a5d53fcd443",
+          "sha256": "ef1312132a26619208f879e78f0e3ba7e5fd01572089f80654d850afc03a7709",
           "bytes": 6733436
         },
         {
           "role": "batch-shelf.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/batch-shelf.ehgb",
-          "sha256": "2f0d65b1cadd33cd0cede876fe4d70bacaea3d5659f12c0c68ac6905913b0077",
+          "sha256": "718c04ef3e7cde958a61efc4ac779d71648e12ec650ca29c6a4e3232e524c6f4",
           "bytes": 6167960
         },
         {
@@ -4266,20 +4266,20 @@
         {
           "role": "core.json",
           "path": "public/data/reconstruction/cao-v2.4/core.json",
-          "sha256": "c686b67beb04f09cf6149f005c3d25e0693e54b2d1f8c28d58dab7632a096502",
-          "bytes": 1427415
+          "sha256": "39e3513a96992f526b33f2d0e3d4084ce02e5de370c3cc944b8ba773f3c4a0bf",
+          "bytes": 1525949
         },
         {
           "role": "country-reference.ehgl",
           "path": "public/data/reconstruction/cao-v2.4/country-reference.ehgl",
-          "sha256": "7ad03b8f317e7cae2ec26aacd83e8c1429f2c8709e9f7a9be5da13ef9d053585",
-          "bytes": 481832
+          "sha256": "2adad3d7f64bd50b14dd01d0df06e62eaf53333dc6353ec1b84dc2db410d900f",
+          "bytes": 2041952
         },
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "35b8c1240219f09e6eb293b78665486056ca7052e37a3e801d911c54d8dddb9c",
-          "bytes": 41406
+          "sha256": "5851171505aa2e82a158439e0d9d3c799d419d4c4e595ac5aa58da4a2f437155",
+          "bytes": 41538
         },
         {
           "role": "motion-palette.bin",
@@ -4290,8 +4290,8 @@
         {
           "role": "motion-palette.json",
           "path": "public/data/reconstruction/cao-v2.4/motion-palette.json",
-          "sha256": "70cf3f2c72912de66453c84616a2a75372e9af1084fff594967587e5d9d27cdd",
-          "bytes": 802764
+          "sha256": "4debdf884ad8272d89ba1799a59eff31ae67fe9c8b109517c37373c00731dd6b",
+          "bytes": 802763
         },
         {
           "role": "ownership-0ma.ehto",
@@ -7123,32 +7123,32 @@
         {
           "role": "catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/catalog.json",
-          "bytes": 243939,
-          "sha256": "d78e016257ae1215aa1327205947a56d5bb1c1dfbf1909c927d9b30dcfe42710"
+          "bytes": 284188,
+          "sha256": "289cca4f394d252add0aaa2fad9b6e7dbc31a75ab582c946e3135698932c3118"
         },
         {
           "role": "observed.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/observed.ehgb",
           "bytes": 40056,
-          "sha256": "704859096ca62a3a172700939bceaa89a7e232a478878fd06c60d90790b329cc"
+          "sha256": "bf691cb105d4f382054588e15db775f12a4592cad6da2ef4c663775b1d4d3308"
         },
         {
           "role": "qualified.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/qualified.ehgb",
           "bytes": 490052,
-          "sha256": "34957f19289ff35d88f8b7f1309b0f5da22b5103e201b1185674e863a1051d78"
+          "sha256": "7187dd094bfc1cce2598799d22028c16732e2ce6bc5dda96975765ee8f94c623"
         },
         {
           "role": "uncertain.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/uncertain.ehgb",
           "bytes": 1494968,
-          "sha256": "4c6dfa173730e847afbbbc0acc92e5f0227f3f6124654eda74077db1f9d7fa63"
+          "sha256": "485a2a9378c23f8831885b311fec91d6665cff87cc4bd4b19f2dd3a84cc03ac0"
         },
         {
           "role": "restored-margin.ehgb",
           "path": "public/data/reconstruction/cao-v2.4/corrections/material-v1/restored-margin.ehgb",
           "bytes": 60380,
-          "sha256": "699e32796751eab82917b8026132a759ce260ebb750b4086d241acbeb9249dae"
+          "sha256": "4733304ab167e1615bde6a26fee86f13d65ae865afa436ce686d49d3cf56fb6a"
         }
       ]
     },
@@ -7344,7 +7344,7 @@
           "role": "lm/palaeo-lm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/lm/palaeo-lm-catalog.json",
           "bytes": 55865,
-          "sha256": "fe864f8d3e66a5c6d4a05709469d0d388e82890a46b524f14d71293e01669cb2"
+          "sha256": "5683e8929c336060d5891b348f742bc127c975ab9fa2421054ff2b8bdfd80187"
         },
         {
           "role": "lm/palaeo-lm-lgm.ehpr",
@@ -7500,7 +7500,7 @@
           "role": "m/palaeo-m-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/m/palaeo-m-catalog.json",
           "bytes": 29909,
-          "sha256": "538210be1f02abfe528212ec0b4329c94f644cd66b2f7364d17afe4aa875a05d"
+          "sha256": "285ad45e005b3af218d180e02d4382da4fbfab1b2df1e4f5496dcad41bd60f1d"
         },
         {
           "role": "m/palaeo-m-lgm.ehpr",
@@ -7511,14 +7511,14 @@
         {
           "role": "outline-tones.ehpt",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.ehpt",
-          "bytes": 75332,
-          "sha256": "5154adf1920c9e66aac67f2321670824e5b73d513bc3513eeebedb903adb7257"
+          "bytes": 319082,
+          "sha256": "b9289be4de430cf1d028d2783f541229380c2d9f2e3c17588bc9ceab6cc71760"
         },
         {
           "role": "outline-tones.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/outline-tones.json",
-          "bytes": 33173,
-          "sha256": "2568fb6b3515cddfeb6411661fbfcf6a7a4ef829e465a607c433c652ad435cf4"
+          "bytes": 33244,
+          "sha256": "7d9a8ee6faccb54080a29951ad8e6eabb50d74ea7b29b8d7e1ff303851c0f3b2"
         },
         {
           "role": "sm/palaeo-sm-11-2.ehpr",
@@ -7668,7 +7668,7 @@
           "role": "sm/palaeo-sm-catalog.json",
           "path": "public/data/reconstruction/cao-v2.4/palaeo-coastlines/sm/palaeo-sm-catalog.json",
           "bytes": 55490,
-          "sha256": "cf8a740b81c5bb550a94c1f214325eda19d9de902d4e3891fb7433ca833959f2"
+          "sha256": "b42756c1a49b999147c7c64da164eeef180e40bbc87a9eae979ece96c4d1221b"
         },
         {
           "role": "sm/palaeo-sm-lgm.ehpr",

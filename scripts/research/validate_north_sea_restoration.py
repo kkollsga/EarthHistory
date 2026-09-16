@@ -163,6 +163,51 @@ def validate_contract(contract: dict) -> None:
             fail(entry["entryId"], "entry must end at the oldest pinned moving chart lifecycle on its plate")
 
 
+def native_partition(palette: dict, plate: int, youngest: float, oldest: float):
+    """Gap-free native (``plate-*``) entries of `plate` covering [youngest, oldest].
+
+    The partition ``apply_north_sea_restoration.native_partition`` binds and the one the
+    country-outline emitter tiles a chart's lifetime with, so a chart's pre-restoration
+    bindings can be re-derived here without pyGPlates.
+    """
+    entries = sorted((e for e in palette["entries"] if e["plateId"] == plate and e["entryId"].startswith("plate-")),
+                     key=lambda e: (e["youngestAgeMa"], e["oldestAgeMa"]))
+    rows, cursor = [], youngest
+    while cursor < oldest:
+        match = [e for e in entries if e["youngestAgeMa"] <= cursor < e["oldestAgeMa"]]
+        if len(match) != 1:
+            fail("nativePartition", f"expected one native entry on plate {plate} at {cursor} Ma")
+        nxt = min(match[0]["oldestAgeMa"], oldest)
+        rows.append([match[0]["entryId"], cursor, nxt])
+        cursor = nxt
+    return rows
+
+
+def expected_bindings(contract: dict, palette: dict, row: dict, oldest: float):
+    """The motion bindings a pinned chart must carry once the restoration is applied.
+
+    Below the window start the chart keeps the pre-restoration bindings the contract
+    recorded; from the window start a ``moving`` chart takes its plate's restoration
+    entry and a ``fixed`` one the reference plate's native (``plate-*``) partition --
+    the rule ``apply_north_sea_restoration.py`` applies to the native charts and
+    ``emit_cao_country_reference.py`` restates for the re-emitted outline charts. One
+    owner here, so the validator, the re-index and the two emitters cannot drift.
+    """
+    window = contract["windowMa"]
+    expected = [[entry, lo, hi] for entry, lo, hi in row["bindings"] if hi <= window["youngest"]]
+    expected += [[entry, lo, window["youngest"]] for entry, lo, hi in row["bindings"]
+                 if lo < window["youngest"] < hi]
+    if row["kind"] == "moving":
+        entry_id = next((e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"]), None)
+        if entry_id is None:
+            fail(row["chartId"], f"no restoration entry for plate {row['plateId']}")
+        expected.append([entry_id, window["youngest"], oldest])
+    else:
+        expected += native_partition(palette, contract["fixedBinding"]["plateId"], window["youngest"], oldest)
+    expected.sort(key=lambda b: b[1])
+    return expected
+
+
 def validate_package(contract: dict, package: Path) -> dict:
     core = package_intern.read_package_json(package / "core.json")
     manifest = json.loads((package / "manifest.json").read_text())
@@ -180,20 +225,6 @@ def validate_package(contract: dict, package: Path) -> dict:
             fail(spec["entryId"], "restoration palette entry missing or changed")
         if not any(s["id"] == spec["sourceIntervalSetId"] for s in palette["sourceIntervalSets"]):
             fail(spec["entryId"], "restoration clock missing")
-    native_302 = sorted((e for e in palette["entries"] if e["plateId"] == contract["fixedBinding"]["plateId"]
-                         and e["entryId"].startswith("plate-")), key=lambda e: (e["youngestAgeMa"], e["oldestAgeMa"]))
-
-    def native_partition(youngest, oldest):
-        rows, cursor = [], youngest
-        while cursor < oldest:
-            match = [e for e in native_302 if e["youngestAgeMa"] <= cursor < e["oldestAgeMa"]]
-            if len(match) != 1:
-                fail("fixedBinding", f"expected one native Baltica entry at {cursor} Ma")
-            nxt = min(match[0]["oldestAgeMa"], oldest)
-            rows.append([match[0]["entryId"], cursor, nxt])
-            cursor = nxt
-        return rows
-
     chart_by_id = {chart["chartId"]: (index, chart) for index, chart in enumerate(core["charts"])}
     for row in contract["charts"]:
         match = chart_by_id.get(row["chartId"])
@@ -203,17 +234,7 @@ def validate_package(contract: dict, package: Path) -> dict:
         oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
         if oldest != row["lifecycleOldestMa"]:
             fail(row["chartId"], "lifecycle changed")
-        expected = [[entry, lo, hi] for entry, lo, hi in row["bindings"] if hi <= window["youngest"]]
-        expected += [[entry, lo, window["youngest"]] for entry, lo, hi in row["bindings"]
-                     if lo < window["youngest"] < hi]
-        if row["kind"] == "moving":
-            entry_id = next((e["entryId"] for e in contract["paletteEntries"] if e["plateId"] == row["plateId"]), None)
-            if entry_id is None:
-                fail(row["chartId"], f"no restoration entry for plate {row['plateId']}")
-            expected.append([entry_id, window["youngest"], oldest])
-        else:
-            expected += native_partition(window["youngest"], oldest)
-        expected.sort(key=lambda b: b[1])
+        expected = expected_bindings(contract, palette, row, oldest)
         actual = [[b["entryId"], b["validTimeMa"]["youngest"], b["validTimeMa"]["oldest"]] for b in chart["motionBindings"]]
         if actual != expected:
             fail(row["chartId"], f"bindings {actual} != {expected}")

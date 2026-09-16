@@ -40,7 +40,7 @@ describe("modern-country reference segments at reconstructed ages", () => {
           modernGeometry.lineIndices[segment * 2]!]!]!;
         if (chart.support.kind !== "supported") inactiveAtPresent.push(segment);
       }
-      expect(line.segmentCount).toBe(12_045);
+      expect(line.segmentCount).toBe(51_048);
       expect(inactiveAtPresent).toEqual([]);
       modern.release();
 
@@ -73,9 +73,9 @@ describe("modern-country reference segments at reconstructed ages", () => {
       }
       // Bridged complement segments over one Africa plate; the survivors are the
       // subdivisions with no accepted neighbouring segment in the source partition.
-      expect({ inBox, inactiveInBox }).toEqual({ inBox: 1_236, inactiveInBox: 13 });
-      expect(inactiveTotal).toBe(909);
-      expect(inactiveOnExactPresent).toBe(322);
+      expect({ inBox, inactiveInBox }).toEqual({ inBox: 2_706, inactiveInBox: 13 });
+      expect(inactiveTotal).toBe(5_435);
+      expect(inactiveOnExactPresent).toBe(1_057);
       past.release();
     } finally {
       runtime.dispose();
@@ -88,19 +88,19 @@ describe("modern-country reference segments at reconstructed ages", () => {
       const revision = await runtime.request(71.65).prepared;
       const line = revision.lineBatches.find((batch) => batch.batchId === "country-reference")!;
       const geometry = line.createStaticGeometryCopy();
-      const observed = [11_017, 11_018, 11_019, 11_020, 11_021, 11_022].map((segment) => {
+      const observed = [48_957, 48_958, 48_959, 48_960, 48_961, 48_962].map((segment) => {
         const chart = revision.charts[geometry.materialChartIndices[
           geometry.lineIndices[segment * 2]!]!]!;
         const plate = /:plate:(\d+):/.exec(chart.chartId)?.[1] ?? null;
         return { segment, plate, support: chart.support.kind, materialId: chart.materialId };
       });
       expect(observed).toEqual([
-        { segment: 11_017, plate: "715", support: "supported", materialId: "country:ner" },
-        { segment: 11_018, plate: "715", support: "supported", materialId: "country:ner" },
-        { segment: 11_019, plate: "715", support: "supported", materialId: "country:ner" },
-        { segment: 11_020, plate: "77141", support: "supported", materialId: "country:ner" },
-        { segment: 11_021, plate: "715", support: "supported", materialId: "country:ner" },
-        { segment: 11_022, plate: "77141", support: "supported", materialId: "country:ner" },
+        { segment: 48_957, plate: "77141", support: "supported", materialId: "country:ner" },
+        { segment: 48_958, plate: "77144", support: "supported", materialId: "country:ner" },
+        { segment: 48_959, plate: "760", support: "supported", materialId: "country:ner" },
+        { segment: 48_960, plate: "77144", support: "supported", materialId: "country:ner" },
+        { segment: 48_961, plate: "760", support: "supported", materialId: "country:ner" },
+        { segment: 48_962, plate: "77144", support: "supported", materialId: "country:ner" },
       ]);
       revision.release();
     } finally {

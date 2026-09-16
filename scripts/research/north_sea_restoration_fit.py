@@ -15,6 +15,18 @@ It writes ``data/corrections/north-sea-restoration/restoration-contract.json``
 (pole, angle schedule, witness closures, pinned chart list) and the fit report
 ``docs/research/north-sea-restoration-fit.json``. It never touches the public
 package; ``apply_north_sea_restoration.py`` consumes the contract.
+
+``--reindex`` re-records the pinned ``chartIndex`` values against the current
+package, and adopts a modern-country outline chart the contract's own
+``chartSelection`` covers but that did not exist when the contract was fitted (the
+1:50m rebuild added one). It is for a rebuild that reorders charts without changing
+which charts the restoration owns. It is not a re-fit: the full run re-selects charts from the
+package's *current* bindings, so re-running it after the restoration has been
+applied would drop every chart already bound to a restoration entry and every
+Baltica-fixed chart. ``--reindex`` therefore keeps the pinned set and the pinned
+pre-restoration bindings exactly as they are, and refuses unless every pinned
+chart id is still present and still carries the bindings
+``validate_north_sea_restoration.expected_bindings`` derives for it.
 """
 
 from __future__ import annotations
@@ -262,6 +274,107 @@ def select_charts():
     return core, selected
 
 
+def adopt_country_charts(contract, core, palette, index_by_id) -> dict:
+    """Pin a modern-country outline chart the contract covers but never listed.
+
+    The contract's chart list was fitted against the 1:110m overlay. The 1:50m rebuild
+    adds country fragments on the same plates -- Isle of Man on 315, Germany on the
+    Tornquist Block -- and the selection rule in ``select_charts`` covers them: a
+    ``country-reference`` chart on a block plate whose code is one of the
+    ``chartSelection`` codes moves with the block, and any such chart on the Tornquist
+    plate follows Baltica. Leaving one unpinned would leave a chart bound to a
+    restoration entry that no pin explains, which the validator refuses.
+
+    Only the contract's own rule is applied: the plate comes from the chart id, and the
+    pre-restoration bindings are its plate's native partition over the chart lifetime --
+    the tiling the emitter would have produced before the restoration ran. The
+    derivation is proved against every country chart already pinned before it is used
+    for a new one, so it cannot quietly pin a different motion than the fit did.
+    """
+    import validate_north_sea_restoration as validator
+
+    block, tornquist = set(contract["blockPlateIds"]), contract["tornquistPlateId"]
+    codes = set(contract["chartSelection"]["countryCodes"])
+    pinned = {row["chartId"] for row in contract["charts"]}
+
+    def derived(chart_id, plate, oldest):
+        return [list(row) for row in validator.native_partition(palette, plate, 0.0, oldest)]
+
+    for row in contract["charts"]:
+        if row["role"] != "country-reference":
+            continue
+        oldest = row["lifecycleOldestMa"]
+        proof = dict(row, bindings=derived(row["chartId"], row["plateId"], oldest))
+        if (validator.expected_bindings(contract, palette, proof, oldest)
+                != validator.expected_bindings(contract, palette, row, oldest)):
+            raise SystemExit(f"reindex: the native partition does not reproduce {row['chartId']}'s pinned bindings")
+
+    adopted = {}
+    for chart_id, index in index_by_id.items():
+        chart = core["charts"][index]
+        if chart["role"] != "country-reference" or chart_id in pinned:
+            continue
+        parts = chart_id.split(":")
+        # `country:<code>:plate:<id>:fragment:...`; the exact-present identity charts
+        # (`country-present-reference:<code>`) carry no plate and no reconstructed motion.
+        if len(parts) < 4 or parts[0] != "country" or parts[2] != "plate":
+            continue
+        code, plate = parts[1], int(parts[3])
+        if plate == tornquist:
+            kind = "fixed"
+            reason = (f"Tornquist Block chart ({chart['role']}) follows Baltica's native motion; "
+                      "the 0.59 degree Tornquist stage is dropped")
+        elif plate in block and code in codes:
+            kind, reason = "moving", f"modern-country outline {code.upper()} on plate {plate}"
+        else:
+            continue
+        oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
+        contract["charts"].append({
+            "chartIndex": index, "chartId": chart_id, "plateId": plate, "role": chart["role"], "kind": kind,
+            "motionPlateId": (303 if plate == 303 else REFERENCE_PLATE) if kind == "moving" else REFERENCE_PLATE,
+            "lifecycleOldestMa": oldest, "bindings": derived(chart_id, plate, oldest), "reason": reason,
+        })
+        adopted[chart_id] = index
+    return adopted
+
+
+def reindex() -> dict:
+    """Re-record each pinned chart's ``chartIndex`` by chart id against the package.
+
+    Nothing else in the contract moves: a chart whose id is gone, or whose applied
+    bindings are not the ones the contract expects, is a scientific change and is
+    refused here rather than silently re-pinned onto whatever now sits at that index.
+    """
+    import validate_north_sea_restoration as validator
+
+    contract = json.loads(CONTRACT.read_text())
+    core = package_intern.read_package_json(PUBLIC / "core.json")
+    palette = json.loads((PUBLIC / "motion-palette.json").read_text())
+    index_by_id = {chart["chartId"]: index for index, chart in enumerate(core["charts"])}
+    adopted = adopt_country_charts(contract, core, palette, index_by_id)
+    moved = {}
+    for row in contract["charts"]:
+        index = index_by_id.get(row["chartId"])
+        if index is None:
+            raise SystemExit(f"reindex: pinned chart {row['chartId']} is not in the package")
+        chart = core["charts"][index]
+        oldest = chart["lifecycle"]["validTimeMa"]["oldest"]
+        if oldest != row["lifecycleOldestMa"]:
+            raise SystemExit(f"reindex: {row['chartId']} lifecycle {oldest} != pinned {row['lifecycleOldestMa']}")
+        expected = validator.expected_bindings(contract, palette, row, oldest)
+        actual = [[b["entryId"], b["validTimeMa"]["youngest"], b["validTimeMa"]["oldest"]]
+                  for b in chart["motionBindings"]]
+        if actual != expected:
+            raise SystemExit(f"reindex: {row['chartId']} bindings {actual} != expected {expected}")
+        if index != row["chartIndex"]:
+            moved[row["chartId"]] = [row["chartIndex"], index]
+            row["chartIndex"] = index
+    contract["charts"].sort(key=lambda row: row["chartIndex"])
+    CONTRACT.write_text(json.dumps(contract, indent=1) + "\n")
+    return {"charts": len(contract["charts"]), "reindexed": len(moved), "moved": moved,
+            "adopted": adopted}
+
+
 def main() -> None:
     pole_lon, pole_lat, residual_km, angle_200 = fit_pole()
     pole = (pole_lon, pole_lat)
@@ -360,4 +473,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--reindex", action="store_true",
+                        help="re-record the pinned chartIndex values only; never re-fit")
+    if parser.parse_args().reindex:
+        print(json.dumps(reindex(), indent=1))
+    else:
+        main()

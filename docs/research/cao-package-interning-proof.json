@@ -8,12 +8,12 @@
     {
       "files": "core.json",
       "count": 1,
-      "internedBytes": 1427415
+      "internedBytes": 1525949
     },
     {
       "files": "corrections/material-v1/catalog.json",
       "count": 1,
-      "internedBytes": 243939
+      "internedBytes": 284188
     },
     {
       "files": "boundary-*.json",
@@ -26,7 +26,7 @@
       "internedBytes": 887669
     }
   ],
-  "internedBytes": 8924775,
+  "internedBytes": 9063558,
   "rebasedIdentityReports": [
     "docs/research/regional-iceland-motion-validation.json",
     "docs/research/north-sea-restoration-validation.json"

@@ -231,7 +231,7 @@ describe("continuous Cao motion frames", () => {
     const panamaIds = foundation.core.charts.filter((chart) =>
       chart.chartId.startsWith("correction:earthhistory-regional-panama-observed-land-v1:"))
       .map((chart) => chart.chartId);
-    expect(exactCountryIds).toHaveLength(149);
+    expect(exactCountryIds).toHaveLength(173);
     expect(panamaIds).toHaveLength(5);
     for (const chartId of [...exactCountryIds, ...panamaIds]) {
       expect(modern.charts.find((chart) => chart.chartId === chartId)?.support.kind).toBe("supported");

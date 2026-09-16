@@ -2,40 +2,40 @@
   "schemaVersion": 1,
   "extensionId": "earthhistory-country-reference-exact-present-v1",
   "source": {
-    "sourceId": "natural-earth-countries-110m",
-    "title": "Natural Earth 1:110m Admin 0 Countries",
-    "url": "https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/",
-    "path": "natural-earth-countries.geojson",
-    "bytes": 838726,
-    "sha256": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f",
+    "sourceId": "natural-earth-countries-50m",
+    "title": "Natural Earth 1:50m Admin 0 Countries",
+    "url": "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip",
+    "path": "natural-earth-countries-50m.geojson",
+    "bytes": 1947332,
+    "sha256": "d8b94b2322121de57b8e7fd3716115fee1d5505d0a7ae61420f4b67932896ed1",
     "publicationOrVersionDate": "5.1.1",
-    "retrievedAt": "2026-09-09",
+    "retrievedAt": "2026-09-16",
     "license": "Public domain",
     "temporalRangeMa": [
       0,
       0
     ],
-    "geographicBasis": "WGS84 generalized present-day country polygons subdivided to at most 1 degree angular edges",
+    "geographicBasis": "WGS84 generalized present-day country polygons simplified at 0.02 degrees and subdivided to at most 1 degree angular edges",
     "evidenceRole": "exact-present modern-country locator linework only"
   },
   "baselineLineAsset": {
-    "bytes": 400592,
-    "sha256": "29cc21e884f4665e1609fd5ae216c54b42ed591ac90f236f58f5272b58dda9c7",
-    "vertexCount": 20028,
-    "segmentCount": 10014
+    "bytes": 1898752,
+    "sha256": "6ea28cce223844c880520ec020907032b334dc3e90a283f1bfa8056b30402706",
+    "vertexCount": 94936,
+    "segmentCount": 47468
   },
   "exactPresentComplement": {
-    "sourceSubdivisionCount": 12045,
-    "segmentCount": 2031,
-    "exactPresentBoundSegmentCount": 322,
+    "sourceSubdivisionCount": 51048,
+    "segmentCount": 3580,
+    "exactPresentBoundSegmentCount": 1057,
     "sourceFragmentBridgeId": "earthhistory-country-reference-source-fragment-bridge-v1",
-    "vertexCount": 4062,
-    "countryCount": 149,
-    "reverseSharedBorderPairCount": 571,
-    "countryOrderSha256": "2d356cfe88f6c69a135c4ab3211ccd7c773c2bf1b5075596eaf6ae1cbf462c57",
-    "sourceKeySha256": "bb488cbf665b257a06355a1fe87eedda148da2f26cd26b8cb274a77ff70bba74",
-    "float32GeometrySha256": "b54b35440b83795ff8b89dd77ee4913de0244b4f6d2a032d5c1390c2e8d70a77",
-    "float32CountryGeometrySha256": "05734b12b8000a8bf3887cb2acadd9ebb46fca6337efc4a275cdd1d62351cfc5"
+    "vertexCount": 7160,
+    "countryCount": 173,
+    "reverseSharedBorderPairCount": 572,
+    "countryOrderSha256": "56c85c08aec1c3f4692ded42655d44ae0abae0d610da01585572d193c8d3a09d",
+    "sourceKeySha256": "ca477b55123213da2220533fd843e9cfc54285ac9cc2b364c7342540ce0ec305",
+    "float32GeometrySha256": "77cc23b0c60e2574c13427b23ab5d423480c3d8b658a3dfac39c1c4737b214bb",
+    "float32CountryGeometrySha256": "d5d5b60385b9ddac070dbe6d84c0299d29166267bcbc9c862f2c0e2a0387e71e"
   },
   "evidence": {
     "status": "derived-overlay",
