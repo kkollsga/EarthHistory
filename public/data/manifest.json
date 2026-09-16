@@ -4278,8 +4278,8 @@
         {
           "role": "manifest.json",
           "path": "public/data/reconstruction/cao-v2.4/manifest.json",
-          "sha256": "57922a410be525cf7ad1ef5d96154991b7f83b8d99e51f61dc939b859d51873d",
-          "bytes": 41545
+          "sha256": "179aa5e46bcb566357ca58da15da88dfd9d3bfabd71df3d5880ec5a95bc7d490",
+          "bytes": 41548
         },
         {
           "role": "motion-palette.bin",

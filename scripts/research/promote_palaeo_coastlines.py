@@ -58,7 +58,7 @@ AGE_DOMAIN_MA = {"youngest": 0.0195, "oldest": 402.0}
 BASE_COLOR_RGB = {
     "lm": [0x9A / 255, 0xA8 / 255, 0x6B / 255],
     "sm": [0x14 / 255, 0x60 / 255, 0x6B / 255],
-    "m": [0xFD / 255, 0x73 / 255, 0x28 / 255],
+    "m": [0x71 / 255, 0x22 / 255, 0x0E / 255],
 }
 
 # Measured 2026-09-15 across all 24 promoted intervals by

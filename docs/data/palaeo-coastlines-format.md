@@ -507,34 +507,57 @@ class's rendered tone is always lighter and less saturated than its base colour
 
 A class contract is therefore stated in rendered tones, measured on the
 production build by the browser tone census in `tests/browser/explorer.spec.ts`
-("draws palaeo mountains as a readable light brown at every lighting band"). The
+("draws palaeo mountains as a readable dark reddish brown at every lighting
+band"). The
 census takes ground truth from the scene's own composite pick per canvas pixel,
 buckets the pixels by the incident-light cosine the fragment stage used, and
 reports the per-channel median tone per class per band.
 
-Measured 2026-09-15 at 90 Ma, 1440x900, camera 5.6 Earth
+Measured 2026-09-16 at 90 Ma, 1440x900, camera 5.6 Earth
 radii, five aims that carry one mountain belt through the three bands:
 
 | lighting band | `palaeo-land` | `palaeo-mountain` | luma-matched separation | mountain hue |
 |---|---|---|---|---|
-| full light (cos >= 0.90) | 213,212,184 | 235,198,139 | 37.5 | 36.9 deg |
-| mid (cos 0.55-0.72) | 200,199,165 | 225,182,119 | 37.5 | 35.7 deg |
-| terminator-near (cos 0.20-0.32) | 156,158,125 | 194,151,99 | 36.8 | 32.8 deg |
+| full light (cos >= 0.90) | 213,212,183 | 201,126,79 | 60.5 | 23.1 deg |
+| mid (cos 0.55-0.72) | 199,198,164 | 184,117,72 | 53.9 | 24.1 deg |
+| terminator-near (cos 0.20-0.32) | 156,159,126 | 142,78,53 | 52.2 | 16.9 deg |
+
+The 2026-09-15 run of the same census, against the `#fd7328` albedo this colour
+replaced, read 235,198,139 / 225,182,119 / 194,151,99 at separations 37.5 / 37.5
+/ 36.8 and hue 32.8-36.9 deg: a light tan, not a mountain.
 
 Separation is the maximum per-channel difference in 0-255 units after the two
 tones are matched in Rec. 709 luma, so it measures the chromatic difference
 alone: on a sphere whose own lighting varies by far more than any class
 difference, a lightness difference is not what a viewer reads as "a different
-kind of ground". The contract is >= 30 at every band, hue 30-40 degrees (a light
-brown, neither orange nor yellow), and >= 3:1 against the dark outline ink.
+kind of ground". The contract is >= 30 at every band, hue 10-30 degrees (a
+reddish brown, neither a red nor an orange), each channel within 20 of the
+measured tone in the table, and >= 3:1 against the dark outline ink in full
+light and mid lighting (>= 2 near the terminator).
 
 Before 2026-09-15 `palaeo-mountain` shipped as `#c8a97e`, a colour already light
 before the wash. It measured 223,213,192 against palaeo-land's 213,212,184 —
 **6.5/255 of separation** for a base colour 21 CIE76 away — and was not a class
-a viewer could name on screen. It is now `#fd7328`, pre-compensated for the
-wash; `palaeo-land` (`#9aa86b`) and `palaeo-shallow-marine` (`#14606b`) are
-unchanged. The map key's mountain swatch follows the *rendered* full-light tone
-rather than the albedo, or the key would show a brown the map never draws.
+a viewer could name on screen. `#fd7328` cleared that, but the table above is
+what it cleared it *to*: a light tan at hue 33-37 degrees, not the brown the
+class is meant to read as. `palaeo-land` (`#9aa86b`) and
+`palaeo-shallow-marine` (`#14606b`) are unchanged throughout.
+
+The class now ships as `#71220e`, aimed at a darker, redder brown. The albedo was
+chosen through the model fitted to the `#fd7328` measurements — per-band light
+factors 1.0355 / 0.7970 / 0.5260, then ACES at exposure 1.02 and the sRGB
+transfer — which predicted 196,114,68 / 177,95,55 / 143,69,37. The census run
+recorded in the table above is what the build actually draws; the model was
+right to within 12/255 at every channel except mid green, which it
+under-predicted by 22. The census holds the measured tones, not the predictions.
+
+The darker aim has one cost the lighter tan did not pay: near the terminator the
+class reaches only 2.39:1 against the dark outline ink, where the tan held
+5.75:1. That band's floor is therefore 2, and the band is held readable by its
+luma (91/255) rather than by the ratio; full light and mid lighting keep the
+>= 3:1 contract at 4.79:1 and 4.13:1. The map key's mountain swatch follows the
+*rendered* full-light tone rather than the albedo, or the key would show a brown
+the map never draws.
 
 ## What the format does not claim
 

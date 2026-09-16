@@ -73,13 +73,25 @@ type SpatialFocus =
   | { kind: "place"; placeId: string; coordinates: LonLat; nonce: number; distance: number }
   | { kind: "area"; coordinates: LonLat; nonce: number; distance?: number };
 
+/**
+ * What a visitor sees with no `layers=` in the link: the mapped Cao 2017
+ * palaeogeography, its mountains and the LGM lowstand state, because that is
+ * the globe this project is for. `rivers` has no control — the Cao foundation
+ * publishes no drainage field — but stays in the record so a link that names it
+ * still parses.
+ *
+ * A link that carries an explicit `layers=` list keeps exactly what it names,
+ * including a link written before this layer existed, which therefore still
+ * reads it off (`parseLayerVisibility`). Only a link with no `layers=` at all
+ * takes these defaults.
+ */
 const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
   borders: true,
   guides: true,
   tectonics: false,
   rivers: false,
-  palaeoCoastlines: false,
+  palaeoCoastlines: true,
 };
 
 const LAYER_META: Array<{
@@ -88,12 +100,14 @@ const LAYER_META: Array<{
   detail: string;
   icon: typeof Cloud;
 }> = [
-  { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
+  // Ordered by what a visitor reaches for first. One line of detail each; the
+  // full Cao 2017 statement — intervals, fallback, outline markers, the LGM
+  // lowstand datum — lives in the map key, next to the swatches it describes.
+  { key: "palaeoCoastlines", label: "Realistic coastlines", detail: "Cao et al. 2017 mapped land, shallow seas and mountains, 402\u20132 Ma, plus the Last Glacial Maximum lowstand; see the map key", icon: Waves },
   { key: "borders", label: "Modern-country reference", detail: "Present-day locator outlines; not historical borders", icon: Map },
-  { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
-  { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
-  { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
-  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only. Plus one optional Last Glacial Maximum lowstand state at 26.5\u201319.5 ka, ETOPO 2022 at \u2212120 m eustatic over the North Sea, the Sunda shelf and Beringia, drawn over today\u2019s land", icon: Waves },
+  { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period evidence", icon: Compass },
+  { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints only", icon: Mountain },
+  { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
 ];
 
 /**
@@ -291,6 +305,12 @@ export default function App() {
   const handlePalaeoPublicationFailed = useCallback((reason: string) => {
     palaeoPublishFailedRef.current?.(reason);
   }, []);
+  // Per-frame palaeo motion, evaluated where the native surface is retargeted.
+  // Stable for the session: a new identity here would re-run the retarget
+  // effect and pose the same age again.
+  const evaluatePalaeoMotionNow = useCallback(
+    (requestedAgeMa: number, publishedIntervalId: string | null) =>
+      caoRuntimeRef.current?.evaluatePalaeoMotionNow(requestedAgeMa, publishedIntervalId) ?? null, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
   const lastStatsUpdate = useRef(0);
@@ -712,7 +732,8 @@ export default function App() {
       inFlight: false,
       serial: 0,
       frameSerial: 0,
-      prefetchTimer: 0 as ReturnType<typeof setTimeout> | 0,
+      /** The `<interval>|<direction>` the neighbour warm-up has already been asked for. */
+      prefetchedFrom: "",
       // Consecutive recoveries attempted for one interval. A publication that
       // keeps failing is a real defect and must end in a visible error, not in
       // a request loop.
@@ -725,6 +746,15 @@ export default function App() {
     // interval owns the static geometry, so the frame is retargeted onto the
     // geometry already on screen and no payload is fetched.
     const retarget = (targetAgeMa: number) => {
+      // Inside the native display domain the pose rides the native retarget
+      // itself, synchronously and on the same frame, wherever the interval and
+      // its palette are resident. Evaluating it again here would pose the same
+      // age a second time, one commit later — the step this path was the cause
+      // of. Outside that domain, and while the data is still loading, this is
+      // the only retarget there is.
+      const native = runtime.manifest.ageDomainMa;
+      if (targetAgeMa >= native.youngest && targetAgeMa <= native.oldest
+          && runtime.palaeoMotionResidentAt(targetAgeMa)) return;
       const serial = ++state.frameSerial;
       void runtime.evaluatePalaeoMotion(targetAgeMa).then((frame) => {
         if (frame === null || state.disposed || serial !== state.frameSerial) return;
@@ -739,16 +769,20 @@ export default function App() {
       });
     };
 
-    const schedulePrefetch = (index: number) => {
-      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
-      state.prefetchTimer = setTimeout(() => {
-        state.prefetchTimer = 0;
-        if (state.disposed) return;
-        const neighbour = PALAEO_MAP_INTERVALS[
-          neighbourPalaeoIntervalIndex(index, palaeoAgeDirectionRef.current)];
-        if (neighbour === undefined) return;
-        void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
-      }, SCRUB_SETTLE_MS);
+    // Warm the neighbour the moment this interval is the current one, not once
+    // the gesture has rested: a continuous scrub never rests, so a settle-timed
+    // prefetch was cleared on every sample and the crossing paid the whole
+    // fetch, decode and triangulation with the gesture waiting on it. One
+    // warm-up per interval and direction; the store's own residency bound (two
+    // intervals) is what keeps this from accumulating.
+    const prefetchNeighbour = (index: number) => {
+      const direction = palaeoAgeDirectionRef.current;
+      const key = `${index}|${direction}`;
+      if (state.prefetchedFrom === key) return;
+      state.prefetchedFrom = key;
+      const neighbour = PALAEO_MAP_INTERVALS[neighbourPalaeoIntervalIndex(index, direction)];
+      if (neighbour === undefined) return;
+      void runtime.prefetchPalaeoInterval(neighbour.oldestMa);
     };
 
     const pump = () => {
@@ -776,7 +810,7 @@ export default function App() {
       if (palaeoPreparedRef.current?.intervalId === intervalId) {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
-        schedulePrefetch(index);
+        prefetchNeighbour(index);
         return;
       }
       const serial = ++state.serial;
@@ -813,7 +847,7 @@ export default function App() {
         setPalaeoFrame(null);
         setPalaeoLoading(false);
         setPalaeoError(null);
-        schedulePrefetch(latestIndex);
+        prefetchNeighbour(latestIndex);
         if (requestedAgeRef.current !== prepared.requestedAgeMa) pump();
       }).catch((error: unknown) => {
         if (state.disposed || serial !== state.serial) return;
@@ -864,7 +898,6 @@ export default function App() {
     pump();
     return () => {
       state.disposed = true;
-      if (state.prefetchTimer) clearTimeout(state.prefetchTimer);
       if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
       if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
       palaeoPreparedRef.current?.release();
@@ -1006,6 +1039,12 @@ export default function App() {
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
   const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
+  // Whether any native land fill is on screen. The Cao 2017 band replaces it
+  // outright — `batch-land` and every land-appearance correction with it — so a
+  // "Land" swatch there would name a colour the globe is not drawing. The
+  // fallback ages and the detached LGM band still draw today's land, and keep
+  // the row.
+  const nativeLandDrawn = !(palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached);
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
   const renderedEvidence = palaeoModeActive && !palaeoFallback
@@ -1457,6 +1496,7 @@ export default function App() {
           palaeoInterval={palaeoPrepared}
           onPalaeoPublicationFailed={handlePalaeoPublicationFailed}
           palaeoFrame={palaeoFrame}
+          evaluatePalaeoMotionNow={evaluatePalaeoMotionNow}
           palaeoToneBytes={palaeoToneBytes}
           palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
           palaeoToneIntervalId={palaeoPrepared?.intervalId ?? null}
@@ -1501,7 +1541,9 @@ export default function App() {
             </div>
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
-              <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+              {nativeLandDrawn && (
+                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+              )}
               {palaeoClassInKey("lm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
               )}
@@ -1517,7 +1559,7 @@ export default function App() {
             </ul>
             {palaeoKeyVisible && (
               <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
-                <strong>Palaeo-coastlines (Cao 2017)</strong>
+                <strong>Realistic coastlines · Cao et al. (2017)</strong>
                 {palaeoInterval !== null && (
                   <p className="surface-info-note" data-testid="palaeo-interval-line">{
                     palaeoIntervalKeyLine(palaeoInterval)}</p>
@@ -1790,14 +1832,6 @@ export default function App() {
               </button>
             );
           })}
-          <button type="button" aria-disabled="true" disabled>
-            <span className="layer-icon"><Waves size={18} /></span>
-            <span>
-              <strong>Seafloor unavailable</strong>
-              <small>The Cao foundation has no qualified ocean-floor age or depth field.</small>
-            </span>
-            <span className="switch" aria-label="Exposed seafloor unavailable"><i /></span>
-          </button>
           <div className="relief-control">
             <label htmlFor="relief-scale"><strong>Terrain relief</strong><small>Visual vertical exaggeration; source elevations are unchanged.</small></label>
             <output htmlFor="relief-scale">{verticalExaggeration}×</output>
@@ -1813,6 +1847,9 @@ export default function App() {
             />
             <span className="relief-range"><i>1× physical</i><i>30×</i></span>
           </div>
+          {/* The absent layers stated once, instead of as disabled rows a
+              viewer has to read past. Nothing here is a control. */}
+          <p className="layer-unsupported">No drainage or ocean-floor layer: the Cao foundation publishes no reconstructed river field and no qualified ocean-floor age or depth.</p>
         </div>
       </Modal>
 

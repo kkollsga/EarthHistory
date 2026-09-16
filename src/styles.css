@@ -190,10 +190,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 /* The three palaeo classes carry the renderer's own base colours. */
 .surface-swatch-palaeo-land { background: rgb(154, 168, 107); }
 .surface-swatch-palaeo-shallow { background: rgb(20, 96, 107); }
-/* The mountain swatch is the tone the globe renders (measured 234,198,139 in
-   full light), not its linear albedo: the albedo is pre-compensated for the
-   ACES wash and would show the key a brown the map never draws. */
-.surface-swatch-palaeo-mountain { background: rgb(234, 198, 139); }
+/* The mountain swatch is the tone the globe renders (measured 201,126,79 in
+   full light by the tone census), not its linear albedo: the albedo is
+   pre-compensated for the ACES wash and would show the key a brown the map
+   never draws. */
+.surface-swatch-palaeo-mountain { background: rgb(201, 126, 79); }
 .surface-palaeo-key { display: grid; gap: 2px; padding: 11px 0 1px; border-bottom: 1px solid var(--line); }
 .surface-palaeo-key > strong { color: var(--ink); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .surface-palaeo-key .surface-info-note { margin: 6px 0 0; font-size: 10px; }
@@ -393,6 +394,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .relief-control label small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .relief-control output { align-self: start; color: var(--copper-bright); font-family: var(--serif); font-size: 18px; }
 .relief-control input { grid-column: 1 / 3; width: 100%; accent-color: var(--copper-bright); }
+.layer-unsupported { margin: 14px 3px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .relief-range { grid-column: 1 / 3; display: flex; justify-content: space-between; color: var(--dim); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .relief-range i { font-style: normal; }
 

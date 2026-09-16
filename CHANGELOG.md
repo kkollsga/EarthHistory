@@ -4,6 +4,99 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-09-16
+
+### Changed
+
+- **No double fill while realistic coastlines are on.** In the Cao 2017 band
+  every native land fill (the Cao 2024 coast proxy and the land-appearance
+  regional correction batches) is hidden, so only the palaeo classes fill and
+  the modern-country outlines stay position markers; pick and coverage follow
+  the same visibility table, and the "Land" swatch leaves the key in that band
+  (fallback ages and the Last Glacial Maximum band keep native land and its
+  corrections). Six unit tests turn red when a correction batch is re-enabled
+  in palaeo mode.
+- **The realistic coastlines are what the globe opens with.** The Cao et al.
+  (2017) mapped land, shallow seas and mountains, and the Last Glacial Maximum
+  lowstand state, are on by default instead of waiting behind a switch; the
+  layer is also renamed from *Palaeo-coastlines (Cao 2017)* to **Realistic
+  coastlines**, in the panel and in the map key, which keeps the Cao et al.
+  (2017) citation beside the name. Only a link with no `layers=` takes the new defaults: a link
+  that carries an explicit `layers=` list still keeps exactly the layers it
+  names, so every shared link written before the layer existed still opens
+  without it, and the hash writer keeps emitting the full visible list.
+  Measured cold-load cost of the default on the production build, transferred
+  bytes including response headers: **+45.1 KiB at 0 Ma** (13,195.4 → 13,240.7
+  KiB; the class catalogs and the outline tone tables, four requests, with the
+  map itself in fallback because no Cao 2017 map covers the present day) and
+  **+564.5 KiB at 90 Ma** (13,110.8 → 13,675.3 KiB; the same plus the `94-81`
+  interval charts, ten requests).
+- **The Layers panel is controls only.** The two disabled placeholder rows
+  (*Seafloor unavailable*, *Drainage unavailable*) are gone; what the Cao
+  foundation does not publish is one line under the relief slider instead of
+  two switches that cannot be pressed. The remaining toggles are ordered by
+  what a visitor reaches for — realistic coastlines, modern-country reference,
+  reference guides, tectonic references, clouds — and each carries one line of
+  detail. The long Cao 2017 statement (24 intervals, the fallback, the outline
+  markers, the LGM datum) is no longer duplicated in the row: it stays in the
+  map key, next to the swatches it describes. The relief slider, the
+  `aria-pressed` switches, the 44 px targets and the keyboard behaviour are
+  unchanged.
+- **Palaeo mountains are a darker reddish brown.** 0.1.12 made the class visible
+  but landed it on a light tan — 235,198,139 at hue 33–37 degrees — which reads
+  as desert, not mountain. The base colour moves from `#fd7328` to `#71220e`,
+  aimed at sienna. Base colours are *linear albedo*, so the aim was solved
+  through the band model 0.1.12 measured: per-band light factors 1.0355 / 0.7970
+  / 0.5260 fitted to that colour's three measured tones, then ACES at exposure
+  1.02 and the sRGB transfer, which predicted 196,114,68 / 177,95,55 /
+  143,69,37. The browser tone census then **measured** the shipped build:
+  **201,126,79** in full light, **184,117,72** at mid lighting and
+  **142,78,53** near the terminator — hue 23.1 / 24.1 / 16.9 degrees, and
+  **60.5 / 53.9 / 52.2** of luma-matched separation from `palaeo-land` against a
+  30 floor. The model was right to within 12/255 at every channel except mid
+  green, which it under-predicted by 22; the census now holds the measured tones
+  per channel with a tolerance of 20 and a hue window of 10–30 degrees, and the
+  predictions are retired.
+- A darker class cannot hold the old ink contrast everywhere. Sienna itself
+  (160,82,45) reaches only 2.72:1 against the dark outline ink and leaves the
+  terminator band at 57/255 of luma; the shipped tone is the smallest lightening
+  of it that keeps the terminator band readable, measured at 91/255. Even there
+  it reaches only **2.39:1** against that ink, where the tan held 5.75:1, so the
+  census floor near the terminator is 2, while full light and mid lighting keep
+  the ≥ 3:1 contract at a measured 4.79:1 and 4.13:1. `palaeo-land` and
+  `palaeo-shallow-marine` are unchanged, and the map key's mountain swatch
+  follows the measured full-light tone.
+
+### Fixed
+
+- **Scrubbing across a Cao 2017 map-interval boundary no longer stalls the
+  gesture.** Three causes, measured on a headless SwiftShader harness over a
+  6 s scrub from 100 to 80 Ma before they were addressed: the neighbouring
+  interval's warm-up was armed on a settle timer that a continuous scrub
+  cleared on every sample, so it never fired and the crossing paid the whole
+  fetch, decode and triangulation with the gesture waiting on it; the three
+  class payloads were fetched and triangulated one after another inside an
+  `await` loop; and the incoming interval could not be posed onto the outgoing
+  geometry, which froze the layer from the boundary until the swap landed. The
+  neighbour is now warmed as soon as an interval becomes current (once per
+  interval and direction, bounded by the store's own two-interval residency),
+  the three class payloads load together, and the outgoing interval stays
+  drawn and posed at its own range edge until the incoming one is published.
+  Same harness and gesture, layer on: median frame gap 232.5 → 235.1 ms,
+  maximum **1518.3 → 1351.7 ms**, and the first crossing costs a 1.445 Ma age
+  step instead of 5 Ma while holding the outgoing pose for four frames. The
+  residual maximum is the second crossing, whose warm-up has only ~1.5 s of
+  lead: prefetch lead time, not GPU upload.
+- **Palaeo charts are re-posed in the same frame as the native surface.** The
+  pose went through a promise, a React state hop and a second commit where the
+  native surface and its country outlines are retargeted in one synchronous
+  call; `evaluatePalaeoMotionNow` answers the same pose from resident data with
+  no `await`, and the interval pump stands down where that path already posed
+  the age. Measured over the same scrub with a new per-frame probe, before and
+  after are the same — at this harness's ~235 ms cadence the promise and the
+  commit both fit inside one frame — so this removes the hop and a redundant
+  second evaluation per sample rather than a lag it measured.
+
 ## [0.1.12] - 2026-09-16
 
 ### Changed

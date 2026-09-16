@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type {
+  EarthHistoryMotionProbe,
   EarthHistoryPixelSurfaceProbe,
   EarthHistorySurfaceProbe,
 } from "../../src/render/GlobeScene";
@@ -10,6 +11,8 @@ declare global {
     __earthHistorySurfaceProbe?: EarthHistorySurfaceProbe;
     /** Class and lighting under one canvas pixel; the tone census reads it. */
     __earthHistoryPixelSurfaceProbe?: EarthHistoryPixelSurfaceProbe;
+    /** Per-frame native and palaeo poses; the scrub-synchrony check reads it. */
+    __earthHistoryMotionProbe?: EarthHistoryMotionProbe;
   }
 }
 
@@ -724,7 +727,7 @@ test("keeps Precambrian scrubber from deep time through today", async ({ page })
   await waitForCao(page);
 });
 
-test("keeps layers usable and labels unavailable seafloor data", async ({ page }) => {
+test("keeps layers usable and states the unavailable data once", async ({ page }) => {
   await page.goto("./");
   await waitForCao(page);
   await openMenu(page);
@@ -732,18 +735,45 @@ test("keeps layers usable and labels unavailable seafloor data", async ({ page }
   const guides = page.getByRole("button", { name: /^Reference guides/ });
   await guides.click();
   await expect(globe(page)).toHaveAttribute("data-reference-guide-visible", "false");
-  await expect(page.getByRole("button", { name: /Seafloor unavailable/ })).toBeDisabled();
-  await expect(page.getByText(/no qualified ocean-floor age or depth field/i)).toBeVisible();
+  // The panel is controls only: drainage and seafloor were disabled rows a
+  // viewer had to read past and are now one statement under the relief slider.
+  await expect(page.getByRole("button", { name: /unavailable/i })).toHaveCount(0);
+  await expect(page.getByText(/no reconstructed river field and no qualified ocean-floor age or depth/i))
+    .toBeVisible();
 });
 
-test("offers the palaeo-coastline layer control and leaves it off by default", async ({ page }) => {
-  // Default off: the outline keeps its single dark ink, nothing palaeo is
-  // fetched, and the control is available because the Cao 2017 charts now ship.
+test("draws the Cao 2017 map by default in a link that names no layers", async ({ page }) => {
+  // The mapped palaeogeography is what a visitor arrives at. A link with no
+  // `layers=` takes the defaults, so 90 Ma comes up on its published interval
+  // and the country outline carries both tones.
+  await page.goto("./#age=90");
+  await waitForCao(page);
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
+  await expect(palaeo).toBeEnabled();
+  await expect(palaeo).toHaveAttribute("aria-pressed", "true");
+  // The long Cao 2017 statement moved to the map key; the row keeps one line.
+  await expect(page.getByText(/steps between 24 published map intervals/)).toHaveCount(0);
+  await expect(page.getByText(/Cao et al\. 2017 mapped land, shallow seas and mountains/)).toBeVisible();
+  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "94-81");
+  expect(Number(await globe(page).getAttribute("data-cao-outline-tone-light-segments")))
+    .toBeGreaterThan(0);
+});
+
+test("fetches no palaeo bytes when a link switches the layer off", async ({ page }) => {
+  // The "zero palaeo bytes when off" contract now needs an explicit link: the
+  // default is on, and a `layers=` list that does not name the layer keeps it
+  // off, which is the same contract a link written before the layer existed has.
   const palaeoRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("palaeo-coastlines/")) palaeoRequests.push(request.url());
   });
-  await page.goto("./");
+  await page.goto("./#age=90&layers=borders,guides");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-light-segments", "0");
@@ -753,11 +783,9 @@ test("offers the palaeo-coastline layer control and leaves it off by default", a
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
   await expect(palaeo).toBeEnabled();
   await expect(palaeo).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByText(/steps between 24 published map intervals/)).toBeVisible();
-  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toHaveCount(0);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
   expect(palaeoRequests, "no palaeo bytes are fetched while the layer is off").toEqual([]);
@@ -818,6 +846,10 @@ test("places the compiled Cao 2017 witnesses on the live surface", async ({ page
 });
 
 test("returns the Cao 2024 composition when the palaeo layer is switched off", async ({ page }) => {
+  // Two interval loads and two triangulations inside one page, and the second
+  // toggle is clicked while the neighbour warm-up is still decoding: the
+  // file-level 45 s budget is a load budget here, not an assertion budget.
+  test.setTimeout(180_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#age=90&layers=borders,guides");
   await waitForCao(page);
@@ -826,7 +858,7 @@ test("returns the Cao 2024 composition when the palaeo layer is switched off", a
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
   await palaeo.click();
   await page.keyboard.press("Escape");
   await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
@@ -877,6 +909,10 @@ test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", asy
 });
 
 test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
+  // The key is only readable once the 94-81 interval is drawn, and the layer
+  // now warms its neighbour behind that: the assertions are cheap, the load
+  // this test waits on is not, and it overran the file-level 45 s budget.
+  test.setTimeout(120_000);
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
   await openSurfaceInfo(page);
@@ -897,6 +933,11 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await expect(page.getByText("Palaeo shallow sea", { exact: true })).toBeVisible();
   await expect(page.getByText("Palaeo mountain", { exact: true })).toBeVisible();
 
+  // And no swatch for a colour the globe is not drawing: the Cao 2017 band
+  // hides native land and every land-appearance correction with it, so the
+  // "Land" row would name a tone nowhere on screen.
+  await expect(page.getByTestId("map-key-native-land")).toHaveCount(0);
+
   // Nothing in the key is left below the fold with no way to reach it: the
   // panel takes the height the stage leaves it, and scrolls the remainder.
   const panel = page.locator(".surface-info-panel");
@@ -909,9 +950,21 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   expect(metrics.clientHeight, "map key panel height at 1440x900").toBeGreaterThan(440);
   const last = page.getByText(/Outline tone is a legibility device, not evidence/);
   await last.scrollIntoViewIfNeeded();
-  const lastBox = (await last.boundingBox())!;
-  const panelBox = (await panel.boundingBox())!;
-  expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(panelBox.y + panelBox.height + 1);
+  // Both rectangles are read in one evaluate rather than through two
+  // `boundingBox()` calls. `boundingBox` waits for the element to hold still
+  // across two frames, and the panel does not: the key's own scroll position
+  // settles a frame behind `scrollIntoViewIfNeeded`, which left the call
+  // waiting out the whole test timeout on an element it had already resolved.
+  const rects = await panel.evaluate((element, text: string) => {
+    const target = [...element.querySelectorAll("*")].find((node) =>
+      node.textContent?.includes(text) && node.children.length === 0);
+    if (!target) throw new Error("the map key's last line is not in the panel");
+    const panelRect = element.getBoundingClientRect();
+    const lastRect = target.getBoundingClientRect();
+    return { panelBottom: panelRect.y + panelRect.height,
+      lastBottom: lastRect.y + lastRect.height };
+  }, "Outline tone is a legibility device");
+  expect(rects.lastBottom).toBeLessThanOrEqual(rects.panelBottom + 1);
 });
 
 test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ page }) => {
@@ -920,6 +973,8 @@ test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ p
   await openSurfaceInfo(page);
   await expect(page.getByTestId("palaeo-fallback-notice"))
     .toHaveText("No palaeogeography evidence at this age; showing the Cao 2024 coast proxy");
+  // A fallback age still draws today's land, so the key still names its colour.
+  await expect(page.getByTestId("map-key-native-land")).toHaveCount(1);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "fallback");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
   // The live wiring reports what is drawn, not what the age asks for. In a
@@ -977,7 +1032,7 @@ test("keeps today's land when the palaeo layer is switched on at 0 Ma", async ({
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  await page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ }).click();
+  await page.getByRole("button", { name: /^Realistic coastlines/ }).click();
   await page.keyboard.press("Escape");
   await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
     { timeout: 30_000 }).toBe("fallback");
@@ -1090,13 +1145,23 @@ async function probeClass(page: Page, longitude: number, latitude: number) {
 // the draw order; this asserts the pixels they produce.
 for (const site of [
   { id: "mountain over land", age: 90, at: "68.61,-32.34", probe: [85, 29] as const,
-    expected: "palaeo-mountain",
+    expected: "palaeo-mountain", nativeLandRow: 0,
     why: "Tethyan Himalaya: the mountain class drawn over the land class" },
-  { id: "land over shallow sea", age: 170, at: "23.48,41.98", probe: [-4, 57] as const,
-    expected: "palaeo-land",
+  // Re-aimed when the Cao 2017 band stopped drawing land-appearance
+  // corrections. The old aim, 23.48,41.98, framed ground the qualified material
+  // masks had filled with native land tone; with them hidden the closest zoom
+  // there is shallow sea edge to edge, the frame carries zero land-like pixels
+  // and the measurement has nothing to read. This aim is a palaeo-land sample
+  // whose neighbourhood is balanced at the *closest* zoom rather than at the
+  // orbital one - the window that matters, since six wheel steps magnify a
+  // 25-degree orbital neighbourhood far past the screen. Found by sweeping the
+  // pixel probe at a 3-degree window and then measuring the zoomed frame:
+  // 188,122 warm against 490,810 cold pixels, both far clear of the floors.
+  { id: "land over shallow sea", age: 170, at: "17.13,52.12", probe: [-4, 57] as const,
+    expected: "palaeo-land", nativeLandRow: 0,
     why: "the Scottish Middle Jurassic landmass inside the North Sea shallow sea" },
   { id: "LGM shelf over shallow sea", age: 0.021, at: "3,57", probe: [3, 57] as const,
-    expected: "palaeo-land",
+    expected: "palaeo-land", nativeLandRow: 1,
     why: "the exposed central North Sea shelf at the lowstand" },
 ]) {
   test(`draws no lower class inside the higher one: ${site.id}`, async ({ page }) => {
@@ -1119,8 +1184,220 @@ for (const site of [
     expect(census.longestRun,
       `${site.id}: ${census.isolated} isolated cold pixels, longest run ${census.longestRun}`)
       .toBeLessThanOrEqual(12);
+
+    // The key names only colours the globe is drawing. The Cao 2017 band hides
+    // native land and every land-appearance correction with it, so the "Land"
+    // row goes; the detached LGM band draws today's land under its exposed
+    // shelf and keeps it.
+    await openSurfaceInfo(page);
+    await expect(page.getByTestId("map-key-native-land")).toHaveCount(site.nativeLandRow);
   });
 }
+
+/**
+ * Every pixel of the globe canvas the scene's own composite answers for, keyed
+ * by surface class, with the rendered tone each class carries.
+ *
+ * Ground truth is the composite pick — the same visibility table the meshes
+ * read — and the tone is the 3x3 per-channel median around the probed pixel, so
+ * a coastline pixel or an antialiasing pixel cannot move a class's answer. The
+ * palaeo tone census above samples one belt through three lighting bands to
+ * compare two classes; this one sweeps a whole frame to ask a different
+ * question: *is anything drawn here at all* in a class that should not be.
+ */
+async function drawnClassCensus(page: Page, stepCssPx: number) {
+  const screenshot = (await globe(page).screenshot()).toString("base64");
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to census");
+  return page.evaluate(async ([base64, left, top, width, height, step]) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("drawn-class census canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const scaleX = bitmap.width / width;
+    const scaleY = bitmap.height / height;
+    const median = (values: number[]) =>
+      values.sort((left2, right) => left2 - right)[Math.floor(values.length / 2)]!;
+    const collected = new Map<string, { channels: number[][];
+      samples: { tone: [number, number, number]; cosLight: number; spread: number }[] }>();
+    for (let y = step / 2; y < height; y += step) {
+      for (let x = step / 2; x < width; x += step) {
+        // The application chrome is photographed with the canvas; a pixel the
+        // pointer could not reach is a pixel the census must not read.
+        const topmost = document.elementFromPoint(left + x, top + y);
+        if (topmost === null || topmost.tagName !== "CANVAS") continue;
+        const px = Math.round(x * scaleX);
+        const py = Math.round(y * scaleY);
+        if (px < 1 || py < 1 || px >= bitmap.width - 1 || py >= bitmap.height - 1) continue;
+        const centre = (py * bitmap.width + px) * 4;
+        if (Math.max(pixels[centre]!, pixels[centre + 1]!, pixels[centre + 2]!) < 14) continue;
+        const hit = window.__earthHistoryPixelSurfaceProbe?.(x, y) ?? null;
+        if (hit === null) continue;
+        const patch: number[][] = [[], [], []];
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            const offset = ((py + dy) * bitmap.width + (px + dx)) * 4;
+            for (let channel = 0; channel < 3; channel += 1) patch[channel]!.push(pixels[offset + channel]!);
+          }
+        }
+        const tone: [number, number, number] =
+          [median(patch[0]!), median(patch[1]!), median(patch[2]!)];
+        // How uniform the 3x3 patch is. A probe that lands on a coastline has a
+        // median tone belonging to neither side of it, so the tone census below
+        // reads only patches that are all one colour.
+        const spread = Math.max(...patch.map((channel) =>
+          Math.max(...channel) - Math.min(...channel)));
+        if (!collected.has(hit.surfaceClass)) {
+          collected.set(hit.surfaceClass, { channels: [[], [], []], samples: [] });
+        }
+        const target = collected.get(hit.surfaceClass)!;
+        for (let channel = 0; channel < 3; channel += 1) target.channels[channel]!.push(tone[channel]!);
+        target.samples.push({ tone, cosLight: hit.cosLight, spread });
+      }
+    }
+    bitmap.close();
+    const census: Record<string, { count: number; rgb: [number, number, number] }> = {};
+    const samples: { surfaceClass: string; tone: [number, number, number];
+      cosLight: number; spread: number }[] = [];
+    for (const [surfaceClass, entry] of collected) {
+      census[surfaceClass] = {
+        count: entry.samples.length,
+        rgb: [median(entry.channels[0]!), median(entry.channels[1]!), median(entry.channels[2]!)],
+      };
+      for (const sample of entry.samples) samples.push({ surfaceClass, ...sample });
+    }
+    return { census, samples };
+  }, [screenshot, box.x, box.y, box.width, box.height, stepCssPx] as const);
+}
+
+/**
+ * No native land fill is drawn anywhere while the Cao 2017 map is on screen.
+ *
+ * The user-visible defect: a country outline always encloses a fill, and with
+ * realistic coastlines on the globe showed two land tones side by side inside
+ * one outline. The cause was the land-appearance correction batches — lake-void
+ * infill, regional material corrections, observed-land patches — which carry
+ * *native land's own colour* and kept drawing above palaeo-shallow-marine in
+ * the Cao 2017 band. Hiding `batch-land` alone was never enough.
+ *
+ * The site is the Western Interior Seaway at 90 Ma, which is exactly the ground
+ * where a North American land correction sits inside a mapped shallow sea, at
+ * the closest zoom the review captures use.
+ *
+ * Two independent measurements, because either alone could pass for the wrong
+ * reason. The class census asks the scene's own composite what is drawn under
+ * every sampled pixel: no pixel may answer `land` or `corrections`. The tone
+ * census asks the *photograph* whether any pixel carries the native-land olive
+ * rather than the Cao 2017 land olive, using the native tone measured in the
+ * same view with the layer off — so it cannot drift with a colour change.
+ */
+test("draws no native land fill while realistic coastlines are on", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // The reference tone, measured rather than hardcoded: the same ground, the
+  // same framing, the same lighting, with the palaeo layer off.
+  // A distinct query string on each visit, because the two differ only in the
+  // hash and a hash-only navigation would leave the first frame on screen while
+  // the census believed the layer had changed.
+  await page.goto("./?fill=native#age=90&layers=borders,guides&at=-100,45");
+  await waitForCao(page);
+  const native = await drawnClassCensus(page, PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX);
+  const nativeLandTone = native.census["land"]?.rgb;
+  expect(nativeLandTone, "the layer-off frame must draw native land to measure its tone")
+    .toBeDefined();
+  // The same frame with the layer off is also what proves the site is worth
+  // measuring: it has to carry land-appearance corrections, or the census
+  // could not see the defect even if it were still there.
+  expect(native.census["corrections"]?.count ?? 0,
+    "no land-appearance correction is in frame, so the census cannot fail").toBeGreaterThan(20);
+  console.log(`native fill census (layer off): ${JSON.stringify(native.census)}`);
+
+  await page.goto("./?fill=palaeo#age=90&layers=borders,guides,palaeoCoastlines&at=-100,45");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const palaeo = await drawnClassCensus(page, PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX);
+  console.log(`native fill census (layer on): ${JSON.stringify(palaeo.census)}`);
+
+  // The frame must actually show the mapped field, or both measurements below
+  // are vacuous.
+  const water = ["palaeo-shallow-marine", "shelf", "correction-shelf"];
+  const waterDrawn = water.reduce((total, key) => total + (palaeo.census[key]?.count ?? 0), 0);
+  expect(waterDrawn, "no Cao 2017 water in frame").toBeGreaterThan(1_000);
+  expect(palaeo.census["palaeo-land"]?.count ?? 0, "no Cao 2017 land in frame")
+    .toBeGreaterThan(1_000);
+
+  // Measurement one: the composite draws and picks nothing in a land-coloured
+  // native class. `corrections` is the batch class the defect left visible.
+  // Soft, so one run reports both measurements rather than stopping at the
+  // first: the two answer different questions and a reader needs both numbers.
+  expect.soft(palaeo.census["land"]?.count ?? 0, "native coast fill drawn in the Cao 2017 band")
+    .toBe(0);
+  expect.soft(palaeo.census["corrections"]?.count ?? 0,
+    "a land-appearance correction drawn in the Cao 2017 band").toBe(0);
+
+  // Measurement two: the pixels themselves, because the pick and the draw could
+  // in principle disagree. The native land olive is not one tone but a curve
+  // through the lighting, and the Cao 2017 land olive crosses it — the same
+  // olive at a brighter angle, 24/255 away at this site — so a lighting-blind
+  // tone test cannot separate the two. Bin by `cosLight` instead, take each
+  // bin's native tone from the layer-off frame, and hold the radius inside that
+  // 24 so a Cao 2017 landmass can never be charged as a native one. The classes
+  // that are *meant* to be olive are excluded outright; anything else carrying
+  // the native tone is native land drawn where the mode says it is not.
+  const bin = (cosLight: number) => Math.round(cosLight * 10);
+  const median = (values: number[]) =>
+    values.sort((left, right) => left - right)[Math.floor(values.length / 2)]!;
+  const nativeByBin = new Map<number, [number, number, number]>();
+  const nativeBins = new Map<number, number[][]>();
+  for (const sample of native.samples) {
+    if (sample.surfaceClass !== "land" && sample.surfaceClass !== "corrections") continue;
+    if (sample.spread > PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD) continue;
+    const key = bin(sample.cosLight);
+    if (!nativeBins.has(key)) nativeBins.set(key, [[], [], []]);
+    const channels = nativeBins.get(key)!;
+    for (let channel = 0; channel < 3; channel += 1) channels[channel]!.push(sample.tone[channel]!);
+  }
+  for (const [key, channels] of nativeBins) {
+    // A bin with a handful of samples is coastline and antialiasing, not a tone.
+    if (channels[0]!.length < 20) continue;
+    nativeByBin.set(key, [median(channels[0]!), median(channels[1]!), median(channels[2]!)]);
+  }
+  expect(nativeByBin.size, "no native land tone was measurable in the layer-off frame")
+    .toBeGreaterThan(0);
+  console.log(`native land tone by cosLight bin: ${JSON.stringify([...nativeByBin])}`);
+
+  const palaeoOlive = ["palaeo-land", "palaeo-mountain"];
+  let measured = 0;
+  const landToned: Record<string, number> = {};
+  for (const sample of palaeo.samples) {
+    if (palaeoOlive.includes(sample.surfaceClass)) continue;
+    if (sample.spread > PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD) continue;
+    const reference = nativeByBin.get(bin(sample.cosLight));
+    if (reference === undefined) continue;
+    measured += 1;
+    const distance = Math.hypot(sample.tone[0]! - reference[0]!,
+      sample.tone[1]! - reference[1]!, sample.tone[2]! - reference[2]!);
+    if (distance <= PALAEO_NATIVE_FILL_TONE_RADIUS) {
+      landToned[sample.surfaceClass] = (landToned[sample.surfaceClass] ?? 0) + 1;
+    }
+  }
+  const landTonedTotal = Object.values(landToned).reduce((total, count) => total + count, 0);
+  console.log(`native-land-toned pixels: ${landTonedTotal} of ${measured} measured`
+    + ` ${JSON.stringify(landToned)}`);
+  // The census has to be able to see the defect before its zero means anything.
+  expect(measured, "no measured pixel shared a lighting bin with the native tone")
+    .toBeGreaterThan(1_000);
+  expect(landTonedTotal,
+    `pixels carrying the native land olive: ${JSON.stringify(landToned)}`).toBe(0);
+});
 
 test("reaches the LGM interval after a long scrub through the Cao band", async ({ page }) => {
   // One page, many intervals. The defect this covers only appeared after a dozen
@@ -1356,10 +1633,30 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
  * hold at the hardest band, not on average.
  */
 const PALAEO_TONE_BANDS = [
-  { id: "full light", min: 0.9, max: 1.01 },
-  { id: "mid", min: 0.55, max: 0.72 },
-  { id: "terminator-near", min: 0.2, max: 0.32 },
+  { id: "full light", min: 0.9, max: 1.01, measured: [201, 126, 79] as const, minInkContrast: 3 },
+  { id: "mid", min: 0.55, max: 0.72, measured: [184, 117, 72] as const, minInkContrast: 3 },
+  { id: "terminator-near", min: 0.2, max: 0.32, measured: [142, 78, 53] as const,
+    minInkContrast: 2 },
 ] as const;
+
+/**
+ * How far a measured channel may sit from the recorded tone.
+ *
+ * The triples above are what this census measured for `#71220e` on the
+ * production build, 0.1.13: 201,126,79 in full light, 184,117,72 at mid
+ * lighting and 142,78,53 near the terminator, merged over the five camera aims
+ * below. They replace the band model's predictions (196,114,68 / 177,95,55 /
+ * 143,69,37), which the same run confirmed to within 12/255 at the worst
+ * channel except mid green, where the measurement landed 22 above the
+ * prediction and outside this tolerance - the model's own error, not a drift in
+ * the colour, and the reason a prediction is not a contract.
+ *
+ * A tolerance of 20 around a measured tone is tight enough that the class
+ * cannot drift back toward the light tan it used to be (235,198,139 is 34 away
+ * in red and 72 in green at full light) and loose enough to absorb the spread
+ * between renderers and aim sets.
+ */
+const PALAEO_TONE_TOLERANCE = 20;
 
 /**
  * Camera aims the census samples from.
@@ -1398,6 +1695,43 @@ const PALAEO_TONE_CENSUS_CAMERA_DISTANCE = 5.6;
 
 /** Probe grid pitch in CSS pixels; the globe is about 410 px across at 5.6. */
 const PALAEO_TONE_CENSUS_STEP_CSS_PX = 10;
+
+/**
+ * Probe grid pitch for the whole-frame native-fill census.
+ *
+ * It sweeps the full 1440x900 canvas at the closest zoom rather than one belt,
+ * and each probe is a CPU ray walk against every chart, so the pitch buys
+ * runtime back. At 12 px it still takes about 8,000 samples across the frame -
+ * dense enough that a correction patch the size of a lake cannot hide between
+ * two probes.
+ */
+const PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX = 12;
+
+/**
+ * How near a water pixel's tone must come to the native land tone measured at
+ * the same lighting before it is charged as native land showing through, in
+ * 8-bit RGB distance.
+ *
+ * The mapped shallow sea renders around 116,186,182 against a native land tone
+ * of 201,206,169 at this site - 89 apart - so the radius has a wide gap to sit
+ * in on that side. The tight side is the Cao 2017 land olive at 214,214,188,
+ * only 24 away: the radius has to stay inside that or a mapped landmass would
+ * be charged as a native one, and wide enough to clear the few units a 3x3
+ * median still leaves so a correction patch cannot slip under it by a shade.
+ */
+const PALAEO_NATIVE_FILL_TONE_RADIUS = 20;
+
+/**
+ * The most a probe's 3x3 patch may vary, per channel, before the census
+ * declines to read its tone at all.
+ *
+ * A probe that lands on a coastline photographs both sides of it, and its
+ * median belongs to neither - which put a handful of sea pixels inside the land
+ * radius for no better reason than where the grid fell. A fill is flat, so
+ * requiring a flat patch keeps the measurement on ground that is actually one
+ * colour and costs nothing a real fill would have.
+ */
+const PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD = 10;
 
 /**
  * The dark country-outline/label ink, as the sRGB bytes it is authored in.
@@ -1571,8 +1905,15 @@ function inkContrastRatio(rgb: readonly [number, number, number],
   return (high! + 0.05) / (low! + 0.05);
 }
 
-test("draws palaeo mountains as a readable light brown at every lighting band", async ({ page }) => {
-  test.setTimeout(420_000);
+test("draws palaeo mountains as a readable dark reddish brown at every lighting band", async ({ page }) => {
+  // Five full page loads, each fetching and triangulating a Cao map interval
+  // and then warming its neighbour, plus a per-pixel probe sweep over each
+  // frame. This is the slowest check in the suite and its budget is wall clock
+  // on the machine that runs it: the run that recorded the tones below took
+  // 558 s on a Mac sharing its cores with a second browser harness, where the
+  // former 420 s budget expired mid-aim three times. Nothing here is asserted
+  // against the clock, so the budget is headroom, not a threshold.
+  test.setTimeout(900_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   const censuses: ToneCensus[] = [];
@@ -1620,12 +1961,29 @@ test("draws palaeo mountains as a readable light brown at every lighting band", 
     expect(row.separation,
       `${band.id}: mountain ${mountain!.rgb} vs land ${land!.rgb} luma-matched separation`)
       .toBeGreaterThanOrEqual(30);
-    expect(row.hue, `${band.id}: mountain hue must stay a brown, not an orange`)
-      .toBeGreaterThanOrEqual(30);
-    expect(row.hue, `${band.id}: mountain hue must stay a brown, not a yellow`)
-      .toBeLessThanOrEqual(40);
+    expect(row.hue, `${band.id}: mountain hue must stay a reddish brown, not a red`)
+      .toBeGreaterThanOrEqual(10);
+    expect(row.hue, `${band.id}: mountain hue must stay a reddish brown, not an orange`)
+      .toBeLessThanOrEqual(30);
+    // The recorded tone, channel by channel. This is the assertion that would
+    // catch the class drifting back toward a light tan, which neither the
+    // separation floor nor the hue window can see on their own.
+    for (const [channel, name] of (["red", "green", "blue"] as const).entries()) {
+      expect(mountain!.rgb[channel],
+        `${band.id}: mountain ${name} against the recorded ${band.measured.join(",")}`)
+        .toBeGreaterThanOrEqual(band.measured[channel]! - PALAEO_TONE_TOLERANCE);
+      expect(mountain!.rgb[channel],
+        `${band.id}: mountain ${name} against the recorded ${band.measured.join(",")}`)
+        .toBeLessThanOrEqual(band.measured[channel]! + PALAEO_TONE_TOLERANCE);
+    }
+    // The dark ink has to stay legible over mountain ground at full light and at
+    // mid lighting; measured 4.79:1 and 4.13:1. Near the terminator a tone this
+    // dark cannot reach 3:1 against ink this dark - measured 2.39:1 - and the
+    // floor there is 2: the band is held readable by its luma (measured 91/255),
+    // not by the ratio. A lighter class would clear 3:1 everywhere, which is
+    // exactly the light tan this colour replaced.
     expect(row.contrast, `${band.id}: mountain against the dark outline ink`)
-      .toBeGreaterThanOrEqual(3);
+      .toBeGreaterThanOrEqual(band.minInkContrast);
   }
 });
 
@@ -1723,4 +2081,189 @@ test("anchors the North Sea rift point of interest from the hash", async ({ page
     if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return 0;
     return Math.hypot(longitude - restingLongitude, latitude - restingLatitude);
   }, { timeout: 20_000 }).toBeGreaterThan(2);
+});
+
+
+/**
+ * One continuous 100 -> 80 Ma scrub, driven on the page's own animation frames,
+ * with the scene's per-frame motion record for it.
+ */
+async function recordScrub(page: Page) {
+  return page.evaluate(async () => {
+    const probe = window.__earthHistoryMotionProbe;
+    const input = document.querySelector<HTMLInputElement>("#geological-age");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    if (!probe || !input || !setter) throw new Error("motion probe or timeline is unavailable");
+    probe("start");
+    const started = performance.now();
+    await new Promise<void>((resolve) => {
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - started) / 6000);
+        const ageMa = 100 - 20 * progress;
+        setter.call(input, String(ageMa / 538.8 * 1000));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        if (progress >= 1) { resolve(); return; }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return probe("stop").map((sample) => ({ ...sample }));
+  });
+}
+
+test("poses the palaeo charts on the same frame as the native surface while scrubbing", async ({ page }) => {
+  // The country outlines ride the native surface retarget. A palaeo pose that
+  // lands a frame later, or at an older age, is the visible "polygons do not
+  // move as smoothly as the outlines" defect, so the measurement is per frame:
+  // the age each path was posed at, and the angle between where the sampled
+  // palaeo chart is and where it would be at the age the outlines are drawn at.
+  // A small viewport keeps the rasteriser out of it; the scrub cost is CPU.
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 480, height: 360 });
+  await page.goto("./#age=100&layers=borders,guides,palaeoCoastlines");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const samples = await recordScrub(page);
+
+  // Attribution: the same gesture with the palaeo layer off. The native surface
+  // and its country outlines are the only thing retargeted then, so the frame
+  // cadence difference is what the palaeo path costs the gesture.
+  await page.goto("./#age=100&layers=borders,guides");
+  // A fragment-only navigation is same-document: reload so the layer set is
+  // parsed as a fresh visit and the palaeo layer is genuinely off.
+  await page.reload();
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("off");
+  const nativeOnly = await recordScrub(page);
+
+  const cadence = (record: readonly { timeMs: number }[]) => {
+    const gaps = record.slice(1).map((sample, index) => sample.timeMs - record[index]!.timeMs)
+      .sort((a, b) => a - b);
+    return { frames: record.length, medianGapMs: Number((gaps[gaps.length >> 1] ?? 0).toFixed(1)),
+      maximumGapMs: Number((gaps[gaps.length - 1] ?? 0).toFixed(1)) };
+  };
+  console.log("MOTION PROBE", JSON.stringify({
+    palaeoOn: cadence(samples),
+    palaeoOff: cadence(nativeOnly),
+    distinctNativeAges: new Set(samples.map((sample) => sample.nativeAgeMa)).size,
+    distinctPalaeoAges: new Set(samples.map((sample) => sample.palaeoAgeMa)).size,
+    intervals: [...new Set(samples.map((sample) =>
+      `${sample.palaeoFromAgeMa}-${sample.palaeoToAgeMa}`))],
+    trace: samples.map((sample) => [sample.frameIndex, sample.nativeAgeMa, sample.palaeoAgeMa]),
+  }));
+
+  // Read the record above as the measurement it is. At the frame cadence this
+  // headless harness produces under a scrub (a frame every ~230 ms), a pose
+  // that waits for a promise and a React commit still lands inside the frame,
+  // so these assertions hold before the synchronous retarget as well: they
+  // guard the synchrony, they do not prove a lag that only a faster machine
+  // shows. What the cadence numbers do show is the palaeo layer's cost per
+  // scrub frame and the stall an interval publication puts on the whole
+  // gesture, the native surface included.
+
+  // Frames the published map interval actually covers. A boundary crossing
+  // replaces the geometry, and the interval cannot be posed outside its own
+  // half-open range, so those frames measure the fetch and not the synchrony.
+  const covered = samples.filter((sample) =>
+    sample.nativeAgeMa !== null && sample.palaeoAgeMa !== null && sample.palaeoPose !== null
+    && sample.palaeoFromAgeMa !== null && sample.palaeoToAgeMa !== null
+    && sample.nativeAgeMa > sample.palaeoToAgeMa && sample.nativeAgeMa <= sample.palaeoFromAgeMa);
+  expect(covered.length, "frames whose published interval covers the native age").toBeGreaterThan(10);
+
+  // The native path must keep moving across the crossings: a stalled surface
+  // would make the palaeo path look synchronous for the wrong reason.
+  const nativeAges = new Set(samples.map((sample) => sample.nativeAgeMa));
+  expect(nativeAges.size, "distinct native ages posed during the scrub").toBeGreaterThan(10);
+
+  const poseByAge = new Map<number, readonly [number, number, number, number]>();
+  for (const sample of samples) {
+    if (sample.palaeoAgeMa !== null && sample.palaeoPose !== null) {
+      poseByAge.set(sample.palaeoAgeMa, sample.palaeoPose);
+    }
+  }
+  const nearestPalaeoPose = (ageMa: number) => {
+    let best: readonly [number, number, number, number] | null = null;
+    let bestDistance = Infinity;
+    for (const [age, pose] of poseByAge) {
+      const distance = Math.abs(age - ageMa);
+      if (distance < bestDistance) { bestDistance = distance; best = pose; }
+    }
+    return best;
+  };
+  const separationRadians = (
+    a: readonly [number, number, number, number],
+    b: readonly [number, number, number, number],
+  ) => 2 * Math.acos(Math.min(1, Math.abs(
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3])));
+
+  let laggedFrames = 0;
+  let maximumFrameLag = 0;
+  let maximumSeparation = 0;
+  let maximumAgeLagMa = 0;
+  for (const sample of covered) {
+    if (sample.palaeoAgeMa === sample.nativeAgeMa) continue;
+    laggedFrames += 1;
+    maximumAgeLagMa = Math.max(maximumAgeLagMa, Math.abs(sample.nativeAgeMa! - sample.palaeoAgeMa!));
+    const index = samples.indexOf(sample);
+    const caughtUp = samples.findIndex((later, position) =>
+      position >= index && later.palaeoAgeMa === sample.nativeAgeMa);
+    maximumFrameLag = Math.max(maximumFrameLag, caughtUp < 0 ? samples.length - index : caughtUp - index);
+    const target = nearestPalaeoPose(sample.nativeAgeMa!);
+    if (target !== null) {
+      maximumSeparation = Math.max(maximumSeparation, separationRadians(sample.palaeoPose!, target));
+    }
+  }
+  const report = `covered frames ${covered.length}, lagged ${laggedFrames}, `
+    + `max frame lag ${maximumFrameLag}, max age lag ${maximumAgeLagMa.toFixed(4)} Ma, `
+    + `max separation ${maximumSeparation.toExponential(3)} rad`;
+  expect(laggedFrames, report).toBe(0);
+  expect(maximumSeparation, report).toBeLessThan(1e-3);
+
+  // The boundary crossing. The scrub runs 100 -> 80 Ma and the published Cao
+  // 2017 maps meet at 94 Ma, so exactly one crossing happens inside the
+  // recording. What it must not do is take the layer off screen: the outgoing
+  // map stays published, and posed, until the incoming one is published in its
+  // place. A frame with no published interval between the two is the blank the
+  // prepared-neighbour design exists to prevent.
+  const published = samples.map((sample) => sample.palaeoPublishedIntervalId);
+  const firstPublished = published.findIndex((id) => id !== null);
+  expect(firstPublished, "a map interval is published during the scrub").toBeGreaterThanOrEqual(0);
+  const crossings = published.slice(firstPublished + 1)
+    .filter((id, index) => id !== published[firstPublished + index]).length;
+  let blankRun = 0;
+  let longestBlankRun = 0;
+  for (const id of published.slice(firstPublished)) {
+    blankRun = id === null ? blankRun + 1 : 0;
+    longestBlankRun = Math.max(longestBlankRun, blankRun);
+  }
+
+  // How long one pose is held. Where the age has left the published interval
+  // the outgoing map is posed at its own edge until the incoming one is
+  // published, which is a held pose on drawn geometry rather than a layer that
+  // has stopped being posed at all.
+  let heldFrames = 0;
+  let longestHold = 0;
+  for (const [index, sample] of samples.slice(firstPublished).entries()) {
+    const previous = samples[firstPublished + index - 1];
+    heldFrames = previous !== undefined && previous.palaeoAgeMa === sample.palaeoAgeMa
+      ? heldFrames + 1 : 0;
+    longestHold = Math.max(longestHold, heldFrames);
+  }
+  console.log("MOTION PROBE BOUNDARY", JSON.stringify({ crossings, longestBlankRun, longestHold,
+    published }));
+
+  // The bound that matters across a crossing: the map on screen is never gone
+  // for a stretch of frames. One frame can still be blank where a publication
+  // is refused and immediately re-requested, and a hold of a few frames is the
+  // incoming interval still being prepared — both are measured above and read
+  // in the record, not asserted away. Measured 2026-09-16 on the headless
+  // harness: one blank frame, longest hold 4 frames over two crossings.
+  const publishedReport = `published per frame ${JSON.stringify(published)}, `
+    + `longest blank run ${longestBlankRun}, longest held pose ${longestHold}`;
+  expect(crossings, publishedReport).toBeGreaterThan(0);
+  expect(longestBlankRun, publishedReport).toBeLessThanOrEqual(1);
+  expect(longestHold, publishedReport).toBeLessThanOrEqual(8);
 });

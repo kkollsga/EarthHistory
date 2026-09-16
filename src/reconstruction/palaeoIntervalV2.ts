@@ -70,6 +70,96 @@ function evidenceStatus(status: PalaeoCoastlineEvidenceRecord["status"]):
 }
 
 /**
+ * Everything about one piece that does not depend on the requested age.
+ *
+ * A scrub inside one interval re-poses the same pieces on every frame, and the
+ * identity strings, the evidence records and the limitation lists are the
+ * interval's own, not the age's. Rebuilding them per frame cost more than the
+ * pose arithmetic did, so they are computed once per resident interval and the
+ * frame evaluation below only fills in what the age changes.
+ */
+interface PalaeoPieceIdentity {
+  readonly chartId: string;
+  readonly chartRevision: string;
+  readonly materialId: string;
+  readonly fragmentOrCohortId: string;
+  readonly evidence: PreparedCaoChartIdentity["evidence"];
+  readonly surfaceEvidence: PreparedCaoChartIdentity["surfaceEvidence"];
+  readonly surfaceClass: PalaeoSurfaceClass;
+  readonly appearance: SpatialBatchSurfaceAppearanceV2;
+  readonly sourceStatus: PalaeoCoastlineEvidenceRecord["status"];
+  readonly flags: number;
+  readonly editorial: string | null;
+  readonly sourceIds: readonly string[];
+  readonly limitations: readonly string[];
+  readonly binding: LoadedPalaeoIntervalClass["catalog"]["bindings"][number];
+  readonly lifecycle: LoadedPalaeoIntervalClass["catalog"]["lifecycles"][number];
+  readonly entrySelection: LoadedPalaeoIntervalClass["catalog"]["entrySelection"];
+}
+
+interface PalaeoIntervalIdentityTable {
+  readonly pieces: readonly PalaeoPieceIdentity[];
+  readonly classChartOffsets: ReadonlyMap<PalaeoSurfaceClass, number>;
+}
+
+/**
+ * One identity table per resident interval, dropped with the interval itself.
+ * The store owns residency (two intervals at a time), so this cache is bounded
+ * by that residency and needs no eviction policy of its own.
+ */
+const PALAEO_IDENTITY_TABLES = new WeakMap<LoadedPalaeoInterval, PalaeoIntervalIdentityTable>();
+
+/** One plate index per resident palette map, for the same reason. */
+const PALAEO_PLATE_INDEXES = new WeakMap<object,
+ReturnType<typeof indexPalaeoPaletteEntriesByPlate<PreparedPaletteEntry>>>();
+
+function palaeoIntervalIdentityTable(interval: LoadedPalaeoInterval): PalaeoIntervalIdentityTable {
+  const cached = PALAEO_IDENTITY_TABLES.get(interval);
+  if (cached) return cached;
+  const pieces: PalaeoPieceIdentity[] = [];
+  const classChartOffsets = new Map<PalaeoSurfaceClass, number>();
+  for (const resident of interval.classes) {
+    classChartOffsets.set(resident.surfaceClass, pieces.length);
+    const { catalog, metadata } = resident;
+    for (const [pieceIndex, piece] of metadata.pieces.entries()) {
+      const evidence = catalog.evidence[piece.evidenceIndex]!;
+      const sourceIds = Object.freeze([...evidence.sourceIds]);
+      const limitations = Object.freeze([...evidence.limitations,
+        ...palaeoPieceLimitationFlags(piece).map((bit) => catalog.flagLimitations[String(bit)]!)]);
+      // The shipped catalog carries no chart table: `chartIndex` is the source
+      // record's own ordinal in the offline provenance sidecar, and every piece
+      // cut from one Cao 2017 record carries it, so it is the material identity.
+      const materialId = `palaeo:${catalog.class}:${piece.chartIndex}`;
+      const binding = catalog.bindings[piece.bindingIndex]!;
+      pieces.push(Object.freeze({
+        chartId: `palaeo:${catalog.class}:${resident.record.intervalId}:${pieceIndex}`,
+        chartRevision: `${catalog.catalogId}@${resident.record.payload.sha256}`,
+        materialId,
+        fragmentOrCohortId: `${materialId}:${binding.partitionPlateId}`,
+        evidence: Object.freeze({ status: evidenceStatus(evidence.status),
+          sourceIds, limitations }),
+        surfaceEvidence: Object.freeze({ kind: "classified" as const,
+          surfaceClass: PALAEO_SURFACE_EVIDENCE_CLASSES[catalog.class],
+          sourceIds }),
+        surfaceClass: catalog.class,
+        appearance: PALAEO_SURFACE_CLASS_APPEARANCES[catalog.class],
+        sourceStatus: evidence.status,
+        flags: piece.flags,
+        editorial: evidence.editorial ?? null,
+        sourceIds,
+        limitations,
+        binding,
+        lifecycle: catalog.lifecycles[piece.lifecycleIndex]!,
+        entrySelection: catalog.entrySelection,
+      }));
+    }
+  }
+  const table = Object.freeze({ pieces: Object.freeze(pieces), classChartOffsets });
+  PALAEO_IDENTITY_TABLES.set(interval, table);
+  return table;
+}
+
+/**
  * Poses every piece of every resident class against the palette entries the
  * runtime already holds, and marks each one active or inactive at the
  * requested age. Inactive pieces stay in the frame with activation 0: the
@@ -85,76 +175,65 @@ export function evaluateCaoPalaeoIntervalFrame(
   if (!(requestedAgeMa > interval.toAgeMa && requestedAgeMa <= interval.fromAgeMa)) {
     throw new Error("palaeo-coastline age is outside the resident interval");
   }
+  const identity = palaeoIntervalIdentityTable(interval);
   const charts: CaoPalaeoChartIdentity[] = [];
-  const classChartOffsets = new Map<PalaeoSurfaceClass, number>();
   const activeSourceIds = new Set<string>();
   const activeLimitations = new Set<string>();
   let activeChartCount = 0;
-  const values: number[] = [];
+  const paletteValues = new Float32Array(identity.pieces.length * PREPARED_MOTION_PALETTE_STRIDE);
   // `palaeo-binding-entry-v1` starts from the palette entries of one plate, and
   // a resident palette is keyed by entry id, so the plate index is built once
-  // for the whole frame rather than per piece.
-  const entriesByPlate = indexPalaeoPaletteEntriesByPlate(paletteEntries.values());
-  for (const resident of interval.classes) {
-    classChartOffsets.set(resident.surfaceClass, charts.length);
-    const { catalog, metadata } = resident;
-    for (const [pieceIndex, piece] of metadata.pieces.entries()) {
-      const evidence = catalog.evidence[piece.evidenceIndex]!;
-      const binding = catalog.bindings[piece.bindingIndex]!;
-      const lifecycle = catalog.lifecycles[piece.lifecycleIndex]!;
-      const entry = selectPalaeoBindingEntry(entriesByPlate.get(binding.bindingPlateId) ?? [],
-        catalog.entrySelection, binding.bindingPlateId, requestedAgeMa);
-      const segment = entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
-      const lifecycleActive = palaeoLifecycleActiveAtAge(lifecycle, requestedAgeMa);
-      // An unposable piece is not drawn. A declared source seam says so as
-      // `source-seam`: the model has a hole here, which is a different claim
-      // from a palette entry that has not finished downloading.
-      const support: SupportState = !lifecycleActive
-        ? { kind: "inactive", reason: requestedAgeMa > lifecycle.oldestMa ? "unborn" : "consumed" }
-        : segment ? { kind: "supported", method: "compiled-rigid" }
-        : { kind: "unsupported",
-          reason: palaeoBindingSeamCoversAge(binding, requestedAgeMa) ? "source-seam" : "missing-motion" };
-      const younger: QuaternionWxyz = segment?.younger.quaternion ?? [1, 0, 0, 0];
-      const older: QuaternionWxyz = segment?.older.quaternion ?? younger;
-      const poseQuaternion = slerpQuaternion(numberScalarOps, younger, older, segment?.fraction ?? 0);
-      const activation = support.kind === "supported" ? 1 : 0;
-      values.push(...younger, ...older, segment?.fraction ?? 0, activation, activation);
-      const limitations = [...evidence.limitations,
-        ...palaeoPieceLimitationFlags(piece).map((bit) => catalog.flagLimitations[String(bit)]!)];
-      if (activation === 1) {
-        activeChartCount += 1;
-        for (const sourceId of evidence.sourceIds) activeSourceIds.add(sourceId);
-        for (const limitation of limitations) activeLimitations.add(limitation);
-      }
-      // The shipped catalog carries no chart table: `chartIndex` is the source
-      // record's own ordinal in the offline provenance sidecar, and every piece
-      // cut from one Cao 2017 record carries it, so it is the material identity.
-      const materialId = `palaeo:${catalog.class}:${piece.chartIndex}`;
-      charts.push(Object.freeze({
-        chartId: `palaeo:${catalog.class}:${resident.record.intervalId}:${pieceIndex}`,
-        chartRevision: `${catalog.catalogId}@${resident.record.payload.sha256}`,
-        materialId,
-        fragmentOrCohortId: `${materialId}:${binding.partitionPlateId}`,
-        role: "model-geography" as const,
-        support,
-        evidence: Object.freeze({ status: evidenceStatus(evidence.status),
-          sourceIds: Object.freeze([...evidence.sourceIds]),
-          limitations: Object.freeze(limitations) }),
-        surfaceEvidence: Object.freeze({ kind: "classified" as const,
-          surfaceClass: PALAEO_SURFACE_EVIDENCE_CLASSES[catalog.class],
-          sourceIds: Object.freeze([...evidence.sourceIds]) }),
-        poseQuaternion,
-        inversePoseQuaternion: inverseQuaternion(numberScalarOps, poseQuaternion),
-        surfaceClass: catalog.class,
-        appearance: PALAEO_SURFACE_CLASS_APPEARANCES[catalog.class],
-        sourceStatus: evidence.status,
-        flags: piece.flags,
-        editorial: evidence.editorial ?? null,
-      }));
-    }
+  // per resident palette rather than per piece or per frame.
+  let entriesByPlate = PALAEO_PLATE_INDEXES.get(paletteEntries);
+  if (!entriesByPlate) {
+    entriesByPlate = indexPalaeoPaletteEntriesByPlate(paletteEntries.values());
+    PALAEO_PLATE_INDEXES.set(paletteEntries, entriesByPlate);
   }
-  if (values.length !== charts.length * PREPARED_MOTION_PALETTE_STRIDE) {
-    throw new Error("palaeo-coastline palette stride mismatch");
+  for (const [pieceIndex, piece] of identity.pieces.entries()) {
+    const entry = selectPalaeoBindingEntry(entriesByPlate.get(piece.binding.bindingPlateId) ?? [],
+      piece.entrySelection, piece.binding.bindingPlateId, requestedAgeMa);
+    const segment = entry ? selectPaletteMotionSubsegment(entry, requestedAgeMa) : null;
+    const lifecycleActive = palaeoLifecycleActiveAtAge(piece.lifecycle, requestedAgeMa);
+    // An unposable piece is not drawn. A declared source seam says so as
+    // `source-seam`: the model has a hole here, which is a different claim
+    // from a palette entry that has not finished downloading.
+    const support: SupportState = !lifecycleActive
+      ? { kind: "inactive", reason: requestedAgeMa > piece.lifecycle.oldestMa ? "unborn" : "consumed" }
+      : segment ? { kind: "supported", method: "compiled-rigid" }
+      : { kind: "unsupported",
+        reason: palaeoBindingSeamCoversAge(piece.binding, requestedAgeMa) ? "source-seam" : "missing-motion" };
+    const younger: QuaternionWxyz = segment?.younger.quaternion ?? [1, 0, 0, 0];
+    const older: QuaternionWxyz = segment?.older.quaternion ?? younger;
+    const poseQuaternion = slerpQuaternion(numberScalarOps, younger, older, segment?.fraction ?? 0);
+    const activation = support.kind === "supported" ? 1 : 0;
+    const base = pieceIndex * PREPARED_MOTION_PALETTE_STRIDE;
+    paletteValues.set(younger, base);
+    paletteValues.set(older, base + 4);
+    paletteValues[base + 8] = segment?.fraction ?? 0;
+    paletteValues[base + 9] = activation;
+    paletteValues[base + 10] = activation;
+    if (activation === 1) {
+      activeChartCount += 1;
+      for (const sourceId of piece.sourceIds) activeSourceIds.add(sourceId);
+      for (const limitation of piece.limitations) activeLimitations.add(limitation);
+    }
+    charts.push(Object.freeze({
+      chartId: piece.chartId,
+      chartRevision: piece.chartRevision,
+      materialId: piece.materialId,
+      fragmentOrCohortId: piece.fragmentOrCohortId,
+      role: "model-geography" as const,
+      support,
+      evidence: piece.evidence,
+      surfaceEvidence: piece.surfaceEvidence,
+      poseQuaternion,
+      inversePoseQuaternion: inverseQuaternion(numberScalarOps, poseQuaternion),
+      surfaceClass: piece.surfaceClass,
+      appearance: piece.appearance,
+      sourceStatus: piece.sourceStatus,
+      flags: piece.flags,
+      editorial: piece.editorial,
+    }));
   }
   return Object.freeze({
     requestedAgeMa,
@@ -163,10 +242,10 @@ export function evaluateCaoPalaeoIntervalFrame(
     fromAgeMa: interval.fromAgeMa,
     toAgeMa: interval.toAgeMa,
     entryCount: charts.length,
-    paletteValues: new Float32Array(values),
+    paletteValues,
     charts: Object.freeze(charts),
     activeChartCount,
-    classChartOffsets,
+    classChartOffsets: identity.classChartOffsets,
     activeSourceIds: Object.freeze([...activeSourceIds].sort()),
     activeLimitations: Object.freeze([...activeLimitations]),
   });

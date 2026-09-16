@@ -8,9 +8,11 @@ import {
 } from "./explorerHash";
 import type { LayerVisibility } from "./data";
 
+// Mirrors App.tsx: the mapped palaeogeography is what a link with no `layers=`
+// shows. The contract this file pins is that an explicit list still wins.
 const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false, borders: true, guides: true, tectonics: false, rivers: false,
-  palaeoCoastlines: false,
+  palaeoCoastlines: true,
 };
 
 describe("explorer hash sync", () => {
@@ -23,11 +25,12 @@ describe("explorer hash sync", () => {
 
   it("round-trips the layer set, and reads a link written before a layer existed", () => {
     // A link shared before the palaeo-coastline mode existed names the layers
-    // that were on then. The new layer must read off: a default applied to an
-    // unnamed key would switch a whole rendering mode on in someone else's link.
+    // that were on then. The new layer must read off even though it is now on
+    // by default: a default applied to an unnamed key would switch a whole
+    // rendering mode on in someone else’s link.
     const oldLink = parseLayerVisibility("borders,guides", DEFAULT_LAYERS);
     expect(oldLink.palaeoCoastlines).toBe(false);
-    expect(oldLink).toEqual({ ...DEFAULT_LAYERS, borders: true, guides: true });
+    expect(oldLink).toEqual({ ...DEFAULT_LAYERS, palaeoCoastlines: false });
 
     // And the layer round-trips once a link does name it.
     const layers: LayerVisibility = { ...DEFAULT_LAYERS, palaeoCoastlines: true };
@@ -45,7 +48,7 @@ describe("explorer hash sync", () => {
     expect(parseLayerVisibility(null, DEFAULT_LAYERS)).toEqual(DEFAULT_LAYERS);
     // An unknown key in a link from a newer build is ignored, not carried.
     expect(parseLayerVisibility("borders,someFutureLayer", DEFAULT_LAYERS))
-      .toEqual({ ...DEFAULT_LAYERS, borders: true, guides: false });
+      .toEqual({ ...DEFAULT_LAYERS, borders: true, guides: false, palaeoCoastlines: false });
   });
 
   it("builds a hash fragment from search params", () => {

@@ -12,6 +12,7 @@ import {
   warmVerifiedCaoCheckpointAssets,
   type LoadedCaoFoundation,
   type LoadedPalaeoClassCatalog,
+  type LoadedPalaeoInterval,
   type LoadedRequestedAgeMotionPalette,
 } from "./loaderV2";
 import { createPalaeoTriangulationRunner, type PalaeoTriangulationRunner } from "./palaeoTriangulate";
@@ -28,6 +29,14 @@ import type { MaterialAddress } from "./types";
 import { selectRequestedAgeMotionTile, verifyRequestedAgeMotionTileSourceIdentity,
   type RequestedAgeMotionTileIndex } from "./motionTiles";
 import type { PreparedPaletteEntry } from "./palette";
+
+/**
+ * How far inside its own half-open `(TOAGE, FROMAGE]` range an outgoing
+ * interval is posed once the age has left it. Ten times finer than the 0.01 Ma
+ * seam padding the compiled intervals carry, so the clamp always lands inside
+ * the range and never inside the neighbour's.
+ */
+const PALAEO_INTERVAL_EDGE_MA = 0.001;
 
 /** Background decoding and warming wait until the foreground age has rested this long. */
 export const CAO_FOREGROUND_SETTLE_MS = 250;
@@ -580,6 +589,80 @@ export class CaoReconstructionRuntime {
       throw new DOMException("stale palaeo-coastline tone table", "AbortError");
     }
     return tones;
+  }
+
+  /**
+   * The same re-pose, evaluated synchronously from resident data, or null.
+   *
+   * The native surface — and the country outlines drawn on it — is retargeted
+   * from a resident palette inside one call, so a palaeo pose that has to wait
+   * for a promise and a React commit cannot land on the same frame as the
+   * outlines it must move with. There is no await here, so the residency this
+   * checks is the residency it uses: nothing can toggle the mode or change the
+   * interval between the check and the frame. An age whose interval or palette
+   * is not resident answers null, and the async path above still owns the fetch.
+   */
+  evaluatePalaeoMotionNow(
+    requestedAgeMa: number,
+    publishedIntervalId?: string | null,
+  ): CaoPalaeoIntervalFrame | null {
+    const resident = this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null);
+    if (resident === null) return null;
+    return evaluateCaoPalaeoIntervalFrame(
+      resident.interval, resident.paletteEntries, resident.poseAgeMa);
+  }
+
+  /**
+   * Whether `evaluatePalaeoMotionNow` can answer this age without a fetch. The
+   * owner of the async retarget reads it to stand down where the synchronous
+   * path already poses the age, instead of posing it a second time one commit
+   * later — two poses for one sample is the stepping it was meant to remove.
+   */
+  palaeoMotionResidentAt(requestedAgeMa: number, publishedIntervalId?: string | null): boolean {
+    return this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null) !== null;
+  }
+
+  private residentPalaeoMotionInputs(
+    requestedAgeMa: number,
+    publishedIntervalId: string | null,
+  ): {
+    readonly interval: LoadedPalaeoInterval;
+    readonly paletteEntries: ReadonlyMap<string, PreparedPaletteEntry>;
+    /** The age the pose is evaluated at: the requested one, or the outgoing interval's edge. */
+    readonly poseAgeMa: number;
+  } | null {
+    if (!this.manifest.palaeoCoastlines || !this.palaeoEnabled
+        || this.lifetime.signal.aborted) return null;
+    const catalogs = this.resolvedPalaeoCatalogs;
+    if (!catalogs) return null;
+    const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
+    // The geometry on screen is the published interval's. Once the age has
+    // crossed a boundary the incoming interval is not published yet, and posing
+    // its charts onto the outgoing geometry is refused by the renderer — which
+    // is what froze the layer from the boundary until the swap landed. Keeping
+    // the outgoing interval posed at its own edge instead holds the charts on
+    // the last age the drawn geometry can honestly carry, for the one or two
+    // frames the swap takes.
+    const published = publishedIntervalId === null || record?.intervalId === publishedIntervalId
+      ? null : this.palaeoStore?.residentInterval(publishedIntervalId) ?? null;
+    const interval = published
+      ?? (record ? this.palaeoStore?.residentInterval(record.intervalId) ?? null : null);
+    if (!interval) return null;
+    const poseAgeMa = published === null ? requestedAgeMa
+      : Math.min(interval.fromAgeMa, Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
+    const paletteEntries = this.residentPaletteEntries(poseAgeMa);
+    return paletteEntries === null ? null : { interval, paletteEntries, poseAgeMa };
+  }
+
+  /** The palette entries already in hand for an age: the full palette, or its cached tile. */
+  private residentPaletteEntries(
+    requestedAgeMa: number,
+  ): ReadonlyMap<string, PreparedPaletteEntry> | null {
+    if (this.fullPaletteEntries) return this.fullPaletteEntries;
+    const index = this.resolvedTileIndex;
+    if (!index) return null;
+    const descriptor = selectRequestedAgeMotionTile(index, requestedAgeMa);
+    return this.tileCache.get(descriptor.tileId)?.entries ?? null;
   }
 
   /**
