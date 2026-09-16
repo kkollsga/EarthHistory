@@ -1634,7 +1634,7 @@ export default function App() {
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
               {nativeLandDrawn && (
-                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color. The outline is Cao 2024 coastline-class geometry at about 14 km between vertices, so estuaries and sea lochs read as spikes at close zoom</span></li>
               )}
               {palaeoClassInKey("lm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
