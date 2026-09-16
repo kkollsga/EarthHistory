@@ -21,6 +21,28 @@ All notable changes to EarthHistory will be recorded here.
   map requested immediately, the settle timer firing after 120 ms of stillness,
   and the layer going off cancelling that timer; proven by mutation (a decision
   that never holds fails the sweep case, and the mutation was restored).
+- **Every map interval is prepared in the background once the first one is
+  published.** A Cao 2017 crossing used to fetch, decode and triangulate the
+  interval it was entering on the frame that needed the geometry, because the
+  residency store held only the drawn interval and its two neighbours — so any
+  crossing the 3-interval prefetch had not anticipated paid the whole cost at
+  once. The engine now walks the rest of the timeline after the first
+  publication of an enablement: nearest by age first, one worker job at a time,
+  at `requestIdleCallback` priority where the browser has it and a zero-delay
+  timeout otherwise, and never starting a job while a foreground
+  `requestPalaeoInterval` is in flight. The residency policy gains
+  `residentIntervals: "all"` for both quality profiles with a `maxPreparedBytes`
+  ceiling of 64 MiB (the 25 compiled intervals decode from about 36 MB of
+  payload); over that ceiling the store falls back to the neighbour cache it
+  shipped with rather than growing unbounded. The engine ledger publishes the
+  walk's progress as `palaeo.preparedIntervals`,
+  `palaeo.preparingIntervalId` and `palaeo.backgroundPreparationComplete`.
+  Turning the layer off still cancels the walk and frees every prepared byte, so
+  the zero-bytes-when-off contract is unchanged, and a foreground request for an
+  interval the walk already prepared resolves from the store without a second
+  fetch. Proven by mutation: dropping the foreground pause, replacing the
+  nearest-by-age order with the published order, and reverting the policy to the
+  neighbour cache each fail a new case, and all three mutations were restored.
 
 ## [0.1.20] - 2026-09-16
 ### Fixed

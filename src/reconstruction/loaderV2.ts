@@ -696,6 +696,23 @@ export const PINNED_SURFACE_UNIT_IDS: readonly string[] = Object.freeze([
  */
 export interface SurfaceResidencyPolicy {
   readonly pinnedUnitIds: readonly string[];
+  /**
+   * How many map intervals may stay decoded.
+   *
+   * `"nearest"` is the neighbour cache the mode shipped with: the drawn
+   * interval and both of its neighbours, bounded by
+   * `maximumResidentIntervalCount` and `maximumResidentIntervalBytes`. Every
+   * other crossing then pays a fetch, a decode and a triangulation on the frame
+   * that needs the geometry, which is what a map crossing cost.
+   *
+   * `"all"` keeps every interval the engine's background scheduler prepares, so
+   * a crossing is a swap of geometry already in hand. `maxPreparedBytes` is
+   * what bounds it: over that ceiling the store falls back to `"nearest"`
+   * rather than growing without limit.
+   */
+  readonly residentIntervals: "nearest" | "all";
+  /** Decoded interval payload bytes `"all"` may hold before the fallback. */
+  readonly maxPreparedBytes: number;
   readonly maximumResidentIntervalBytes: number;
   readonly maximumResidentIntervalCount: number;
   readonly releaseReplacedNativeGpuBuffers: boolean;
@@ -703,7 +720,17 @@ export interface SurfaceResidencyPolicy {
 
 export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
   pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
-  // Two intervals of every compiled class sit far inside six MiB; the bound
+  // Both quality profiles prepare every interval. They differ in what reaches
+  // the GPU, not in what is decoded, and a crossing that has to triangulate is
+  // the one cost neither profile can pay inside a frame.
+  residentIntervals: "all" as const,
+  // The 25 compiled intervals of the shipped classes decode from about 36 MB of
+  // payload. Sixty-four MiB leaves headroom for a package that gains a class
+  // without silently dropping back to the neighbour cache, and is what keeps
+  // "prepare everything" bounded.
+  maxPreparedBytes: 64 * 1024 * 1024,
+  // The two bounds below govern the `"nearest"` fallback. Two intervals of
+  // every compiled class sit far inside six MiB; the bound
   // exists so a scrub that walks the timeline cannot accumulate decoded
   // intervals without an owner. Three residents are the current interval and
   // both of its neighbours: two was one neighbour, and a scrub that reversed
@@ -764,6 +791,7 @@ const ABSENT_CHECKPOINT_LEDGER = Object.freeze({
 const ABSENT_INTERVAL_LEDGER = Object.freeze({
   residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
   maximumResidentCount: 2, maximumPendingCount: 2, maximumResidentSourceBytes: 0,
+  maximumPreparedSourceBytes: 0,
 });
 
 /**
@@ -794,6 +822,8 @@ export class CaoSurfaceResidencyStore {
   private catalogs: readonly LoadedPalaeoClassCatalog[] = [];
   private runner: PalaeoTriangulationRunner | null = null;
   private maximumResidentIntervalBytes = 0;
+  /** Bytes the `"all"` policy may hold; 0 while detached or under the fallback. */
+  private preparedCeilingBytes = 0;
   private readonly residentIntervals =
     new Map<string, { value: LoadedPalaeoInterval; used: number }>();
   private readonly pendingIntervals = new Map<string, PendingPalaeoInterval>();
@@ -832,6 +862,11 @@ export class CaoSurfaceResidencyStore {
     this.runner = runner;
     this.maximumResidentIntervalBytes = Math.min(this.policy.maximumResidentIntervalBytes,
       palaeo.reservation.maxResidentSourceBytes);
+    // The package's `maxResidentSourceBytes` is the neighbour cache's
+    // reservation — four worst-case payloads — so it cannot bound a policy that
+    // holds every interval. The prepared ceiling is the policy's alone.
+    this.preparedCeilingBytes = this.policy.residentIntervals === "all"
+      ? this.policy.maxPreparedBytes : 0;
   }
 
   /** Whether a unit's bytes are pinned for the life of the package. */
@@ -850,6 +885,7 @@ export class CaoSurfaceResidencyStore {
     this.catalogs = [];
     this.runner = null;
     this.maximumResidentIntervalBytes = 0;
+    this.preparedCeilingBytes = 0;
     this.residentIntervals.clear();
     for (const record of this.pendingIntervals.values()) record.controller.abort();
     for (const waiter of [...this.waiters]) {
@@ -879,7 +915,8 @@ export class CaoSurfaceResidencyStore {
       pendingReservedSourceBytes: [...this.pendingIntervals.keys()]
         .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
       maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
-      maximumResidentSourceBytes: this.maximumResidentIntervalBytes });
+      maximumResidentSourceBytes: this.maximumResidentIntervalBytes,
+      maximumPreparedSourceBytes: this.preparedCeilingBytes });
   }
 
   /** The age eviction measures against; a note, never a request. */
@@ -892,6 +929,10 @@ export class CaoSurfaceResidencyStore {
    * one map interval reads through here rather than through `load`, so moving
    * the age can never start a fetch the foreground request did not ask for.
    */
+  isResident(unit: SurfaceUnitId): boolean {
+    return unit.kind === "interval" && this.residentIntervals.has(unit.id);
+  }
+
   resident(unit: SurfaceUnitId): LoadedSurfaceUnit | null {
     if (unit.kind !== "interval") return null;
     const cached = this.residentIntervals.get(unit.id);
@@ -990,7 +1031,18 @@ export class CaoSurfaceResidencyStore {
     return 0;
   }
 
+  private residentIntervalBytes(): number {
+    return [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0);
+  }
+
   private evictIntervals(): void {
+    // Under `"all"` nothing is evicted while the prepared set fits its ceiling:
+    // the whole point of preparing every interval is that a crossing finds its
+    // geometry decoded. Over the ceiling the neighbour cache below takes over,
+    // so the policy degrades to the one the mode shipped with rather than
+    // holding bytes nobody bounded.
+    if (this.policy.residentIntervals === "all"
+        && this.residentIntervalBytes() <= this.preparedCeilingBytes) return;
     // Farthest from the current age first; the least recently read one breaks a
     // tie, which is the whole order when no age has been noted yet. A pinned
     // unit is never a candidate: the policy names the geometry every
@@ -1010,8 +1062,7 @@ export class CaoSurfaceResidencyStore {
       if (!dropFarthest()) break;
     }
     while (this.residentIntervals.size > 1
-      && [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0)
-        > this.maximumResidentIntervalBytes) {
+      && this.residentIntervalBytes() > this.maximumResidentIntervalBytes) {
       if (!dropFarthest()) break;
     }
   }

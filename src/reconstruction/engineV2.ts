@@ -41,6 +41,16 @@ const PALAEO_INTERVAL_EDGE_MA = 0.001;
 /** Background warming waits until the foreground age has rested this long. */
 export const CAO_FOREGROUND_SETTLE_MS = 250;
 
+/**
+ * Deadline the background interval scheduler gives `requestIdleCallback` before
+ * it takes the next job anyway. Long enough that a busy main thread keeps its
+ * frames, short enough that a quiet tab prepares the 25 intervals in seconds.
+ */
+export const PALAEO_BACKGROUND_IDLE_TIMEOUT_MS = 200;
+
+/** How long the scheduler waits before re-checking a foreground request in flight. */
+export const PALAEO_BACKGROUND_FOREGROUND_WAIT_MS = 25;
+
 export interface CaoTimelineLoadingState {
   readonly status: "idle" | "loading" | "ready" | "paused";
   readonly foregroundStatus: "idle" | "loading" | "ready";
@@ -141,6 +151,25 @@ export class CaoReconstructionRuntime {
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
   private palaeoOutlineTones: Promise<Uint8Array> | null = null;
   private palaeoOutlineTonesResident = false;
+  /**
+   * The background interval scheduler: one controller per enablement, the id it
+   * is working on, the ids it has already taken, and whether every interval of
+   * this enablement has been through it. A crossing is only free if the
+   * interval it enters was prepared before the scrub reached it, so after the
+   * first publish this walks the rest of the timeline at idle priority.
+   */
+  private palaeoBackgroundController: AbortController | null = null;
+  private palaeoPreparingIntervalId: string | null = null;
+  private palaeoBackgroundComplete = false;
+  private readonly palaeoPreparedIntervalIds = new Set<string>();
+  /**
+   * Foreground `requestPalaeoInterval` calls still in flight. The scheduler
+   * starts no job while this is above zero: a background fetch and decode must
+   * never be what the interval a crossing is waiting for queues behind.
+   */
+  private palaeoForegroundRequests = 0;
+  /** The age the scheduler orders its remaining intervals around. */
+  private palaeoRequestedAgeMa: number | null = null;
 
   readonly manifest: ReconstructionPackageManifestV2;
 
@@ -215,6 +244,7 @@ export class CaoReconstructionRuntime {
     this.chains.checkpoint.active?.abort();
     this.chains.interval.active?.abort();
     this.background?.abort();
+    this.stopPalaeoBackgroundPreparation();
     this.lifetime.abort();
     this.palaeoCatalogController?.abort();
     this.surfaces.dispose();
@@ -260,6 +290,13 @@ export class CaoReconstructionRuntime {
       ? this.manifest.palaeoCoastlines?.outlineTones.binary.bytes ?? 0 : 0;
     const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
       outlineToneSourceBytes: palaeoToneBytes,
+      // The background scheduler's progress. `preparedIntervals` is what is
+      // decoded and resident right now — an eviction under the byte ceiling
+      // lowers it — so a consumer that keys a dataset on "every interval is in
+      // hand" reads `backgroundPreparationComplete` beside it.
+      preparedIntervals: palaeoStore.residentCount,
+      preparingIntervalId: this.palaeoPreparingIntervalId,
+      backgroundPreparationComplete: this.palaeoBackgroundComplete,
       intervalStore: palaeoStore, preparedLeaseCount: this.chains.interval.leases.size,
       totalSourceBytes: palaeoCatalogBytes + palaeoToneBytes + palaeoStore.residentSourceBytes
         + palaeoStore.pendingReservedSourceBytes });
@@ -474,7 +511,14 @@ export class CaoReconstructionRuntime {
     if (enabled && !palaeo) throw new Error("Cao package has no palaeo-coastline section");
     if (enabled === this.palaeoEnabled) return;
     this.palaeoEnabled = enabled;
-    // Every in-flight interval request is stale the moment the mode changes.
+    // Every in-flight interval request is stale the moment the mode changes,
+    // and so is everything the background scheduler prepared for the enablement
+    // that is ending: turning the mode off frees the store, so the ids it holds
+    // would name intervals nothing is keeping.
+    this.stopPalaeoBackgroundPreparation();
+    this.palaeoBackgroundComplete = false;
+    this.palaeoPreparedIntervalIds.clear();
+    this.palaeoRequestedAgeMa = null;
     const chain = this.chains.interval;
     chain.serial += 1;
     chain.active?.abort();
@@ -705,9 +749,129 @@ export class CaoReconstructionRuntime {
       if (!record) return;
       this.attachIntervalStore(palaeo, catalogs);
       await this.surfaces.load(intervalUnit(record.intervalId), signal);
+      this.palaeoPreparedIntervalIds.add(record.intervalId);
     } catch {
       // Prefetch stays opportunistic; a foreground request reports its own failure.
     }
+  }
+
+  /**
+   * Prepares every remaining map interval in the background.
+   *
+   * Started once per enablement, by the first interval that publishes: before
+   * that there is nothing on screen to protect, and the first map must not
+   * queue behind 24 others. From then on the timeline is walked nearest-by-age
+   * first, one job at a time, at idle priority, so a crossing finds the
+   * interval it enters already fetched, decoded and triangulated instead of
+   * paying for all three on the frame that needs the geometry.
+   */
+  private startPalaeoBackgroundPreparation(): void {
+    if (this.palaeoBackgroundController !== null || this.palaeoBackgroundComplete
+        || !this.palaeoEnabled || this.lifetime.signal.aborted) return;
+    const controller = new AbortController();
+    this.palaeoBackgroundController = controller;
+    void this.runPalaeoBackgroundPreparation(controller).catch(() => {
+      // The scheduler is opportunistic: a foreground request reports its own
+      // failure, and an interval this could not prepare is still fetched on the
+      // crossing that needs it.
+    }).finally(() => {
+      if (this.palaeoBackgroundController === controller) {
+        this.palaeoBackgroundController = null;
+        this.palaeoPreparingIntervalId = null;
+      }
+    });
+  }
+
+  /** Cancels the scheduler and the job it has in flight. */
+  private stopPalaeoBackgroundPreparation(): void {
+    this.palaeoBackgroundController?.abort();
+    this.palaeoBackgroundController = null;
+    this.palaeoPreparingIntervalId = null;
+  }
+
+  private async runPalaeoBackgroundPreparation(controller: AbortController): Promise<void> {
+    const owns = () => this.palaeoBackgroundController === controller && !controller.signal.aborted
+      && !this.lifetime.signal.aborted && this.palaeoEnabled;
+    while (owns()) {
+      // Yield first, every time round: the pause is what keeps this off the
+      // frames a live gesture is producing, and a foreground request that
+      // arrives mid-walk holds the next job back until it has landed.
+      await this.pausePalaeoBackgroundPreparation();
+      if (!owns()) return;
+      if (this.palaeoForegroundRequests > 0) continue;
+      const catalogs = this.resolvedPalaeoCatalogs;
+      if (catalogs === null) return;
+      const intervalId = this.nextPalaeoIntervalToPrepare(catalogs);
+      if (intervalId === null) {
+        this.palaeoPreparingIntervalId = null;
+        this.palaeoBackgroundComplete = true;
+        return;
+      }
+      this.palaeoPreparingIntervalId = intervalId;
+      // Taken before the load, not after it: an interval whose payload cannot
+      // be prepared must leave the queue anyway, or the walk spins on it and
+      // never reaches the intervals behind it.
+      this.palaeoPreparedIntervalIds.add(intervalId);
+      try {
+        await this.surfaces.load(intervalUnit(intervalId), controller.signal);
+      } catch {
+        // Opportunistic; the crossing that needs this interval loads it itself.
+      }
+      if (this.palaeoPreparingIntervalId === intervalId) this.palaeoPreparingIntervalId = null;
+    }
+  }
+
+  /**
+   * One idle slot, or a fixed wait while a foreground request is in flight.
+   * `requestIdleCallback` where the browser has it, a zero-delay timeout
+   * otherwise — Safari and the test environment both take the timeout.
+   */
+  private pausePalaeoBackgroundPreparation(): Promise<void> {
+    if (this.palaeoForegroundRequests > 0) {
+      return new Promise<void>((resolve) =>
+        void setTimeout(resolve, PALAEO_BACKGROUND_FOREGROUND_WAIT_MS));
+    }
+    const requestIdle = (globalThis as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    return new Promise<void>((resolve) => {
+      if (typeof requestIdle === "function") {
+        requestIdle(() => resolve(), { timeout: PALAEO_BACKGROUND_IDLE_TIMEOUT_MS });
+        return;
+      }
+      void setTimeout(resolve, 0);
+    });
+  }
+
+  /**
+   * The next interval to prepare: nearest by age to the one being drawn, ties
+   * broken by the published interval order. Nearest first because a scrub
+   * reaches the neighbours before it reaches the ends of the timeline, so the
+   * order the walk takes is the order the crossings will.
+   */
+  private nextPalaeoIntervalToPrepare(catalogs: readonly LoadedPalaeoClassCatalog[]): string | null {
+    const ageMa = this.palaeoRequestedAgeMa;
+    const distance = (record: { readonly fromAgeMa: number; readonly toAgeMa: number }): number => {
+      if (ageMa === null) return 0;
+      if (ageMa > record.fromAgeMa) return ageMa - record.fromAgeMa;
+      if (ageMa <= record.toAgeMa) return record.toAgeMa - ageMa;
+      return 0;
+    };
+    let best: { readonly intervalId: string; readonly distance: number;
+      readonly intervalIndex: number } | null = null;
+    for (const entry of catalogs) {
+      for (const record of entry.catalog.intervals) {
+        if (this.palaeoPreparedIntervalIds.has(record.intervalId)) continue;
+        if (this.surfaces.isResident(intervalUnit(record.intervalId))) continue;
+        const candidate = { intervalId: record.intervalId, distance: distance(record),
+          intervalIndex: record.intervalIndex };
+        if (best === null || candidate.distance < best.distance
+            || (candidate.distance === best.distance && candidate.intervalIndex < best.intervalIndex)) {
+          best = candidate;
+        }
+      }
+    }
+    return best?.intervalId ?? null;
   }
 
   private attachIntervalStore(
@@ -728,7 +892,26 @@ export class CaoReconstructionRuntime {
       ? Promise.resolve(this.fullPaletteEntries) : this.motionPalette();
   }
 
+  /**
+   * The foreground prepare, counted while it is in flight. The count is what
+   * the background scheduler yields to, and it is taken here rather than in
+   * `requestPalaeoInterval` so every exit — resolved, rejected, superseded —
+   * gives it back.
+   */
   private async preparePalaeo(
+    requestId: number,
+    requestedAgeMa: number,
+    signal: AbortSignal,
+  ): Promise<PreparedCaoPalaeoInterval> {
+    this.palaeoForegroundRequests += 1;
+    try {
+      return await this.preparePalaeoInterval(requestId, requestedAgeMa, signal);
+    } finally {
+      this.palaeoForegroundRequests -= 1;
+    }
+  }
+
+  private async preparePalaeoInterval(
     requestId: number,
     requestedAgeMa: number,
     signal: AbortSignal,
@@ -752,9 +935,12 @@ export class CaoReconstructionRuntime {
     if (!record) throw new Error("no palaeo-coastline interval covers the requested age");
     this.attachIntervalStore(palaeo, catalogs);
     // The foreground age is what residency is kept around: a prefetched
-    // neighbour must not be evicted for being the one nobody has read yet.
+    // neighbour must not be evicted for being the one nobody has read yet, and
+    // it is the age the background walk orders the rest of the timeline by.
     this.surfaces.noteCurrentAge(requestedAgeMa);
+    this.palaeoRequestedAgeMa = requestedAgeMa;
     const loaded = await this.surfaces.load(intervalUnit(record.intervalId), signal);
+    this.palaeoPreparedIntervalIds.add(record.intervalId);
     if (loaded.kind !== "interval") throw new Error("palaeo-coastline request resolved a native unit");
     const interval = loaded.value;
     requireCurrent();
@@ -769,6 +955,9 @@ export class CaoReconstructionRuntime {
       frameIdentity: packageFrameIdentity(this.manifest.frame), baseColorRgb,
     }, (identity) => { this.chains.interval.leases.delete(identity); });
     this.chains.interval.leases.set(prepared.identity, prepared.release);
+    // The first publication of an enablement starts the walk over the rest of
+    // the timeline; every later one finds it already running or complete.
+    this.startPalaeoBackgroundPreparation();
     return prepared;
   }
 
