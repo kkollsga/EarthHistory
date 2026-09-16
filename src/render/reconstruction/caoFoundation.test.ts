@@ -1581,9 +1581,13 @@ describe("Cao foundation renderer boundary", () => {
       ["palaeo-mountain", 1.8], ["land", 2],
     ]);
     // Depth writing is what forces shell separation; the two classes 100 m apart
-    // must not write it.
+    // must not write it. The mountain's land underlay is the third mesh that
+    // does not, and the only one whose reason is not a shell: it is the
+    // mountain's own geometry 300 m below itself, radially, and near the limb
+    // that separation collapses along the view ray, so a depth-writing underlay
+    // takes pixels from the mountain standing on it.
     expect(meshes().map((mesh) => (mesh.material as { depthWrite: boolean }).depthWrite))
-      .toEqual([true, false, false, true, true, true, true]);
+      .toEqual([true, false, false, true, false, true, true]);
     // The underlay is the mountain's own geometry drawn a second time: one
     // buffer, one extra draw, no extra bytes, and its own land material.
     const mountain = meshes().find((mesh) => mesh.userData.surfaceClass === "palaeo-mountain")!;
@@ -1594,8 +1598,14 @@ describe("Cao foundation renderer boundary", () => {
     const land = meshes().find((mesh) => mesh.userData.surfaceClass === "palaeo-land"
       && mesh.userData.palaeoLandUnderlayOf === undefined)!;
     expect(underlay.renderOrder).toBe(land.renderOrder);
-    expect((underlay.material as { depthWrite: boolean }).depthWrite)
-      .toBe((land.material as { depthWrite: boolean }).depthWrite);
+    // It takes the land shell and the land draw order, but never the land depth
+    // write, and it still depth-tests so the far side of the globe hides it.
+    expect((land.material as { depthWrite: boolean }).depthWrite).toBe(true);
+    expect((underlay.material as { depthWrite: boolean }).depthWrite).toBe(false);
+    expect((underlay.material as { depthTest: boolean }).depthTest).toBe(true);
+    // It draws before the mountain it stands under, which is what leaves the
+    // mountain's own colour on every pixel the mountain covers.
+    expect(underlay.renderOrder).toBeLessThan(mountain.renderOrder);
     expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
     expect(nativeDiagnostics.drawCount).toBe(3);
 

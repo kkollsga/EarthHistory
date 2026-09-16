@@ -1,9 +1,24 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { expect, test, type Page } from "@playwright/test";
 import type {
   EarthHistoryMotionProbe,
   EarthHistoryPixelSurfaceProbe,
   EarthHistorySurfaceProbe,
 } from "../../src/render/GlobeScene";
+
+/**
+ * The declared version, read from the manifest rather than from `appVersion.ts`.
+ *
+ * That module reads the `__APP_VERSION__` define, which only exists inside a
+ * Vite build; this spec runs in plain Node. Reading the manifest also makes the
+ * assertion below a real end-to-end check of the define, since the served page
+ * and this file then arrive at the number by different routes.
+ */
+const PACKAGE_VERSION = (JSON.parse(
+  readFileSync(fileURLToPath(new URL("../../package.json", import.meta.url)), "utf8"),
+) as { version: string }).version;
 
 declare global {
   interface Window {
@@ -908,6 +923,18 @@ test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", asy
   expect(errors).toEqual([]);
 });
 
+// The header logo carries the build's version so a tester or a bug report can
+// name the exact build without opening the deployed artifact's manifest. The
+// tooltip is the visible half and `data-app-version` the machine-readable half;
+// both come from the Vite define, so an unreplaced token fails here.
+test("advertises the build version on the header logo", async ({ page }) => {
+  await page.goto("./");
+  const brand = page.locator("header button.brand");
+  await expect(brand).toBeVisible();
+  await expect(brand).toHaveAttribute("title", `EarthHistory v${PACKAGE_VERSION}`);
+  await expect(brand).toHaveAttribute("data-app-version", PACKAGE_VERSION);
+});
+
 test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
   // The key is only readable once the 94-81 interval is drawn, and the layer
   // now warms its neighbour behind that: the assertions are cheap, the load
@@ -920,7 +947,12 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await expect(page.getByTestId("palaeo-interval-line"))
     .toHaveText("Cao et al. (2017) map interval 94\u201381 Ma");
   await expect(page.getByText(/minimum land \/ maximum flooding recorded anywhere in that bin/)).toBeVisible();
-  await expect(page.getByText(/Cao 2024 continental crust, depth unmapped/)).toBeVisible();
+  // The band draws exactly five levels (commit 30eb335): the Cao 2024 shelf is
+  // hidden here, so its key row is gone and a note says unmapped ground reads as
+  // deep sea; the restored margins keep a row of their own as model inference.
+  await expect(page.getByTestId("map-key-shelf")).toHaveCount(0);
+  await expect(page.getByTestId("map-key-restored-margin")).toBeVisible();
+  await expect(page.getByTestId("palaeo-deep-sea-note")).toBeVisible();
   await expect(page.getByText(/Light grey outline · over shallow or deep sea/)).toBeVisible();
   await expect(page.getByText(/Outline tone is a legibility device, not evidence/)).toBeVisible();
   await expect(page.getByTestId("timeline-interval-marks").locator(".interval-mark"))
@@ -937,6 +969,17 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   // hides native land and every land-appearance correction with it, so the
   // "Land" row would name a tone nowhere on screen.
   await expect(page.getByTestId("map-key-native-land")).toHaveCount(0);
+
+  // The colour key, row for row, in the band. The five levels the band draws
+  // are the deep-sea sphere, mapped shallow sea, mapped land, mapped mountain
+  // and the country outlines: the sphere is named by the deep-sea note above
+  // and the outlines by their own rows, so three of these four swatches are
+  // levels and the fourth, the restored margin, is model inference drawn in the
+  // shallow sea's colour. A sixth level - a crust-blue wash the key could not
+  // explain - would show up here as a fifth row.
+  await expect(page.locator(".surface-color-key li strong")).toHaveText([
+    "Palaeo land", "Palaeo shallow sea", "Palaeo mountain", "Restored margin",
+  ]);
 
   // Nothing in the key is left below the fold with no way to reach it: the
   // panel takes the height the stage leaves it, and scrolls the remainder.

@@ -311,8 +311,9 @@ export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[]
   // Every mountain batch is also drawn once at the palaeo-land shell above,
   // under itself, because the two classes are node-reduced apart and their
   // shared coast is not a shared edge — see `createPalaeoLandUnderlayMesh`.
-  // That underlay is a `palaeo-land` mesh in every respect, so this table stays
-  // the whole stacking contract and no class is added by it.
+  // That underlay takes this row's shell, order and per-mode visibility, so no
+  // class is added by it; it alone writes no depth, because it is the mountain's
+  // own geometry and near the limb no depth buffer can keep the two apart.
   Object.freeze({ surfaceClass: "palaeo-mountain" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES,
     renderOrder: 1.8, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
@@ -2187,10 +2188,28 @@ function createChartPickState(revision: PreparedCaoRevision): {
  *
  * It shares the mountain's `BufferGeometry`, so it costs one draw call and zero
  * GPU bytes. It is not a new surface class: it declares `palaeo-land` and takes
- * that class's shell, draw order, depth write and per-mode visibility whole,
- * which is also why it appears and disappears in exactly the bands the mountain
- * does. Picking and coverage read the geometry batches rather than the meshes,
- * so the mountain still wins over land wherever both cover a direction.
+ * that class's shell, draw order and per-mode visibility whole, which is also
+ * why it appears and disappears in exactly the bands the mountain does. Picking
+ * and coverage read the geometry batches rather than the meshes, so the
+ * mountain still wins over land wherever both cover a direction.
+ *
+ * It is the one `palaeo-land` mesh that does *not* write depth, and that is the
+ * whole of its difference from the class. The shell table's 242.59 m sag
+ * clearance separates two different geometries; this mesh is the mountain's own
+ * geometry 300 m under itself, and those 300 m are radial. Near the limb the
+ * radial direction is almost perpendicular to the view, so the pair's
+ * separation along the view ray collapses toward zero and the depth buffer
+ * cannot resolve it: with both writing depth the underlay took pixels from the
+ * mountain standing on it, and the tone census read mountain ground as
+ * 158,114,76 near the terminator - the land olive pulling green 36 above the
+ * recorded 142,78,53, in the band whose aims put that ground within 5 degrees
+ * of the horizon. Writing no depth makes that impossible rather than unlikely:
+ * the mountain then depth-tests against the deep-sea sphere alone, which it
+ * clears at every angle, and the underlay survives only in pixels the mountain
+ * does not cover - which is exactly the sliver it exists for. Nothing below it
+ * needs its depth: in the palaeo mode, the only mode it is visible in, the one
+ * class drawn after it is the mountain above it, and the country outlines do
+ * not depth test at all.
  *
  * The colour uses the mode mix `correction-shelf` already uses: the batch's own
  * package colour answers for its declared mountain appearance, and the palaeo
@@ -2213,7 +2232,10 @@ function createPalaeoLandUnderlayMesh(
   const mesh = new THREE.Mesh(batch.geometry, graph.material);
   mesh.frustumCulled = false;
   graph.material.depthTest = true;
-  graph.material.depthWrite = shell.writesDepth;
+  // Not `shell.writesDepth`: see above. The underlay must never win a depth
+  // test against the mountain it stands under, and at the limb the two are
+  // indistinguishable in depth.
+  graph.material.depthWrite = false;
   mesh.renderOrder = shell.renderOrder;
   mesh.userData.surfaceClass = shell.surfaceClass;
   mesh.userData.palaeoAppearanceMix = graph.palaeoAppearanceMix;
