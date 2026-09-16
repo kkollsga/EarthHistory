@@ -1751,6 +1751,44 @@ describe("Cao foundation renderer boundary", () => {
     staticCompletions.shift()?.();
     surface.disposeForRendererTeardown();
   });
+
+  it("releases and re-uploads the GPU buffers of the classes a composition replaces", () => {
+    const surface = new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
+    surface.publish(palaeoRevision(), 8);
+    const batches = surface.surfaceView()!.geometry.batches;
+    const disposed: string[] = [];
+    for (const batch of batches) {
+      batch.geometry.addEventListener("dispose", () => disposed.push(batch.batchId));
+    }
+    const native = batches.filter((batch) => batch.surfaceClass === "land"
+      || batch.surfaceClass === "shelf");
+    const nativeGpuBytes = native.reduce((sum, batch) => sum + batch.trackedGpuBytes, 0);
+    expect(nativeGpuBytes).toBeGreaterThan(0);
+
+    surface.setReleasableSurfaceClasses(["land", "shelf"]);
+    expect([...disposed].sort()).toEqual(["batch-land", "batch-shelf"]);
+    expect(surface.releasedStaticGpuBytes()).toBe(nativeGpuBytes);
+    // Only the GPU side goes: picking, coverage and the guide-label ink read the
+    // CPU source, and it is still there.
+    const land = batches.find((batch) => batch.batchId === "batch-land")!;
+    expect(land.source.referenceDirections).toHaveLength(9);
+    expect(land.geometry.getAttribute("position")).toBeTruthy();
+    const position = () => land.geometry.getAttribute("position") as BufferAttribute;
+    const uploadedVersion = position().version;
+
+    // Idempotent while the composition lasts: no second dispose, no double count.
+    surface.setReleasableSurfaceClasses(["land", "shelf"]);
+    expect(disposed).toHaveLength(2);
+    expect(surface.releasedStaticGpuBytes()).toBe(nativeGpuBytes);
+
+    // Leaving the composition marks every attribute for upload again.
+    surface.setReleasableSurfaceClasses([]);
+    expect(position().version).toBe(uploadedVersion + 1);
+    expect(land.geometry.index!.version).toBeGreaterThan(0);
+    expect(surface.releasedStaticGpuBytes()).toBe(0);
+    surface.disposeForRendererTeardown();
+  });
 });
 
 /** WCAG relative luminance, so a colour choice can be gated rather than argued. */

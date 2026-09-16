@@ -524,6 +524,8 @@ export interface CaoFoundationBatchResource {
   readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoStaticGeometryCopy;
+  /** Vertex and index buffer bytes this batch holds on the GPU. */
+  readonly trackedGpuBytes: number;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly nativePrecedence: boolean;
@@ -1124,6 +1126,7 @@ export function createCaoFoundationGeometryResource(
       resources.push(Object.freeze({ batchId: prepared.batchId,
         staticGeometryIdentity: prepared.staticGeometryIdentity,
         staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
+        trackedGpuBytes: gpuBytes,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
         nativePrecedence: prepared.nativePrecedence, appearance, surfaceClass, shellOffsetMetres,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
@@ -2217,6 +2220,8 @@ export class CaoFoundationSurfaceRenderer {
   private countryLineToneTable: Uint8Array | null = null;
   private armedStaticGeometryChange: string | null = null;
   private releasableSurfaceClasses: readonly CaoFoundationSurfaceClass[] = Object.freeze([]);
+  /** Batch ids whose GPU buffers are currently released; their CPU source is retained. */
+  private readonly releasedStaticGeometryBatches = new Set<string>();
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
 
   constructor(
@@ -2322,7 +2327,13 @@ export class CaoFoundationSurfaceRenderer {
           byteLength: retiredStaticGeometry.byteLength,
           dispose: () => retiredStaticGeometry!.dispose(),
         });
+        // The incoming geometry carries its own buffers; whatever the outgoing
+        // one had released is not a claim about them.
+        this.releasedStaticGeometryBatches.clear();
       }
+      // A batch built while its class is released must be released too, or
+      // publishing inside the Cao 2017 band would silently re-upload it.
+      this.applyReleasableSurfaceClasses();
       revision.release();
       return this.diagnostics();
     } catch (error) {
@@ -2480,14 +2491,15 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
-   * The D1 residency seam: the classes whose GPU buffers the composition says
-   * are replaced outright and could be released while it lasts.
+   * The D1 residency policy: the classes whose GPU buffers the composition
+   * replaces outright, and whose vertex and index buffers are therefore handed
+   * back for as long as it lasts.
    *
-   * In this phase the renderer only records the set — publishing it is what
-   * lets the store and the resolver agree on the answer before any buffer is
-   * touched. P5 wires the actual release and the re-upload on exit into the
-   * resource set, where the buffers live; until then this is deliberately a
-   * no-op and no GPU memory changes hands.
+   * Only the GPU side is released. The CPU source copies stay — picking,
+   * coverage and the guide-label ink read them, and reloading a package to come
+   * back from a scrub across 402 Ma would cost far more than the buffers save.
+   * Leaving the composition marks every attribute for upload again, so the
+   * first frame that draws the class carries its buffers back.
    *
    * `resolveReleasableNativeSurfaceClasses` in `surfaceVisibility` is the only
    * intended caller: it refuses every composition but `realistic`, because the
@@ -2497,11 +2509,43 @@ export class CaoFoundationSurfaceRenderer {
   setReleasableSurfaceClasses(classes: readonly CaoFoundationSurfaceClass[]): void {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
     this.releasableSurfaceClasses = Object.freeze([...classes]);
+    this.applyReleasableSurfaceClasses();
   }
 
-  /** The recorded seam value; nothing is released from it in this phase. */
+  /** The classes the composition allows releasing; see `setReleasableSurfaceClasses`. */
   get releasableNativeSurfaceClasses(): readonly CaoFoundationSurfaceClass[] {
     return this.releasableSurfaceClasses;
+  }
+
+  /** GPU bytes currently handed back under the release policy. */
+  releasedStaticGpuBytes(): number {
+    let bytes = 0;
+    for (const batch of this.staticGeometry?.batches ?? []) {
+      if (this.releasedStaticGeometryBatches.has(batch.batchId)) bytes += batch.trackedGpuBytes;
+    }
+    return bytes;
+  }
+
+  private applyReleasableSurfaceClasses(): void {
+    const releasable = new Set(this.releasableSurfaceClasses);
+    for (const batch of this.staticGeometry?.batches ?? []) {
+      const released = this.releasedStaticGeometryBatches.has(batch.batchId);
+      if (releasable.has(batch.surfaceClass)) {
+        if (released) continue;
+        // Frees the backend's vertex and index buffers and leaves the
+        // attributes' arrays in place, which is what lets the same geometry be
+        // drawn again without rebuilding it.
+        batch.geometry.dispose();
+        this.releasedStaticGeometryBatches.add(batch.batchId);
+        continue;
+      }
+      if (!released) continue;
+      for (const attribute of Object.values(batch.geometry.attributes)) {
+        (attribute as THREE.BufferAttribute).needsUpdate = true;
+      }
+      if (batch.geometry.index) batch.geometry.index.needsUpdate = true;
+      this.releasedStaticGeometryBatches.delete(batch.batchId);
+    }
   }
 
   /**

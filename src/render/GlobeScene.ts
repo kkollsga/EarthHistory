@@ -1539,10 +1539,10 @@ export class GlobeScene {
     if (palaeoMode !== this.nativeSurfaceModeIsPalaeo) {
       this.nativeSurfaceModeIsPalaeo = palaeoMode;
       this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
-      // D1 seam. The composition decides which native classes are replaced
-      // outright and could give their GPU buffers back; the renderer records
-      // the answer and releases nothing in this phase. Wiring the release and
-      // the re-upload on exit is P5 work inside the resource set.
+      // D1. The composition decides which native classes it replaces outright;
+      // their vertex and index buffers are handed back for as long as it lasts
+      // and uploaded again on the way out. The CPU source stays resident, so
+      // picking, coverage and the guide-label ink are unaffected.
       this.caoFoundationRenderer.setReleasableSurfaceClasses(
         resolveReleasableNativeSurfaceClasses(resolved.composition));
     }
