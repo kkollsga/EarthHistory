@@ -4,6 +4,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-09-16
+
 ### Fixed
 
 - **The LGM exposed shelf now complements the coast the app actually draws.**
