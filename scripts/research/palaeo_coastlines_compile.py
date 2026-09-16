@@ -137,6 +137,11 @@ FRAME_CONFLICT_KM = audit.CO_MOVING_FAR_KM
 # own PLATEID1 position, with no override entry to justify it, is dropped and
 # counted rather than drawn.
 FRAME_CONFLICT_DROP_KM = 1000.0
+# How many outline points per part the frame-conflict rule is measured at. The
+# rotation difference varies smoothly over a piece, so an evenly spaced sample
+# of the outline finds the extreme; the cap keeps the measurement bounded for
+# rings with tens of thousands of vertices.
+FRAME_CONFLICT_SAMPLES = 24
 # A piece is rebound by PLATEID1 when its centroid and at least this share of its
 # area lie inside that plate's declared footprint.
 OVERRIDE_MAJORITY_FRACTION = 0.5
@@ -837,32 +842,81 @@ def owner_priority(partition: dict) -> tuple:
             partition["sourceOrder"], partition["geometryIndex"])
 
 
+def frame_separation(geometry, binding_plate: int, source_plate: int, age: float,
+                     rotation) -> float:
+    """The worst distance the binding carries any part of this ground from its own frame.
+
+    The two rotations differ by a different amount at every point on Earth, so a
+    piece's centre is not a statement about its ends. Measured 2026-09-16 on sm
+    166-146: one 84 km2 piece on PLATEID1 305 bound to plate 307 read 976 km at
+    its representative point and 1,091 km at its eastern end - inside the
+    ``FRAME_CONFLICT_DROP_KM`` rule by the centre, past it by the ground that
+    would actually be drawn. Each part contributes its representative point and
+    an evenly spaced sample of its outline, so the cost is bounded however many
+    vertices the ring carries.
+    """
+    binding_rotation = rotation(age, binding_plate)
+    source_rotation = rotation(age, source_plate)
+    worst = 0.0
+    for part in polygon_parts(geometry):
+        points = [part.representative_point().coords[0]]
+        ring = list(part.exterior.coords)
+        step = max(1, len(ring) // FRAME_CONFLICT_SAMPLES)
+        points.extend(ring[::step])
+        for longitude, latitude in points:
+            probe = pygplates.PointOnSphere(latitude, longitude)
+            worst = max(worst, audit.great_circle_km(binding_rotation * probe,
+                                                     source_rotation * probe))
+    return worst
+
+
 def merge_sliver(pieces: list[list], sliver) -> bool:
-    """Give one sub-floor cut fragment to the adjacent piece of the same record.
+    """Give one sub-floor cut fragment to the piece of the same record it adjoins.
 
     A fragment below ``MIN_PIECE_KM2`` that touches another piece of the same
     record is interior ground, not an island: dropping it punches a hole through
     which the darker crust, or the sphere, shows at closest zoom. The fragment is
-    unioned into the adjacent piece instead, so the record stays gap-free and
-    still has exactly one owner per piece - the adjacent piece's partition, whose
-    plate then carries those few square kilometres. A fragment that touches
-    nothing is a genuine speck below the class floor and is still dropped by the
-    caller. Returns whether the fragment found a neighbour.
+    unioned into the adjoining piece instead, so the record stays gap-free and
+    still has exactly one owner per piece - the adjoining piece's partition, whose
+    plate then carries those few square kilometres.
+
+    ``sliver`` is a *single* polygon, and adjacency is what qualifies it: the
+    receiving piece has to share boundary with it, or lie within the rounding
+    tolerance of it. Measured 2026-09-16: taking the nearest piece by distance
+    and accepting a whole multipolygon because any one of its parts was adjacent
+    unioned ground scattered across a hemisphere into one neighbour, which then
+    inherited that neighbour's plate binding - one sm 166-146 piece whose
+    PLATEID1 was 305 ended up bound to plate 307 and drawn 1,091 km from its own
+    frame, past the ``FRAME_CONFLICT_DROP_KM`` rule that is supposed to catch
+    exactly that. Choosing the longest shared boundary keeps the fragment with
+    the piece it was actually cut from rather than one that merely brushes it at
+    a corner. A part that adjoins nothing is a genuine speck below the class
+    floor and is still dropped by the caller. Returns whether the part found a
+    neighbour.
     """
-    nearest: list | None = None
-    nearest_distance = math.inf
+    best: list | None = None
+    best_key = (0.0, -math.inf)
     for entry in pieces:
         distance = float(entry[1].distance(sliver))
-        if distance < nearest_distance:
-            nearest_distance = distance
-            nearest = entry
-    if nearest is None or nearest_distance > SLIVER_MERGE_DEGREES:
+        try:
+            shared = float(entry[1].boundary.intersection(sliver.boundary).length)
+        except shapely.errors.GEOSException:
+            # A Boolean that will not run is not evidence of adjacency; the
+            # distance test still decides this pair.
+            shared = 0.0
+        if shared <= 0.0 and distance > SLIVER_MERGE_DEGREES:
+            continue
+        key = (shared, -distance)
+        if best is None or key > best_key:
+            best = entry
+            best_key = key
+    if best is None:
         return False
-    merged = polygonal(unary_union([nearest[1], sliver]))
+    merged = polygonal(unary_union([best[1], sliver]))
     if merged.is_empty:
         return False
-    nearest[1] = merged
-    nearest[2] = area_km2(merged)
+    best[1] = merged
+    best[2] = area_km2(merged)
     return True
 
 
@@ -899,11 +953,19 @@ def cut_record(geometry, partitions: list[dict], tree: STRtree) -> tuple[list[tu
     # touches the record's kept pieces, unmapped ocean floor where it does not.
     if not remaining.is_empty and area_km2(remaining) > 0:
         slivers.append(remaining)
+    # Judged one connected part at a time. The unclaimed remainder of a record
+    # that spans several partitions is a scattered multipolygon, and adopting it
+    # whole because one of its parts adjoins a kept piece moves the rest of it
+    # across the globe into that piece's frame. Adjacency is a property of a
+    # part, never of the collection.
     for sliver in slivers:
-        if merge_sliver(pieces, sliver):
-            continue
-        dropped_area += area_km2(sliver)
-        dropped_pieces += 1
+        for part in polygon_parts(sliver):
+            if part.is_empty or area_km2(part) <= 0:
+                continue
+            if merge_sliver(pieces, part):
+                continue
+            dropped_area += area_km2(part)
+            dropped_pieces += 1
     return ([(entry[0], densify_geometry(entry[1], CUT_DENSIFY_DEGREES), entry[2])
              for entry in pieces], dropped_area, dropped_pieces)
 
@@ -2173,13 +2235,18 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                     interval_unposable_pieces += 1
                     continue
                 # How far the binding carries this ground from where its own
-                # source record puts it, measured before anything is counted.
-                probe_point = entry["original"].representative_point()
-                probe = pygplates.PointOnSphere(probe_point.y, probe_point.x)
-                separation = audit.great_circle_km(
-                    rotation(interval["midAgeMa"], binding_plate) * probe,
-                    rotation(interval["midAgeMa"], source_plate) * probe) \
-                    if source_plate is not None else 0.0
+                # source record puts it, measured before anything is counted,
+                # and measured over the whole piece rather than one
+                # representative point. A piece is inside the rule only if all
+                # of it is: a cut piece that a sliver merge made multipart, or a
+                # long thin piece that follows a partition edge, has ends the
+                # centre says nothing about, and it is the far end that would be
+                # drawn in the wrong place. Sampled at
+                # ``FRAME_CONFLICT_SAMPLES`` points per part so the cost stays
+                # bounded for the largest rings.
+                separation = (frame_separation(entry["original"], binding_plate, source_plate,
+                                               interval["midAgeMa"], rotation)
+                              if source_plate is not None else 0.0)
                 if separation > FRAME_CONFLICT_DROP_KM and not (flags & FLAG_PLATEID1_OVERRIDE):
                     # Ground drawn thousands of kilometres from where its own
                     # PLATEID1 puts it is not a flagged approximation, it is a
