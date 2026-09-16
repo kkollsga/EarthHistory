@@ -846,6 +846,10 @@ test("places the compiled Cao 2017 witnesses on the live surface", async ({ page
 });
 
 test("returns the Cao 2024 composition when the palaeo layer is switched off", async ({ page }) => {
+  // Two interval loads and two triangulations inside one page, and the second
+  // toggle is clicked while the neighbour warm-up is still decoding: the
+  // file-level 45 s budget is a load budget here, not an assertion budget.
+  test.setTimeout(180_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#age=90&layers=borders,guides");
   await waitForCao(page);
@@ -905,6 +909,10 @@ test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma", asy
 });
 
 test("names the Cao 2017 map interval and outline markers in the map key", async ({ page }) => {
+  // The key is only readable once the 94-81 interval is drawn, and the layer
+  // now warms its neighbour behind that: the assertions are cheap, the load
+  // this test waits on is not, and it overran the file-level 45 s budget.
+  test.setTimeout(120_000);
   await page.goto("./#age=90&layers=borders,guides,palaeoCoastlines");
   await waitForCao(page);
   await openSurfaceInfo(page);
@@ -1625,27 +1633,30 @@ test("does not blank the Cao foundation when scrubbing to today", async ({ page 
  * hold at the hardest band, not on average.
  */
 const PALAEO_TONE_BANDS = [
-  { id: "full light", min: 0.9, max: 1.01, predicted: [196, 114, 68] as const, minInkContrast: 3 },
-  { id: "mid", min: 0.55, max: 0.72, predicted: [177, 95, 55] as const, minInkContrast: 3 },
-  { id: "terminator-near", min: 0.2, max: 0.32, predicted: [143, 69, 37] as const,
+  { id: "full light", min: 0.9, max: 1.01, measured: [201, 126, 79] as const, minInkContrast: 3 },
+  { id: "mid", min: 0.55, max: 0.72, measured: [184, 117, 72] as const, minInkContrast: 3 },
+  { id: "terminator-near", min: 0.2, max: 0.32, measured: [142, 78, 53] as const,
     minInkContrast: 2 },
 ] as const;
 
 /**
- * How far a measured channel may sit from its predicted value.
+ * How far a measured channel may sit from the recorded tone.
  *
- * The `predicted` triples above are *predictions*, not measurements: they come
- * from the band model in `caoFoundation.ts` - the per-band light factors 1.0355
- * / 0.7970 / 0.5260 fitted to the three tones 0.1.12 measured for `#fd7328`,
- * then ACES at exposure 1.02 and the sRGB transfer - solved for the new albedo
- * `#71220e`. Refitting that model against 0.1.12's own measured tones reproduces
- * them to within 9/255 at the worst channel, so a tolerance of 20 is the model's
- * demonstrated error with room to spare, and is tight enough that the class
- * cannot drift back toward the light tan it used to be (235,198,139 is 84 away
- * in red at full light). A run of this census is what turns the predictions into
- * measurements; until it has run, the numbers above are unconfirmed.
+ * The triples above are what this census measured for `#71220e` on the
+ * production build, 0.1.13: 201,126,79 in full light, 184,117,72 at mid
+ * lighting and 142,78,53 near the terminator, merged over the five camera aims
+ * below. They replace the band model's predictions (196,114,68 / 177,95,55 /
+ * 143,69,37), which the same run confirmed to within 12/255 at the worst
+ * channel except mid green, where the measurement landed 22 above the
+ * prediction and outside this tolerance - the model's own error, not a drift in
+ * the colour, and the reason a prediction is not a contract.
+ *
+ * A tolerance of 20 around a measured tone is tight enough that the class
+ * cannot drift back toward the light tan it used to be (235,198,139 is 34 away
+ * in red and 72 in green at full light) and loose enough to absorb the spread
+ * between renderers and aim sets.
  */
-const PALAEO_TONE_PREDICTION_TOLERANCE = 20;
+const PALAEO_TONE_TOLERANCE = 20;
 
 /**
  * Camera aims the census samples from.
@@ -1895,7 +1906,14 @@ function inkContrastRatio(rgb: readonly [number, number, number],
 }
 
 test("draws palaeo mountains as a readable dark reddish brown at every lighting band", async ({ page }) => {
-  test.setTimeout(420_000);
+  // Five full page loads, each fetching and triangulating a Cao map interval
+  // and then warming its neighbour, plus a per-pixel probe sweep over each
+  // frame. This is the slowest check in the suite and its budget is wall clock
+  // on the machine that runs it: the run that recorded the tones below took
+  // 558 s on a Mac sharing its cores with a second browser harness, where the
+  // former 420 s budget expired mid-aim three times. Nothing here is asserted
+  // against the clock, so the budget is headroom, not a threshold.
+  test.setTimeout(900_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   const censuses: ToneCensus[] = [];
@@ -1947,23 +1965,23 @@ test("draws palaeo mountains as a readable dark reddish brown at every lighting 
       .toBeGreaterThanOrEqual(10);
     expect(row.hue, `${band.id}: mountain hue must stay a reddish brown, not an orange`)
       .toBeLessThanOrEqual(30);
-    // The predicted tone, channel by channel. This is the assertion that would
+    // The recorded tone, channel by channel. This is the assertion that would
     // catch the class drifting back toward a light tan, which neither the
     // separation floor nor the hue window can see on their own.
     for (const [channel, name] of (["red", "green", "blue"] as const).entries()) {
       expect(mountain!.rgb[channel],
-        `${band.id}: mountain ${name} against the predicted ${band.predicted.join(",")}`)
-        .toBeGreaterThanOrEqual(band.predicted[channel]! - PALAEO_TONE_PREDICTION_TOLERANCE);
+        `${band.id}: mountain ${name} against the recorded ${band.measured.join(",")}`)
+        .toBeGreaterThanOrEqual(band.measured[channel]! - PALAEO_TONE_TOLERANCE);
       expect(mountain!.rgb[channel],
-        `${band.id}: mountain ${name} against the predicted ${band.predicted.join(",")}`)
-        .toBeLessThanOrEqual(band.predicted[channel]! + PALAEO_TONE_PREDICTION_TOLERANCE);
+        `${band.id}: mountain ${name} against the recorded ${band.measured.join(",")}`)
+        .toBeLessThanOrEqual(band.measured[channel]! + PALAEO_TONE_TOLERANCE);
     }
     // The dark ink has to stay legible over mountain ground at full light and at
-    // mid lighting. Near the terminator a tone this dark cannot reach 3:1
-    // against ink this dark - it is predicted at 2.21:1 - and the floor there is
-    // 2: the band is held readable by its luma (predicted 82/255), not by the
-    // ratio. A lighter class would clear 3:1 everywhere, which is exactly the
-    // light tan this colour replaced.
+    // mid lighting; measured 4.79:1 and 4.13:1. Near the terminator a tone this
+    // dark cannot reach 3:1 against ink this dark - measured 2.39:1 - and the
+    // floor there is 2: the band is held readable by its luma (measured 91/255),
+    // not by the ratio. A lighter class would clear 3:1 everywhere, which is
+    // exactly the light tan this colour replaced.
     expect(row.contrast, `${band.id}: mountain against the dark outline ink`)
       .toBeGreaterThanOrEqual(band.minInkContrast);
   }

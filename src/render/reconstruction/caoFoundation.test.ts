@@ -1318,9 +1318,9 @@ describe("Cao foundation renderer boundary", () => {
     // the dark ink is what has to stay legible over it. That contrast is a
     // property of the *rendered* tone, not of the albedo: a pre-compensated
     // albedo is darker than the tone it produces, and asserting the ratio on the
-    // albedo would read 1.41:1 for ground that renders at 4.24:1. The predicted
-    // full-light tone is pinned here and measured by the browser tone census.
-    expect(contrastRatio(CAO_FOUNDATION_PALAEO_MOUNTAIN_PREDICTED_FULL_LIGHT_TONE,
+    // albedo would read 1.41:1 for ground that renders at 4.79:1. The measured
+    // full-light tone is pinned here; the browser tone census measures it.
+    expect(contrastRatio(CAO_FOUNDATION_PALAEO_MOUNTAIN_FULL_LIGHT_TONE,
       CAO_FOUNDATION_COUNTRY_LINE_DARK_INK)).toBeGreaterThan(3);
     const shallow = CAO_FOUNDATION_DEFAULT_BASE_COLORS["palaeo-shallow-marine"];
     // Saturated teal: green and blue well above red, and blue at least as strong
@@ -1678,13 +1678,12 @@ function relativeLuminance(color: readonly [number, number, number] | readonly n
 }
 
 /**
- * The tone `palaeo-mountain`'s albedo is predicted to render at in full light -
- * 196,114,68 - by the band model documented on
- * `CAO_FOUNDATION_DEFAULT_BASE_COLORS`. It is a prediction, not a measurement:
- * `tests/browser/explorer.spec.ts` owns the measured contract.
+ * The tone `palaeo-mountain`'s albedo renders at in full light - 201,126,79 -
+ * as measured by the browser tone census, which owns that contract and is the
+ * only place it can be measured.
  */
-const CAO_FOUNDATION_PALAEO_MOUNTAIN_PREDICTED_FULL_LIGHT_TONE =
-  [196 / 255, 114 / 255, 68 / 255] as const;
+const CAO_FOUNDATION_PALAEO_MOUNTAIN_FULL_LIGHT_TONE =
+  [201 / 255, 126 / 255, 79 / 255] as const;
 
 function contrastRatio(
   left: readonly number[],

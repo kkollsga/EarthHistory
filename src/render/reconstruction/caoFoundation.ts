@@ -335,20 +335,22 @@ export function caoFoundationShellOffsetMetres(
  * hue 33-37 degrees rather than the brown the class is meant to read as.
  *
  * `#71220e` is pre-compensated for the same wash against a darker, redder aim.
- * Solving the measured 0.1.12 band model - per-band light factors 1.0355 /
+ * It was solved through the 0.1.12 band model - per-band light factors 1.0355 /
  * 0.7970 / 0.5260 fitted to that colour's three measured tones, then ACES at
- * exposure 1.02 and the sRGB transfer - predicts 196,114,68 in full light,
- * 177,95,55 at mid lighting and 143,69,37 near the terminator: hue 17.8-21.5
- * degrees, about 83/255 of luma-matched separation from palaeo-land against a
- * 30 floor, and 4.24:1 against the dark outline/label ink [0.12, 0.15, 0.18]
- * the tone table puts over mountain ground at full light. The terminator band
- * is the cost of the darker aim: it keeps a readable 82/255 luma but only
- * 2.21:1 against that dark ink, where the light tan held 5.75:1.
+ * exposure 1.02 and the sRGB transfer - which predicted 196,114,68 / 177,95,55
+ * / 143,69,37. The tone census then measured it on the production build:
+ * 201,126,79 in full light, 184,117,72 at mid lighting and 142,78,53 near the
+ * terminator - hue 23.1 / 24.1 / 16.9 degrees, 60.5 / 53.9 / 52.2 of
+ * luma-matched separation from palaeo-land against a 30 floor, and 4.79 / 4.13
+ * / 2.39:1 against the dark outline/label ink [0.12, 0.15, 0.18] the tone table
+ * puts over mountain ground. The model was right to within 12/255 everywhere
+ * except mid green, which it under-predicted by 22.
  *
- * These three tones are *predictions* from the fitted model, not measurements.
- * `tests/browser/explorer.spec.ts` owns the rendered contract and is the only
- * place it can be measured; changing this constant without re-running the tone
- * census is not supported.
+ * The terminator band is the cost of the darker aim: it keeps a readable
+ * 91/255 luma but only 2.39:1 against that dark ink, where the light tan held
+ * 5.75:1. `tests/browser/explorer.spec.ts` owns the rendered contract and is
+ * the only place it can be measured; changing this constant without re-running
+ * the tone census is not supported.
  */
 /**
  * The opaque globe sphere every surface class is drawn over. It is the bottom

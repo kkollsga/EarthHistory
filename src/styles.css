@@ -190,11 +190,11 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 /* The three palaeo classes carry the renderer's own base colours. */
 .surface-swatch-palaeo-land { background: rgb(154, 168, 107); }
 .surface-swatch-palaeo-shallow { background: rgb(20, 96, 107); }
-/* The mountain swatch is the tone the globe renders (predicted 196,114,68 in
-   full light by the band model in caoFoundation.ts, to be confirmed by the tone
-   census), not its linear albedo: the albedo is pre-compensated for the ACES
-   wash and would show the key a brown the map never draws. */
-.surface-swatch-palaeo-mountain { background: rgb(196, 114, 68); }
+/* The mountain swatch is the tone the globe renders (measured 201,126,79 in
+   full light by the tone census), not its linear albedo: the albedo is
+   pre-compensated for the ACES wash and would show the key a brown the map
+   never draws. */
+.surface-swatch-palaeo-mountain { background: rgb(201, 126, 79); }
 .surface-palaeo-key { display: grid; gap: 2px; padding: 11px 0 1px; border-bottom: 1px solid var(--line); }
 .surface-palaeo-key > strong { color: var(--ink); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .surface-palaeo-key .surface-info-note { margin: 6px 0 0; font-size: 10px; }
