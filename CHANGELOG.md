@@ -55,6 +55,22 @@ All notable changes to EarthHistory will be recorded here.
   geometry - and the class catalogs still ship and still own the interned tables.
   The manifest grows from 41,538 to 76,685 bytes; the palaeo layer stays at
   8.191 MiB against its 8.5 MiB budget.
+- **One polyline helper owns the country outline.** The modern-country
+  reference overlay's whole line path — decoding the EHGL line batch into the
+  screen-space quad geometry (four corners and two triangles per segment, 200
+  bytes each), the two-tone `mix(darkInk, lightInk, toneMix)` ink with its EHPT
+  tone-table upload and change comparison, the vertex and fragment horizon
+  terms, the shell and the one-CSS-pixel core — moves out of
+  `caoFoundation.ts` into `src/render/reconstruction/polyline.ts`, behind
+  `createPolylineBatch` (and the two halves `createPolylineQuadGeometry` /
+  `createPolylineMaterial` the renderer calls at its own two lifetimes). Shell,
+  ink and width are inputs rather than country constants, and the pose is
+  injected, so the helper carries no reconstruction state. No rendered output
+  changes: the country overlay keeps its 1 800 m shell, its inks and its
+  1 CSS px width, and `caoFoundation.ts` re-exports the existing
+  `CAO_FOUNDATION_COUNTRY_LINE_*` names as aliases of the helper's. The
+  plate-boundary lines (`boundary-*.ehnb`, 2 200 m) are **not** migrated; the
+  helper is meant to take them next.
 
 ## [0.1.18] - 2026-09-16
 

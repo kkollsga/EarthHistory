@@ -506,7 +506,7 @@ describe("Cao foundation renderer boundary", () => {
     // backend actually re-uploads on, so that is what an upload is counted by.
     const uploads = () => graph.toneTexture.version;
     const beforeFirst = uploads();
-    expect(graph.setCountryLineToneTable(texels))
+    expect(graph.setToneTable(texels))
       .toEqual({ darkSegments: 180, lightSegments: 120 });
     expect(uploads()).toBe(beforeFirst + 1);
     expect(data[0]).toBe(255);
@@ -516,19 +516,19 @@ describe("Cao foundation renderer boundary", () => {
     // Reapplying the resident table must not re-upload it: the renderer
     // reapplies on every publication, which is every scrub sample.
     const beforeRepeat = uploads();
-    expect(graph.setCountryLineToneTable(texels.slice()))
+    expect(graph.setToneTable(texels.slice()))
       .toEqual({ darkSegments: 180, lightSegments: 120 });
     expect(uploads()).toBe(beforeRepeat);
 
     // Null restores the all-dark table, and that *is* a change.
-    expect(graph.setCountryLineToneTable(null))
+    expect(graph.setToneTable(null))
       .toEqual({ darkSegments: segmentCount, lightSegments: 0 });
     expect(uploads()).toBe(beforeRepeat + 1);
     expect([...data].every((value) => value === 0)).toBe(true);
 
     // A table sized for another outline package is rejected rather than
     // partially applied.
-    expect(() => graph.setCountryLineToneTable(new Uint8Array(texels.length + 1)))
+    expect(() => graph.setToneTable(new Uint8Array(texels.length + 1)))
       .toThrow(/tone table shape mismatch/);
 
     graph.toneTexture.dispose();
