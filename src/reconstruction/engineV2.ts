@@ -588,7 +588,11 @@ export class CaoReconstructionRuntime {
     // is what froze the layer from the boundary until the swap landed. Keeping
     // the outgoing interval posed at its own edge instead holds the charts on
     // the last age the drawn geometry can honestly carry, for the one or two
-    // frames the swap takes.
+    // frames the swap takes. The edge is not a preference: a frame evaluation
+    // rejects an age outside the interval's own `(TOAGE, FROMAGE]`, and the
+    // compiled lifecycles of the pieces it owns end 0.01 Ma above that same
+    // edge, so posing the outgoing interval at a live age past the boundary
+    // would report those charts consumed and blank them rather than move them.
     const published = publishedIntervalId === null || record?.intervalId === publishedIntervalId
       ? null : this.residentInterval(publishedIntervalId);
     const interval = published

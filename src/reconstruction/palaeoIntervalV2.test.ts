@@ -683,6 +683,26 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.dispose();
   });
 
+  it("holds the outgoing interval at its own edge until the incoming one is published", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    // The age has crossed into 380-360, but 402-380 is still the geometry on
+    // screen, so the pose is held inside the published interval's own range.
+    const crossing = runtime.evaluatePalaeoMotionNow(379.5, "402-380")!;
+    expect(crossing.intervalId).toBe("402-380");
+    expect(crossing.requestedAgeMa).toBeCloseTo(380.001, 6);
+    expect(crossing.charts.map((chart) => chart.support.kind)).toContain("supported");
+    // A crossing the other way is held at the old edge the same way.
+    expect(runtime.evaluatePalaeoMotionNow(410, "402-380")!.requestedAgeMa).toBe(402);
+    // An age still inside the published interval is posed live, unheld.
+    expect(runtime.evaluatePalaeoMotionNow(385, "402-380")!.requestedAgeMa).toBe(385);
+    prepared.release();
+    runtime.dispose();
+  });
+
   it("finds its neighbour resident for a crossing in either direction", async () => {
     const fixture = palaeoFixture();
     const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
