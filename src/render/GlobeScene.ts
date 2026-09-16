@@ -988,6 +988,8 @@ export class GlobeScene {
       dataset.caoFoundationCountryLineBatches = String(diagnostics.countryLineBatches);
       dataset.caoFoundationCountryLineVertices = String(diagnostics.countryLineVertices);
       dataset.caoFoundationCountryLineSegments = String(diagnostics.countryLineSegments);
+      dataset.caoFoundationCountryLineDrawnSegments = String(diagnostics.countryLineDrawnSegments);
+      dataset.caoFoundationCountryLineDuplicates = String(diagnostics.countryLineDuplicateSegments);
       dataset.caoFoundationNativeBoundarySegments = String(diagnostics.nativeBoundarySegments);
       dataset.caoFoundationNativeBoundarySourceAgeMa = diagnostics.nativeBoundarySourceAgeMa === null
         ? "" : String(diagnostics.nativeBoundarySourceAgeMa);

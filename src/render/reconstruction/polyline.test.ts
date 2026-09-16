@@ -104,6 +104,7 @@ describe("polyline helper", () => {
       displayFractionValue: 0,
     });
     expect(batch.segmentCount).toBe(2);
+    expect(batch.duplicateCount).toBe(0);
     expect(batch.ledgerBytes).toBe(2 * POLYLINE_QUAD_SEGMENT_BYTES);
     expect(batch.ledgerBytes).toBe(polylineQuadBytes(2));
     batch.graph.toneTexture.dispose();
@@ -141,6 +142,77 @@ describe("polyline helper", () => {
     expect(() => batch.setToneTable(new Uint8Array(data.length + 1)))
       .toThrow(/tone table shape mismatch/);
 
+    batch.graph.toneTexture.dispose();
+    batch.material.dispose();
+    batch.geometry.dispose();
+  });
+
+  it("draws a shared border once and keeps coincident lines on two plates", () => {
+    // Four source segments over eight unshared endpoints, in the shape the
+    // package hands the renderer. Segments 0 and 1 are one land border stated
+    // twice — once in each adjacent country's outline, walked in opposite
+    // senses — on one motion-palette entry. Segments 2 and 3 are the same two
+    // endpoints on *different* entries: coincident reference geometry that the
+    // reconstruction moves apart, which must keep both lines.
+    const source: PolylineSegmentSource = Object.freeze({
+      referenceDirections: new Float32Array([
+        1, 0, 0, 0, 1, 0,
+        0, 1, 0, 1, 0, 0,
+        0, 0, 1, 0, -1, 0,
+        0, -1, 0, 0, 0, 1,
+      ]),
+      lineIndices: new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7]),
+      preparedEntryIndices: new Uint32Array([4, 4, 4, 4, 7, 7, 9, 9]),
+    });
+    const expanded = createPolylineQuadGeometry(source, 4, POLYLINE_COUNTRY_SHELL_METRES);
+
+    expect(expanded.segmentCount).toBe(3);
+    expect(expanded.duplicateCount).toBe(1);
+    // The first copy of the shared border is the one kept, and the cross-plate
+    // pair survives whole.
+    expect([...expanded.sourceSegmentIndices]).toEqual([0, 2, 3]);
+    expect(expanded.geometry.getAttribute("position").count)
+      .toBe(3 * POLYLINE_QUAD_VERTICES_PER_SEGMENT);
+    expect(expanded.geometry.index?.count).toBe(3 * POLYLINE_QUAD_INDICES_PER_SEGMENT);
+    // Indices address the drawn quads in draw order, not the source segments.
+    expect([...(expanded.geometry.index!.array as Uint32Array)]).toEqual([0, 1, 2, 3, 4, 5]
+      .map((_, slot) => POLYLINE_QUAD_INDICES[slot]!)
+      .concat(POLYLINE_QUAD_INDICES.map((index) => index + 4))
+      .concat(POLYLINE_QUAD_INDICES.map((index) => index + 8)));
+    // Each drawn quad carries its own plate binding and both of its endpoints.
+    expect([...(expanded.geometry.getAttribute("countryLineEntryIndex").array as Uint32Array)])
+      .toEqual([4, 4, 4, 4, 7, 7, 7, 7, 9, 9, 9, 9]);
+    // The tone lookup stays on the *source* segment index: quad 1 reads row 2
+    // and quad 2 row 3, so the shipped table keeps its published shape.
+    expect([...(expanded.geometry.getAttribute("countryLineSegmentIndex").array as Uint32Array)])
+      .toEqual([0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 3, 3]);
+    // The ledger is charged on the quads built, so the dropped duplicate is a
+    // real 200 bytes saved rather than an unbilled one.
+    expect(expanded.gpuBytes).toBe(3 * POLYLINE_QUAD_SEGMENT_BYTES);
+    expect(expanded.gpuBytes).toBe(polylineQuadBytes(3));
+    expanded.geometry.dispose();
+
+    // Composed through the batch, the material's tone table is still sized for
+    // the four source segments, and a light row set on source segment 3 reaches
+    // the quad kept for it.
+    const batch = createPolylineBatch({
+      segments: source, segmentCount: 4, pose: identityPose, tones: null,
+      ink: { dark: POLYLINE_DARK_INK, light: POLYLINE_LIGHT_INK },
+      shellMetres: POLYLINE_COUNTRY_SHELL_METRES, widthPx: POLYLINE_WIDTH_CSS_PX,
+      displayFractionValue: 0,
+    });
+    expect(batch.segmentCount).toBe(3);
+    expect(batch.duplicateCount).toBe(1);
+    expect(batch.ledgerBytes).toBe(polylineQuadBytes(3));
+    const data = batch.graph.toneTexture.image.data as Uint8Array;
+    const texels = new Uint8Array(data.length);
+    texels[3] = 255;
+    expect(batch.setToneTable(texels)).toEqual({ darkSegments: 3, lightSegments: 1 });
+    const drawnSegmentIndices =
+      batch.geometry.getAttribute("countryLineSegmentIndex").array as Uint32Array;
+    const lastQuadRow = drawnSegmentIndices[2 * POLYLINE_QUAD_VERTICES_PER_SEGMENT]!;
+    expect(lastQuadRow).toBe(3);
+    expect(data[lastQuadRow]).toBe(255);
     batch.graph.toneTexture.dispose();
     batch.material.dispose();
     batch.geometry.dispose();

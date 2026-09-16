@@ -427,6 +427,12 @@ export function evaluatePolylineSegmentVisibility<T, C>(
 }
 
 export interface PolylineMaterialOptions {
+  /**
+   * Segments in the *source* batch, which is what the outline tone table is
+   * published and indexed over. The drawn quads can be fewer — shared borders
+   * are deduped at load — and each one carries its source segment's index, so
+   * the table keeps its shipped shape and the lookup stays a direct texel read.
+   */
   readonly segmentCount: number;
   readonly pose: PolylinePoseFactory;
   readonly ink: PolylineInk;
@@ -634,6 +640,67 @@ export function createPolylineMaterial(
     horizonMargins: Object.freeze({ vertexCullCos, vertexCullSin, fragmentCos, fragmentSin }) });
 }
 
+/** The expanded quad form of one line batch, and what it dropped to get there. */
+export interface PolylineQuadGeometry {
+  readonly geometry: THREE.BufferGeometry;
+  /** GPU bytes the drawn quads occupy: 200 per drawn segment. */
+  readonly gpuBytes: number;
+  /** Quads drawn: source segments less the shared-border duplicates. */
+  readonly segmentCount: number;
+  /** Source segments dropped because an identical one is already drawn. */
+  readonly duplicateCount: number;
+  /**
+   * Drawn quad to the source segment it was kept for — the row its outline tone
+   * is published at. Length is `segmentCount`, and the values strictly increase,
+   * because the first copy of each shared border is the one kept.
+   */
+  readonly sourceSegmentIndices: Uint32Array;
+}
+
+/**
+ * Source segments that are not a repeat of an earlier one: the load-time
+ * shared-border dedupe.
+ *
+ * Two segments are the same drawn line when they span the same two decoded
+ * endpoint directions — in either order, since the two countries sharing a
+ * border walk it in opposite senses — *and* carry the same motion-palette
+ * entry, which is what makes them pose identically at every age. Endpoints are
+ * compared on their float32 bit patterns rather than within a tolerance: the
+ * package quantizes directions to int16 before the decoder widens them, so two
+ * copies of one border decode to identical floats, and anything that does not
+ * is a different segment rather than a rounding difference. The palette entry
+ * is in the key so that coincident geometry on two plates, which the
+ * reconstruction moves apart, keeps both lines.
+ */
+function uniquePolylineSegments(
+  source: PolylineSegmentSource,
+  segmentCount: number,
+): Uint32Array {
+  if (!Number.isSafeInteger(segmentCount) || segmentCount < 0) {
+    throw new Error("invalid polyline segment count");
+  }
+  const directions = source.referenceDirections;
+  // A uint32 view over the same bytes: the exact decoded value, with no number
+  // formatting per coordinate. Float32Array is 4-byte aligned by construction.
+  const bits = new Uint32Array(directions.buffer, directions.byteOffset, directions.length);
+  const endpointKey = (vertex: number) =>
+    `${bits[vertex * 3]},${bits[vertex * 3 + 1]},${bits[vertex * 3 + 2]}`;
+  const seen = new Set<string>();
+  const kept: number[] = [];
+  for (let segment = 0; segment < segmentCount; segment += 1) {
+    const left = source.lineIndices[segment * 2]!;
+    const right = source.lineIndices[segment * 2 + 1]!;
+    const leftKey = endpointKey(left);
+    const rightKey = endpointKey(right);
+    const span = leftKey <= rightKey ? `${leftKey}:${rightKey}` : `${rightKey}:${leftKey}`;
+    const key = `${span}@${source.preparedEntryIndices[left]!}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kept.push(segment);
+  }
+  return Uint32Array.from(kept);
+}
+
 /**
  * Expand a decoded line batch into one screen-space quad per segment.
  *
@@ -643,6 +710,23 @@ export function createPolylineMaterial(
  * therefore carries both endpoint directions.
  * `validateStaticLineGeometryCopy` has already rejected any segment whose
  * endpoints disagree on the palette entry, so one entry index drives both poses.
+ *
+ * A land border between two countries is emitted once in each country's own
+ * outline, so the package hands this helper the same segment twice. Both copies
+ * decode to the same pair of endpoint directions and the same motion-palette
+ * entry, so they pose identically and the second only pays for the first's
+ * pixels a second time — at a blend the reader cannot see through, since the
+ * material is transparent. Duplicates are therefore dropped here, at load, and
+ * only the first copy of each shared border is expanded into a quad.
+ * The match is bit-exact on the decoded endpoints: two segments merge only when
+ * their endpoints are the same two quantized directions in either order *and*
+ * they are bound to the same palette entry. The palette entry is part of the
+ * key because two plates can carry coincident reference geometry while moving
+ * apart — merging those would draw one border where the reconstruction has two.
+ * The outline tone table stays indexed by the *source* segment, which is the
+ * row the shipped table publishes, so each drawn quad carries the index of the
+ * source segment it was kept for rather than its own draw order. That mapping
+ * is also returned, so a caller can report the drawn and duplicate counts.
  *
  * The corners are materialised rather than instanced over a shared template.
  * Instancing stores this four times more compactly, and is slightly faster on a
@@ -657,25 +741,29 @@ export function createPolylineQuadGeometry(
   source: PolylineSegmentSource,
   segmentCount: number,
   shellMetres: number,
-): { geometry: THREE.BufferGeometry; gpuBytes: number } {
+): PolylineQuadGeometry {
+  const sourceSegmentIndices = uniquePolylineSegments(source, segmentCount);
+  const drawnCount = sourceSegmentIndices.length;
   const perSegment = POLYLINE_QUAD_VERTICES_PER_SEGMENT;
-  const corners = new Float32Array(segmentCount * perSegment * 3);
-  const starts = new Float32Array(segmentCount * perSegment * 3);
-  const ends = new Float32Array(segmentCount * perSegment * 3);
-  const entries = new Uint32Array(segmentCount * perSegment);
-  // Every corner also carries the segment it belongs to, which is the row the
-  // outline tone table is sampled by. Four corners of one segment carry the
-  // same index, so the tone is constant across the quad.
-  const segmentIndices = new Uint32Array(segmentCount * perSegment);
-  const indices = new Uint32Array(segmentCount * POLYLINE_QUAD_INDICES_PER_SEGMENT);
-  for (let segment = 0; segment < segmentCount; segment += 1) {
+  const corners = new Float32Array(drawnCount * perSegment * 3);
+  const starts = new Float32Array(drawnCount * perSegment * 3);
+  const ends = new Float32Array(drawnCount * perSegment * 3);
+  const entries = new Uint32Array(drawnCount * perSegment);
+  // Every corner also carries the *source* segment it belongs to, which is the
+  // row the outline tone table is sampled by. Four corners of one quad carry the
+  // same index, so the tone is constant across the quad, and a quad kept for a
+  // shared border still reads the tone published for the segment it came from.
+  const segmentIndices = new Uint32Array(drawnCount * perSegment);
+  const indices = new Uint32Array(drawnCount * POLYLINE_QUAD_INDICES_PER_SEGMENT);
+  for (let drawn = 0; drawn < drawnCount; drawn += 1) {
+    const segment = sourceSegmentIndices[drawn]!;
     const left = source.lineIndices[segment * 2]!;
     const right = source.lineIndices[segment * 2 + 1]!;
     const start = source.referenceDirections.subarray(left * 3, left * 3 + 3);
     const end = source.referenceDirections.subarray(right * 3, right * 3 + 3);
     const entry = source.preparedEntryIndices[left]!;
     for (let corner = 0; corner < perSegment; corner += 1) {
-      const vertex = segment * perSegment + corner;
+      const vertex = drawn * perSegment + corner;
       for (let axis = 0; axis < 3; axis += 1) {
         corners[vertex * 3 + axis] = POLYLINE_QUAD_CORNERS[corner * 3 + axis]!;
       }
@@ -685,8 +773,8 @@ export function createPolylineQuadGeometry(
       segmentIndices[vertex] = segment;
     }
     for (let slot = 0; slot < POLYLINE_QUAD_INDICES_PER_SEGMENT; slot += 1) {
-      indices[segment * POLYLINE_QUAD_INDICES_PER_SEGMENT + slot] =
-        segment * perSegment + POLYLINE_QUAD_INDICES[slot]!;
+      indices[drawn * POLYLINE_QUAD_INDICES_PER_SEGMENT + slot] =
+        drawn * perSegment + POLYLINE_QUAD_INDICES[slot]!;
     }
   }
   const geometry = new THREE.BufferGeometry();
@@ -709,10 +797,13 @@ export function createPolylineQuadGeometry(
     1 + shellMetres / EARTH_RADIUS_METRES);
   const gpuBytes = corners.byteLength + indices.byteLength
     + starts.byteLength + ends.byteLength + entries.byteLength + segmentIndices.byteLength;
-  if (gpuBytes !== polylineQuadBytes(segmentCount)) {
+  // The ledger is charged on the quads actually built, not on the source
+  // segments: a dropped duplicate costs nothing on the GPU.
+  if (gpuBytes !== polylineQuadBytes(drawnCount)) {
     throw new Error("polyline quad byte ledger mismatch");
   }
-  return { geometry, gpuBytes };
+  return Object.freeze({ geometry, gpuBytes, segmentCount: drawnCount,
+    duplicateCount: segmentCount - drawnCount, sourceSegmentIndices });
 }
 
 /**
@@ -765,9 +856,12 @@ export interface PolylineBatch {
   readonly graph: PolylineMaterialGraph;
   /** Replaces the tone table; `null` is the all-dark table. */
   readonly setToneTable: (texels: Uint8Array | null) => PolylineToneCounts;
-  /** GPU bytes the expanded quad form occupies: 200 per segment. */
+  /** GPU bytes the expanded quad form occupies: 200 per drawn segment. */
   readonly ledgerBytes: number;
+  /** Quads drawn, after the shared-border dedupe. */
   readonly segmentCount: number;
+  /** Source segments the dedupe dropped; tones still resolve by source index. */
+  readonly duplicateCount: number;
 }
 
 export interface PolylineBatchOptions {
@@ -798,6 +892,8 @@ export function createPolylineBatch(options: PolylineBatchOptions): PolylineBatc
   const expanded = createPolylineQuadGeometry(options.segments, options.segmentCount,
     options.shellMetres);
   const graph = createPolylineMaterial({
+    // The source count, not the drawn one: the tone table is indexed by source
+    // segment, and a deduped batch still reads rows past its own quad count.
     segmentCount: options.segmentCount, pose: options.pose, ink: options.ink,
     shellMetres: options.shellMetres, widthPx: options.widthPx,
     displayFractionValue: options.displayFractionValue,
@@ -806,6 +902,6 @@ export function createPolylineBatch(options: PolylineBatchOptions): PolylineBatc
   return Object.freeze({
     geometry: expanded.geometry, material: graph.material, graph,
     setToneTable: graph.setToneTable, ledgerBytes: expanded.gpuBytes,
-    segmentCount: options.segmentCount,
+    segmentCount: expanded.segmentCount, duplicateCount: expanded.duplicateCount,
   });
 }

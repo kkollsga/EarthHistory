@@ -549,6 +549,19 @@ export interface CaoFoundationLineBatchResource {
   readonly segmentCount: number;
 }
 
+/**
+ * Quads the resident country-line geometry draws, read off the expanded
+ * geometry itself: `polyline.ts` drops one copy of every shared border at load,
+ * so this is below the package's own segment count.
+ */
+function countryLineDrawnSegments(
+  geometry: CaoFoundationGeometryResource | null | undefined,
+): number {
+  return geometry?.lineBatches.reduce((sum, batch) =>
+    sum + batch.geometry.getAttribute("position").count
+      / POLYLINE_QUAD_VERTICES_PER_SEGMENT, 0) ?? 0;
+}
+
 export interface CaoFoundationGeometryResource {
   readonly key: string;
   readonly batches: readonly CaoFoundationBatchResource[];
@@ -607,6 +620,14 @@ export interface CaoFoundationDiagnostics {
   readonly countryLineBatches: number;
   readonly countryLineVertices: number;
   readonly countryLineSegments: number;
+  /**
+   * Quads actually drawn, and the source segments the load-time dedupe dropped.
+   * A land border is emitted once in each adjacent country's outline, so the
+   * package states it twice; only the first copy is expanded. `segments` stays
+   * the source count because the published outline tone table is indexed by it.
+   */
+  readonly countryLineDrawnSegments: number;
+  readonly countryLineDuplicateSegments: number;
   /** Outline segments the resident tone table draws in each ink; dark is the default. */
   readonly countryLineToneDarkSegments: number;
   readonly countryLineToneLightSegments: number;
@@ -2595,6 +2616,10 @@ export class CaoFoundationSurfaceRenderer {
         (sum, batch) => sum + batch.vertexCount, 0) ?? 0,
       countryLineSegments: state.staticGeometry?.lineBatches.reduce(
         (sum, batch) => sum + batch.segmentCount, 0) ?? 0,
+      countryLineDrawnSegments: countryLineDrawnSegments(state.staticGeometry),
+      countryLineDuplicateSegments: (state.staticGeometry?.lineBatches.reduce(
+        (sum, batch) => sum + batch.segmentCount, 0) ?? 0)
+        - countryLineDrawnSegments(state.staticGeometry),
       countryLineToneDarkSegments: member?.outlineToneCounts().darkSegments ?? 0,
       countryLineToneLightSegments: member?.outlineToneCounts().lightSegments ?? 0,
       nativeBoundarySegments: state.domainVisible ? member?.nativeBoundarySegments ?? 0 : 0,

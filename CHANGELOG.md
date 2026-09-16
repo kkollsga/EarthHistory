@@ -44,6 +44,28 @@ All notable changes to EarthHistory will be recorded here.
   paused warm-up, stay visible as hover text on the map key's status dot and as
   the existing status rows with their Retry button inside the open panel. Every
   `data-cao-*` diagnostic is unchanged.
+- **A shared country border is drawn once.** A land border between two
+  countries is stated in each country's own outline, so the country-reference
+  package hands the renderer the same segment twice. `createPolylineQuadGeometry`
+  now drops the repeat at load: two source segments merge when they span the
+  same two decoded endpoint directions, in either order, *and* carry the same
+  motion-palette entry, which is what makes them pose identically at every age.
+  The palette entry is part of the key on purpose — coincident reference
+  geometry on two plates that the reconstruction moves apart must keep both
+  lines, and a merge there would draw one border where the model has two. Only
+  the first copy is expanded into a quad, the GPU ledger is charged on the quads
+  actually built, and each drawn quad carries the index of the *source* segment
+  it was kept for, so the published outline tone table keeps its shipped shape
+  and its per-segment rows still resolve. The renderer reports the drawn and
+  dropped counts as `data-cao-foundation-country-line-drawn-segments` and
+  `data-cao-foundation-country-line-duplicates`;
+  `data-cao-foundation-country-line-segments` stays the *source* count, because
+  it is what `GlobeScene` decodes the palaeo outline tone tables against.
+  Measured on the shipped `cao-v2.4` country batch, this drops 0 of 51,048
+  segments today: 7,420 of them are geometric repeats, but each country's
+  outline is bound to its own palette entry, so no pair matches on the binding
+  and the guard holds every line. The dedupe is the load-time contract, not a
+  measured saving.
 
 - **One residency store and one request chain behind the surface pipeline.**
   The two streaming units — a Cao 2024 checkpoint addressed by its age and a
