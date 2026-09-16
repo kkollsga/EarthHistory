@@ -2174,6 +2174,7 @@ export class CaoFoundationSurfaceRenderer {
   private palaeoCoastlineMode = false;
   private countryLineToneTable: Uint8Array | null = null;
   private armedStaticGeometryChange: string | null = null;
+  private releasableSurfaceClasses: readonly CaoFoundationSurfaceClass[] = Object.freeze([]);
   private readonly allowStaticGeometryReplacement: boolean;
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
 
@@ -2433,6 +2434,31 @@ export class CaoFoundationSurfaceRenderer {
   countryLineToneCounts(): PolylineToneCounts {
     return this.publisher.current()?.resources.outlineToneCounts()
       ?? Object.freeze({ darkSegments: 0, lightSegments: 0 });
+  }
+
+  /**
+   * The D1 residency seam: the classes whose GPU buffers the composition says
+   * are replaced outright and could be released while it lasts.
+   *
+   * In this phase the renderer only records the set — publishing it is what
+   * lets the store and the resolver agree on the answer before any buffer is
+   * touched. P5 wires the actual release and the re-upload on exit into the
+   * resource set, where the buffers live; until then this is deliberately a
+   * no-op and no GPU memory changes hands.
+   *
+   * `resolveReleasableNativeSurfaceClasses` in `surfaceVisibility` is the only
+   * intended caller: it refuses every composition but `realistic`, because the
+   * LGM band draws the native stack under the lowstand overlay and a fallback
+   * or still-loading age has nothing else on screen.
+   */
+  setReleasableSurfaceClasses(classes: readonly CaoFoundationSurfaceClass[]): void {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    this.releasableSurfaceClasses = Object.freeze([...classes]);
+  }
+
+  /** The recorded seam value; nothing is released from it in this phase. */
+  get releasableNativeSurfaceClasses(): readonly CaoFoundationSurfaceClass[] {
+    return this.releasableSurfaceClasses;
   }
 
   /**

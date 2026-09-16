@@ -6,8 +6,10 @@ import {
   type CaoFoundationSurfaceClass,
 } from "./caoFoundation";
 import type { CaoPalaeoDomainBand } from "./palaeoComposite";
+import { DEFAULT_SURFACE_RESIDENCY_POLICY } from "../../reconstruction/loaderV2";
 import {
   advanceSurfaceVisibilityHysteresis,
+  resolveReleasableNativeSurfaceClasses,
   resolveSurfaceVisibility,
   surfaceSlotComposition,
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
@@ -269,5 +271,43 @@ describe("surface visibility resolver", () => {
       expect([...declared].sort(), composition)
         .toEqual([...resolution.visibleClasses].sort());
     }
+  });
+});
+
+describe("releasable native surface classes", () => {
+  const policyWith = (releaseReplacedNativeGpuBuffers: boolean) =>
+    ({ ...DEFAULT_SURFACE_RESIDENCY_POLICY, releaseReplacedNativeGpuBuffers });
+
+  it("releases today's land and crust shelf only where the Cao 2017 map replaces them", () => {
+    expect([...resolveReleasableNativeSurfaceClasses("realistic")].sort())
+      .toEqual(["land", "shelf"]);
+    // Neither replaced class is still drawn in that composition.
+    const realistic = surfaceSlotComposition("realistic");
+    for (const surfaceClass of resolveReleasableNativeSurfaceClasses("realistic")) {
+      expect([realistic.land, realistic.continents, realistic.mountain, realistic.corrections,
+        realistic.correctionShelf, ...realistic.overlay]).not.toContain(surfaceClass);
+    }
+  });
+
+  it("releases nothing where the native stack is still on screen", () => {
+    // The LGM band draws the native stack under the lowstand overlay, and a
+    // fallback or still-loading age is the native composition outright.
+    expect(resolveReleasableNativeSurfaceClasses("lgm")).toEqual([]);
+    expect(resolveReleasableNativeSurfaceClasses("native")).toEqual([]);
+  });
+
+  it("releases nothing at all with the knob off", () => {
+    for (const composition of ["native", "realistic", "lgm"] as const) {
+      expect(resolveReleasableNativeSurfaceClasses(composition, policyWith(false)), composition)
+        .toEqual([]);
+    }
+  });
+
+  it("ships with the knob on and the pinned units the policy names", () => {
+    expect(DEFAULT_SURFACE_RESIDENCY_POLICY.releaseReplacedNativeGpuBuffers).toBe(true);
+    expect([...DEFAULT_SURFACE_RESIDENCY_POLICY.pinnedUnitIds].sort())
+      .toEqual(["batch-land", "batch-shelf", "corrections", "restored-margin"]);
+    expect(DEFAULT_SURFACE_RESIDENCY_POLICY.maximumResidentIntervalBytes).toBe(6 * 1024 * 1024);
+    expect(DEFAULT_SURFACE_RESIDENCY_POLICY.maximumResidentIntervalCount).toBe(3);
   });
 });

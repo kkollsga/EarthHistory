@@ -16,6 +16,8 @@ import {
   type CaoFoundationSurfaceMode,
 } from "./caoFoundation";
 import type { CaoPalaeoCoastlineMode, CaoPalaeoDomainBand } from "./palaeoComposite";
+import { DEFAULT_SURFACE_RESIDENCY_POLICY,
+  type SurfaceResidencyPolicy } from "../../reconstruction/loaderV2";
 
 /**
  * The renderer slots a composition assigns. They are the drawing positions the
@@ -80,6 +82,38 @@ const LGM_SLOTS: SurfaceSlotComposition = Object.freeze({
 export function surfaceSlotComposition(composition: SurfaceComposition): SurfaceSlotComposition {
   return composition === "realistic" ? REALISTIC_SLOTS
     : composition === "lgm" ? LGM_SLOTS : NATIVE_SLOTS;
+}
+
+/**
+ * The native classes a composition replaces outright, and whose GPU buffers the
+ * residency policy therefore allows releasing until the composition is left.
+ *
+ * Only `realistic` qualifies. `lgm` draws the native stack underneath the
+ * lowstand overlay, and `native` — which is also what a fallback age and a
+ * still-loading interval show — has nothing else on screen: releasing there
+ * would blank the globe rather than save memory. The knob exists so the cost
+ * can be measured, and turning it off must leave every composition drawing the
+ * same thing.
+ *
+ * P4 note: the renderer records this set and releases nothing. P5 wires the
+ * release and the re-upload on exit into the resource set.
+ */
+export function resolveReleasableNativeSurfaceClasses(
+  composition: SurfaceComposition,
+  policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
+): readonly CaoFoundationSurfaceClass[] {
+  if (!policy.releaseReplacedNativeGpuBuffers || composition !== "realistic") {
+    return Object.freeze([]);
+  }
+  const slots = surfaceSlotComposition(composition);
+  // The classes the realistic slots took over: today's land fill and the Cao
+  // 2024 crust shelf. Read from the native slot table rather than listed again,
+  // so a slot change cannot leave this claiming a class that is still drawn.
+  const native = surfaceSlotComposition("native");
+  return Object.freeze([native.land, native.continents].filter((surfaceClass):
+    surfaceClass is CaoFoundationSurfaceClass => surfaceClass !== null
+      && surfaceClass !== slots.land && surfaceClass !== slots.continents
+      && !slots.overlay.includes(surfaceClass)));
 }
 
 function visibleClassesInMode(mode: CaoFoundationSurfaceMode): CaoFoundationSurfaceClass[] {

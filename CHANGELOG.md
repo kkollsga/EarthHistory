@@ -4,6 +4,25 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **One residency store and one request chain behind the surface pipeline.**
+  The two streaming units — a Cao 2024 checkpoint addressed by its age and a
+  Cao 2017 map interval addressed by its published id — are named once as a
+  `SurfaceUnitId`, and one residency store answers which bounded cache a unit
+  belongs to, whether the palaeo half exists at all, and the two ledgers
+  reported upward. The native and palaeo request chains collapse into one chain
+  shape whose differences are data: separate lease budgets (two revisions, two
+  intervals) and whether a request for the same unit supersedes the one in
+  flight. The surface preparation path moved below the renderer, so
+  `src/reconstruction/**` imports nothing from `src/render/**`, and a unit test
+  scans every product module in that directory to keep it that way. The
+  residency policy states the pinned units and the interval LRU bounds in one
+  place and carries the knob that lets the realistic composition release the
+  native land and shelf GPU buffers it replaces; the renderer records that set
+  and releases nothing yet. No visual change: every ledger shape, every
+  `data-cao-*` value and all three compositions draw exactly as before.
+
 ## [0.1.19] - 2026-09-16
 
 ### Added

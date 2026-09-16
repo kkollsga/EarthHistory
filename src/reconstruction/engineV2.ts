@@ -11,6 +11,7 @@ import {
   surfaceUnitsEqual,
   warmVerifiedCaoCheckpointAssets,
   type LoadedCaoFoundation,
+  type SurfaceResidencyPolicy,
   type SurfaceUnitId,
   type LoadedPalaeoClassCatalog,
   type LoadedPalaeoInterval,
@@ -258,6 +259,15 @@ export class CaoReconstructionRuntime {
         + checkpoint.residentSourceBytes
         + checkpoint.pendingReservedSourceBytes + this.backgroundReservedSourceBytes
         + palaeo.totalSourceBytes });
+  }
+
+  /**
+   * The residency policy both halves run under: the pinned units, the interval
+   * LRU bounds, and the D1 knob. Read by the renderer side to decide whether a
+   * composition may hand back the GPU buffers it replaced.
+   */
+  get surfaceResidencyPolicy(): SurfaceResidencyPolicy {
+    return this.surfaces.policy;
   }
 
   subscribeTimelineLoading(listener: (state: CaoTimelineLoadingState) => void): () => void {

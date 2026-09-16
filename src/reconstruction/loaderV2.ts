@@ -688,6 +688,45 @@ interface PendingPalaeoInterval {
 }
 
 /**
+ * Units whose bytes are never evicted while the package is open.
+ *
+ * The Cao 2024 land and shelf batches, the material corrections and the
+ * restored pre-collision margin are the geometry every composition falls back
+ * to — a fallback age, a loading interval and the LGM lowstand all draw them —
+ * so evicting them buys nothing and costs a refetch on the frame that needs
+ * them most. They are loaded once with the static foundation and pinned here so
+ * the policy is stated where the LRU that governs everything else is stated.
+ */
+export const PINNED_SURFACE_UNIT_IDS: readonly string[] = Object.freeze([
+  "batch-land", "batch-shelf", "corrections", "restored-margin",
+]);
+
+/**
+ * The residency policy the surface pipeline runs under.
+ *
+ * `releaseReplacedNativeGpuBuffers` is the D1 knob. In the `realistic`
+ * composition the Cao 2017 map replaces the native land and shelf outright, so
+ * their GPU buffers are dead weight for as long as the band lasts and may be
+ * released and re-uploaded on exit. In `lgm` the native stack and the palaeo
+ * overlay draw at once, and at a fallback or still-loading age the native stack
+ * is the only thing on screen, so the release is refused there — releasing it
+ * would blank the globe.
+ */
+export interface SurfaceResidencyPolicy {
+  readonly pinnedUnitIds: readonly string[];
+  readonly maximumResidentIntervalBytes: number;
+  readonly maximumResidentIntervalCount: number;
+  readonly releaseReplacedNativeGpuBuffers: boolean;
+}
+
+export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
+  pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
+  maximumResidentIntervalBytes: PALAEO_INTERVAL_STORE_MAX_BYTES,
+  maximumResidentIntervalCount: PALAEO_RESIDENT_INTERVAL_COUNT,
+  releaseReplacedNativeGpuBuffers: true,
+});
+
+/**
  * Three resident map intervals — the current one and both prefetched
  * neighbours — and two unsettled loads, bounded by bytes as well as by count.
  * Copied from `CaoCheckpointStore` because the failure it guards against is the
@@ -715,8 +754,9 @@ export class CaoPalaeoIntervalStore {
     private readonly catalogs: readonly LoadedPalaeoClassCatalog[],
     private readonly fetcher: StaticAssetFetcher,
     private readonly runner: PalaeoTriangulationRunner,
+    private readonly policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
   ) {
-    this.maximumResidentBytes = Math.min(PALAEO_INTERVAL_STORE_MAX_BYTES,
+    this.maximumResidentBytes = Math.min(policy.maximumResidentIntervalBytes,
       palaeo.reservation.maxResidentSourceBytes);
   }
 
@@ -724,7 +764,7 @@ export class CaoPalaeoIntervalStore {
     return Object.freeze({ residentCount: this.resident.size, pendingCount: this.pending.size,
       residentSourceBytes: [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
       pendingReservedSourceBytes: [...this.pending.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0),
-      maximumResidentCount: PALAEO_RESIDENT_INTERVAL_COUNT, maximumPendingCount: 2,
+      maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
       maximumResidentSourceBytes: this.maximumResidentBytes });
   }
 
@@ -831,15 +871,27 @@ export class CaoPalaeoIntervalStore {
 
   private evict(): void {
     // Farthest from the current age first; the least recently read one breaks a
-    // tie, which is the whole order when no age has been noted yet.
-    const farthest = () => [...this.resident].sort((left, right) =>
-      this.ageDistance(right[1].value) - this.ageDistance(left[1].value)
-        || left[1].used - right[1].used)[0]!;
-    while (this.resident.size > PALAEO_RESIDENT_INTERVAL_COUNT) this.resident.delete(farthest()[0]);
+    // tie, which is the whole order when no age has been noted yet. A pinned
+    // unit is never a candidate: the policy names the geometry every
+    // composition falls back to, and evicting it costs a refetch on the frame
+    // that needs it most.
+    const evictable = () => [...this.resident]
+      .filter(([id]) => !this.policy.pinnedUnitIds.includes(id))
+      .sort((left, right) => this.ageDistance(right[1].value) - this.ageDistance(left[1].value)
+        || left[1].used - right[1].used);
+    const dropFarthest = (): boolean => {
+      const victim = evictable()[0];
+      if (!victim) return false;
+      this.resident.delete(victim[0]);
+      return true;
+    };
+    while (this.resident.size > this.policy.maximumResidentIntervalCount) {
+      if (!dropFarthest()) break;
+    }
     while (this.resident.size > 1
       && [...this.resident.keys()].reduce((sum, id) => sum + this.assetBytes(id), 0)
         > this.maximumResidentBytes) {
-      this.resident.delete(farthest()[0]);
+      if (!dropFarthest()) break;
     }
   }
 
@@ -910,45 +962,6 @@ export type LoadedSurfaceUnit =
   | { readonly kind: "checkpoint"; readonly ageMa: number; readonly value: LoadedCaoCheckpoint }
   | { readonly kind: "interval"; readonly id: string; readonly value: LoadedPalaeoInterval };
 
-/**
- * Units whose bytes are never evicted while the package is open.
- *
- * The Cao 2024 land and shelf batches, the material corrections and the
- * restored pre-collision margin are the geometry every composition falls back
- * to — a fallback age, a loading interval and the LGM lowstand all draw them —
- * so evicting them buys nothing and costs a refetch on the frame that needs
- * them most. They are loaded once with the static foundation and pinned here so
- * the policy is stated where the LRU that governs everything else is stated.
- */
-export const PINNED_SURFACE_UNIT_IDS: readonly string[] = Object.freeze([
-  "batch-land", "batch-shelf", "corrections", "restored-margin",
-]);
-
-/**
- * The residency policy the surface pipeline runs under.
- *
- * `releaseReplacedNativeGpuBuffers` is the D1 knob. In the `realistic`
- * composition the Cao 2017 map replaces the native land and shelf outright, so
- * their GPU buffers are dead weight for as long as the band lasts and may be
- * released and re-uploaded on exit. In `lgm` the native stack and the palaeo
- * overlay draw at once, and at a fallback or still-loading age the native stack
- * is the only thing on screen, so the release is refused there — releasing it
- * would blank the globe.
- */
-export interface SurfaceResidencyPolicy {
-  readonly pinnedUnitIds: readonly string[];
-  readonly maximumResidentIntervalBytes: number;
-  readonly maximumResidentIntervalCount: number;
-  readonly releaseReplacedNativeGpuBuffers: boolean;
-}
-
-export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
-  pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
-  maximumResidentIntervalBytes: PALAEO_INTERVAL_STORE_MAX_BYTES,
-  maximumResidentIntervalCount: PALAEO_RESIDENT_INTERVAL_COUNT,
-  releaseReplacedNativeGpuBuffers: true,
-});
-
 const ABSENT_CHECKPOINT_LEDGER = Object.freeze({
   residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
   maximumResidentCount: 2, maximumPendingCount: 2,
@@ -995,7 +1008,13 @@ export class CaoSurfaceResidencyStore {
     runner: PalaeoTriangulationRunner,
   ): CaoPalaeoIntervalStore {
     if (this.closed) throw new Error("Cao surface residency store disposed");
-    return this.intervals ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, runner);
+    return this.intervals ??= new CaoPalaeoIntervalStore(palaeo, catalogs, this.fetcher, runner,
+      this.policy);
+  }
+
+  /** Whether a unit's bytes are pinned for the life of the package. */
+  isPinned(unit: SurfaceUnitId): boolean {
+    return unit.kind === "interval" && this.policy.pinnedUnitIds.includes(unit.id);
   }
 
   /** Whether the interval half exists; false means zero palaeo bytes are resident. */

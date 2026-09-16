@@ -44,6 +44,7 @@ import {
   intersectCaoComposite,
 } from "./reconstruction/palaeoComposite";
 import {
+  resolveReleasableNativeSurfaceClasses,
   resolveSurfaceVisibility,
   SURFACE_VISIBILITY_INITIAL_HYSTERESIS,
   type SurfaceVisibilityResolution,
@@ -1538,6 +1539,12 @@ export class GlobeScene {
     if (palaeoMode !== this.nativeSurfaceModeIsPalaeo) {
       this.nativeSurfaceModeIsPalaeo = palaeoMode;
       this.caoFoundationRenderer.setPalaeoCoastlineMode(palaeoMode);
+      // D1 seam. The composition decides which native classes are replaced
+      // outright and could give their GPU buffers back; the renderer records
+      // the answer and releases nothing in this phase. Wiring the release and
+      // the re-upload on exit is P5 work inside the resource set.
+      this.caoFoundationRenderer.setReleasableSurfaceClasses(
+        resolveReleasableNativeSurfaceClasses(resolved.composition));
     }
     const drawn = resolved.palaeoDrawn;
     const dataset = this.renderer.domElement.dataset;
