@@ -47,6 +47,66 @@ shipped piece back to its Cao 2017 DBF row is pinned even though the browser
 never downloads it. `palaeo_coastlines_correction.py` re-verifies that digest;
 a sidecar edited without a catalog update is a rejected build, not a drift.
 
+## Package batch records — `palaeoCoastlines.realisticBatches`
+
+The package manifest publishes one **spatial batch record per class per
+interval**, in the same record shape the native `core.json` spatial batches use.
+This is the structure the loader resolves an interval through; the class catalog
+below stays the authority on the interned tables a piece's indices resolve into.
+
+```json
+{
+  "id": "palaeo-lm-94-81",
+  "appearance": "palaeo-land",
+  "surfaceClass": "lm",
+  "interval": { "id": "94-81", "index": 16, "fromAgeMa": 94.0,
+                "toAgeMa": 81.01, "detached": false },
+  "geometryAsset": { "url": "palaeo-coastlines/lm/palaeo-lm-94-81.ehpr",
+                     "bytes": 142358, "sha256": "…" },
+  "encoding": "ehpr-v1-i16lonlat-rings",
+  "ringCount": 1317,
+  "vertexCount": 31554,
+  "charts": { "records": 1123, "bindings": 761, "evidence": 23, "lifecycles": 67 }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | `palaeo-<class>-<intervalId>`, unique across every batch the package declares |
+| `appearance` | the declared drawing class, `palaeo-land`, `palaeo-shallow-marine` or `palaeo-mountain` |
+| `interval` | the published map interval, its schedule index, its `(toAgeMa, fromAgeMa]` bounds and whether it is detached |
+| `geometryAsset` | url, byte count and sha256 of the `.ehpr` payload |
+| `encoding` | `ehpr-v1-i16lonlat-rings` — the one declared difference from a native batch |
+| `ringCount` / `vertexCount` | the payload's ring and vertex tables |
+| `charts` | the interned chart-record columns: `records` chart records this batch draws, and the `bindings`, `evidence` and `lifecycles` table sizes their indices resolve into |
+
+The one difference from a native batch is `encoding`. A native batch names
+`ehgb-v2-f32xyz-u32` triangles triangulated offline; a realistic-coast batch
+names `ehpr-v1-i16lonlat-rings` triangulated in the browser worker, because
+pre-triangulated per-interval geometry measured 45–96 MiB against a 50 MiB
+bundle. Both go through the same record validator
+(`validateReconstructionCoreV2`'s batch validation, shared as
+`surfaceBatchRecordValidV2`): a unique id, a verified geometry asset, and a byte
+count the record's own counts imply — for EHPR v1
+`32 + 12·records + 2·ringCount + 4·vertexCount`, exactly the layout below. A
+record whose asset does not weigh what its counts predict is rejected before a
+fetch, and so is a batch that indexes a differently sized interned table than the
+other batches of its class.
+
+An empty batch is legal and ships: the detached `lgm` state publishes a landmass
+and no shallow sea or mountain at all, so its `sm` and `m` batches are a bare
+32-byte EHPR header with zero pieces, rings and vertices.
+
+The records live in the manifest's `palaeoCoastlines` section rather than in
+`core.json` because `core.json` is fetched on every load and interns its chart
+records once for the whole package, while these are read only when the realistic
+layer is on and their chart columns are interned per class beside the payloads
+they index. `promote_palaeo_coastlines.py` derives every record from the class
+catalogs and measures each digest on the promoted file;
+`validate_palaeo_coastlines_runtime.py` re-checks each record against the catalog
+row it re-shapes, and `check-app-artifacts.py` checks the records' byte census
+against the outer data inventory's.
+
 ## EHPR v1 layout
 
 All integers and floats are little-endian. The file is four consecutive

@@ -43,6 +43,10 @@ OUTER_INPUT_KEY = "cao-2017-palaeogeography-v1"
 
 CATALOG_SCHEMA_VERSION = 2
 CATALOG_ENCODING = "palaeo-class-catalog-columnar-v1"
+REALISTIC_BATCH_ENCODING = "ehpr-v1-i16lonlat-rings"
+# The drawing class each compiled class publishes as, identical to
+# `REALISTIC_SURFACE_BATCH_APPEARANCES` in src/reconstruction/packageV2.ts.
+APPEARANCE = {"lm": "palaeo-land", "sm": "palaeo-shallow-marine", "m": "palaeo-mountain"}
 BINDING_ENTRY_RULE = "palaeo-binding-entry-v1"
 # 24 Cao 2017 map intervals plus the detached LGM lowstand state.
 PUBLISHED_INTERVALS = 25
@@ -138,6 +142,8 @@ EHPR_MAGIC = b"EHPR"
 EHPR_HEADER_BYTES = 32
 EHPR_PIECE_BYTES = 12
 EHPR_RING_BYTES = 2
+# Two int16 per vertex, longitude then latitude.
+EHPR_VERTEX_BYTES = 4
 EHPR_LONGITUDE_SCALE = 32767.0 / 180.0
 EHPR_LATITUDE_SCALE = 32767.0 / 90.0
 MAXIMUM_EDGE_DEGREES = 1.0
@@ -208,7 +214,70 @@ def check_class(root: Path, entry: dict) -> dict:
                    "bytes": row["bytes"], "sha256": row["sha256"]}
         path = check_asset(root, directory, payload, f"class {class_name} interval {row['intervalId']}")
         bytes_total += path.stat().st_size
-    return {"class": class_name, "rows": rows, "bytes": bytes_total}
+    return {"class": class_name, "rows": rows, "bytes": bytes_total, "catalog": catalog}
+
+
+def check_realistic_batches(root: Path, palaeo: dict, classes: list[dict]) -> int:
+    """The package's spatial-batch records against the class catalogs they re-shape.
+
+    The records are the native batch shape the loader resolves an interval
+    through; the catalogs stay the authority on the interned tables a piece
+    indexes into. Nothing here recompiles geometry, so the two must agree on
+    every digest, count and age or the promotion re-shaped a different build.
+    """
+    batches = palaeo.get("realisticBatches")
+    require(batches is not None, "the package manifest declares no realisticBatches records")
+    require(len(batches) == len(classes) * PUBLISHED_INTERVALS,
+            f"{len(batches)} realistic batch records published, expected "
+            f"{len(classes) * PUBLISHED_INTERVALS}")
+    rows_by_class = {entry["class"]: {row["intervalId"]: row for row in entry["rows"]}
+                     for entry in classes}
+    tables_by_class = {entry["class"]: {
+        "bindings": entry["catalog"]["bindings"]["count"],
+        "evidence": len(entry["catalog"]["evidence"]),
+        "lifecycles": entry["catalog"]["lifecycles"]["count"]} for entry in classes}
+    seen: set[str] = set()
+    total = 0
+    for batch in batches:
+        class_name = batch["surfaceClass"]
+        label = f"realistic batch {batch['id']}"
+        interval = batch["interval"]
+        require(class_name in rows_by_class, f"{label}: names a class the manifest does not publish")
+        require(batch["id"] == f"palaeo-{class_name}-{interval['id']}",
+                f"{label}: id is not its own class and interval")
+        require(batch["id"] not in seen, f"{label}: is published twice")
+        seen.add(batch["id"])
+        require(batch["encoding"] == REALISTIC_BATCH_ENCODING,
+                f"{label}: does not declare the EHPR ring encoding")
+        require(batch["appearance"] == APPEARANCE[class_name],
+                f"{label}: does not draw as the class it carries")
+        require(interval["detached"] == (interval["id"] == LGM_INTERVAL_ID),
+                f"{label}: disagrees with the catalogs on whether its interval is detached")
+        row = rows_by_class[class_name].get(interval["id"])
+        require(row is not None, f"{label}: names an interval its class catalog does not index")
+        require(batch["geometryAsset"]["sha256"] == row["sha256"]
+                and batch["geometryAsset"]["bytes"] == row["bytes"],
+                f"{label}: names a payload its class catalog does not index")
+        require(interval["index"] == row["intervalIndex"]
+                and interval["fromAgeMa"] == row["fromAgeMa"]
+                and interval["toAgeMa"] == row["toAgeMa"],
+                f"{label}: dates its interval differently than its class catalog")
+        require(batch["ringCount"] == row["rings"] and batch["vertexCount"] == row["vertices"]
+                and batch["charts"]["records"] == row["pieces"],
+                f"{label}: counts its pieces, rings or vertices differently than its class catalog")
+        expected = (EHPR_HEADER_BYTES + EHPR_PIECE_BYTES * batch["charts"]["records"]
+                    + EHPR_RING_BYTES * batch["ringCount"]
+                    + EHPR_VERTEX_BYTES * batch["vertexCount"])
+        require(expected == batch["geometryAsset"]["bytes"],
+                f"{label}: declares {batch['geometryAsset']['bytes']} bytes; its own counts "
+                f"imply {expected}")
+        for table, size in tables_by_class[class_name].items():
+            require(batch["charts"][table] == size,
+                    f"{label}: indexes a {table} table of {batch['charts'][table]} rows; its class "
+                    f"catalog interns {size}")
+        check_asset(root, PACKAGE, batch["geometryAsset"], label)
+        total += batch["geometryAsset"]["bytes"]
+    return total
 
 
 def check_tone_tables(root: Path, palaeo: dict) -> int:
@@ -468,6 +537,7 @@ def validate(root: Path = ROOT) -> dict:
             f"class {entry['class']} does not declare the LGM interval as detached")
     lgm = check_lgm(root, {entry["class"]: entry["rows"] for entry in classes})
     tone_bytes = check_tone_tables(root, palaeo)
+    batch_bytes = check_realistic_batches(root, palaeo, classes)
     published = sorted(path for path in (root / PALAEO).rglob("*") if path.is_file())
     check_outer_manifest(root, published)
     total = sum(path.stat().st_size for path in published)
@@ -478,6 +548,7 @@ def validate(root: Path = ROOT) -> dict:
         "classes": {entry["class"]: {"intervals": len(entry["rows"]), "bytes": entry["bytes"]}
                     for entry in classes},
         "outlineToneBytes": tone_bytes,
+        "realisticBatches": {"records": len(palaeo["realisticBatches"]), "bytes": batch_bytes},
         "lgmLowstand": lgm,
         "files": len(published),
         "bytes": total,
@@ -547,6 +618,26 @@ def self_test() -> dict:
         ):
             package = json.loads(clean_package)
             package["palaeoCoastlines"]["reservation"][field] = value
+            package_path.write_text(json.dumps(package))
+            rejections.append(expect_failure(label, root))
+            package_path.write_bytes(clean_package)
+
+        # The batch records re-shape the catalogs; a record that no longer names
+        # the payload its catalog indexes is a promotion of a different build.
+        for mutate, label in (
+            (lambda records: records[0]["geometryAsset"].update({"sha256": "0" * 64}),
+             "a realistic batch record naming a payload its catalog does not index"),
+            (lambda records: records[0]["charts"].update(
+                {"records": records[0]["charts"]["records"] - 1}),
+             "a realistic batch record whose chart count no longer implies its byte count"),
+            (lambda records: records[0]["charts"].update(
+                {"evidence": records[0]["charts"]["evidence"] + 1}),
+             "a realistic batch record indexing an interned table nobody shipped"),
+            (lambda records: records.pop(),
+             "a published interval with no realistic batch record"),
+        ):
+            package = json.loads(clean_package)
+            mutate(package["palaeoCoastlines"]["realisticBatches"])
             package_path.write_text(json.dumps(package))
             rejections.append(expect_failure(label, root))
             package_path.write_bytes(clean_package)

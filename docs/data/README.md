@@ -139,6 +139,16 @@ million km2 of ground per interval - as crust of unmapped depth. The Cao 2017
 ice class `i` is still not compiled, and the provenance sidecars and the
 unsimplified payloads never enter a build.
 
+The package manifest publishes these as **spatial batch records**, one per class
+per interval, in the same record shape the native `core.json` batches use:
+`palaeoCoastlines.realisticBatches[]` carries an id, the declared appearance, the
+map interval, the verified geometry asset, the encoding and the interned
+chart-record columns. The one declared difference from a native batch is
+`encoding: "ehpr-v1-i16lonlat-rings"` — rings triangulated in the browser rather
+than `ehgb` triangles triangulated offline — and both are checked by the same
+record validator. The class catalogs still ship and still own the interned
+tables a piece's indices resolve into.
+
 The 24 published intervals run `402-380` to `11-2` Ma. A piece is drawn on its
 own `(TOAGE, FROMAGE]` lifecycle, not on the interval of the file it ships in,
 because an off-schedule source record appears in every interval it overlaps. The

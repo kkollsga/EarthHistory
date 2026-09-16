@@ -66,6 +66,14 @@ export interface PalaeoCoastlineAssets {
   /** `outline-tones.json` and `outline-tones.ehpt`: the 24 country-outline tone tables. */
   readonly outlineTones: { readonly catalog: PackageAsset; readonly binary: PackageAsset };
   readonly reservation: PalaeoCoastlineReservation;
+  /**
+   * One spatial batch per class per interval, in the native batch-record shape.
+   * They live here rather than in `core.json` because `core.json` is fetched on
+   * every load and interns its chart records once for the whole package, while
+   * these records are only read when the realistic layer is on and their chart
+   * columns are interned per class beside the payloads they index.
+   */
+  readonly realisticBatches?: readonly RealisticSurfaceBatchV2[];
 }
 
 export type MaterialChartRole = "model-geography" | "country-reference" | "poi-anchor" | "focus-anchor";
@@ -161,6 +169,97 @@ export interface ReconstructionSpatialBatchV2 {
     readonly baseColorRgb: readonly [number, number, number];
   };
   readonly overlapPolicy?: "native-visual-and-picking-precedence";
+}
+
+/**
+ * Every geometry a surface batch can name. `ehgb` triangles are triangulated
+ * offline and `ehpr` rings in the browser, and that is the one declared
+ * difference between a native batch and a realistic-coast batch: pre-triangulated
+ * per-interval realistic geometry measured 45-96 MiB against a 50 MiB bundle.
+ */
+export type SurfaceBatchEncodingV2 =
+  | "ehgb-v2-f32xyz-u32" | "ehgl-v2-f32xyz-u32" | "ehpr-v1-i16lonlat-rings";
+
+const SURFACE_BATCH_ENCODINGS: readonly SurfaceBatchEncodingV2[] =
+  Object.freeze(["ehgb-v2-f32xyz-u32", "ehgl-v2-f32xyz-u32", "ehpr-v1-i16lonlat-rings"]);
+
+const SURFACE_BATCH_MAX_ASSET_BYTES = 8 * 1024 * 1024;
+
+/**
+ * The one batch-record shape. Whatever the encoding, a batch names a unique id,
+ * a verified geometry asset, and a byte count its own counts imply; a record
+ * whose asset does not weigh exactly what its counts predict is rejected rather
+ * than decoded. Callers raise their own message so the package says which of its
+ * batch families failed.
+ */
+interface SurfaceBatchRecordV2 {
+  readonly id: string;
+  readonly encoding: SurfaceBatchEncodingV2;
+  readonly geometryAsset: PackageAsset;
+  readonly expectedBytes: number;
+}
+
+function surfaceBatchRecordValidV2(record: SurfaceBatchRecordV2, batchIds: Set<string>): boolean {
+  if (!record.id || batchIds.has(record.id) || !SURFACE_BATCH_ENCODINGS.includes(record.encoding)
+      || !assetValid(record.geometryAsset) || record.geometryAsset.bytes !== record.expectedBytes
+      || record.geometryAsset.bytes > SURFACE_BATCH_MAX_ASSET_BYTES) {
+    return false;
+  }
+  batchIds.add(record.id);
+  return true;
+}
+
+/** Rings, quantised int16 lon/lat, triangulated by the browser worker at load. */
+export const REALISTIC_SURFACE_BATCH_ENCODING = "ehpr-v1-i16lonlat-rings";
+
+/** EHPR v1: a 32-byte header, then the piece, ring and vertex tables. */
+const REALISTIC_SURFACE_BATCH_HEADER_BYTES = 32;
+const REALISTIC_SURFACE_BATCH_PIECE_BYTES = 12;
+const REALISTIC_SURFACE_BATCH_RING_BYTES = 2;
+const REALISTIC_SURFACE_BATCH_VERTEX_BYTES = 4;
+
+/** The drawing class each realistic surface class is published as. */
+export const REALISTIC_SURFACE_BATCH_APPEARANCES:
+Readonly<Record<PalaeoCoastlineSurfaceClassId, SpatialBatchSurfaceAppearanceV2>> =
+  Object.freeze({ lm: "palaeo-land", sm: "palaeo-shallow-marine", m: "palaeo-mountain" });
+
+/**
+ * The interned chart-record columns a realistic batch draws through: the chart
+ * records the batch itself carries, and the three class-wide tables their
+ * indices resolve into. The tables are interned once per class, so every batch
+ * of a class must declare the same three sizes - a batch that declares its own
+ * would be indexing a table nobody shipped.
+ */
+export interface RealisticSurfaceBatchChartsV2 {
+  readonly records: number;
+  readonly bindings: number;
+  readonly evidence: number;
+  readonly lifecycles: number;
+}
+
+export interface RealisticSurfaceBatchIntervalV2 {
+  readonly id: string;
+  readonly index: number;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+  /** A detached interval does not abut its neighbour; the LGM lowstand is the one. */
+  readonly detached: boolean;
+}
+
+/**
+ * One realistic-coast spatial batch: a class of one map interval, in the same
+ * record shape a native `core.json` spatial batch uses.
+ */
+export interface RealisticSurfaceBatchV2 {
+  readonly id: string;
+  readonly appearance: SpatialBatchSurfaceAppearanceV2;
+  readonly surfaceClass: PalaeoCoastlineSurfaceClassId;
+  readonly interval: RealisticSurfaceBatchIntervalV2;
+  readonly geometryAsset: PackageAsset;
+  readonly encoding: typeof REALISTIC_SURFACE_BATCH_ENCODING;
+  readonly ringCount: number;
+  readonly vertexCount: number;
+  readonly charts: RealisticSurfaceBatchChartsV2;
 }
 
 /**
@@ -417,6 +516,74 @@ const PALAEO_MAX_INTERVAL_VERTICES = 500_000;
 const PALAEO_MAX_INTERVAL_TRIANGLES = 760_000;
 const PALAEO_MAX_RESIDENT_SOURCE_BYTES = 16 * 1024 * 1024;
 
+/**
+ * The realistic-coast batch records, through the same record validator the
+ * native `core.json` batches use. What is checked beyond that record shape is
+ * the interval and the interning: a batch draws its class of exactly one map
+ * interval, its id is derived from the two, its asset weighs what its piece,
+ * ring and vertex counts imply under EHPR v1, and every batch of a class agrees
+ * on the size of the three interned chart tables its pieces index into.
+ */
+export function validateRealisticSurfaceBatchesV2(
+  batches: readonly RealisticSurfaceBatchV2[],
+  classes: readonly PalaeoCoastlineClassAsset[],
+  domain: ReconstructionAgeDomain,
+): void {
+  const batchIds = new Set<string>();
+  const declaredClasses = new Set(classes.map((entry) => entry.surfaceClass));
+  const tables = new Map<PalaeoCoastlineSurfaceClassId, string>();
+  const schedules = new Map<PalaeoCoastlineSurfaceClassId, string[]>();
+  if (batches.length === 0) throw new Error("invalid Cao realistic surface batch section");
+  for (const batch of batches) {
+    const interval = batch.interval;
+    const charts = batch.charts;
+    if (!declaredClasses.has(batch.surfaceClass)
+        || batch.appearance !== REALISTIC_SURFACE_BATCH_APPEARANCES[batch.surfaceClass]
+        || batch.encoding !== REALISTIC_SURFACE_BATCH_ENCODING
+        || !interval?.id || batch.id !== `palaeo-${batch.surfaceClass}-${interval.id}`
+        || !Number.isSafeInteger(interval.index) || interval.index < 0
+        || typeof interval.detached !== "boolean"
+        || !Number.isFinite(interval.fromAgeMa) || !Number.isFinite(interval.toAgeMa)
+        || interval.fromAgeMa <= interval.toAgeMa
+        || !ageValid(interval.toAgeMa, domain) || !ageValid(interval.fromAgeMa, domain)
+        // An empty batch is legal and ships: the detached LGM state publishes a
+        // landmass and no shallow sea or mountain at all, so its `sm` and `m`
+        // batches are a bare EHPR header. Every piece owns at least one ring and
+        // every ring at least three vertices, which is what bounds the counts.
+        || !Number.isSafeInteger(batch.ringCount) || batch.ringCount < 0
+        || !Number.isSafeInteger(batch.vertexCount) || batch.vertexCount < 3 * batch.ringCount
+        || !Number.isSafeInteger(charts?.records) || charts.records < 0
+        || charts.records > batch.ringCount
+        || ![charts.bindings, charts.evidence, charts.lifecycles].every((size) =>
+          Number.isSafeInteger(size) && size > 0 && size <= 0x1_0000)
+        || !surfaceBatchRecordValidV2({ id: batch.id, encoding: batch.encoding,
+          geometryAsset: batch.geometryAsset,
+          expectedBytes: REALISTIC_SURFACE_BATCH_HEADER_BYTES
+            + REALISTIC_SURFACE_BATCH_PIECE_BYTES * charts.records
+            + REALISTIC_SURFACE_BATCH_RING_BYTES * batch.ringCount
+            + REALISTIC_SURFACE_BATCH_VERTEX_BYTES * batch.vertexCount }, batchIds)) {
+      throw new Error("invalid Cao realistic surface batch");
+    }
+    const signature = `${charts.bindings}|${charts.evidence}|${charts.lifecycles}`;
+    const declared = tables.get(batch.surfaceClass);
+    if (declared !== undefined && declared !== signature) {
+      throw new Error("Cao realistic surface batches disagree on their interned chart tables");
+    }
+    tables.set(batch.surfaceClass, signature);
+    const schedule = schedules.get(batch.surfaceClass) ?? [];
+    schedule.push(`${interval.index}:${interval.id}:${interval.fromAgeMa}:${interval.toAgeMa}`);
+    schedules.set(batch.surfaceClass, schedule);
+  }
+  // Every class must publish the same interval schedule, or an age would draw
+  // land from one interval over a sea from another.
+  const expected = schedules.get(classes[0]!.surfaceClass)?.join("|");
+  for (const entry of classes) {
+    if (schedules.get(entry.surfaceClass)?.join("|") !== expected) {
+      throw new Error("Cao realistic surface batch classes publish different interval schedules");
+    }
+  }
+}
+
 export function validatePalaeoCoastlineAssets(
   palaeo: PalaeoCoastlineAssets,
   domain: ReconstructionAgeDomain,
@@ -452,6 +619,9 @@ export function validatePalaeoCoastlineAssets(
       || reservation.maxIntervalTriangles > PALAEO_MAX_INTERVAL_TRIANGLES
       || !(reservation.maxEdgeDegrees > 0) || reservation.maxEdgeDegrees > 1) {
     throw new Error("invalid Cao palaeo-coastline reservation");
+  }
+  if (palaeo.realisticBatches) {
+    validateRealisticSurfaceBatchesV2(palaeo.realisticBatches, palaeo.classes, ages);
   }
 }
 
@@ -714,24 +884,24 @@ export function validateReconstructionCoreV2(
   const batchIds = new Set<string>();
   for (const batch of core.spatialBatches) {
     validateSpatialBatchSurfaceAppearanceV2(batch);
-    const expectedBytes = 32 + batch.vertexCount * 20 + batch.triangleCount * 12;
-    if (!batch.batchId || batchIds.has(batch.batchId) || !Number.isSafeInteger(batch.vertexCount)
-        || batch.vertexCount < 3 || !Number.isSafeInteger(batch.triangleCount) || batch.triangleCount < 1
-        || batch.encoding !== "ehgb-v2-f32xyz-u32" || !assetValid(batch.geometryAsset)
-        || expectedBytes !== batch.geometryAsset.bytes || batch.geometryAsset.bytes > 8 * 1024 * 1024) {
+    if (!Number.isSafeInteger(batch.vertexCount) || batch.vertexCount < 3
+        || !Number.isSafeInteger(batch.triangleCount) || batch.triangleCount < 1
+        || batch.encoding !== "ehgb-v2-f32xyz-u32"
+        || !surfaceBatchRecordValidV2({ id: batch.batchId, encoding: batch.encoding,
+          geometryAsset: batch.geometryAsset,
+          expectedBytes: 32 + batch.vertexCount * 20 + batch.triangleCount * 12 }, batchIds)) {
       throw new Error("invalid Cao reconstruction spatial batch");
     }
-    batchIds.add(batch.batchId);
   }
   for (const batch of core.lineBatches ?? []) {
-    const expectedBytes = 32 + batch.vertexCount * 16 + batch.segmentCount * 8;
-    if (!batch.batchId || batchIds.has(batch.batchId) || !Number.isSafeInteger(batch.vertexCount)
-        || batch.vertexCount < 2 || !Number.isSafeInteger(batch.segmentCount) || batch.segmentCount < 1
-        || batch.encoding !== "ehgl-v2-f32xyz-u32" || !assetValid(batch.geometryAsset)
-        || expectedBytes !== batch.geometryAsset.bytes || batch.geometryAsset.bytes > 8 * 1024 * 1024) {
+    if (!Number.isSafeInteger(batch.vertexCount) || batch.vertexCount < 2
+        || !Number.isSafeInteger(batch.segmentCount) || batch.segmentCount < 1
+        || batch.encoding !== "ehgl-v2-f32xyz-u32"
+        || !surfaceBatchRecordValidV2({ id: batch.batchId, encoding: batch.encoding,
+          geometryAsset: batch.geometryAsset,
+          expectedBytes: 32 + batch.vertexCount * 16 + batch.segmentCount * 8 }, batchIds)) {
       throw new Error("invalid Cao reconstruction line batch");
     }
-    batchIds.add(batch.batchId);
   }
 }
 

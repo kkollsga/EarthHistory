@@ -4,6 +4,27 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Realistic coastlines ship in the Cao 2024 package structure.** The package
+  manifest now publishes the Cao 2017 palaeogeography as **75 spatial batch
+  records** (3 classes x 25 intervals) under `palaeoCoastlines.realisticBatches`,
+  in the same record shape the native `core.json` spatial batches use: an id, the
+  declared appearance, the map interval, a verified geometry asset, an encoding
+  and the interned chart-record columns. The one declared difference from a
+  native batch is `encoding: "ehpr-v1-i16lonlat-rings"` - rings triangulated in
+  the browser worker - because pre-triangulated per-interval geometry measured
+  45-96 MiB against a 50 MiB bundle. Both halves are now checked by the same
+  record validator, extended with the EHPR byte layout and the interval fields, so
+  a wrong digest, an unknown encoding, or a chart count that no longer implies the
+  payload's byte count is rejected before a fetch. `loadVerifiedPalaeoInterval`
+  resolves an interval through the batch records and refuses a record that
+  disagrees with the class catalog it re-shapes. The `.ehpr` payloads are
+  byte-identical - this re-shapes the published structure, it recompiles no
+  geometry - and the class catalogs still ship and still own the interned tables.
+  The manifest grows from 41,538 to 76,685 bytes; the palaeo layer stays at
+  8.191 MiB against its 8.5 MiB budget.
+
 ## [0.1.18] - 2026-09-16
 
 ### Changed

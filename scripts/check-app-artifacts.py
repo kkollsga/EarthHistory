@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 PACKAGE_MANIFEST = Path("public/data/reconstruction/cao-v2.4/manifest.json")
 PALAEO_PREFIX = "public/data/reconstruction/cao-v2.4/palaeo-coastlines/"
+# Batch records name their geometry relative to the package manifest, the way the
+# runtime resolves them; the data inventory names every file from the repo root.
+PACKAGE_PREFIX = "public/data/reconstruction/cao-v2.4/"
 # D5 funded the Cao 2017 layer out of the 7.113 MiB the Phase 1 reclaim left
 # under the 50 MiB dist ceiling: landmass, shallow marine, the class catalogs,
 # the outline tone tables and the detached LGM lowstand interval. The mountain
@@ -82,6 +85,26 @@ def check_palaeo_budget(root: Path, declared: dict[str, dict]) -> list[str]:
     if declared_bytes > PALAEO_MAX_BYTES:
         errors.append(f"palaeo-coastlines declare {declared_bytes} bytes, above the "
                       f"{PALAEO_MAX_BYTES} byte budget")
+    # The realistic-coast batch records are the package's own census of the ring
+    # payloads. It has to agree with the outer inventory's, or one of the two
+    # documents is describing a build that did not ship.
+    batches = palaeo.get("realisticBatches")
+    if batches is not None:
+        batch_bytes = 0
+        for batch in batches:
+            path = PACKAGE_PREFIX + batch.get("geometryAsset", {}).get("url", "")
+            declared_record = declared.get(path)
+            if declared_record is None:
+                errors.append(f"realistic batch {batch.get('id')!r} names an undeclared file: {path}")
+                continue
+            if declared_record.get("bytes") != batch["geometryAsset"].get("bytes"):
+                errors.append(f"realistic batch {batch.get('id')!r} declares "
+                              f"{batch['geometryAsset'].get('bytes')} bytes; the data inventory "
+                              f"declares {declared_record.get('bytes')}")
+            batch_bytes += batch["geometryAsset"].get("bytes", 0)
+        if batch_bytes > PALAEO_MAX_BYTES:
+            errors.append(f"realistic-coast batches declare {batch_bytes} bytes, above the "
+                          f"{PALAEO_MAX_BYTES} byte budget")
     edge = palaeo.get("reservation", {}).get("maxEdgeDegrees")
     if not isinstance(edge, (int, float)) or not 0 < edge <= PALAEO_MAX_EDGE_DEGREES:
         errors.append(f"palaeo-coastline maxEdgeDegrees is {edge!r}, outside "
@@ -251,7 +274,10 @@ def self_test() -> int:
             target.write_bytes(palaeo_payload)
         package_manifest = root / PACKAGE_MANIFEST
         package_manifest.parent.mkdir(parents=True, exist_ok=True)
-        package = {"palaeoCoastlines": {"reservation": {"maxEdgeDegrees": 1}}}
+        package = {"palaeoCoastlines": {"reservation": {"maxEdgeDegrees": 1}, "realisticBatches": [
+            {"id": "palaeo-lm-402-380", "geometryAsset": {
+                "url": "palaeo-coastlines/lm/palaeo-lm-402-380.ehpr",
+                "bytes": len(palaeo_payload)}}]}}
         package_manifest.write_text(json.dumps(package))
         manifest["inputs"]["palaeo"] = {"outputs": [{
             "role": "palaeo-lm-402-380.ehpr", "path": palaeo_relative,
@@ -276,6 +302,17 @@ def self_test() -> int:
             print("check-app-artifacts self-test: FAIL: palaeo byte budget violation passed")
             return 1
         PALAEO_MAX_BYTES = 17 * 1024 * 1024 // 2
+        package["palaeoCoastlines"]["realisticBatches"][0]["geometryAsset"]["bytes"] += 1
+        package_manifest.write_text(json.dumps(package))
+        manifest["inputs"]["package"].update({"bytes": package_manifest.stat().st_size,
+                                              "sha256": sha256(package_manifest)})
+        dist_package.write_bytes(package_manifest.read_bytes())
+        write_manifest()
+        if check(root, 1, 1) != 1:
+            print("check-app-artifacts self-test: FAIL: a batch record disagreeing with the "
+                  "data inventory passed")
+            return 1
+        package["palaeoCoastlines"]["realisticBatches"][0]["geometryAsset"]["bytes"] -= 1
         package["palaeoCoastlines"]["reservation"]["maxEdgeDegrees"] = 1.28
         package_manifest.write_text(json.dumps(package))
         manifest["inputs"]["package"].update({"bytes": package_manifest.stat().st_size,
@@ -286,7 +323,7 @@ def self_test() -> int:
             print("check-app-artifacts self-test: FAIL: relaxed palaeo edge bound passed")
             return 1
     print("check-app-artifacts self-test: expected checksum, URL, notice, budget, "
-          "palaeo byte and palaeo edge-bound failures observed")
+          "palaeo byte, realistic batch census and palaeo edge-bound failures observed")
     return 0
 
 

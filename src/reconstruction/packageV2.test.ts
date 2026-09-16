@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateMaterialCorrectionCatalogV1, validateReconstructionCoreV2,
-  type MaterialCorrectionCatalogV1,
+import { validateMaterialCorrectionCatalogV1, validateRealisticSurfaceBatchesV2,
+  validateReconstructionCoreV2,
+  type MaterialCorrectionCatalogV1, type PalaeoCoastlineClassAsset,
+  type RealisticSurfaceBatchV2,
   type ReconstructionCoreV2, type ReconstructionPackageManifestV2 } from "./packageV2";
 import type { MotionPaletteCatalog } from "./palette";
 
@@ -196,5 +198,81 @@ describe("declared chart motion support gaps", () => {
     expect(() => validateReconstructionCoreV2({ ...gapCore, charts: [{ ...gapChart,
       motionBindings: [{ ...gapChart.motionBindings[0]!, validTimeMa: { youngest: 0, oldest: 1.5 } },
         gapChart.motionBindings[1]!] }] }, manifest, gapPalette)).toThrow(/binding/);
+  });
+});
+
+/**
+ * A realistic-coast batch is a `core.json` spatial batch with an `ehpr` ring
+ * payload and an interval, and it is checked by the same record validator: the
+ * geometry asset must weigh exactly what the batch's own piece, ring and vertex
+ * counts imply, and every batch of a class must agree on the interned chart
+ * tables its pieces index into.
+ */
+describe("realistic surface batch records", () => {
+  const classes: readonly PalaeoCoastlineClassAsset[] = [
+    { surfaceClass: "lm", catalog: asset, baseColorRgb: [0.6, 0.65, 0.4] },
+    { surfaceClass: "sm", catalog: asset, baseColorRgb: [0.07, 0.33, 0.37] },
+  ];
+  const domain = { youngest: 0.0195, oldest: 402 };
+  // 32 + 12 pieces + 2 rings + 4 vertices, the EHPR v1 wire layout.
+  const bytes = 32 + 12 * 2 + 2 * 3 + 4 * 30;
+  const land: RealisticSurfaceBatchV2 = {
+    id: "palaeo-lm-94-81", appearance: "palaeo-land", surfaceClass: "lm",
+    interval: { id: "94-81", index: 16, fromAgeMa: 94, toAgeMa: 81, detached: false },
+    geometryAsset: { url: "palaeo-coastlines/lm/palaeo-lm-94-81.ehpr", bytes, sha256: digest },
+    encoding: "ehpr-v1-i16lonlat-rings", ringCount: 3, vertexCount: 30,
+    charts: { records: 2, bindings: 761, evidence: 23, lifecycles: 67 } };
+  const sea: RealisticSurfaceBatchV2 = { ...land, id: "palaeo-sm-94-81",
+    appearance: "palaeo-shallow-marine", surfaceClass: "sm",
+    geometryAsset: { ...land.geometryAsset, url: "palaeo-coastlines/sm/palaeo-sm-94-81.ehpr" },
+    charts: { records: 2, bindings: 907, evidence: 18, lifecycles: 26 } };
+  const batches = [land, sea];
+
+  it("accepts a class of one interval and rejects a wrong digest, encoding or chart count", () => {
+    expect(() => validateRealisticSurfaceBatchesV2(batches, classes, domain)).not.toThrow();
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land,
+      geometryAsset: { ...land.geometryAsset, sha256: "not-a-digest" } }, sea], classes, domain))
+      .toThrow(/realistic surface batch/);
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land,
+      encoding: "ehgb-v2-f32xyz-u32" as never }, sea], classes, domain))
+      .toThrow(/realistic surface batch/);
+    // The byte count the record implies no longer matches the asset it names.
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land,
+      charts: { ...land.charts, records: 1 } }, sea], classes, domain))
+      .toThrow(/realistic surface batch/);
+    // Two batches of one class indexing differently sized interned tables.
+    expect(() => validateRealisticSurfaceBatchesV2([land, { ...land, id: "palaeo-lm-81-58",
+      interval: { id: "81-58", index: 17, fromAgeMa: 81, toAgeMa: 58, detached: false },
+      charts: { ...land.charts, evidence: 24 } }, sea], classes, domain))
+      .toThrow(/interned chart tables/);
+  });
+
+  it("rejects a mislabelled class, a reversed interval and an id that is not its own", () => {
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land, appearance: "palaeo-mountain" }, sea],
+      classes, domain)).toThrow(/realistic surface batch/);
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land,
+      interval: { ...land.interval, fromAgeMa: 81, toAgeMa: 94 } }, sea], classes, domain))
+      .toThrow(/realistic surface batch/);
+    expect(() => validateRealisticSurfaceBatchesV2([{ ...land, id: "palaeo-lm-81-58" }, sea],
+      classes, domain)).toThrow(/realistic surface batch/);
+    // A class that publishes a different interval schedule than the first one.
+    expect(() => validateRealisticSurfaceBatchesV2([land, { ...sea, id: "palaeo-sm-81-58",
+      interval: { id: "81-58", index: 17, fromAgeMa: 81, toAgeMa: 58, detached: false },
+      geometryAsset: { ...sea.geometryAsset, url: "palaeo-coastlines/sm/palaeo-sm-81-58.ehpr" } }],
+    classes, domain)).toThrow(/different interval schedules/);
+  });
+
+  it("accepts the bare header the detached LGM state publishes for an empty class", () => {
+    const empty: RealisticSurfaceBatchV2 = { ...sea, id: "palaeo-sm-lgm",
+      interval: { id: "lgm", index: 24, fromAgeMa: 0.0265, toAgeMa: 0.0195, detached: true },
+      geometryAsset: { url: "palaeo-coastlines/sm/palaeo-sm-lgm.ehpr", bytes: 32, sha256: digest },
+      ringCount: 0, vertexCount: 0, charts: { ...sea.charts, records: 0 } };
+    const landLgm: RealisticSurfaceBatchV2 = { ...land, id: "palaeo-lm-lgm",
+      interval: empty.interval,
+      geometryAsset: { url: "palaeo-coastlines/lm/palaeo-lm-lgm.ehpr", bytes, sha256: digest } };
+    expect(() => validateRealisticSurfaceBatchesV2([...batches, landLgm, empty], classes, domain))
+      .not.toThrow();
+    expect(() => validateRealisticSurfaceBatchesV2([...batches, landLgm,
+      { ...empty, vertexCount: 1 }], classes, domain)).toThrow(/realistic surface batch/);
   });
 });

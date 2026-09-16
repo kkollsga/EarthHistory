@@ -26,6 +26,7 @@ import {
   type ReconstructionCoreV2,
   type ReconstructionAnchorCatalogV2,
   type PalaeoCoastlineAssets,
+  type RealisticSurfaceBatchV2,
   type ReconstructionPackageManifestV2,
 } from "./packageV2";
 import { decodeCaoBatchState, decodeCaoLineBatch, decodeCaoSpatialBatch, type DecodedCaoBatchState,
@@ -597,6 +598,25 @@ export function selectPalaeoIntervalForAge(
   return catalogs.length === 0 ? null : selectPalaeoCatalogInterval(catalogs[0]!.catalog, ageMa);
 }
 
+/**
+ * The realistic-coast batch a class publishes for one map interval, or null when
+ * the package declares no batch records at all. The batch record is the package
+ * structure the loader resolves an interval through; the class catalog stays the
+ * authority on the interned tables its pieces index into.
+ */
+export function realisticSurfaceBatchRecord(
+  palaeo: PalaeoCoastlineAssets,
+  surfaceClass: PalaeoSurfaceClass,
+  intervalId: string,
+): RealisticSurfaceBatchV2 | null {
+  const batches = palaeo.realisticBatches;
+  if (!batches) return null;
+  const batch = batches.find((record) =>
+    record.surfaceClass === surfaceClass && record.interval.id === intervalId);
+  if (!batch) throw new Error("palaeo-coastline interval absent from the package batch records");
+  return batch;
+}
+
 export async function loadVerifiedPalaeoIntervalClass(
   entry: LoadedPalaeoClassCatalog,
   intervalId: string,
@@ -605,10 +625,23 @@ export async function loadVerifiedPalaeoIntervalClass(
   maxEdgeDegrees: number,
   limits: { readonly maxVertices: number; readonly maxTriangles: number },
   signal?: AbortSignal,
+  batch?: RealisticSurfaceBatchV2 | null,
 ): Promise<LoadedPalaeoIntervalClass> {
   const record = entry.catalog.intervals.find((interval) => interval.intervalId === intervalId);
   if (!record) throw new Error("palaeo-coastline interval absent from its class catalog");
   const asset = palaeoPayloadAsset(entry.asset.url, record.payload);
+  // The package batch record and the class catalog describe the same file. They
+  // are emitted from one source, so a disagreement is a broken build rather than
+  // a choice of which to believe, and neither is fetched.
+  if (batch && (batch.geometryAsset.sha256 !== asset.sha256 || batch.geometryAsset.bytes !== asset.bytes
+      || batch.geometryAsset.url !== asset.url || batch.interval.index !== record.intervalIndex
+      || batch.ringCount !== record.payload.rings || batch.vertexCount !== record.payload.vertices
+      || batch.charts.records !== record.payload.pieces
+      || batch.charts.bindings !== entry.catalog.bindings.length
+      || batch.charts.evidence !== entry.catalog.evidence.length
+      || batch.charts.lifecycles !== entry.catalog.lifecycles.length)) {
+    throw new Error("palaeo-coastline batch record disagrees with its class catalog");
+  }
   const bytes = await loadVerifiedBytes(asset, fetcher, signal);
   if (signal?.aborted) throw new DOMException("palaeo-coastline interval load aborted", "AbortError");
   const prepared = await runner.run(bytes, { maxEdgeDegrees, ...limits }, signal);
@@ -623,9 +656,10 @@ export async function loadVerifiedPalaeoInterval(
   intervalId: string,
   fetcher: StaticAssetFetcher,
   runner: PalaeoTriangulationRunner,
-  reservation: PalaeoCoastlineAssets["reservation"],
+  palaeo: PalaeoCoastlineAssets,
   signal?: AbortSignal,
 ): Promise<LoadedPalaeoInterval> {
+  const reservation = palaeo.reservation;
   // The classes are independent payloads. Loading them one after another made
   // an interval's latency the sum of three fetches, three worker round trips
   // and three validations, and every one of those hops has to wait for a turn
@@ -635,7 +669,7 @@ export async function loadVerifiedPalaeoInterval(
     catalogs.map((entry) => loadVerifiedPalaeoIntervalClass(entry, intervalId, fetcher, runner,
       reservation.maxEdgeDegrees,
       { maxVertices: reservation.maxIntervalVertices, maxTriangles: reservation.maxIntervalTriangles },
-      signal)));
+      signal, realisticSurfaceBatchRecord(palaeo, entry.surfaceClass, intervalId))));
   const vertices = classes.reduce((sum, entry) => sum + entry.geometry.vertexCount, 0);
   const triangles = classes.reduce((sum, entry) => sum + entry.geometry.triangleCount, 0);
   if (vertices > reservation.maxIntervalVertices || triangles > reservation.maxIntervalTriangles) {
@@ -751,7 +785,7 @@ export class CaoPalaeoIntervalStore {
       const controller = new AbortController();
       const created = {} as PendingPalaeoInterval;
       Object.assign(created, { controller, consumers: 0, promise: loadVerifiedPalaeoInterval(
-        this.catalogs, intervalId, this.fetcher, this.runner, this.palaeo.reservation, controller.signal,
+        this.catalogs, intervalId, this.fetcher, this.runner, this.palaeo, controller.signal,
       ).then((value) => {
         if (controller.signal.aborted || this.closed) {
           throw new DOMException("palaeo-coastline interval load retired", "AbortError");
