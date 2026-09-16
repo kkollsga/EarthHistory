@@ -1685,23 +1685,39 @@ describe("Cao foundation renderer boundary", () => {
     const second = { ...palaeoRevision("@2"), identity: "cao@r1:1", requestId: 2, requestedAgeMa: 1 };
     const third = { ...palaeoRevision("@3"), identity: "cao@r1:2", requestId: 3, requestedAgeMa: 2 };
 
-    // The native instance keeps the strict invariant: one package, one geometry.
-    const nativeSurface = new CaoFoundationSurfaceRenderer(new Group(),
-      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
-    nativeSurface.publish(palaeoRevision(), 8);
-    expect(() => nativeSurface.armStaticGeometryChange("interval change"))
-      .toThrow(/does not allow static geometry replacement/);
-    expect(() => nativeSurface.publish({ ...palaeoRevision("@2"), identity: "cao@r1:1",
-      requestId: 2, requestedAgeMa: 1 }, 8))
+    // The mixed set is the invariant: one publication carries `batch-land`,
+    // which ships once per session, beside `palaeo-land`, which is streamed one
+    // interval at a time. A native change is refused even when armed; a Cao 2017
+    // change in the same set succeeds.
+    const mixedSurface = new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits,
+      { staticGeometryRetirement: new GpuRetirementOwner(
+        { waitForSubmittedWork: async () => {} }, 4, 8 * 1024 * 1024) });
+    mixedSurface.publish(palaeoRevision(), 8);
+    const nativeChange = (requestId: number) => ({ ...palaeoRevision("@1", "@2"),
+      identity: `cao@r1:native${requestId}`, requestId, requestedAgeMa: 1 });
+    expect(() => mixedSurface.publish(nativeChange(2), 8))
       .toThrow(/static geometry changed within renderer lifetime/);
-    nativeSurface.disposeForRendererTeardown();
+    mixedSurface.armStaticGeometryChange("cao 2017 map interval change");
+    expect(() => mixedSurface.publish(nativeChange(3), 8))
+      .toThrow(/does not allow static geometry replacement: batch-shelf/);
+    // The refusal spent nothing: the same arming still carries the Cao 2017 half.
+    const mixed = mixedSurface.publish({ ...palaeoRevision("@2"), identity: "cao@r1:mixed",
+      requestId: 4, requestedAgeMa: 1 }, 8);
+    expect(mixed.staticGeometryIdentity).toContain("palaeo-land@2");
+    expect(mixed.staticGeometryIdentity).toContain("batch-land@1");
+    mixedSurface.disposeForRendererTeardown();
 
     // Replacement without a retirement owner would dispose buffers the last
     // submission may still reference.
-    expect(() => new CaoFoundationSurfaceRenderer(new Group(),
-      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits,
-      { allowStaticGeometryReplacement: true }))
+    const ownerless = new CaoFoundationSurfaceRenderer(new Group(),
+      new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits);
+    ownerless.publish(palaeoRevision(), 8);
+    ownerless.armStaticGeometryChange("cao 2017 map interval change");
+    expect(() => ownerless.publish({ ...palaeoRevision("@2"), identity: "cao@r1:ownerless",
+      requestId: 2, requestedAgeMa: 1 }, 8))
       .toThrow(/replacement requires a retirement owner/);
+    ownerless.disposeForRendererTeardown();
 
     const staticCompletions: Array<() => void> = [];
     const staticRetirement = new GpuRetirementOwner({
@@ -1709,7 +1725,7 @@ describe("Cao foundation renderer boundary", () => {
     }, 4, 8 * 1024 * 1024);
     const surface = new CaoFoundationSurfaceRenderer(new Group(),
       new GpuRetirementOwner({ waitForSubmittedWork: async () => {} }, 2, 4_000_000), palaeoLimits,
-      { allowStaticGeometryReplacement: true, staticGeometryRetirement: staticRetirement });
+      { staticGeometryRetirement: staticRetirement });
     const firstDiagnostics = surface.publish(first, 8);
     expect(staticRetirement.pendingCount()).toBe(0);
     // Armed replacement is the palaeo instance's normal path; an unarmed one is
@@ -1767,7 +1783,7 @@ const palaeoLimits = { ...limits, maxBatches: 16, maxVertices: 5_000, maxTriangl
  * One batch per drawing class, all overlapping at longitude 0 / latitude 0 and
  * nested so a radial ray crosses every one of them.
  */
-function palaeoRevision(geometrySuffix = "@1"): PreparedCaoRevision {
+function palaeoRevision(geometrySuffix = "@1", nativeSuffix = "@1"): PreparedCaoRevision {
   const base = fixture(6);
   const makeBatch = (
     batchId: string,
@@ -1784,7 +1800,12 @@ function palaeoRevision(geometrySuffix = "@1"): PreparedCaoRevision {
     const entries = new Uint16Array([chartIndex, chartIndex, chartIndex]);
     const bytes = directions.byteLength + indices.byteLength + seamIds.byteLength
       + 2 * entries.byteLength;
-    return { batchId, staticGeometryIdentity: `${batchId}${geometrySuffix}`, vertexCount: 3,
+    // Native batches follow `nativeSuffix` and refuse replacement; the Cao 2017
+    // classes follow `geometrySuffix` and allow it, so one revision can change
+    // one half of the set without the other.
+    const palaeo = batchId.startsWith("palaeo-");
+    return { batchId, staticGeometryIdentity: `${batchId}${palaeo ? geometrySuffix : nativeSuffix}`,
+      staticGeometryReplaceable: palaeo, vertexCount: 3,
       triangleCount: 1, staticGeometryBytes: bytes, nativePrecedence, surfaceAppearance,
       chartTriangleRanges: [{ chartIndex, firstTriangle: 0, triangleCount: 1 }],
       createStaticGeometryCopy: () => ({ referenceDirections: new Float32Array(directions),

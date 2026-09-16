@@ -842,6 +842,7 @@ export class CaoReconstructionRuntime {
       return Object.freeze({ batchId: descriptor.batchId,
         staticGeometryIdentity: `${identity.split(":")[0]}:${descriptor.batchId}:${descriptor.geometryAsset.sha256}`
           + (countrySegmentDescriptors.length ? ":source-domain-segments-v1" : ""),
+        staticGeometryReplaceable: false,
         vertexCount: descriptor.vertexCount, segmentCount: descriptor.segmentCount,
         staticGeometryBytes: geometry.byteLength - 32 + (narrow ? 0 : descriptor.vertexCount * 4),
         createStaticGeometryCopy: () => { const current = requirePayload().lineBatches.get(descriptor.batchId)!;

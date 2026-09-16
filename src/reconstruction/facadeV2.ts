@@ -40,6 +40,14 @@ export interface PreparedCaoSpatialBatch {
   readonly batchId: string;
   /** Stable across requested ages and suitable as a GPU-pool key. */
   readonly staticGeometryIdentity: string;
+  /**
+   * Whether this batch's static geometry may be replaced within a renderer
+   * lifetime. Native Cao 2024 batches declare `false`: one package ships one
+   * geometry for the whole session, so a changed identity there is a compile or
+   * loader defect. Cao 2017 map-interval batches declare `true`, because
+   * streaming one interval at a time is their normal path. Absent means false.
+   */
+  readonly staticGeometryReplaceable?: boolean;
   readonly vertexCount: number;
   readonly triangleCount: number;
   readonly staticGeometryBytes: number;
@@ -59,6 +67,8 @@ export interface PreparedCaoSpatialBatch {
 export interface PreparedCaoLineBatch {
   readonly batchId: string;
   readonly staticGeometryIdentity: string;
+  /** As `PreparedCaoSpatialBatch.staticGeometryReplaceable`; the country reference is false. */
+  readonly staticGeometryReplaceable?: boolean;
   readonly vertexCount: number;
   readonly segmentCount: number;
   readonly staticGeometryBytes: number;

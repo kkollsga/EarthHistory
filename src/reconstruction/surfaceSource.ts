@@ -145,6 +145,8 @@ export function prepareSurfaceBatch(
   if (source.kind === "ehgb") {
     return Object.freeze({
       ...common,
+      // One Cao 2024 package ships one geometry for the whole session.
+      staticGeometryReplaceable: false,
       nativePrecedence: source.nativePrecedence,
       chartTriangleRanges: source.chartTriangleRanges,
       createStaticGeometryCopy: (): PreparedCaoStaticGeometryCopy => {
@@ -182,6 +184,8 @@ export function prepareSurfaceBatch(
   };
   return Object.freeze({
     ...common,
+    // Streaming one map interval at a time is this batch's normal path.
+    staticGeometryReplaceable: true,
     nativePrecedence: false,
     chartTriangleRanges: Object.freeze(source.pieceTriangleRanges.map((range) => Object.freeze({
       chartIndex: chartIndexOffset + range.pieceIndex,

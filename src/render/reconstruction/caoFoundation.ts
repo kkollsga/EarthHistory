@@ -518,6 +518,10 @@ export interface PackedCaoPalette {
 
 export interface CaoFoundationBatchResource {
   readonly batchId: string;
+  /** The prepared batch's geometry identity; what a replacement is judged against. */
+  readonly staticGeometryIdentity: string;
+  /** Whether this batch may be replaced within the renderer's lifetime. */
+  readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoStaticGeometryCopy;
   readonly vertexCount: number;
@@ -535,6 +539,8 @@ export interface CaoFoundationBatchResource {
 
 export interface CaoFoundationLineBatchResource {
   readonly batchId: string;
+  readonly staticGeometryIdentity: string;
+  readonly staticGeometryReplaceable: boolean;
   readonly geometry: THREE.BufferGeometry;
   readonly source: PreparedCaoLineGeometryCopy;
   readonly vertexCount: number;
@@ -1115,7 +1121,9 @@ export function createCaoFoundationGeometryResource(
         prepared.triangleCount, revision.charts.length, shellOffsetMetres);
       retainedCpuBytes = safeAdd(retainedCpuBytes,
         spatial.chartRanges.byteLength + spatial.chartBounds.byteLength, "Cao retained spatial index");
-      resources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
+      resources.push(Object.freeze({ batchId: prepared.batchId,
+        staticGeometryIdentity: prepared.staticGeometryIdentity,
+        staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
         vertexCount: prepared.vertexCount, triangleCount: prepared.triangleCount,
         nativePrecedence: prepared.nativePrecedence, appearance, surfaceClass, shellOffsetMetres,
         chartRanges: spatial.chartRanges, chartBounds: spatial.chartBounds }));
@@ -1133,7 +1141,9 @@ export function createCaoFoundationGeometryResource(
         CAO_FOUNDATION_COUNTRY_LINE_OFFSET_METRES);
       const geometry = expanded.geometry;
       trackedGpuBufferBytes = safeAdd(trackedGpuBufferBytes, expanded.gpuBytes, "Cao tracked line GPU");
-      lineResources.push(Object.freeze({ batchId: prepared.batchId, geometry, source,
+      lineResources.push(Object.freeze({ batchId: prepared.batchId,
+        staticGeometryIdentity: prepared.staticGeometryIdentity,
+        staticGeometryReplaceable: prepared.staticGeometryReplaceable === true, geometry, source,
         vertexCount: prepared.vertexCount, segmentCount: prepared.segmentCount }));
     }
     const byteLength = safeAdd(retainedCpuBytes, trackedGpuBufferBytes, "Cao geometry");
@@ -2139,20 +2149,52 @@ export interface CaoFoundationLayerVisibility {
 
 export interface CaoFoundationRendererOptions {
   /**
-   * Whether this instance may swap its static geometry. The native instance
-   * must not: one Cao package ships one geometry for the whole session, and a
-   * key change there is a compile or loader defect. The palaeo instance streams
-   * one map interval at a time, so replacement is its normal path — but only
-   * after `armStaticGeometryChange` has named the reason, so an unexpected key
-   * change still fails loudly.
-   */
-  readonly allowStaticGeometryReplacement?: boolean;
-  /**
    * Owner that retires a replaced static geometry after the renderer's
-   * submitted work. Required whenever replacement is allowed: disposing the
-   * buffers inline can destroy a buffer the last submission still references.
+   * submitted work. Required before any batch is actually replaced: disposing
+   * the buffers inline can destroy a buffer the last submission still
+   * references. Whether a replacement may happen at all is a property of the
+   * batches themselves — see `staticGeometryReplaceable` — not of the renderer.
    */
   readonly staticGeometryRetirement?: GpuRetirementOwner;
+}
+
+/**
+ * Batch ids an incoming revision would replace that refuse replacement.
+ *
+ * One renderer now holds both the Cao 2024 stack and the Cao 2017 map interval,
+ * so "may this geometry change?" is no longer a property of the instance: the
+ * same publication carries `batch-land`, which ships once per session, beside
+ * `palaeo-land`, which is streamed one interval at a time. A batch is judged
+ * against the resident batch of the same id — added and removed ids count as
+ * changes too, because a set that gains or loses a native batch mid-lifetime is
+ * the same compile or loader defect the per-instance flag used to catch.
+ */
+export function caoFoundationRefusedStaticGeometryReplacements(
+  resident: CaoFoundationGeometryResource,
+  revision: PreparedCaoRevision,
+): readonly string[] {
+  const residentById = new Map<string, { identity: string; replaceable: boolean }>();
+  for (const batch of [...resident.batches, ...resident.lineBatches]) {
+    residentById.set(batch.batchId, { identity: batch.staticGeometryIdentity,
+      replaceable: batch.staticGeometryReplaceable });
+  }
+  const refused: string[] = [];
+  const incoming = new Set<string>();
+  for (const batch of [...revision.batches, ...revision.lineBatches]) {
+    incoming.add(batch.batchId);
+    const replaceable = batch.staticGeometryReplaceable === true;
+    const current = residentById.get(batch.batchId);
+    if (current === undefined) {
+      if (!replaceable) refused.push(batch.batchId);
+      continue;
+    }
+    if (current.identity === batch.staticGeometryIdentity) continue;
+    if (!current.replaceable || !replaceable) refused.push(batch.batchId);
+  }
+  for (const [batchId, current] of residentById) {
+    if (!incoming.has(batchId) && !current.replaceable) refused.push(batchId);
+  }
+  return Object.freeze(refused);
 }
 
 /** The read-only surface view a composite coverage or pick query consumes. */
@@ -2175,7 +2217,6 @@ export class CaoFoundationSurfaceRenderer {
   private countryLineToneTable: Uint8Array | null = null;
   private armedStaticGeometryChange: string | null = null;
   private releasableSurfaceClasses: readonly CaoFoundationSurfaceClass[] = Object.freeze([]);
-  private readonly allowStaticGeometryReplacement: boolean;
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
 
   constructor(
@@ -2184,11 +2225,7 @@ export class CaoFoundationSurfaceRenderer {
     private readonly limits: CaoFoundationLimits,
     options: CaoFoundationRendererOptions = {},
   ) {
-    this.allowStaticGeometryReplacement = options.allowStaticGeometryReplacement === true;
     this.staticGeometryRetirement = options.staticGeometryRetirement ?? null;
-    if (this.allowStaticGeometryReplacement && this.staticGeometryRetirement === null) {
-      throw new Error("Cao static geometry replacement requires a retirement owner");
-    }
   }
 
   /**
@@ -2196,9 +2233,6 @@ export class CaoFoundationSurfaceRenderer {
    * geometry, and why. Consumed by exactly one replacement.
    */
   armStaticGeometryChange(reason: string): void {
-    if (!this.allowStaticGeometryReplacement) {
-      throw new Error("Cao foundation renderer does not allow static geometry replacement");
-    }
     if (!reason) throw new Error("Cao static geometry change requires a reason");
     this.armedStaticGeometryChange = reason;
   }
@@ -2223,9 +2257,18 @@ export class CaoFoundationSurfaceRenderer {
       ].join("|")}`;
       let retiredStaticGeometry: CaoFoundationGeometryResource | null = null;
       if (!this.staticGeometry || this.staticGeometry.key !== expectedStaticKey) {
-        if (this.staticGeometry && !(this.allowStaticGeometryReplacement
-            && this.armedStaticGeometryChange !== null)) {
-          throw new Error("Cao foundation static geometry changed within renderer lifetime");
+        if (this.staticGeometry) {
+          if (this.armedStaticGeometryChange === null) {
+            throw new Error("Cao foundation static geometry changed within renderer lifetime");
+          }
+          const refused = caoFoundationRefusedStaticGeometryReplacements(this.staticGeometry, revision);
+          if (refused.length > 0) {
+            throw new Error("Cao foundation renderer does not allow static geometry replacement: "
+              + refused.join(", "));
+          }
+          if (this.staticGeometryRetirement === null) {
+            throw new Error("Cao static geometry replacement requires a retirement owner");
+          }
         }
         const replaced = this.staticGeometry;
         const next = createCaoFoundationGeometryResource(revision, this.limits);

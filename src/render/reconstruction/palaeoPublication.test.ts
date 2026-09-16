@@ -58,6 +58,7 @@ function palaeoInterval(
     batches: [{
       batchId: "palaeo-lm",
       staticGeometryIdentity: `cao@r1:palaeo-lm:${digest}`,
+      staticGeometryReplaceable: true,
       vertexCount: 3,
       triangleCount: 1,
       staticGeometryBytes,
@@ -136,7 +137,7 @@ describe("palaeo interval publication adapter", () => {
     const releases: string[] = [];
     const group = new Group();
     const surface = new CaoFoundationSurfaceRenderer(group, retirement(), limits,
-      { allowStaticGeometryReplacement: true, staticGeometryRetirement: retirement() });
+      { staticGeometryRetirement: retirement() });
     const first = palaeoInterval("402-380", 0, "a", () => releases.push("402-380"));
     const diagnostics = surface.publish(preparedCaoRevisionForPalaeoInterval(first), 8);
     // `publish` takes the lease over, exactly as it does for a native revision,
@@ -172,7 +173,7 @@ describe("palaeo interval publication adapter", () => {
   it("re-poses a published interval and clears it without touching its geometry key", () => {
     const group = new Group();
     const surface = new CaoFoundationSurfaceRenderer(group, retirement(), limits,
-      { allowStaticGeometryReplacement: true, staticGeometryRetirement: retirement() });
+      { staticGeometryRetirement: retirement() });
     const interval = palaeoInterval("402-380", 0, "a");
     surface.publish(preparedCaoRevisionForPalaeoInterval(interval), 8);
     const pick = palaeoChartPickState(interval.charts);

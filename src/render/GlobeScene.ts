@@ -713,7 +713,7 @@ export class GlobeScene {
       createCaoGpuRetirementOwner(renderer, backend,
         CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES),
       { ...CAO_PALAEO_RENDERER_LIMITS, maxTextureSize: maximumTextureSize },
-      { allowStaticGeometryReplacement: true,
+      {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
           CAO_PALAEO_RETIREMENT_MAX_RESOURCES, CAO_PALAEO_RETIREMENT_MAX_BYTES) },
     );
