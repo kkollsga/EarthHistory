@@ -724,7 +724,7 @@ test("keeps Precambrian scrubber from deep time through today", async ({ page })
   await waitForCao(page);
 });
 
-test("keeps layers usable and labels unavailable seafloor data", async ({ page }) => {
+test("keeps layers usable and states the unavailable data once", async ({ page }) => {
   await page.goto("./");
   await waitForCao(page);
   await openMenu(page);
@@ -732,18 +732,45 @@ test("keeps layers usable and labels unavailable seafloor data", async ({ page }
   const guides = page.getByRole("button", { name: /^Reference guides/ });
   await guides.click();
   await expect(globe(page)).toHaveAttribute("data-reference-guide-visible", "false");
-  await expect(page.getByRole("button", { name: /Seafloor unavailable/ })).toBeDisabled();
-  await expect(page.getByText(/no qualified ocean-floor age or depth field/i)).toBeVisible();
+  // The panel is controls only: drainage and seafloor were disabled rows a
+  // viewer had to read past and are now one statement under the relief slider.
+  await expect(page.getByRole("button", { name: /unavailable/i })).toHaveCount(0);
+  await expect(page.getByText(/no reconstructed river field and no qualified ocean-floor age or depth/i))
+    .toBeVisible();
 });
 
-test("offers the palaeo-coastline layer control and leaves it off by default", async ({ page }) => {
-  // Default off: the outline keeps its single dark ink, nothing palaeo is
-  // fetched, and the control is available because the Cao 2017 charts now ship.
+test("draws the Cao 2017 map by default in a link that names no layers", async ({ page }) => {
+  // The mapped palaeogeography is what a visitor arrives at. A link with no
+  // `layers=` takes the defaults, so 90 Ma comes up on its published interval
+  // and the country outline carries both tones.
+  await page.goto("./#age=90");
+  await waitForCao(page);
+  await openMenu(page);
+  await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
+  await expect(palaeo).toBeEnabled();
+  await expect(palaeo).toHaveAttribute("aria-pressed", "true");
+  // The long Cao 2017 statement moved to the map key; the row keeps one line.
+  await expect(page.getByText(/steps between 24 published map intervals/)).toHaveCount(0);
+  await expect(page.getByText(/Cao et al\. 2017 mapped land, shallow seas and mountains/)).toBeVisible();
+  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  await expect(globe(page)).toHaveAttribute("data-cao-palaeo-interval-id", "94-81");
+  expect(Number(await globe(page).getAttribute("data-cao-outline-tone-light-segments")))
+    .toBeGreaterThan(0);
+});
+
+test("fetches no palaeo bytes when a link switches the layer off", async ({ page }) => {
+  // The "zero palaeo bytes when off" contract now needs an explicit link: the
+  // default is on, and a `layers=` list that does not name the layer keeps it
+  // off, which is the same contract a link written before the layer existed has.
   const palaeoRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("palaeo-coastlines/")) palaeoRequests.push(request.url());
   });
-  await page.goto("./");
+  await page.goto("./#age=90&layers=borders,guides");
   await waitForCao(page);
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-light-segments", "0");
@@ -753,11 +780,9 @@ test("offers the palaeo-coastline layer control and leaves it off by default", a
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
   await expect(palaeo).toBeEnabled();
   await expect(palaeo).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByText(/steps between 24 published map intervals/)).toBeVisible();
-  await expect(page.getByText(/Cao 2017 map charts are not in this build/)).toHaveCount(0);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "off");
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-asset-bytes", "0");
   expect(palaeoRequests, "no palaeo bytes are fetched while the layer is off").toEqual([]);
@@ -826,7 +851,7 @@ test("returns the Cao 2024 composition when the palaeo layer is switched off", a
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  const palaeo = page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ });
+  const palaeo = page.getByRole("button", { name: /^Realistic coastlines/ });
   await palaeo.click();
   await page.keyboard.press("Escape");
   await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
@@ -977,7 +1002,7 @@ test("keeps today's land when the palaeo layer is switched on at 0 Ma", async ({
 
   await openMenu(page);
   await page.getByRole("menuitem", { name: /^Layers & relief/ }).click();
-  await page.getByRole("button", { name: /^Palaeo-coastlines \(Cao 2017\)/ }).click();
+  await page.getByRole("button", { name: /^Realistic coastlines/ }).click();
   await page.keyboard.press("Escape");
   await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
     { timeout: 30_000 }).toBe("fallback");

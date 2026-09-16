@@ -4,6 +4,35 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The realistic coastlines are what the globe opens with.** The Cao et al.
+  (2017) mapped land, shallow seas and mountains, and the Last Glacial Maximum
+  lowstand state, are on by default instead of waiting behind a switch; the
+  layer is also renamed from *Palaeo-coastlines (Cao 2017)* to **Realistic
+  coastlines**, in the panel and in the map key, which keeps the Cao et al.
+  (2017) citation beside the name. Only a link with no `layers=` takes the new defaults: a link
+  that carries an explicit `layers=` list still keeps exactly the layers it
+  names, so every shared link written before the layer existed still opens
+  without it, and the hash writer keeps emitting the full visible list.
+  Measured cold-load cost of the default on the production build, transferred
+  bytes including response headers: **+45.1 KiB at 0 Ma** (13,195.4 → 13,240.7
+  KiB; the class catalogs and the outline tone tables, four requests, with the
+  map itself in fallback because no Cao 2017 map covers the present day) and
+  **+564.5 KiB at 90 Ma** (13,110.8 → 13,675.3 KiB; the same plus the `94-81`
+  interval charts, ten requests).
+- **The Layers panel is controls only.** The two disabled placeholder rows
+  (*Seafloor unavailable*, *Drainage unavailable*) are gone; what the Cao
+  foundation does not publish is one line under the relief slider instead of
+  two switches that cannot be pressed. The remaining toggles are ordered by
+  what a visitor reaches for — realistic coastlines, modern-country reference,
+  reference guides, tectonic references, clouds — and each carries one line of
+  detail. The long Cao 2017 statement (24 intervals, the fallback, the outline
+  markers, the LGM datum) is no longer duplicated in the row: it stays in the
+  map key, next to the swatches it describes. The relief slider, the
+  `aria-pressed` switches, the 44 px targets and the keyboard behaviour are
+  unchanged.
+
 ## [0.1.12] - 2026-09-16
 
 ### Changed

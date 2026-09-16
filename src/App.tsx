@@ -73,13 +73,25 @@ type SpatialFocus =
   | { kind: "place"; placeId: string; coordinates: LonLat; nonce: number; distance: number }
   | { kind: "area"; coordinates: LonLat; nonce: number; distance?: number };
 
+/**
+ * What a visitor sees with no `layers=` in the link: the mapped Cao 2017
+ * palaeogeography, its mountains and the LGM lowstand state, because that is
+ * the globe this project is for. `rivers` has no control — the Cao foundation
+ * publishes no drainage field — but stays in the record so a link that names it
+ * still parses.
+ *
+ * A link that carries an explicit `layers=` list keeps exactly what it names,
+ * including a link written before this layer existed, which therefore still
+ * reads it off (`parseLayerVisibility`). Only a link with no `layers=` at all
+ * takes these defaults.
+ */
 const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
   borders: true,
   guides: true,
   tectonics: false,
   rivers: false,
-  palaeoCoastlines: false,
+  palaeoCoastlines: true,
 };
 
 const LAYER_META: Array<{
@@ -88,12 +100,14 @@ const LAYER_META: Array<{
   detail: string;
   icon: typeof Cloud;
 }> = [
-  { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
+  // Ordered by what a visitor reaches for first. One line of detail each; the
+  // full Cao 2017 statement — intervals, fallback, outline markers, the LGM
+  // lowstand datum — lives in the map key, next to the swatches it describes.
+  { key: "palaeoCoastlines", label: "Realistic coastlines", detail: "Cao et al. 2017 mapped land, shallow seas and mountains, 402\u20132 Ma, plus the Last Glacial Maximum lowstand; see the map key", icon: Waves },
   { key: "borders", label: "Modern-country reference", detail: "Present-day locator outlines; not historical borders", icon: Map },
-  { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period-specific evidence", icon: Compass },
-  { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints; unavailable between unlinked source ages", icon: Mountain },
-  { key: "rivers", label: "Drainage unavailable", detail: "The Cao foundation contains no reconstructed river or drainage field", icon: Waves },
-  { key: "palaeoCoastlines", label: "Palaeo-coastlines (Cao 2017)", detail: "Cao et al. 2017 landmass and shallow-sea polygons, 402\u20132 Ma; steps between 24 published map intervals; country outlines become position markers only. Plus one optional Last Glacial Maximum lowstand state at 26.5\u201319.5 ka, ETOPO 2022 at \u2212120 m eustatic over the North Sea, the Sunda shelf and Beringia, drawn over today\u2019s land", icon: Waves },
+  { key: "guides", label: "Reference guides", detail: "Schematic circulation and geographic guides, not period evidence", icon: Compass },
+  { key: "tectonics", label: "Tectonic references", detail: "Native Cao boundaries at exact checkpoints only", icon: Mountain },
+  { key: "clouds", label: "Clouds", detail: "Atmospheric cloud cover", icon: Cloud },
 ];
 
 /**
@@ -1517,7 +1531,7 @@ export default function App() {
             </ul>
             {palaeoKeyVisible && (
               <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
-                <strong>Palaeo-coastlines (Cao 2017)</strong>
+                <strong>Realistic coastlines · Cao et al. (2017)</strong>
                 {palaeoInterval !== null && (
                   <p className="surface-info-note" data-testid="palaeo-interval-line">{
                     palaeoIntervalKeyLine(palaeoInterval)}</p>
@@ -1790,14 +1804,6 @@ export default function App() {
               </button>
             );
           })}
-          <button type="button" aria-disabled="true" disabled>
-            <span className="layer-icon"><Waves size={18} /></span>
-            <span>
-              <strong>Seafloor unavailable</strong>
-              <small>The Cao foundation has no qualified ocean-floor age or depth field.</small>
-            </span>
-            <span className="switch" aria-label="Exposed seafloor unavailable"><i /></span>
-          </button>
           <div className="relief-control">
             <label htmlFor="relief-scale"><strong>Terrain relief</strong><small>Visual vertical exaggeration; source elevations are unchanged.</small></label>
             <output htmlFor="relief-scale">{verticalExaggeration}×</output>
@@ -1813,6 +1819,9 @@ export default function App() {
             />
             <span className="relief-range"><i>1× physical</i><i>30×</i></span>
           </div>
+          {/* The absent layers stated once, instead of as disabled rows a
+              viewer has to read past. Nothing here is a control. */}
+          <p className="layer-unsupported">No drainage or ocean-floor layer: the Cao foundation publishes no reconstructed river field and no qualified ocean-floor age or depth.</p>
         </div>
       </Modal>
 
