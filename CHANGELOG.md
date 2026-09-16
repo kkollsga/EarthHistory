@@ -6,6 +6,33 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Changed
 
+- **One renderer publishes the whole surface set, in slots.** The globe no
+  longer runs a second surface instance for the Cao 2017 maps. One renderer
+  owns both streaming units and one publisher publishes them together, so the
+  two can never disagree about what is on screen: a publication of either unit
+  adopts the other rather than rebuilding it, and one pair of retirement owners
+  — publications, and the static geometry a map-interval change replaces —
+  covers the set. What is drawn is now the composition's slot assignment
+  instead of a mode flag: the `land` and `continents` slots carry the Cao 2024
+  coast fill and crust shelf outside the Cao 2017 band and the mapped `lm` land
+  and `sm` shallow sea inside it, the mountain slot is filled only inside it,
+  the land-appearance corrections are hidden wherever the map replaces the land
+  they repaint, and a restored pre-collision margin stays and is repainted as
+  shallow sea. The detached Last Glacial Maximum lowstand still draws over
+  today's composition rather than instead of it. Because the realistic
+  composition replaces today's land and crust shelf outright, their GPU vertex
+  and index buffers are handed back while it lasts and uploaded again on the
+  way out; their CPU source stays resident, so picking, coverage and the
+  guide-label ink are unchanged, and no other composition releases anything.
+  Whether a batch may be replaced at all is now declared per batch rather than
+  per renderer: a Cao 2024 batch refuses, a map-interval batch allows it, and a
+  mixed set enforces both. The set reserves the union of what the two instances
+  reserved — 1.00 M vertices, 1.28 M triangles, 512 batches, 64 MiB of retained
+  source — and 4 MiB of publication ledger, which is the one ceiling that is
+  not simply the larger of the two, because both members' publications are
+  resident at once beside the one a scrub sample is replacing. Every
+  `data-cao-*` value is unchanged, and all three compositions draw what they
+  drew.
 - **One residency store and one request chain behind the surface pipeline.**
   The two streaming units — a Cao 2024 checkpoint addressed by its age and a
   Cao 2017 map interval addressed by its published id — are named once as a
