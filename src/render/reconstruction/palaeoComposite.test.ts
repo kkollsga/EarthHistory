@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CAO_FOUNDATION_DEFAULT_BASE_COLORS,
+  CAO_FOUNDATION_SURFACE_PRECEDENCE,
+  caoFoundationSurfaceClassVisible,
   createCaoFoundationGeometryResource,
   type CaoFoundationGeometryResource,
   type CaoFoundationPickState,
@@ -158,9 +160,11 @@ describe("palaeo composite surface", () => {
     expect(pick([1, 1, 1], [1, 1, 1], "palaeo")).toBe("palaeo-mountain");
     expect(pick([1, 1, 1], [1, 1, 0], "palaeo")).toBe("palaeo-land");
     expect(pick([1, 1, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
-    expect(pick([1, 1, 1], [0, 0, 0], "palaeo")).toBe("shelf");
+    // The Cao 2024 crust shelf is not drawn in the band either: ground the Cao
+    // 2017 map does not map is deep sea, and the pick answers nothing over it.
+    expect(pick([1, 1, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(pick([1, 0, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
-    expect(pick([1, 0, 1], [0, 0, 0], "palaeo")).toBe("shelf");
+    expect(pick([1, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(pick([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
 
     // The `lgm` band draws both instances in the native mode, and there the
@@ -173,10 +177,23 @@ describe("palaeo composite surface", () => {
 
     // A missing instance is simply absent, never an error.
     expect(intersectCaoComposite(native([1, 1, 1]), null, [3, 0, 0], [-1, 0, 0],
-      { mode: "palaeo" })?.surfaceClass).toBe("shelf");
+      { mode: "palaeo" })?.surfaceClass ?? null).toBeNull();
+    expect(intersectCaoComposite(native([1, 1, 1]), null, [3, 0, 0], [-1, 0, 0],
+      { mode: "native" })?.surfaceClass).toBe("land");
     expect(intersectCaoComposite(null, palaeo([1, 1, 1]), [3, 0, 0], [-1, 0, 0],
       { mode: "palaeo" })?.surfaceClass).toBe("palaeo-mountain");
     expect(intersectCaoComposite(null, null, [3, 0, 0], [-1, 0, 0], {})).toBeNull();
+  });
+
+  it("drops the crust shelf from the Cao 2017 band's precedence and keeps the margins", () => {
+    // The composite's own filter is class visibility per mode, so the band's
+    // five levels are exactly the classes it ranks. Re-enabling `shelf` in the
+    // palaeo mode turns this list back into six and fails here.
+    const ranked = (mode: "native" | "palaeo") => CAO_FOUNDATION_SURFACE_PRECEDENCE
+      .filter((surfaceClass) => caoFoundationSurfaceClassVisible(surfaceClass, mode));
+    expect(ranked("palaeo")).toEqual(["correction-shelf", "palaeo-shallow-marine",
+      "palaeo-land", "palaeo-mountain"]);
+    expect(ranked("native")).toEqual(["shelf", "correction-shelf", "corrections", "land"]);
   });
 
   it("names the class over one piece of present-day ground", () => {
@@ -194,9 +211,12 @@ describe("palaeo composite surface", () => {
     // The correction is hidden with native land, so the guide-label ink over
     // this ground reads the shallow sea it can actually see.
     expect(classify([1, 1, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
-    expect(classify([1, 1, 1], [0, 0, 0], "palaeo")).toBe("shelf");
+    // Nothing the band draws covers this ground once the palaeo charts are off:
+    // the crust shelf is hidden with native land, so the label ink reads the
+    // deep sea it can actually see.
+    expect(classify([1, 1, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(classify([1, 0, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
-    expect(classify([1, 0, 1], [0, 0, 0], "palaeo")).toBe("shelf");
+    expect(classify([1, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     expect(classify([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
     // Off the fixture's ground nothing answers, in either mode.
     expect(caoCompositeReferenceSurfaceClass(native([1, 1, 1]), palaeo([1, 1, 1]),

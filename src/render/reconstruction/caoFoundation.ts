@@ -186,6 +186,33 @@ export function caoFoundationSurfaceClass(
   return appearance === "shelf" ? "correction-shelf" : "corrections";
 }
 
+/**
+ * The appearance a class is *drawn* with in one mode, which is not always the
+ * appearance its batch declares.
+ *
+ * `correction-shelf` is the single case. In the native mode it is crust of
+ * unmapped depth beside the Cao 2024 shelf and carries the shelf's blue. In the
+ * Cao 2017 band the native shelf is not drawn at all, so the same blue would be
+ * the band's only crust level and would read as a mapped class the key does not
+ * list; the restored margin is drawn there as submerged margin instead, in the
+ * palaeo-shallow-marine colour, and the map key labels it model inference
+ * rather than a mapped shallow sea. The class keeps its own rank and is still
+ * absent from `CAO_FOUNDATION_LAND_LIKE_SURFACE_CLASSES`, so nothing reads it
+ * as land in either mode.
+ *
+ * Both appearances are front-sided and share one roughness, so the swap is a
+ * colour swap on a live material rather than a rebuilt one;
+ * `createCaoFoundationMaterial` enforces that.
+ */
+export function caoFoundationSurfaceClassAppearance(
+  surfaceClass: CaoFoundationSurfaceClass,
+  appearance: CaoFoundationBatchAppearance,
+  mode: CaoFoundationSurfaceMode,
+): CaoFoundationBatchAppearance {
+  return surfaceClass === "correction-shelf" && mode === "palaeo"
+    ? "palaeo-shallow-marine" : appearance;
+}
+
 export interface CaoFoundationSurfaceShell {
   readonly surfaceClass: CaoFoundationSurfaceClass;
   readonly shellOffsetMetres: number;
@@ -241,13 +268,27 @@ export interface CaoFoundationSurfaceShell {
  * second depth-writing surface coplanar with the shelf and interleave with it.
  */
 export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[] = Object.freeze([
+  // The Cao 2024 crust extent, "depth unmapped". It is today's composition and
+  // stays in the native mode, but it is *not* a level of the Cao 2017 band: the
+  // band draws exactly five — the deep-sea sphere, mapped shallow sea, mapped
+  // land, mapped mountain and the country outlines — and a crust-blue wash
+  // under the mapped shallow seas was a sixth level the map key could not
+  // explain. Where the Cao 2017 map maps nothing, the globe sphere shows
+  // through and unmapped ground reads as deep sea.
   Object.freeze({ surfaceClass: "shelf" as const,
     shellOffsetMetres: CAO_FOUNDATION_SHELF_SHELL_OFFSET_METRES,
-    renderOrder: 1, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: true }),
+    renderOrder: 1, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: false }),
   // Restored pre-collision margin crust. It shares the 700 m shell with
   // palaeo-shallow-marine and writes no depth, so the two are separated by draw
   // order alone and the shallow-marine class paints over it; the one
-  // depth-writing class below, the native shelf at 400 m, is cleared by 457.41 m.
+  // depth-writing class below, the native shelf at 400 m, is cleared by 457.41 m
+  // wherever both are drawn, which is the native mode alone.
+  //
+  // In the Cao 2017 band it is drawn with the palaeo-shallow-marine appearance
+  // rather than the shelf's crust blue — see
+  // `caoFoundationSurfaceClassAppearance`. It is the only thing closing the
+  // pre-collision seams the Cao 2017 charts leave open (the Alps at 45 Ma), and
+  // with the shelf gone it would otherwise be the band's only crust-blue level.
   Object.freeze({ surfaceClass: "correction-shelf" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
     renderOrder: 1.1, writesDepth: false, visibleInNativeMode: true, visibleInPalaeoMode: true }),
@@ -459,6 +500,13 @@ export interface CaoFoundationMaterialGraph {
   readonly material: MeshStandardNodeMaterial;
   readonly displayFraction: UniformNode<"float", number>;
   readonly verticalExaggeration: UniformNode<"float", number>;
+  /**
+   * 0 draws the batch's native appearance, 1 the palaeo one. Present only for a
+   * class whose drawn appearance depends on the mode — `correction-shelf` — and
+   * null everywhere else, so a mode switch never touches a material that has
+   * one appearance.
+   */
+  readonly palaeoAppearanceMix: UniformNode<"float", number> | null;
 }
 
 export interface CaoFoundationLineMaterialGraph {
@@ -897,7 +945,20 @@ export function createCaoFoundationMaterial(
   verticalExaggerationValue: number,
   shellOffsetMetres: number = CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
   appearance: CaoFoundationBatchAppearance = "land",
+  palaeoAppearance: CaoFoundationBatchAppearance = appearance,
+  palaeoAppearanceMixValue = 0,
 ): CaoFoundationMaterialGraph {
+  // A mode-dependent appearance is a colour swap on one live material. Side and
+  // roughness are baked into the material at construction, so a pair that
+  // disagrees on either would need two materials and is refused here rather
+  // than drawn with the wrong one in one of the two modes.
+  if (palaeoAppearance !== appearance
+      && (caoFoundationAppearanceFrontSideOnly(palaeoAppearance)
+        !== caoFoundationAppearanceFrontSideOnly(appearance)
+        || caoFoundationAppearanceRoughness(palaeoAppearance)
+          !== caoFoundationAppearanceRoughness(appearance))) {
+    throw new Error("Cao mode-dependent appearances must share side and roughness");
+  }
   const displayHeightStart = display.displayHeightStart.kind === "uniform"
     ? float(display.displayHeightStart.value) : attribute<"float">("displayHeightStartMetres", "float");
   const displayHeightEnd = display.displayHeightEnd.kind === "uniform"
@@ -917,15 +978,29 @@ export function createCaoFoundationMaterial(
   // NodeMaterial consumes a custom normalNode in view space. The reconstructed
   // radial direction is mesh-local, so transform it exactly once before lighting.
   material.normalNode = transformNormalToView(pose.direction);
+  let palaeoAppearanceMix: UniformNode<"float", number> | null = null;
   if (display.baseColor.kind === "uniform") {
     const [r, g, b] = display.baseColor.value;
     const dim = caoFoundationAppearanceDim(appearance);
-    material.colorNode = vec3(r * dim, g * dim, b * dim);
+    const nativeColor = vec3(r * dim, g * dim, b * dim);
+    if (palaeoAppearance === appearance) {
+      material.colorNode = nativeColor;
+    } else {
+      // The batch's own package colour answers for its declared appearance; the
+      // other appearance has no package colour on this batch, so it takes the
+      // compiled default for that class — the same triple the palaeo compiler
+      // emits — and the two levels read as one.
+      const [pr, pg, pb] = CAO_FOUNDATION_DEFAULT_BASE_COLORS[palaeoAppearance];
+      const palaeoDim = caoFoundationAppearanceDim(palaeoAppearance);
+      palaeoAppearanceMix = uniform(palaeoAppearanceMixValue, "float");
+      material.colorNode = mix(nativeColor,
+        vec3(pr * palaeoDim, pg * palaeoDim, pb * palaeoDim), palaeoAppearanceMix);
+    }
   } else {
     material.colorNode = attribute<"vec3">("color", "vec3");
   }
   return Object.freeze({ material, displayFraction: pose.displayFraction,
-    verticalExaggeration: pose.verticalExaggeration });
+    verticalExaggeration: pose.verticalExaggeration, palaeoAppearanceMix });
 }
 
 /**
@@ -1721,9 +1796,10 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
   }
 
   /**
-   * Suppresses native land where palaeo-coastline charts replace it. Every other
-   * class keeps its mode-independent visibility, so a hidden overlay layer is
-   * not resurrected by a mode change.
+   * Suppresses native land and the Cao 2024 crust shelf where the Cao 2017 map
+   * replaces them, and repaints the one class whose appearance depends on the
+   * mode. Every other class keeps its mode-independent visibility, so a hidden
+   * overlay layer is not resurrected by a mode change.
    */
   setPalaeoCoastlineMode(on: boolean): void {
     for (const child of this.group.children) {
@@ -1731,6 +1807,9 @@ class CaoFoundationPublicationResource implements OwnedPrototypeResources {
       if (surfaceClass === undefined) continue;
       const shell = caoFoundationSurfaceShell(surfaceClass);
       child.visible = on ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
+      const mix = child.userData.palaeoAppearanceMix as
+        UniformNode<"float", number> | null | undefined;
+      if (mix) mix.value = on ? 1 : 0;
     }
   }
 
@@ -2130,7 +2209,9 @@ function createPublicationResource(
         throw new Error("Cao display height would lift the surface through the country-line shell");
       }
       const graph = createCaoFoundationMaterial(paletteTexture, packed.width, display,
-        revision.display.fraction, verticalExaggeration, shellOffset, batch.appearance);
+        revision.display.fraction, verticalExaggeration, shellOffset, batch.appearance,
+        caoFoundationSurfaceClassAppearance(batch.surfaceClass, batch.appearance, "palaeo"),
+        palaeoCoastlineMode ? 1 : 0);
       materials.push(graph.material);
       displayFractions.push(graph.displayFraction);
       verticalExaggerations.push(graph.verticalExaggeration);
@@ -2147,6 +2228,9 @@ function createPublicationResource(
       // land, palaeo mountain, native land.
       mesh.renderOrder = shell.renderOrder;
       mesh.userData.surfaceClass = batch.surfaceClass;
+      // Held on the mesh the mode switch already walks, so no second registry
+      // can drift out of step with the group it repaints.
+      mesh.userData.palaeoAppearanceMix = graph.palaeoAppearanceMix;
       mesh.visible = palaeoCoastlineMode ? shell.visibleInPalaeoMode : shell.visibleInNativeMode;
       group.add(mesh);
     }

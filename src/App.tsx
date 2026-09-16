@@ -1040,12 +1040,16 @@ export default function App() {
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
   const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
-  // Whether any native land fill is on screen. The Cao 2017 band replaces it
-  // outright — `batch-land` and every land-appearance correction with it — so a
-  // "Land" swatch there would name a colour the globe is not drawing. The
-  // fallback ages and the detached LGM band still draw today's land, and keep
-  // the row.
-  const nativeLandDrawn = !(palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached);
+  // The Cao 2017 band, on screen: the globe draws exactly five levels there —
+  // the deep-sea sphere, mapped shallow sea, mapped land, mapped mountain and
+  // the country outlines. Every native Cao 2024 fill is replaced outright:
+  // `batch-land` and its land-appearance corrections, and the crust shelf with
+  // them. A "Land" or "Blue shelf" swatch there would name a colour the globe
+  // is not drawing. The fallback ages and the detached LGM band still draw
+  // today's composition, and keep both rows.
+  const caoPalaeoBandDrawn = palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached;
+  const nativeLandDrawn = !caoPalaeoBandDrawn;
+  const nativeShelfDrawn = !caoPalaeoBandDrawn;
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
   const renderedEvidence = palaeoModeActive && !palaeoFallback
@@ -1561,9 +1565,14 @@ export default function App() {
               {palaeoClassInKey("m") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-mountain" aria-hidden="true" /><span><strong>Palaeo mountain</strong>Cao et al. 2017 mountain polygons, drawn over palaeo land</span></li>
               )}
-              <li><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
-                ? "Cao 2024 continental crust, depth unmapped"
-                : "Continental shelf context; ancient water depth unknown"}</span></li>
+              {caoPalaeoBandDrawn && (
+                <li data-testid="map-key-restored-margin"><i className="surface-swatch surface-swatch-palaeo-shallow" aria-hidden="true" /><span><strong>Restored margin</strong>Pre-collision margin restored by the plate model and drawn as submerged margin in the shallow-sea color; model inference, not a mapped Cao 2017 polygon</span></li>
+              )}
+              {nativeShelfDrawn && (
+                <li data-testid="map-key-shelf"><i className="surface-swatch surface-swatch-shelf" aria-hidden="true" /><span><strong>Blue shelf</strong>{palaeoKeyVisible
+                  ? "Cao 2024 continental crust, depth unmapped"
+                  : "Continental shelf context; ancient water depth unknown"}</span></li>
+              )}
             </ul>
             {palaeoKeyVisible && (
               <div className="surface-palaeo-key" data-testid="palaeo-map-key" data-fallback={String(palaeoFallback)}>
@@ -1578,6 +1587,11 @@ export default function App() {
                     and central North Sea, the Sunda shelf and Beringia only. It is drawn beside
                     today&rsquo;s land, which stays visible: every other coastline at this age is the
                     present-day one.</p>
+                )}
+                {caoPalaeoBandDrawn && (
+                  <p className="surface-info-note" data-testid="palaeo-deep-sea-note">Ground the Cao
+                    2017 map does not map is drawn as deep sea: the globe itself. The Cao 2024 crust
+                    extent is not drawn at this age.</p>
                 )}
                 {palaeoFallback && (
                   <p className="surface-info-note" role="status" data-testid="palaeo-fallback-notice">

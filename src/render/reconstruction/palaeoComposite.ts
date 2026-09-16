@@ -15,15 +15,19 @@ import type { Vec3Tuple } from "./bounds";
 
 /**
  * Composite coverage and picking over the two surface instances the palaeo
- * mode runs: the native Cao 2024 stack (shelf, restored margins and — mode off
- * — native land with its land-appearance corrections) and the palaeo stack
- * (Cao 2017 land, shallow marine and mountain charts). Both answer against one
- * precedence table, so `correction-shelf` ranks under a mapped shallow sea no
- * matter which instance drew it.
+ * mode runs: the native Cao 2024 stack (restored margins, and — mode off — the
+ * crust shelf and native land with its land-appearance corrections) and the
+ * palaeo stack (Cao 2017 land, shallow marine and mountain charts). Both answer
+ * against one precedence table, so `correction-shelf` ranks under a mapped
+ * shallow sea no matter which instance drew it.
  *
  * The palaeo mode hides every class drawn in native land's colour — `land` and
  * `corrections` alike — so the composite never answers "land" from a surface
- * the viewer cannot see, and guide-label ink, picking and pixels agree.
+ * the viewer cannot see, and guide-label ink, picking and pixels agree. It
+ * hides the Cao 2024 crust shelf for the same reason on the water side: the
+ * band draws five levels, the shelf is not one of them, and a pick that
+ * answered "shelf" over ground the viewer reads as deep sea would disagree
+ * with the pixels. The restored margins stay, drawn there as submerged margin.
  */
 
 export interface CaoCompositeOptions extends CaoFoundationCoverageOptions {
