@@ -925,6 +925,11 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   await expect(page.getByText("Palaeo shallow sea", { exact: true })).toBeVisible();
   await expect(page.getByText("Palaeo mountain", { exact: true })).toBeVisible();
 
+  // And no swatch for a colour the globe is not drawing: the Cao 2017 band
+  // hides native land and every land-appearance correction with it, so the
+  // "Land" row would name a tone nowhere on screen.
+  await expect(page.getByTestId("map-key-native-land")).toHaveCount(0);
+
   // Nothing in the key is left below the fold with no way to reach it: the
   // panel takes the height the stage leaves it, and scrolls the remainder.
   const panel = page.locator(".surface-info-panel");
@@ -937,9 +942,21 @@ test("names the Cao 2017 map interval and outline markers in the map key", async
   expect(metrics.clientHeight, "map key panel height at 1440x900").toBeGreaterThan(440);
   const last = page.getByText(/Outline tone is a legibility device, not evidence/);
   await last.scrollIntoViewIfNeeded();
-  const lastBox = (await last.boundingBox())!;
-  const panelBox = (await panel.boundingBox())!;
-  expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(panelBox.y + panelBox.height + 1);
+  // Both rectangles are read in one evaluate rather than through two
+  // `boundingBox()` calls. `boundingBox` waits for the element to hold still
+  // across two frames, and the panel does not: the key's own scroll position
+  // settles a frame behind `scrollIntoViewIfNeeded`, which left the call
+  // waiting out the whole test timeout on an element it had already resolved.
+  const rects = await panel.evaluate((element, text: string) => {
+    const target = [...element.querySelectorAll("*")].find((node) =>
+      node.textContent?.includes(text) && node.children.length === 0);
+    if (!target) throw new Error("the map key's last line is not in the panel");
+    const panelRect = element.getBoundingClientRect();
+    const lastRect = target.getBoundingClientRect();
+    return { panelBottom: panelRect.y + panelRect.height,
+      lastBottom: lastRect.y + lastRect.height };
+  }, "Outline tone is a legibility device");
+  expect(rects.lastBottom).toBeLessThanOrEqual(rects.panelBottom + 1);
 });
 
 test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ page }) => {
@@ -948,6 +965,8 @@ test("shows the palaeo fallback notice where no Cao 2017 map exists", async ({ p
   await openSurfaceInfo(page);
   await expect(page.getByTestId("palaeo-fallback-notice"))
     .toHaveText("No palaeogeography evidence at this age; showing the Cao 2024 coast proxy");
+  // A fallback age still draws today's land, so the key still names its colour.
+  await expect(page.getByTestId("map-key-native-land")).toHaveCount(1);
   await expect(globe(page)).toHaveAttribute("data-cao-palaeo-coastline-mode", "fallback");
   await expect(globe(page)).toHaveAttribute("data-cao-outline-tone-interval-id", "");
   // The live wiring reports what is drawn, not what the age asks for. In a
@@ -1118,13 +1137,23 @@ async function probeClass(page: Page, longitude: number, latitude: number) {
 // the draw order; this asserts the pixels they produce.
 for (const site of [
   { id: "mountain over land", age: 90, at: "68.61,-32.34", probe: [85, 29] as const,
-    expected: "palaeo-mountain",
+    expected: "palaeo-mountain", nativeLandRow: 0,
     why: "Tethyan Himalaya: the mountain class drawn over the land class" },
-  { id: "land over shallow sea", age: 170, at: "23.48,41.98", probe: [-4, 57] as const,
-    expected: "palaeo-land",
+  // Re-aimed when the Cao 2017 band stopped drawing land-appearance
+  // corrections. The old aim, 23.48,41.98, framed ground the qualified material
+  // masks had filled with native land tone; with them hidden the closest zoom
+  // there is shallow sea edge to edge, the frame carries zero land-like pixels
+  // and the measurement has nothing to read. This aim is a palaeo-land sample
+  // whose neighbourhood is balanced at the *closest* zoom rather than at the
+  // orbital one - the window that matters, since six wheel steps magnify a
+  // 25-degree orbital neighbourhood far past the screen. Found by sweeping the
+  // pixel probe at a 3-degree window and then measuring the zoomed frame:
+  // 188,122 warm against 490,810 cold pixels, both far clear of the floors.
+  { id: "land over shallow sea", age: 170, at: "17.13,52.12", probe: [-4, 57] as const,
+    expected: "palaeo-land", nativeLandRow: 0,
     why: "the Scottish Middle Jurassic landmass inside the North Sea shallow sea" },
   { id: "LGM shelf over shallow sea", age: 0.021, at: "3,57", probe: [3, 57] as const,
-    expected: "palaeo-land",
+    expected: "palaeo-land", nativeLandRow: 1,
     why: "the exposed central North Sea shelf at the lowstand" },
 ]) {
   test(`draws no lower class inside the higher one: ${site.id}`, async ({ page }) => {
@@ -1147,8 +1176,220 @@ for (const site of [
     expect(census.longestRun,
       `${site.id}: ${census.isolated} isolated cold pixels, longest run ${census.longestRun}`)
       .toBeLessThanOrEqual(12);
+
+    // The key names only colours the globe is drawing. The Cao 2017 band hides
+    // native land and every land-appearance correction with it, so the "Land"
+    // row goes; the detached LGM band draws today's land under its exposed
+    // shelf and keeps it.
+    await openSurfaceInfo(page);
+    await expect(page.getByTestId("map-key-native-land")).toHaveCount(site.nativeLandRow);
   });
 }
+
+/**
+ * Every pixel of the globe canvas the scene's own composite answers for, keyed
+ * by surface class, with the rendered tone each class carries.
+ *
+ * Ground truth is the composite pick — the same visibility table the meshes
+ * read — and the tone is the 3x3 per-channel median around the probed pixel, so
+ * a coastline pixel or an antialiasing pixel cannot move a class's answer. The
+ * palaeo tone census above samples one belt through three lighting bands to
+ * compare two classes; this one sweeps a whole frame to ask a different
+ * question: *is anything drawn here at all* in a class that should not be.
+ */
+async function drawnClassCensus(page: Page, stepCssPx: number) {
+  const screenshot = (await globe(page).screenshot()).toString("base64");
+  const box = await globe(page).boundingBox();
+  if (box === null) throw new Error("the globe canvas has no box to census");
+  return page.evaluate(async ([base64, left, top, width, height, step]) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const surface = document.createElement("canvas");
+    surface.width = bitmap.width;
+    surface.height = bitmap.height;
+    const context = surface.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("drawn-class census canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const scaleX = bitmap.width / width;
+    const scaleY = bitmap.height / height;
+    const median = (values: number[]) =>
+      values.sort((left2, right) => left2 - right)[Math.floor(values.length / 2)]!;
+    const collected = new Map<string, { channels: number[][];
+      samples: { tone: [number, number, number]; cosLight: number; spread: number }[] }>();
+    for (let y = step / 2; y < height; y += step) {
+      for (let x = step / 2; x < width; x += step) {
+        // The application chrome is photographed with the canvas; a pixel the
+        // pointer could not reach is a pixel the census must not read.
+        const topmost = document.elementFromPoint(left + x, top + y);
+        if (topmost === null || topmost.tagName !== "CANVAS") continue;
+        const px = Math.round(x * scaleX);
+        const py = Math.round(y * scaleY);
+        if (px < 1 || py < 1 || px >= bitmap.width - 1 || py >= bitmap.height - 1) continue;
+        const centre = (py * bitmap.width + px) * 4;
+        if (Math.max(pixels[centre]!, pixels[centre + 1]!, pixels[centre + 2]!) < 14) continue;
+        const hit = window.__earthHistoryPixelSurfaceProbe?.(x, y) ?? null;
+        if (hit === null) continue;
+        const patch: number[][] = [[], [], []];
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            const offset = ((py + dy) * bitmap.width + (px + dx)) * 4;
+            for (let channel = 0; channel < 3; channel += 1) patch[channel]!.push(pixels[offset + channel]!);
+          }
+        }
+        const tone: [number, number, number] =
+          [median(patch[0]!), median(patch[1]!), median(patch[2]!)];
+        // How uniform the 3x3 patch is. A probe that lands on a coastline has a
+        // median tone belonging to neither side of it, so the tone census below
+        // reads only patches that are all one colour.
+        const spread = Math.max(...patch.map((channel) =>
+          Math.max(...channel) - Math.min(...channel)));
+        if (!collected.has(hit.surfaceClass)) {
+          collected.set(hit.surfaceClass, { channels: [[], [], []], samples: [] });
+        }
+        const target = collected.get(hit.surfaceClass)!;
+        for (let channel = 0; channel < 3; channel += 1) target.channels[channel]!.push(tone[channel]!);
+        target.samples.push({ tone, cosLight: hit.cosLight, spread });
+      }
+    }
+    bitmap.close();
+    const census: Record<string, { count: number; rgb: [number, number, number] }> = {};
+    const samples: { surfaceClass: string; tone: [number, number, number];
+      cosLight: number; spread: number }[] = [];
+    for (const [surfaceClass, entry] of collected) {
+      census[surfaceClass] = {
+        count: entry.samples.length,
+        rgb: [median(entry.channels[0]!), median(entry.channels[1]!), median(entry.channels[2]!)],
+      };
+      for (const sample of entry.samples) samples.push({ surfaceClass, ...sample });
+    }
+    return { census, samples };
+  }, [screenshot, box.x, box.y, box.width, box.height, stepCssPx] as const);
+}
+
+/**
+ * No native land fill is drawn anywhere while the Cao 2017 map is on screen.
+ *
+ * The user-visible defect: a country outline always encloses a fill, and with
+ * realistic coastlines on the globe showed two land tones side by side inside
+ * one outline. The cause was the land-appearance correction batches — lake-void
+ * infill, regional material corrections, observed-land patches — which carry
+ * *native land's own colour* and kept drawing above palaeo-shallow-marine in
+ * the Cao 2017 band. Hiding `batch-land` alone was never enough.
+ *
+ * The site is the Western Interior Seaway at 90 Ma, which is exactly the ground
+ * where a North American land correction sits inside a mapped shallow sea, at
+ * the closest zoom the review captures use.
+ *
+ * Two independent measurements, because either alone could pass for the wrong
+ * reason. The class census asks the scene's own composite what is drawn under
+ * every sampled pixel: no pixel may answer `land` or `corrections`. The tone
+ * census asks the *photograph* whether any pixel carries the native-land olive
+ * rather than the Cao 2017 land olive, using the native tone measured in the
+ * same view with the layer off — so it cannot drift with a colour change.
+ */
+test("draws no native land fill while realistic coastlines are on", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // The reference tone, measured rather than hardcoded: the same ground, the
+  // same framing, the same lighting, with the palaeo layer off.
+  // A distinct query string on each visit, because the two differ only in the
+  // hash and a hash-only navigation would leave the first frame on screen while
+  // the census believed the layer had changed.
+  await page.goto("./?fill=native#age=90&layers=borders,guides&at=-100,45");
+  await waitForCao(page);
+  const native = await drawnClassCensus(page, PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX);
+  const nativeLandTone = native.census["land"]?.rgb;
+  expect(nativeLandTone, "the layer-off frame must draw native land to measure its tone")
+    .toBeDefined();
+  // The same frame with the layer off is also what proves the site is worth
+  // measuring: it has to carry land-appearance corrections, or the census
+  // could not see the defect even if it were still there.
+  expect(native.census["corrections"]?.count ?? 0,
+    "no land-appearance correction is in frame, so the census cannot fail").toBeGreaterThan(20);
+  console.log(`native fill census (layer off): ${JSON.stringify(native.census)}`);
+
+  await page.goto("./?fill=palaeo#age=90&layers=borders,guides,palaeoCoastlines&at=-100,45");
+  await waitForCao(page);
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-coastline-mode"),
+    { timeout: 30_000 }).toBe("on");
+  const palaeo = await drawnClassCensus(page, PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX);
+  console.log(`native fill census (layer on): ${JSON.stringify(palaeo.census)}`);
+
+  // The frame must actually show the mapped field, or both measurements below
+  // are vacuous.
+  const water = ["palaeo-shallow-marine", "shelf", "correction-shelf"];
+  const waterDrawn = water.reduce((total, key) => total + (palaeo.census[key]?.count ?? 0), 0);
+  expect(waterDrawn, "no Cao 2017 water in frame").toBeGreaterThan(1_000);
+  expect(palaeo.census["palaeo-land"]?.count ?? 0, "no Cao 2017 land in frame")
+    .toBeGreaterThan(1_000);
+
+  // Measurement one: the composite draws and picks nothing in a land-coloured
+  // native class. `corrections` is the batch class the defect left visible.
+  // Soft, so one run reports both measurements rather than stopping at the
+  // first: the two answer different questions and a reader needs both numbers.
+  expect.soft(palaeo.census["land"]?.count ?? 0, "native coast fill drawn in the Cao 2017 band")
+    .toBe(0);
+  expect.soft(palaeo.census["corrections"]?.count ?? 0,
+    "a land-appearance correction drawn in the Cao 2017 band").toBe(0);
+
+  // Measurement two: the pixels themselves, because the pick and the draw could
+  // in principle disagree. The native land olive is not one tone but a curve
+  // through the lighting, and the Cao 2017 land olive crosses it — the same
+  // olive at a brighter angle, 24/255 away at this site — so a lighting-blind
+  // tone test cannot separate the two. Bin by `cosLight` instead, take each
+  // bin's native tone from the layer-off frame, and hold the radius inside that
+  // 24 so a Cao 2017 landmass can never be charged as a native one. The classes
+  // that are *meant* to be olive are excluded outright; anything else carrying
+  // the native tone is native land drawn where the mode says it is not.
+  const bin = (cosLight: number) => Math.round(cosLight * 10);
+  const median = (values: number[]) =>
+    values.sort((left, right) => left - right)[Math.floor(values.length / 2)]!;
+  const nativeByBin = new Map<number, [number, number, number]>();
+  const nativeBins = new Map<number, number[][]>();
+  for (const sample of native.samples) {
+    if (sample.surfaceClass !== "land" && sample.surfaceClass !== "corrections") continue;
+    if (sample.spread > PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD) continue;
+    const key = bin(sample.cosLight);
+    if (!nativeBins.has(key)) nativeBins.set(key, [[], [], []]);
+    const channels = nativeBins.get(key)!;
+    for (let channel = 0; channel < 3; channel += 1) channels[channel]!.push(sample.tone[channel]!);
+  }
+  for (const [key, channels] of nativeBins) {
+    // A bin with a handful of samples is coastline and antialiasing, not a tone.
+    if (channels[0]!.length < 20) continue;
+    nativeByBin.set(key, [median(channels[0]!), median(channels[1]!), median(channels[2]!)]);
+  }
+  expect(nativeByBin.size, "no native land tone was measurable in the layer-off frame")
+    .toBeGreaterThan(0);
+  console.log(`native land tone by cosLight bin: ${JSON.stringify([...nativeByBin])}`);
+
+  const palaeoOlive = ["palaeo-land", "palaeo-mountain"];
+  let measured = 0;
+  const landToned: Record<string, number> = {};
+  for (const sample of palaeo.samples) {
+    if (palaeoOlive.includes(sample.surfaceClass)) continue;
+    if (sample.spread > PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD) continue;
+    const reference = nativeByBin.get(bin(sample.cosLight));
+    if (reference === undefined) continue;
+    measured += 1;
+    const distance = Math.hypot(sample.tone[0]! - reference[0]!,
+      sample.tone[1]! - reference[1]!, sample.tone[2]! - reference[2]!);
+    if (distance <= PALAEO_NATIVE_FILL_TONE_RADIUS) {
+      landToned[sample.surfaceClass] = (landToned[sample.surfaceClass] ?? 0) + 1;
+    }
+  }
+  const landTonedTotal = Object.values(landToned).reduce((total, count) => total + count, 0);
+  console.log(`native-land-toned pixels: ${landTonedTotal} of ${measured} measured`
+    + ` ${JSON.stringify(landToned)}`);
+  // The census has to be able to see the defect before its zero means anything.
+  expect(measured, "no measured pixel shared a lighting bin with the native tone")
+    .toBeGreaterThan(1_000);
+  expect(landTonedTotal,
+    `pixels carrying the native land olive: ${JSON.stringify(landToned)}`).toBe(0);
+});
 
 test("reaches the LGM interval after a long scrub through the Cao band", async ({ page }) => {
   // One page, many intervals. The defect this covers only appeared after a dozen
@@ -1443,6 +1684,43 @@ const PALAEO_TONE_CENSUS_CAMERA_DISTANCE = 5.6;
 
 /** Probe grid pitch in CSS pixels; the globe is about 410 px across at 5.6. */
 const PALAEO_TONE_CENSUS_STEP_CSS_PX = 10;
+
+/**
+ * Probe grid pitch for the whole-frame native-fill census.
+ *
+ * It sweeps the full 1440x900 canvas at the closest zoom rather than one belt,
+ * and each probe is a CPU ray walk against every chart, so the pitch buys
+ * runtime back. At 12 px it still takes about 8,000 samples across the frame -
+ * dense enough that a correction patch the size of a lake cannot hide between
+ * two probes.
+ */
+const PALAEO_NATIVE_FILL_CENSUS_STEP_CSS_PX = 12;
+
+/**
+ * How near a water pixel's tone must come to the native land tone measured at
+ * the same lighting before it is charged as native land showing through, in
+ * 8-bit RGB distance.
+ *
+ * The mapped shallow sea renders around 116,186,182 against a native land tone
+ * of 201,206,169 at this site - 89 apart - so the radius has a wide gap to sit
+ * in on that side. The tight side is the Cao 2017 land olive at 214,214,188,
+ * only 24 away: the radius has to stay inside that or a mapped landmass would
+ * be charged as a native one, and wide enough to clear the few units a 3x3
+ * median still leaves so a correction patch cannot slip under it by a shade.
+ */
+const PALAEO_NATIVE_FILL_TONE_RADIUS = 20;
+
+/**
+ * The most a probe's 3x3 patch may vary, per channel, before the census
+ * declines to read its tone at all.
+ *
+ * A probe that lands on a coastline photographs both sides of it, and its
+ * median belongs to neither - which put a handful of sea pixels inside the land
+ * radius for no better reason than where the grid fell. A fill is flat, so
+ * requiring a flat patch keeps the measurement on ground that is actually one
+ * colour and costs nothing a real fill would have.
+ */
+const PALAEO_NATIVE_FILL_TONE_UNIFORM_SPREAD = 10;
 
 /**
  * The dark country-outline/label ink, as the sRGB bytes it is authored in.

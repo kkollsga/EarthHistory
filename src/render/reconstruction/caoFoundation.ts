@@ -165,12 +165,15 @@ export function caoFoundationBatchAppearance(
  *
  * A correction batch declares one of two appearances and each gets its own
  * class. `land` is the historic one: cited or inferred ground, on the 800 m
- * correction shell above native land's own fill. `shelf` is the restored
- * pre-collision margin: crust of unmapped depth that must not read as cited
- * land, so it keeps the shelf's colour and sits below palaeo-shallow-marine,
- * at crust level. It is a separate class from the native shelf because the
- * native shelf writes depth on the 400 m shell and a coplanar second surface
- * there would interleave with it.
+ * correction shell above native land's own fill — and hidden with native land
+ * whenever the Cao 2017 map replaces it, because it is drawn in native land's
+ * colour and would otherwise be a second land tone over a mapped sea. `shelf`
+ * is the restored pre-collision margin: crust of unmapped depth that must not
+ * read as cited land, so it keeps the shelf's colour and sits below
+ * palaeo-shallow-marine, at crust level, and stays drawn in both modes. It is
+ * a separate class from the native shelf because the native shelf writes depth
+ * on the 400 m shell and a coplanar second surface there would interleave with
+ * it.
  */
 export type CaoFoundationSurfaceClass =
   CaoFoundationBatchAppearance | "corrections" | "correction-shelf";
@@ -220,10 +223,11 @@ export interface CaoFoundationSurfaceShell {
  *
  * That exemption is what makes the plan's candidate shells work. Shallow 700
  * between shelf 400 and corrections 800 leaves only 400 m for two sag
- * clearances, and 400 + 2 * 242.59 = 885.18 > 800: the pair cannot be separated
- * geometrically at all. It is separated by policy instead — palaeo-shallow-
- * marine does not write depth, exactly as corrections do not — and the one
- * depth-writing class below it, the shelf, is still cleared by 457.41 m.
+ * clearances, and 400 + 2 * 242.59 = 885.18 > 800: the pair could not be
+ * separated geometrically at all. They are never drawn together — corrections
+ * are hidden wherever palaeo-shallow-marine is drawn — and the one
+ * depth-writing class below the shallow shell, the shelf, is still cleared by
+ * 457.41 m.
  * Raising the correction shell or lowering the shelf shell instead would move a
  * native constant that the present-day globe, its picking bounds and its
  * goldens are already built on.
@@ -231,7 +235,8 @@ export interface CaoFoundationSurfaceShell {
  * `correction-shelf` — restored pre-collision margin crust — takes the same
  * exemption twice, and for the same reason. It shares the 700 m shell with
  * palaeo-shallow-marine and writes no depth, so the shallow-marine class paints
- * over it in draw order, and it in turn is painted over by corrections at 800.
+ * over it in draw order in the palaeo mode, and it is painted over by
+ * corrections at 800 in the native mode.
  * It is not placed on the native shelf's 400 m shell, where it would be a
  * second depth-writing surface coplanar with the shelf and interleave with it.
  */
@@ -249,9 +254,16 @@ export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[]
   Object.freeze({ surfaceClass: "palaeo-shallow-marine" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_SHALLOW_MARINE_SHELL_OFFSET_METRES,
     renderOrder: 1.2, writesDepth: false, visibleInNativeMode: false, visibleInPalaeoMode: true }),
+  // Land-appearance corrections — lake-void infill, regional material
+  // corrections, observed-land patches — carry native land's own fill colour,
+  // so leaving them drawn while the Cao 2017 map replaces native land put a
+  // second land tone over the mapped shallow seas. They are hidden with
+  // `land` in the palaeo mode for exactly that reason; the `lgm` band keeps
+  // them, because it runs the native mode and there they are today's observed
+  // ground, which is what that band claims.
   Object.freeze({ surfaceClass: "corrections" as const,
     shellOffsetMetres: CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
-    renderOrder: 1.5, writesDepth: false, visibleInNativeMode: true, visibleInPalaeoMode: true }),
+    renderOrder: 1.5, writesDepth: false, visibleInNativeMode: true, visibleInPalaeoMode: false }),
   Object.freeze({ surfaceClass: "palaeo-land" as const,
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_LAND_SHELL_OFFSET_METRES,
     renderOrder: 1.7, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
@@ -259,8 +271,9 @@ export const CAO_FOUNDATION_SURFACE_SHELLS: readonly CaoFoundationSurfaceShell[]
     shellOffsetMetres: CAO_FOUNDATION_PALAEO_MOUNTAIN_SHELL_OFFSET_METRES,
     renderOrder: 1.8, writesDepth: true, visibleInNativeMode: false, visibleInPalaeoMode: true }),
   // Native land keeps the top rank it has always had, and is hidden outright
-  // while the palaeo-coastline mode is on; nothing else would keep a Cao 2024
-  // coast fill over the Cao 2017 map polygons that replace it.
+  // while the palaeo-coastline mode is on, together with every land-appearance
+  // correction above; nothing else would keep a Cao 2024 coast fill over the
+  // Cao 2017 map polygons that replace it.
   Object.freeze({ surfaceClass: "land" as const,
     shellOffsetMetres: CAO_FOUNDATION_LAND_SHELL_OFFSET_METRES,
     renderOrder: 2, writesDepth: true, visibleInNativeMode: true, visibleInPalaeoMode: false }),

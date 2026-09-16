@@ -15,10 +15,15 @@ import type { Vec3Tuple } from "./bounds";
 
 /**
  * Composite coverage and picking over the two surface instances the palaeo
- * mode runs: the native Cao 2024 stack (shelf, corrections and — mode off —
- * native land) and the palaeo stack (Cao 2017 land, shallow marine and
- * mountain charts). Both answer against one precedence table, so a correction
- * outranks a shallow sea no matter which instance drew it.
+ * mode runs: the native Cao 2024 stack (shelf, restored margins and — mode off
+ * — native land with its land-appearance corrections) and the palaeo stack
+ * (Cao 2017 land, shallow marine and mountain charts). Both answer against one
+ * precedence table, so `correction-shelf` ranks under a mapped shallow sea no
+ * matter which instance drew it.
+ *
+ * The palaeo mode hides every class drawn in native land's colour — `land` and
+ * `corrections` alike — so the composite never answers "land" from a surface
+ * the viewer cannot see, and guide-label ink, picking and pixels agree.
  */
 
 export interface CaoCompositeOptions extends CaoFoundationCoverageOptions {
@@ -44,10 +49,10 @@ function selectionFor(
 ): readonly CaoFoundationSurfaceClass[] {
   const selected = caoFoundationSurfaceClassSelection(options);
   // Mode visibility is the composite's own filter: the native instance still
-  // holds `batch-land`, and answering "covered" from a surface the mode hides
-  // would put dark label ink over a sea the viewer can see. A class the palaeo
-  // instance draws is visible whenever that instance is, whatever the native
-  // instance is doing.
+  // holds `batch-land` and every land-appearance correction, and answering
+  // "covered" from a surface the mode hides would put dark label ink over a sea
+  // the viewer can see. A class the palaeo instance draws is visible whenever
+  // that instance is, whatever the native instance is doing.
   return CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
     selected.has(surfaceClass)
     && (caoFoundationSurfaceClassVisible(surfaceClass, mode)
@@ -243,15 +248,17 @@ export interface CaoPalaeoModeState {
   readonly palaeoDrawn: boolean;
   /**
    * The stack the native instance draws and answers picks from. It is the
-   * effective mode, never the layer flag: `batch-land` may only be hidden while
-   * palaeo charts are drawn over it, or a fallback age — 0 Ma, 500 Ma — would
-   * lose today's land and leave bare shelf behind.
+   * effective mode, never the layer flag: native land — `batch-land` and every
+   * land-appearance correction with it — may only be hidden while palaeo charts
+   * are drawn over it, or a fallback age — 0 Ma, 500 Ma — would lose today's
+   * land and leave bare shelf behind.
    *
    * It stays `native` in the `lgm` band even with palaeo charts drawn. The LGM
    * state is a regional lowstand over three footprints, not a global
    * palaeogeography: hiding today's land there would blank every coastline on
    * Earth to show a little exposed shelf in the North Sea, the Sunda shelf and
-   * Beringia. The LGM land shell sits 500 m above the native land shell, so it
+   * Beringia. The land-appearance corrections stay with it, and correctly so —
+   * at 21 ka they are today's observed ground. The LGM land shell sits 500 m above the native land shell, so it
    * draws on top of the land it adds to.
    */
   readonly nativeSurfaceMode: CaoFoundationSurfaceMode;

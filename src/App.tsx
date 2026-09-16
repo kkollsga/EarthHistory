@@ -1039,6 +1039,12 @@ export default function App() {
     && (palaeoInterval === null || palaeoEvidence.unavailableReason !== null);
   const palaeoEdited = palaeoEvidence.editedChartIds.length > 0;
   const palaeoIntervalDetached = palaeoIntervalIsDetached(palaeoInterval);
+  // Whether any native land fill is on screen. The Cao 2017 band replaces it
+  // outright — `batch-land` and every land-appearance correction with it — so a
+  // "Land" swatch there would name a colour the globe is not drawing. The
+  // fallback ages and the detached LGM band still draw today's land, and keep
+  // the row.
+  const nativeLandDrawn = !(palaeoModeActive && !palaeoFallback && !palaeoIntervalDetached);
   // The mapped polygons are the dominant claim once the mode is on, so the
   // rendered-view badge follows the map interval rather than the Cao 2024 pose.
   const renderedEvidence = palaeoModeActive && !palaeoFallback
@@ -1535,7 +1541,9 @@ export default function App() {
             </div>
             <p className="surface-info-note">Land uses one display color. Evidence categories are listed separately.</p>
             <ul className="surface-color-key">
-              <li><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+              {nativeLandDrawn && (
+                <li data-testid="map-key-native-land"><i className="surface-swatch surface-swatch-land" aria-hidden="true" /><span><strong>Land</strong>Reconstructed land and material overlays share this color</span></li>
+              )}
               {palaeoClassInKey("lm") && (
                 <li><i className="surface-swatch surface-swatch-palaeo-land" aria-hidden="true" /><span><strong>Palaeo land</strong>Cao et al. 2017 landmass polygons for the active map interval</span></li>
               )}

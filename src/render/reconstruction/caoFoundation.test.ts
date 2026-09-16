@@ -1398,14 +1398,17 @@ describe("Cao foundation renderer boundary", () => {
         exempt.push(`${lower.surfaceClass}>${upper.surfaceClass}`);
       }
     }
-    // Exactly four pairs are exempt, and all four are exempt for the same
+    // Exactly three pairs are exempt, and all three are exempt for the same
     // reason: the lower class of the pair writes no depth, so the class above it
     // simply paints over it in draw order. Two of them are the restored
     // pre-collision margin class, which shares the 700 m shell with
-    // palaeo-shallow-marine and sits under the 800 m correction shell.
+    // palaeo-shallow-marine in the palaeo mode and sits under the 800 m
+    // correction shell in the native one. `palaeo-shallow-marine>corrections`
+    // is gone from this list because the two are never drawn together: every
+    // land-appearance correction is hidden with native land in the palaeo mode.
     expect([...new Set(exempt)].sort()).toEqual([
       "correction-shelf>corrections", "correction-shelf>palaeo-shallow-marine",
-      "corrections>land", "palaeo-shallow-marine>corrections"]);
+      "corrections>land"]);
     // Every depth-writing class is cleared by whatever is drawn above it.
     for (const upper of CAO_FOUNDATION_SURFACE_SHELLS) {
       for (const lower of CAO_FOUNDATION_SURFACE_SHELLS) {
@@ -1465,21 +1468,32 @@ describe("Cao foundation renderer boundary", () => {
     }
   });
 
-  it("hides native land only in the effective palaeo mode", () => {
+  it("hides every native land fill in the effective palaeo mode", () => {
     // The visibility set per {layer flag, effective mode}. `fallback` is the one
-    // the defect got wrong: the layer is on, the palaeo instance draws nothing,
-    // and native land must stay exactly where the layer-off composition has it.
+    // the first defect got wrong: the layer is on, the palaeo instance draws
+    // nothing, and native land must stay exactly where the layer-off
+    // composition has it.
     const visibleClasses = (mode: "native" | "palaeo") =>
       CAO_FOUNDATION_SURFACE_PRECEDENCE.filter((surfaceClass) =>
         caoFoundationSurfaceClassVisible(surfaceClass, mode));
-    // The restored pre-collision margin class is visible in both modes: it is a
-    // correction like any other, and hiding it in the native mode would make the
-    // globe disagree with itself at the same age with the layer off.
+    // The restored pre-collision margin class is visible in both modes: it
+    // carries the shelf's colour and crust's rank, so it never reads as a
+    // second land tone, and hiding it in the native mode would make the globe
+    // disagree with itself at the same age with the layer off.
     const todaysComposition = ["shelf", "correction-shelf", "corrections", "land"];
     expect(visibleClasses("native")).toEqual(todaysComposition);
+    // The second defect: `corrections` is drawn in native land's own colour, so
+    // leaving it visible here put a second land tone over the Cao 2017 shallow
+    // seas — the doubled polygons the user reported. No class drawn in the land
+    // colour survives into the palaeo mode.
     expect(visibleClasses("palaeo")).toEqual(
-      ["shelf", "correction-shelf", "palaeo-shallow-marine", "corrections",
+      ["shelf", "correction-shelf", "palaeo-shallow-marine",
         "palaeo-land", "palaeo-mountain"]);
+    for (const landColoured of ["land", "corrections"] as const) {
+      expect(caoFoundationSurfaceClassVisible(landColoured, "palaeo"),
+        `${landColoured} must not draw while the Cao 2017 map replaces native land`).toBe(false);
+      expect(caoFoundationSurfaceClassVisible(landColoured, "native")).toBe(true);
+    }
 
     const cases = [
       { layerOn: false, insideDomain: false, domainVisible: false, published: false, mode: "off" },
@@ -1498,8 +1512,18 @@ describe("Cao foundation renderer boundary", () => {
       const classes = visibleClasses(state.nativeSurfaceMode);
       expect(classes.includes("land"), `native land in mode ${state.mode}`)
         .toBe(probe.mode !== "on");
+      expect(classes.includes("corrections"), `land corrections in mode ${state.mode}`)
+        .toBe(probe.mode !== "on");
       if (probe.mode !== "on") expect(classes).toEqual(todaysComposition);
     }
+
+    // The `lgm` band runs the native mode, so the land-appearance corrections
+    // stay drawn there: at 21 ka they are today's observed land and lake infill
+    // beside the exposed shelf, not a claim the Cao 2017 map is replacing.
+    const lgm = caoPalaeoModeState({ layerEnabled: true, band: "lgm", visibleBand: "lgm",
+      published: true });
+    expect(lgm.nativeSurfaceMode).toBe("native");
+    expect(visibleClasses(lgm.nativeSurfaceMode)).toEqual(todaysComposition);
   });
 
   it("draws and picks the palaeo stack in precedence order with native land hidden", () => {
@@ -1527,13 +1551,16 @@ describe("Cao foundation renderer boundary", () => {
 
     const palaeoDiagnostics = surface.setPalaeoCoastlineMode(true);
     expect(palaeoDiagnostics.palaeoCoastlineMode).toBe(true);
-    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine", "corrections",
+    // Neither `land` nor `corrections` draws: both carry native land's fill
+    // colour, and a second land tone over a Cao 2017 shallow sea is the
+    // doubled polygon the mode exists to remove.
+    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine",
       "palaeo-land", "palaeo-mountain"]);
-    expect(palaeoDiagnostics.drawCount).toBe(5);
+    expect(palaeoDiagnostics.drawCount).toBe(4);
     surface.setPalaeoCoastlineMode(false);
     expect(visibleClasses()).toEqual(["shelf", "corrections", "land"]);
     surface.setLayerVisibility({ borders: true, tectonics: true, palaeoCoastlines: true });
-    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine", "corrections",
+    expect(visibleClasses()).toEqual(["shelf", "palaeo-shallow-marine",
       "palaeo-land", "palaeo-mountain"]);
 
     const resource = createCaoFoundationGeometryResource(revision, palaeoLimits);
@@ -1546,11 +1573,12 @@ describe("Cao foundation renderer boundary", () => {
     expect(pick([1, 1, 1, 1, 1, 1], "native")).toBe("land");
     expect(pick([1, 1, 1, 1, 1, 0], "native")).toBe("corrections");
     expect(pick([1, 1, 0, 1, 1, 0], "native")).toBe("shelf");
-    // Palaeo mode: native land is hidden and the palaeo classes rank above and
-    // below the corrections exactly as they are drawn.
+    // Palaeo mode: every land-coloured native class is hidden, so a correction
+    // can no longer be picked over a mapped shallow sea and the pick agrees
+    // with the pixels.
     expect(pick([1, 1, 1, 1, 1, 1], "palaeo")).toBe("palaeo-mountain");
     expect(pick([1, 1, 1, 1, 0, 1], "palaeo")).toBe("palaeo-land");
-    expect(pick([1, 1, 1, 0, 0, 1], "palaeo")).toBe("corrections");
+    expect(pick([1, 1, 1, 0, 0, 1], "palaeo")).toBe("palaeo-shallow-marine");
     expect(pick([1, 1, 0, 0, 0, 1], "palaeo")).toBe("palaeo-shallow-marine");
     expect(pick([1, 0, 0, 0, 0, 1], "palaeo")).toBe("shelf");
     expect(pick([0, 0, 0, 0, 0, 1], "palaeo")).toBeNull();

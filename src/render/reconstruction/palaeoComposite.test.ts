@@ -151,18 +151,29 @@ describe("palaeo composite surface", () => {
     expect(pick([1, 1, 0], [1, 1, 1], "native")).toBe("corrections");
     expect(pick([1, 0, 0], [1, 1, 1], "native")).toBe("shelf");
 
-    // Mode on: native land is hidden, and a correction still outranks a mapped
-    // shallow sea even though the two were drawn by different instances.
+    // Mode on: every class drawn in native land's colour is hidden — the coast
+    // fill and the land-appearance corrections alike — so a mapped shallow sea
+    // is the answer over ground a correction also covers, whichever instance
+    // drew it. The pick has to agree with the pixels, and no land tone is drawn.
     expect(pick([1, 1, 1], [1, 1, 1], "palaeo")).toBe("palaeo-mountain");
     expect(pick([1, 1, 1], [1, 1, 0], "palaeo")).toBe("palaeo-land");
-    expect(pick([1, 1, 1], [1, 0, 0], "palaeo")).toBe("corrections");
+    expect(pick([1, 1, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
+    expect(pick([1, 1, 1], [0, 0, 0], "palaeo")).toBe("shelf");
     expect(pick([1, 0, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
     expect(pick([1, 0, 1], [0, 0, 0], "palaeo")).toBe("shelf");
     expect(pick([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
 
+    // The `lgm` band draws both instances in the native mode, and there the
+    // corrections are today's observed ground: they stay pickable.
+    const lgmPick = intersectCaoComposite(native([1, 1, 1]), palaeo([1, 0, 0]),
+      [3, 0, 0], [-1, 0, 0], { mode: "native", palaeoVisible: true })?.surfaceClass ?? null;
+    expect(lgmPick).toBe("land");
+    expect(intersectCaoComposite(native([1, 1, 0]), palaeo([1, 0, 0]), [3, 0, 0], [-1, 0, 0],
+      { mode: "native", palaeoVisible: true })?.surfaceClass).toBe("corrections");
+
     // A missing instance is simply absent, never an error.
     expect(intersectCaoComposite(native([1, 1, 1]), null, [3, 0, 0], [-1, 0, 0],
-      { mode: "palaeo" })?.surfaceClass).toBe("corrections");
+      { mode: "palaeo" })?.surfaceClass).toBe("shelf");
     expect(intersectCaoComposite(null, palaeo([1, 1, 1]), [3, 0, 0], [-1, 0, 0],
       { mode: "palaeo" })?.surfaceClass).toBe("palaeo-mountain");
     expect(intersectCaoComposite(null, null, [3, 0, 0], [-1, 0, 0], {})).toBeNull();
@@ -180,6 +191,10 @@ describe("palaeo composite surface", () => {
     expect(classify([1, 1, 1], [1, 1, 1], "native")).toBe("land");
     expect(classify([1, 1, 1], [1, 1, 1], "palaeo")).toBe("palaeo-mountain");
     expect(classify([1, 1, 1], [1, 1, 0], "palaeo")).toBe("palaeo-land");
+    // The correction is hidden with native land, so the guide-label ink over
+    // this ground reads the shallow sea it can actually see.
+    expect(classify([1, 1, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
+    expect(classify([1, 1, 1], [0, 0, 0], "palaeo")).toBe("shelf");
     expect(classify([1, 0, 1], [1, 0, 0], "palaeo")).toBe("palaeo-shallow-marine");
     expect(classify([1, 0, 1], [0, 0, 0], "palaeo")).toBe("shelf");
     expect(classify([0, 0, 1], [0, 0, 0], "palaeo")).toBeNull();
@@ -200,13 +215,19 @@ describe("palaeo composite surface", () => {
     expect(covers([1, 0, 0], [1, 1, 1], "native", { includeShelf: false })).toBe(false);
     expect(covers([1, 0, 0], [0, 0, 0], "native", {})).toBe(true);
 
-    // Mode on: the hidden coast fill must not answer "land" for a label sitting
-    // over a Cao 2017 sea, and a palaeo landmass must.
+    // Mode on: no hidden land fill may answer "land" for a label sitting over a
+    // Cao 2017 sea — neither the coast fill nor a land-appearance correction —
+    // and a palaeo landmass must.
     expect(covers([1, 0, 1], [0, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
     expect(covers([1, 0, 1], [1, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
     expect(covers([1, 0, 1], [0, 1, 0], "palaeo", { includeShelf: false })).toBe(true);
     expect(covers([1, 0, 1], [0, 0, 1], "palaeo", { includeShelf: false })).toBe(true);
-    expect(covers([1, 1, 1], [0, 0, 0], "palaeo", { includeShelf: false })).toBe(true);
+    expect(covers([1, 1, 1], [0, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
+    expect(covers([1, 1, 1], [1, 0, 0], "palaeo", { includeShelf: false })).toBe(false);
+    // And in the `lgm` band, which runs the native mode with both instances on
+    // screen, the same correction still answers "land".
+    expect(covers([1, 1, 0], [0, 0, 0], "native", { includeShelf: false, palaeoVisible: true }))
+      .toBe(true);
     // Any class at all: the palaeo shallow sea covers where nothing native does.
     expect(covers([0, 0, 0], [1, 0, 0], "palaeo", {})).toBe(true);
     expect(covers([0, 0, 0], [1, 0, 0], "native", {})).toBe(false);
@@ -214,6 +235,8 @@ describe("palaeo composite surface", () => {
     // An explicit class list is filtered by mode visibility too.
     expect(covers([1, 0, 1], [0, 0, 0], "palaeo", { surfaceClasses: ["land"] })).toBe(false);
     expect(covers([1, 0, 1], [0, 0, 0], "native", { surfaceClasses: ["land"] })).toBe(true);
+    expect(covers([1, 1, 0], [0, 0, 0], "palaeo", { surfaceClasses: ["corrections"] })).toBe(false);
+    expect(covers([1, 1, 0], [0, 0, 0], "native", { surfaceClasses: ["corrections"] })).toBe(true);
   });
 
   it("holds the fallback boundary for one frame before switching the domain", () => {
