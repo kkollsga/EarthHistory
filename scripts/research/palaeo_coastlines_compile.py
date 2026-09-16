@@ -79,11 +79,13 @@ DEGREE_KM = 2.0 * math.pi * audit.EARTH_RADIUS_KM / 360.0
 # own boundary. A partition edge is recorded as two points and the planar cut
 # keeps it as a lon/lat-straight chord, so after triangulation the boundary runs
 # across the sphere as a straight line beside a coastline that follows great
-# circles. Every cut piece is therefore re-sampled on the great circle at a
-# quarter degree - four times finer than the source densification, whose samples
-# this only subdivides - and node reduction removes again every sample whose
-# deviation from the chord is under its tolerance.
-CUT_DENSIFY_DEGREES = 0.25
+# circles. Every cut piece is therefore re-sampled on the great circle at half a
+# degree - twice as fine as the source densification, whose samples this only
+# subdivides - and node reduction removes again every sample whose deviation
+# from the chord is under its tolerance. A quarter degree was measured too and
+# is not worth its payload: at 179-166 it costs the land class 11.3 % of its
+# simplified bytes where half a degree costs 4.2 %.
+CUT_DENSIFY_DEGREES = 0.5
 
 FORMAT_ID = "EHPR"
 FORMAT_VERSION = 1
@@ -670,30 +672,6 @@ def densify_geometry(geometry, max_degrees: float = audit.DENSIFY_DEGREES):
     if not parts:
         return Polygon()
     return polygonal(parts[0] if len(parts) == 1 else MultiPolygon(parts))
-
-
-def mountain_underlay_records(rows: list[dict]) -> list[dict]:
-    """The mountain geometry the land class has to underlie, with its lifecycles.
-
-    A mountain is land that stands up; the two classes are separate polygon sets
-    in Cao 2017 and this compiler cuts and node-reduces them independently, so
-    where a mountain ring reaches past the landmass ring beneath it the land ends
-    inside the mountain's own outline and the hairline between them shows the
-    darker crust, or the sphere, at closest zoom. Handing these records to the
-    land class makes it a superset of the mountain class *before* node reduction,
-    which is the only place the two reductions can be stopped from opening a gap
-    against one another. ``m`` still compiles and ships as its own class, drawn
-    on top; ``sm`` is not touched.
-    """
-    kept, _ = quarantine(rows)
-    records = []
-    for row in kept:
-        geometry = record_polygon(row, densify=True)
-        if geometry.is_empty:
-            continue
-        records.append({"geometry": geometry, "fromAge": float(row["fromAge"]),
-                        "toAge": float(row["toAge"])})
-    return records
 
 
 def quarantine(rows: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -1913,8 +1891,7 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                   overrides: dict[str, list[int]], simplification: dict, basins: list[dict],
                   store: Path, staging: Path, estimate_triangles: bool,
                   canonical_intervals: list[dict] | None = None,
-                  lgm_contract: dict | None = None,
-                  mountain_underlay: list[dict] | None = None) -> dict:
+                  lgm_contract: dict | None = None) -> dict:
     started = time.time()
     kept_rows, quarantined = quarantine(rows)
     geometries = {row["index"]: record_polygon(row, densify=True) for row in kept_rows}
@@ -1932,45 +1909,6 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                             max((row["index"] for row in kept_rows), default=-1) + 1):
             kept_rows.append(row)
             geometries[row["index"]] = record_polygon(row, densify=True)
-
-    # Mountains are land. The union runs here - after the basin edits, before the
-    # cookie cut and therefore before any node reduction - so the land the
-    # mountain stands on is part of the same source ring and the two classes are
-    # reduced from ground that already agrees. A record is only widened by a
-    # mountain whose own (TOAGE, FROMAGE] lifecycle overlaps its own, and only
-    # where the two rings actually meet: a mountain that touches no land of its
-    # age is not land the source placed somewhere else.
-    underlay_area_by_record: dict[int, float] = {}
-    if mountain_underlay:
-        underlay_tree = STRtree([entry["geometry"] for entry in mountain_underlay])
-        for row in kept_rows:
-            geometry = geometries[row["index"]]
-            if geometry.is_empty:
-                continue
-            youngest, oldest = float(row["toAge"]), float(row["fromAge"])
-            additions = []
-            for candidate in underlay_tree.query(geometry):
-                entry = mountain_underlay[int(candidate)]
-                if not (youngest < entry["fromAge"] and entry["toAge"] < oldest):
-                    continue
-                if geometry.intersects(entry["geometry"]):
-                    additions.append(entry["geometry"])
-            if not additions:
-                continue
-            try:
-                merged = polygonal(unary_union([geometry, *additions]))
-            except shapely.errors.GEOSException:
-                # A planar Boolean that will not run is not a reason to ship a
-                # broken ring: the record keeps the land the source gave it and
-                # the hairline over that mountain is measured by the harness.
-                continue
-            added = area_km2(merged) - area_km2(geometry)
-            if merged.is_empty or added <= 0.0:
-                # The mountain already sits inside this land record; the union is
-                # the record itself and nothing is changed or reported.
-                continue
-            geometries[row["index"]] = merged
-            underlay_area_by_record[row["index"]] = added
 
     canonical_pairs = {(interval["fromAgeMa"], interval["toAgeMa"]) for interval in intervals}
     # Every override plate, whatever class this is: the conflict belongs to the
@@ -2181,14 +2119,8 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
         interval_retain_reasons: dict[str, int] = {}
         base_triangles = 0
         refined_triangles = 0
-        interval_underlay_area = 0.0
-        interval_underlay_records = 0
         for row in selected:
             interval_source_area += area_km2(geometries[row["index"]])
-            underlay_added = underlay_area_by_record.get(row["index"], 0.0)
-            if underlay_added > 0.0:
-                interval_underlay_area += underlay_added
-                interval_underlay_records += 1
             lost_area, lost_count = dropped_by_record.get(row["index"], (0.0, 0))
             interval_below_floor_area += lost_area
             interval_below_floor_pieces += lost_count
@@ -2337,11 +2269,6 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
             "detached": interval_is_detached(interval),
             "sourceRecords": len(selected),
             "sourceAreaSquareKilometres": round(interval_source_area, 3),
-            # Ground the mountain class already carried, added to the land class
-            # so it underlies it. It is inside `source` and `emitted` alike, on
-            # both sides of every area ratio.
-            "mountainUnderlayAreaSquareKilometres": round(interval_underlay_area, 3),
-            "mountainUnderlayRecords": interval_underlay_records,
             "emittedAreaSquareKilometres": round(interval_cut_area, 3),
             # The declared overlap the seam buffer added to `emitted`. It is not
             # new ground: it is the same ground counted twice where two pieces of
@@ -2411,14 +2338,6 @@ def compile_class(class_name: str, rows: list[dict], intervals: list[dict], part
                               f"planar Boolean, and every {CUT_DENSIFY_DEGREES} degree on each cut "
                               "piece afterwards, so the edges the partitions introduced follow great "
                               "circles instead of rendering as lon/lat-straight chords"),
-            "mountainUnderlay": (
-                "the land class is a superset of the mountain class: every mountain record whose "
-                "lifecycle overlaps a land record it meets is unioned into that record before the "
-                "cookie cut, so the land underlies the mountain drawn on top of it and the two "
-                "independent node reductions cannot open a hairline between the classes; the area "
-                "this added is declared per interval as mountainUnderlayAreaSquareKilometres"
-                if mountain_underlay else
-                "not applied: this class is not the land class"),
             "lifecycleRule": "(TOAGE, FROMAGE]: youngest bound exclusive, oldest bound inclusive",
             "minimumPieceSquareKilometres": MIN_PIECE_KM2,
             "frameConflictKilometres": FRAME_CONFLICT_KM,
@@ -2716,11 +2635,6 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
     tree = STRtree([partition["geometry"] for partition in partitions])
     palette, by_plate = load_palette()
 
-    # Built once, whatever subset `--classes` names: the land class is a superset
-    # of the mountain class whether or not this run also compiles `m`, or the two
-    # would disagree between a development run and the published compile.
-    mountain_underlay = mountain_underlay_records(rows_by_class["m"]) if "lm" in classes else None
-
     store.mkdir(parents=True, exist_ok=True)
     summary: dict[str, dict] = {}
     catalogs: dict[str, dict] = {}
@@ -2732,8 +2646,7 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
         result = compile_class(class_name, rows_by_class[class_name], intervals, partitions, tree,
                                rotations, by_plate, palette, overrides, simplification, basins,
                                store / "original" / class_name, store / "staging" / class_name,
-                               estimate_triangles, canonical_intervals, lgm,
-                               mountain_underlay if class_name == "lm" else None)
+                               estimate_triangles, canonical_intervals, lgm)
         catalog = result["catalog"]
         provenance = result["provenance"]
         provenance["inputs"] = inputs
@@ -2782,11 +2695,6 @@ def compile_all(classes: list[str], store: Path, estimate_triangles: bool,
             "worstInterval": provenance["totals"]["worstIntervalByVertices"],
             "worstIntervalVertices": provenance["totals"]["worstIntervalVertices"],
             "worstIntervalEstimatedTriangles": provenance["totals"]["worstIntervalEstimatedTriangles"],
-            "mountainUnderlayAreaSquareKilometres": round(sum(
-                row["mountainUnderlayAreaSquareKilometres"]
-                for row in provenance["intervals"]), 3),
-            "mountainUnderlayRecords": max(
-                (row["mountainUnderlayRecords"] for row in provenance["intervals"]), default=0),
             "areaRatioPercent": provenance["areaAudit"]["areaRatioPercent"],
             "simplificationAreaErrorPercent": provenance["simplification"]["areaErrorPercent"],
             "coMovingUnder25KmPercent": provenance["poseAudit"]["coMovingAreaPercent"]["under25Km"],
