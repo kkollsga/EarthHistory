@@ -4,6 +4,8 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-09-16
+
 ### Changed
 
 - **One motion payload instead of two.** The requested-age motion-tile
@@ -25,6 +27,17 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- **The LGM exposed-shelf outline is cleaned at derivation.** After the
+  present-day land subtraction the mask gets a 1.5 km morphological opening and
+  a 3° spike filter, so the wedges the 1:50m coastline left against the
+  1-arc-minute ETOPO mask can no longer fold inside out under int16
+  quantisation: self-intersecting rings in the shipped LGM payload fall from 8
+  to 4 (the rest come from the compiler's seam growth), spike vertices from 15
+  to 2, exposed-shelf areas move by −0.34 % (North Sea), −0.18 % (Sunda) and
+  −0.23 % (Beringia), the Doggerland sub-window by −0.006 %, and every LGM
+  witness still reads as before. The teal needle shards visible at closest zoom
+  over Doggerland are **not** removed by this change; their source is still
+  under diagnosis.
 - **The CI browser smoke runs one test at a time.** The two-worker default
   that 0.1.14 introduced starved both `@ci` tests on the two-core GitHub runner
   past their 20 s first-paint budget (main run 35093699520 failed where the
