@@ -103,3 +103,31 @@ recompile commits. The runtime ledger now carries the tone bytes once as
 `palaeo.outlineToneSourceBytes`; splitting the renderer's dataset key into the
 drawn interval's payload bytes and a separate resident-bytes key is the
 remaining half of the repair.
+
+## Attribution of the threshold-1 miss (A/B, 2026-09-16 22:42–22:57)
+
+Same machine state, OLD (v0.1.19, 0f704d8) → NEW (f0eafa3) → OLD, steady-state
+frame metric only (`REPETITIONS` 2, load wait disabled, otherwise the
+harness's frame path unchanged and byte-identical in both trees), separate
+ports, never concurrent; records in `palaeo-coastlines-unified-pipeline-ab/`.
+
+| profile/age | OLD-1 off/on | NEW off/on | OLD-2 off/on |
+|---|---|---|---|
+| default/0 Ma | 1.9/1.9 | 2.1/2.0 | 1.9/1.9 |
+| default/90 Ma | 1.9/1.9 | 1.9/2.0 | 1.9/1.9 |
+| default/250 Ma | 2.7/2.4 | 2.6/2.3 | 2.5/2.3 |
+| default/21 ka | 2.4/2.4 | 2.3/2.4 | 2.3/2.4 |
+| lowQuality/0 Ma | 1.6/1.5 | 1.5/1.5 | 1.5/1.5 |
+| lowQuality/90 Ma | 1.4/1.4 | 1.4/1.4 | 1.4/1.4 |
+| lowQuality/250 Ma | 2.0/1.7 | 2.0/1.7 | 2.0/1.7 |
+| lowQuality/21 ka | 1.8/1.9 | 1.8/1.9 | 1.9/1.9 |
+
+p50 ms. OLD-1 vs OLD-2 spread 0.2 ms OFF / 0.1 ms ON; NEW exceeds the
+worse OLD run by more than that spread in 0 of 16 cells. **Verdict: machine.**
+v0.1.19 measured today reproduces the P6 rows (default OFF 1.9/1.9/2.7/2.4),
+not the 2026-09-15 anchors (1.5/1.4/2.0/1.9): swap was 4,040 / 5,120 MiB at
+the anchor run and 14,013–14,923 / 15,360–16,384 MiB today (a peer session's
+Rust build), while the one-minute load looked *lower* than the anchor run's,
+so `maxLoadAverage: 3` did not catch it. Follow-ups: add a swap/memory-pressure
+guard to the stop rule; re-cut the anchors from a same-session OLD control
+rather than a dated absolute.

@@ -1,0 +1,6 @@
+BEFORE-old1 22:42:21 load= 4,18 9,62 10,91  swap=total = 16384,00M  used = 14923,38M  free = 1460,62M  (encrypted)
+AFTER-old1 22:47:29 load= 5,82 7,23 9,38  swap=total = 16384,00M  used = 14907,38M  free = 1476,62M  (encrypted)
+BEFORE-new 22:47:29 load= 5,82 7,23 9,38  swap=total = 16384,00M  used = 14907,38M  free = 1476,62M  (encrypted)
+AFTER-new 22:52:46 load= 7,34 8,48 9,55  swap=total = 16384,00M  used = 14883,38M  free = 1500,62M  (encrypted)
+BEFORE-old2 22:52:46 load= 7,34 8,48 9,55  swap=total = 16384,00M  used = 14883,38M  free = 1500,62M  (encrypted)
+AFTER-old2 22:57:50 load= 5,98 6,36 8,20  swap=total = 16384,00M  used = 14859,38M  free = 1524,62M  (encrypted)
