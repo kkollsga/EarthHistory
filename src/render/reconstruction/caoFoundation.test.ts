@@ -2319,6 +2319,48 @@ describe("palaeo interval publication", () => {
     surface.disposeForRendererTeardown();
   });
 
+  /**
+   * The renderer's half of the warm window's re-centre. The engine dropping a
+   * prepared interval frees nothing while the member warmed from it is still
+   * parented — the GPU buffers and the arrays they were uploaded from are both
+   * held there — so the window is applied on this side too. The drawn interval
+   * is never a victim, whatever the window says.
+   */
+  it("retires the members the warm window no longer covers, and never the drawn one", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    const drawn = surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    expect(surface.preloadInterval(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8)).toBe(true);
+    expect(surface.preloadInterval(palaeoInterval("359-340", 2, "c", undefined,
+      { requestedAgeMa: 350, onStaticCopy: upload("c") }), 8)).toBe(true);
+    expect(surface.residentIntervalCount()).toBe(3);
+
+    // A window that covers only the youngest of the three. The drawn interval
+    // is outside it and stays: retiring what is on screen would blank the layer.
+    expect(surface.retainResidentIntervals(["359-340"])).toBe(1);
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(surface.publishedIdentity("interval")).toBe(drawn.identity);
+    expect(group.children.filter((child) => child.visible).map((child) => child.name))
+      .toEqual([`cao-foundation:${drawn.identity}`]);
+    // Idempotent: applying the same window again retires nothing.
+    expect(surface.retainResidentIntervals(["359-340"])).toBe(0);
+
+    // The retired interval is a first visit again, and it uploads again — which
+    // is what "the window bounds the heap" costs when a scrub comes back.
+    expect(surface.preloadInterval(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8)).toBe(true);
+    expect(uploads.get("b")).toBe(2);
+    expect(uploads.get("a")).toBe(1);
+    expect(surface.residentIntervalCount()).toBe(3);
+    surface.disposeForRendererTeardown();
+  });
+
   it("evicts the interval farthest by age when the residency ceiling is met", () => {
     const group = new Group();
     const uploads = new Map<string, number>();

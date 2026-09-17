@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { chartPickStateFromMotionFrame } from "./motionFrameV2";
 import { CaoSurfaceResidencyStore, DEFAULT_SURFACE_RESIDENCY_POLICY, intervalUnit,
-  loadVerifiedPalaeoClassCatalogs, selectPalaeoIntervalForAge, type LoadedPalaeoClassCatalog,
+  loadVerifiedPalaeoClassCatalogs, palaeoWarmWindowIntervalIds, selectPalaeoIntervalForAge,
+  type LoadedPalaeoClassCatalog,
   type LoadedPalaeoInterval, type SurfaceResidencyPolicy } from "./loaderV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
@@ -1336,8 +1337,14 @@ describe("palaeo-coastline background preparation", () => {
     expect(prepared.intervalId).toBe("300-280");
     prepared.release();
     await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
-    expect(new Set(gated.started).size).toBe(6);
-    expect(runtime.ledger.palaeo.preparedIntervals).toBe(6);
+    // Four, not six: the crossing to 290 Ma re-centred the warm window on
+    // `300-280`, the youngest interval of the fixture, so the window is the
+    // three intervals above it and itself. `402-380` and `380-360` are outside
+    // it and the walk stops at its edge.
+    expect(new Set(gated.started).size).toBe(4);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["360-340", "340-320", "320-300", "300-280"]);
     runtime.dispose();
   });
 
@@ -1377,6 +1384,100 @@ describe("palaeo-coastline background preparation", () => {
     // Nothing the walk had queued survives the toggle.
     expect(gated.started.length).toBe(startedWhenOff);
     expect(runtime.ledger.palaeo.totalSourceBytes).toBe(0);
+    runtime.dispose();
+  });
+
+  /**
+   * The window's membership rule, on the shape the shipped schedule has: 24
+   * contiguous Cao 2017 intervals and one detached LGM state. Stated on the
+   * pure function because the runtime tests below can only reach a window
+   * through a crossing, and an end of the schedule is exactly where a crossing
+   * cannot centre one.
+   */
+  it("centres the warm window by schedule index, clamps at both ends and isolates the LGM state",
+    () => {
+      const schedule = [
+        ...LONG_INTERVALS.map((interval) => ({ intervalId: interval.intervalId,
+          intervalIndex: interval.intervalIndex })),
+        { intervalId: "lgm", intervalIndex: 6 },
+      ];
+      const catalogs = [{ catalog: { intervals: schedule, detachedIntervalIds: ["lgm"] } }] as
+        unknown as readonly LoadedPalaeoClassCatalog[];
+      // The middle: three either side, seven in all.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "340-320", 3))
+        .toEqual(["402-380", "380-360", "360-340", "340-320", "320-300", "300-280"]);
+      // The oldest end: clamped, not slid inwards. Four intervals is the honest
+      // answer where the schedule stops.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "402-380", 3))
+        .toEqual(["402-380", "380-360", "360-340", "340-320"]);
+      // The youngest end of the contiguous schedule; the detached state is not
+      // its neighbour, so it is not swept in.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "300-280", 3))
+        .toEqual(["360-340", "340-320", "320-300", "300-280"]);
+      // The detached state is its own window of one, whatever the radius.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "lgm", 3)).toEqual(["lgm"]);
+      // The low profile's radius of one.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "340-320", 1))
+        .toEqual(["360-340", "340-320", "320-300"]);
+      expect(palaeoWarmWindowIntervalIds(catalogs, null, 3)).toEqual([]);
+      expect(palaeoWarmWindowIntervalIds([], "340-320", 3)).toEqual([]);
+    });
+
+  it("re-centres at idle: evicts the far side and prepares the near side", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(390).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The oldest end: the window is `402-380` and the three below it.
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["402-380", "380-360", "360-340", "340-320"]);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    const startedBefore = new Set(gated.started);
+    expect(startedBefore.has("320-300")).toBe(false);
+
+    // A crossing to the youngest end. The window re-centres on the crossing
+    // itself — which is why the interval it draws is inside it — but the
+    // preparation of what it newly covers is the walk's, at idle.
+    (await runtime.requestPalaeoInterval(290).prepared).release();
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["360-340", "340-320", "320-300", "300-280"]);
+    // The far side is gone the moment the window moved: the two oldest
+    // intervals were prepared and are not resident any more.
+    expect(runtime.ledger.palaeo.preparedIntervals).toBeLessThanOrEqual(3);
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    // The near side was prepared by the walk, not by the crossing.
+    expect(gated.started).toContain("320-300");
+    runtime.dispose();
+  });
+
+  /**
+   * The window is sized so a scrub cannot outrun it. Three boundaries is as far
+   * as a fast sweep reaches before the walk has re-centred, and every interval
+   * it crosses into is one the window already prepared — so no crossing fetches
+   * and, in the scene, none uploads: each takes the retarget path onto a member
+   * that is already warm.
+   */
+  it("crosses three boundaries inside the initial window without a single fetch", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(390).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    const fetchesBefore = gated.started.length;
+    const crossed: string[] = [];
+    for (const ageMa of [370, 350, 330]) {
+      const prepared = await runtime.requestPalaeoInterval(ageMa).prepared;
+      crossed.push(prepared.intervalId);
+      prepared.release();
+    }
+    expect(crossed).toEqual(["380-360", "360-340", "340-320"]);
+    // Measured before the walk's next idle slot: the sweep itself started no
+    // fetch, so every crossing was a swap of geometry already in hand.
+    expect(gated.started.length).toBe(fetchesBefore);
     runtime.dispose();
   });
 

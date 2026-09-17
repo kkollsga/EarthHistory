@@ -5,6 +5,25 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Changed
 
+- **The background walk prepares a sliding window, not the whole timeline.**
+  Preparing all 25 map intervals kept ~8.4 MB of decoded typed arrays each, and
+  the warmed GPU member aliases them, so a settled page grew the heap ~163 MB
+  against a 60 MB stop rule — memory no ceiling could give back, because both
+  halves were holding it on purpose. The walk now stops at a warm window
+  centred on the interval being drawn: seven intervals on the desktop profile
+  (drawn ± 3 by schedule index), three where the low profile or a reported
+  `deviceMemory` under 4 GiB applies, clamped at the ends of the schedule, and
+  one for the detached LGM state, which abuts no neighbour. A crossing
+  re-centres the window on itself and nothing else — no fetch, no upload, no
+  retirement — and the walk's next idle slot prepares what it newly covers
+  while the store and the renderer drop what it no longer does, the drawn
+  interval never among them. Three boundaries is as far as a fast sweep reaches
+  before the window has moved, and every interval inside it is already prepared
+  and warmed, so those crossings still take the retarget path. The byte
+  ceilings stay as guards behind the window. `palaeo.windowIntervals` reports
+  the ids the window covers, and `backgroundPreparationComplete` now means the
+  window is complete rather than the timeline.
+
 - **A preloaded map interval is actually warmed, not just parented.** Parenting
   a hidden member uploaded nothing: the renderer's object walk returns early for
   `visible === false`, so a "preloaded" interval had no attribute buffers and no

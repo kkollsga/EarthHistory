@@ -2475,6 +2475,27 @@ interface CaoResidentInterval {
   readonly slot: CaoSurfaceSlot;
   readonly staticGeometry: CaoFoundationGeometryResource;
   readonly anchorAgeMa: number;
+  /**
+   * The published map-interval id this member holds, where the revision named
+   * one. Residency is keyed by the static geometry key, which is what makes a
+   * return visit free; the id is what the engine's warm window is stated in, so
+   * it is recorded here rather than recovered from the key.
+   */
+  readonly intervalId: string | null;
+}
+
+/**
+ * The published interval id a revision names, or null for the Cao 2024 stack.
+ *
+ * A prepared map interval *is* a `PreparedCaoRevision` with interval-only
+ * fields on top (`PreparedCaoPalaeoInterval`), and the renderer deliberately
+ * consumes the narrow type — it must not need to know which arm prepared a
+ * revision. Reading the one field the warm window is keyed by, where it exists,
+ * is narrower than widening the type the whole renderer takes.
+ */
+function caoRevisionIntervalId(revision: PreparedCaoRevision): string | null {
+  const id = (revision as { readonly intervalId?: unknown }).intervalId;
+  return typeof id === "string" && id.length > 0 ? id : null;
 }
 
 /**
@@ -2782,6 +2803,73 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
+   * Keeps only the map intervals the warm window still covers, retiring the
+   * rest.
+   *
+   * A warmed hidden member holds its GPU buffers *and* the decoded arrays they
+   * were uploaded from, so the engine dropping its half of a prepared interval
+   * frees nothing while the member is still parented. This is the renderer's
+   * half of the same re-centre: it takes the existing eviction shape — restage
+   * the set without those members, let the outgoing publication retire them,
+   * retire their static geometry through its own owner — with the window, not a
+   * ceiling, choosing the victims.
+   *
+   * The drawn interval is never a victim, whatever the window says, and neither
+   * is a member whose revision named no interval id. Answers how many members
+   * were retired.
+   */
+  retainResidentIntervals(intervalIds: readonly string[]): number {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    const keep = new Set(intervalIds);
+    const evicted = [...this.residentIntervals.values()].filter((resident) =>
+      resident.intervalId !== null && !keep.has(resident.intervalId)
+      && resident.slot !== this.currentIntervalSlot);
+    if (evicted.length === 0) return 0;
+    const previous = this.publisher.current();
+    if (previous === null) return 0;
+    if (this.staticGeometryRetirement === null) {
+      throw new Error("Cao static geometry replacement requires a retirement owner");
+    }
+    const evictedMembers = evicted.map((victim) => previous.resources.member(victim.slot) ?? null);
+    const retiredMemberBytes = evictedMembers.reduce(
+      (sum, member) => sum + (member?.byteLength ?? 0), 0);
+    const retiredMemberCount = evictedMembers.filter((member) => member !== null).length;
+    // Backpressure is a refusal, not a failure: the window is re-applied on the
+    // next re-centre, and holding a member one window longer is a bounded miss
+    // where overrunning the retirement owner is not.
+    if (retiredMemberCount > 0
+        && (this.retirement.pendingCount() + retiredMemberCount > this.retirement.maxPendingResources
+        || this.retirement.pendingBytes() + retiredMemberBytes > this.retirement.maxPendingBytes)) {
+      return 0;
+    }
+    const token = this.publisher.begin(previous.requestId);
+    const members = new Map(previous.resources.entries());
+    for (const victim of evicted) members.delete(victim.slot);
+    // Owns nothing new: this publication adds no member, it only stops carrying
+    // the ones the window dropped.
+    const nextSet = new CaoSurfaceSetResource(members, []);
+    if (!this.publisher.stage(token, previous.ageMa, previous.stage, nextSet)) {
+      throw new Error("Cao foundation publication became stale");
+    }
+    nextSet.adopt(previous.resources);
+    const publication = this.publisher.commit(token);
+    if (!publication) {
+      nextSet.disown(previous.resources);
+      throw new Error("Cao foundation publication commit failed");
+    }
+    for (const member of evictedMembers) if (member) this.parent.remove(member.group);
+    for (const victim of evicted) {
+      this.residentIntervals.delete(victim.slot);
+      const geometry = victim.staticGeometry;
+      void this.staticGeometryRetirement.retire({
+        byteLength: geometry.byteLength,
+        dispose: () => geometry.dispose(),
+      });
+    }
+    return evicted.length;
+  }
+
+  /**
    * Uploads one prepared map interval as a hidden member, without drawing it.
    *
    * The first visit to an interval is the expensive one — it uploads the
@@ -2890,7 +2978,8 @@ export class CaoFoundationSurfaceRenderer {
         // The room check above is what makes this hold; the assertion is here
         // because a preload that evicted the drawn interval would be invisible.
         if (!present && evicted.length > 0) throw new Error("a preloaded Cao map interval must not evict");
-        admitted = { slot, staticGeometry: geometry, anchorAgeMa: revision.requestedAgeMa };
+        admitted = { slot, staticGeometry: geometry, anchorAgeMa: revision.requestedAgeMa,
+          intervalId: caoRevisionIntervalId(revision) };
       }
       const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
       const publicationBytes = safeAdd(safeAdd(safeAdd(safeAdd(packed.data.byteLength,

@@ -562,13 +562,27 @@ const CAO_SURFACE_SET_LIMITS = Object.freeze({
 /** Map intervals kept on the GPU at once; see `CAO_SURFACE_SET_LIMITS`. */
 const CAO_RESIDENT_INTERVALS_HIGH = 25;
 const CAO_RESIDENT_INTERVALS_LOW = 8;
+/**
+ * Intervals the engine's warm window covers, drawn one included.
+ *
+ * Seven is the drawn interval and three neighbours either side; three is the
+ * drawn one and one either side. This is the bound that actually holds the
+ * heap: a warmed hidden member pins the decoded arrays it was uploaded from, so
+ * the counts above bound GPU bytes while this bounds what the CPU keeps. It is
+ * a narrower number than the GPU residency deliberately — the window is what a
+ * scrub can cross before the idle walk refills it, not everything that fits.
+ */
+const CAO_WARM_WINDOW_INTERVALS_HIGH = 7;
+const CAO_WARM_WINDOW_INTERVALS_LOW = 3;
 const CAO_RESIDENT_INTERVAL_BYTES_HIGH = 55 * 1024 * 1024;
 const CAO_RESIDENT_INTERVAL_BYTES_LOW = 24 * 1024 * 1024;
 /** Device memory, in GiB, under which the small residency budget is taken. */
 const CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB = 4;
 
 /**
- * How much GPU residency a map-interval crossing may reuse.
+ * How much residency a map-interval crossing may reuse: the members that may
+ * stay on the GPU, the buffer bytes they may hold, and how wide the engine's
+ * warm window is.
  *
  * Residency is a memory policy and not a shading profile. The automatic quality
  * watchdog downgrades shading when frames are slow, and slow frames are exactly
@@ -577,17 +591,26 @@ const CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB = 4;
  * path back to "high" within a session. So only two things lower it — the user
  * explicitly selecting the low profile, and a device that has told us it has
  * little memory.
+ *
+ * `windowIntervals` is the same decision taken one level in. The counts and
+ * bytes above are ceilings — a guard against a set that grew — while the window
+ * is what is actually prepared and warmed, and it is what bounds the heap that
+ * a warmed member pins. A device that may hold 8 members prepares 3 intervals,
+ * not because 8 would not fit on the GPU but because the arrays behind them
+ * would not fit in the heap.
  */
 export function residentIntervalBudget(
   requested: RequestedQuality,
   deviceMemoryGb: number | undefined,
-): { readonly intervals: number; readonly bytes: number } {
+): { readonly intervals: number; readonly bytes: number; readonly windowIntervals: number } {
   const small = requested === "low"
     || (typeof deviceMemoryGb === "number" && Number.isFinite(deviceMemoryGb)
       && deviceMemoryGb < CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB);
   return small
-    ? { intervals: CAO_RESIDENT_INTERVALS_LOW, bytes: CAO_RESIDENT_INTERVAL_BYTES_LOW }
-    : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH };
+    ? { intervals: CAO_RESIDENT_INTERVALS_LOW, bytes: CAO_RESIDENT_INTERVAL_BYTES_LOW,
+      windowIntervals: CAO_WARM_WINDOW_INTERVALS_LOW }
+    : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH,
+      windowIntervals: CAO_WARM_WINDOW_INTERVALS_HIGH };
 }
 
 /**
@@ -709,6 +732,10 @@ export interface PalaeoPreparedIntervalNotice {
  */
 export interface PalaeoIntervalPreloadSource {
   onPalaeoIntervalPrepared(listener: (notice: PalaeoPreparedIntervalNotice) => void): () => void;
+  /** Told the warm window each time it re-centres; see `onPalaeoWarmWindowChanged`. */
+  onPalaeoWarmWindowChanged(listener: (intervalIds: readonly string[]) => void): () => void;
+  /** How wide the window is; the renderer's profile owns this, not the engine's. */
+  setPalaeoWarmWindowIntervals(count: number): void;
   prepareResidentPalaeoIntervalNow(intervalId: string): PreparedCaoPalaeoInterval | null;
 }
 
@@ -854,6 +881,16 @@ export class GlobeScene {
   private readonly palaeoPreloadedIntervalIds = new Set<string>();
   private palaeoPreloadSource: PalaeoIntervalPreloadSource | null = null;
   private palaeoPreloadUnsubscribe: (() => void) | null = null;
+  private palaeoWindowUnsubscribe: (() => void) | null = null;
+  /**
+   * The warm window the engine last published, and whether the renderer has
+   * been trimmed to it. The trim is taken in the idle pre-upload step rather
+   * than in the notification: the notification arrives on the crossing that
+   * moved the window, and retiring GPU members there would put the cost back on
+   * the frame the window exists to protect.
+   */
+  private palaeoWindowIntervalIds: readonly string[] = [];
+  private palaeoWindowTrimPending = false;
   private palaeoPreloadHandle: number | null = null;
   private palaeoPreloadIsIdleHandle = false;
   /** Hidden members whose buffers and pipeline this scene has warmed at idle. */
@@ -1273,22 +1310,54 @@ export class GlobeScene {
   setPalaeoIntervalPreloadSource(source: PalaeoIntervalPreloadSource | null): void {
     this.palaeoPreloadUnsubscribe?.();
     this.palaeoPreloadUnsubscribe = null;
+    this.palaeoWindowUnsubscribe?.();
+    this.palaeoWindowUnsubscribe = null;
     this.palaeoPreloadSource = source;
     this.palaeoPreloadQueue.clear();
     if (source === null) {
       this.cancelPalaeoPreload();
       return;
     }
+    // The window's width is the renderer's decision, so it is pushed on
+    // attachment and again whenever the quality selection moves it.
+    source.setPalaeoWarmWindowIntervals(
+      residentIntervalBudget(this.requestedQuality, reportedDeviceMemoryGb()).windowIntervals);
     this.palaeoPreloadUnsubscribe = source.onPalaeoIntervalPrepared((notice) => {
       if (this.disposed || this.palaeoPreloadedIntervalIds.has(notice.intervalId)) return;
       this.palaeoPreloadQueue.set(notice.intervalId, notice);
       this.schedulePalaeoPreload();
     });
+    this.palaeoWindowUnsubscribe = source.onPalaeoWarmWindowChanged((intervalIds) => {
+      this.notePalaeoWarmWindow(intervalIds);
+    });
+  }
+
+  /**
+   * Takes the engine's re-centred warm window: forgets the pre-uploads it no
+   * longer covers and arms the trim of the members already uploaded for them.
+   *
+   * Forgetting matters as much as trimming. `palaeoPreloadedIntervalIds` is
+   * what stops the idle step re-attempting an interval, so an interval the
+   * window drops has to leave it or a later re-centre that covers it again
+   * would never upload it.
+   */
+  private notePalaeoWarmWindow(intervalIds: readonly string[]): void {
+    if (this.disposed) return;
+    this.palaeoWindowIntervalIds = [...intervalIds];
+    const covered = new Set(intervalIds);
+    for (const id of [...this.palaeoPreloadQueue.keys()]) {
+      if (!covered.has(id)) this.palaeoPreloadQueue.delete(id);
+    }
+    for (const id of [...this.palaeoPreloadedIntervalIds]) {
+      if (!covered.has(id)) this.palaeoPreloadedIntervalIds.delete(id);
+    }
+    this.palaeoWindowTrimPending = true;
+    this.schedulePalaeoPreload();
   }
 
   private schedulePalaeoPreload(): void {
     if (this.disposed || this.palaeoPreloadHandle !== null
-        || this.palaeoPreloadQueue.size === 0) return;
+        || (this.palaeoPreloadQueue.size === 0 && !this.palaeoWindowTrimPending)) return;
     const run = () => {
       this.palaeoPreloadHandle = null;
       this.runPalaeoPreloadStep();
@@ -1326,6 +1395,20 @@ export class GlobeScene {
   private runPalaeoPreloadStep(): void {
     const source = this.palaeoPreloadSource;
     if (this.disposed || source === null) return;
+    // The trim first, and before the upload: retiring what the window dropped
+    // is what makes room — on the GPU and in the heap — for what it newly
+    // covers, and doing it in the same idle slot keeps both off the frames.
+    if (this.palaeoWindowTrimPending) {
+      this.palaeoWindowTrimPending = false;
+      try {
+        if (this.caoFoundationRenderer.retainResidentIntervals(this.palaeoWindowIntervalIds) > 0) {
+          this.publishCaoResidencyDataset();
+        }
+      } catch {
+        // A trim is speculative in exactly the way a preload is: a refusal
+        // leaves the members resident until the next re-centre re-arms it.
+      }
+    }
     const next = this.nextPalaeoPreload();
     if (next !== null) {
       this.palaeoPreloadQueue.delete(next.intervalId);
@@ -1691,6 +1774,7 @@ export class GlobeScene {
     // the automatic downgrade below governs shading detail alone.
     const budget = residentIntervalBudget(value, reportedDeviceMemoryGb());
     this.caoFoundationRenderer.setResidentIntervalCeiling(budget.intervals, budget.bytes);
+    this.palaeoPreloadSource?.setPalaeoWarmWindowIntervals(budget.windowIntervals);
     const next = initialEffectiveQuality(value);
     if (next !== this.effectiveQuality) this.applyEffectiveQuality(next);
   }
@@ -1748,6 +1832,8 @@ export class GlobeScene {
     this.disposed = true;
     this.palaeoPreloadUnsubscribe?.();
     this.palaeoPreloadUnsubscribe = null;
+    this.palaeoWindowUnsubscribe?.();
+    this.palaeoWindowUnsubscribe = null;
     this.palaeoPreloadSource = null;
     this.cancelPalaeoPreload();
     // A publish queued for a frame that will never run still owns a runtime

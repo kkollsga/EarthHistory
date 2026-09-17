@@ -17,14 +17,33 @@ describe("resident map interval budget", () => {
   it("keeps the full budget when the watchdog is the only thing asking for less", () => {
     // "auto" is what the watchdog downgrades from; it never changes the request.
     expect(residentIntervalBudget("auto", 8)).toEqual(
-      { intervals: HIGH_INTERVALS, bytes: 55 * 1024 * 1024 });
+      { intervals: HIGH_INTERVALS, bytes: 55 * 1024 * 1024, windowIntervals: 7 });
     expect(residentIntervalBudget("auto", undefined).intervals).toBe(HIGH_INTERVALS);
     expect(residentIntervalBudget("high", 8).intervals).toBe(HIGH_INTERVALS);
   });
 
+  /**
+   * The warm window is the heap's bound and the counts above are the GPU's, so
+   * the window is deliberately the smaller of the two: a desktop that may hold
+   * 25 members prepares 7 intervals, and a small device that may hold 8
+   * prepares 3.
+   */
+  it("keeps the warm window narrower than the GPU residency it is warmed into", () => {
+    const high = residentIntervalBudget("auto", 8);
+    const low = residentIntervalBudget("low", 8);
+    expect(high.windowIntervals).toBe(7);
+    expect(low.windowIntervals).toBe(3);
+    expect(high.windowIntervals).toBeLessThan(high.intervals);
+    expect(low.windowIntervals).toBeLessThan(low.intervals);
+    // Odd, because the window is centred: the radius is `(count - 1) / 2`.
+    expect(high.windowIntervals % 2).toBe(1);
+    expect(low.windowIntervals % 2).toBe(1);
+    expect(residentIntervalBudget("auto", 2).windowIntervals).toBe(3);
+  });
+
   it("lowers the budget only for an explicit low profile or a small device", () => {
     expect(residentIntervalBudget("low", 8)).toEqual(
-      { intervals: LOW_INTERVALS, bytes: 24 * 1024 * 1024 });
+      { intervals: LOW_INTERVALS, bytes: 24 * 1024 * 1024, windowIntervals: 3 });
     expect(residentIntervalBudget("auto", 2).intervals).toBe(LOW_INTERVALS);
     expect(residentIntervalBudget("auto", 4).intervals).toBe(HIGH_INTERVALS);
   });
