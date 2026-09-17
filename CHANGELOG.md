@@ -5,6 +5,18 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Fixed
 
+- **A resident map interval no longer holds two arrays nothing reads.**
+  `pieceIndices` and `seamIds` are u32 per vertex — 1.06 MB each at the shipped
+  sizes, 2.1 MB an interval and 44 MiB across the 25 the high profile keeps.
+  `pieceIndices` had exactly one reader, the per-vertex palette-entry index
+  built from it; `seamIds` had none at all beyond a length check, because every
+  palaeo vertex is its own seam and the renderer never uploads a palaeo seam id.
+  The entry index is now cached against the resident geometry rather than in a
+  per-revision closure — so a return visit reuses it instead of rebuilding it —
+  and both inputs are released once it exists. A palaeo static-geometry copy
+  carries `seamIds: null` and its byte ledger drops the matching
+  `vertexCount * 4`; the native Cao 2024 arm is unchanged.
+
 - **The GPU residency keys now move on every interval publish.**
   `data-cao-foundation-gpu-bytes` and `data-cao-resident-intervals` were written
   only by the native revision path and by a composition change. A map-interval

@@ -721,9 +721,11 @@ function geometryHoldsGpuBuffers(geometry: THREE.BufferGeometry): boolean {
 }
 
 function staticGeometryByteLength(batch: PreparedCaoStaticGeometryCopy): number {
+  // `seamIds` is absent for a palaeo map interval, which is one seam per vertex
+  // and uploads none of them; the ledger counts what is retained.
   return [batch.referenceDirections, batch.indices, batch.seamIds,
     batch.preparedEntryIndices, batch.materialChartIndices]
-    .reduce((sum, value) => safeAdd(sum, value.byteLength, "Cao batch"), 0);
+    .reduce((sum, value) => value === null ? sum : safeAdd(sum, value.byteLength, "Cao batch"), 0);
 }
 
 function staticLineGeometryByteLength(batch: PreparedCaoLineGeometryCopy): number {
@@ -775,7 +777,7 @@ function validateStaticGeometryCopy(
 ): void {
   if (batch.referenceDirections.length !== vertexCount * 3
       || batch.indices.length !== triangleCount * 3
-      || batch.seamIds.length !== vertexCount
+      || (batch.seamIds !== null && batch.seamIds.length !== vertexCount)
       || batch.preparedEntryIndices.length !== vertexCount
       || batch.materialChartIndices.length !== vertexCount) {
     throw new Error("Cao foundation batch attribute length mismatch");

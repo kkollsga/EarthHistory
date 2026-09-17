@@ -99,7 +99,7 @@ describe("surface source preparation", () => {
       expect(copy.referenceDirections).not.toBe(geometry.referenceDirections);
       expect(copy.preparedEntryIndices).not.toBe(copy.materialChartIndices);
       // The ledger is the sum of the five arrays the renderer re-derives.
-      expect(copy.referenceDirections.byteLength + copy.indices.byteLength + copy.seamIds.byteLength
+      expect(copy.referenceDirections.byteLength + copy.indices.byteLength + copy.seamIds!.byteLength
         + copy.preparedEntryIndices.byteLength + copy.materialChartIndices.byteLength).toBe(legacyBytes);
       expect(() => trianglesAgreeWithChartRanges(prepared, copy)).not.toThrow();
     }
@@ -126,11 +126,14 @@ describe("surface source preparation", () => {
     // `palaeoIntervalV2.preparedBatch` before the surface-source path existed.
     const narrow = chartCount <= 65_535;
     const entryBytes = geometry.vertexCount * (narrow ? 2 : 4);
+    // The one deliberate departure from the pre-refactor expression: the palaeo
+    // copy carries no seam ids, so its ledger drops `vertexCount * 4`.
     const legacyBytes = geometry.referenceDirections.byteLength + geometry.indices.byteLength
-      + geometry.vertexCount * 4 + entryBytes * 2;
-    const legacyEntryIndices = new Uint16Array(geometry.pieceIndices.length);
-    for (let vertex = 0; vertex < geometry.pieceIndices.length; vertex += 1) {
-      legacyEntryIndices[vertex] = chartOffset + geometry.pieceIndices[vertex]!;
+      + entryBytes * 2;
+    const pieceIndices = geometry.pieceIndices!;
+    const legacyEntryIndices = new Uint16Array(pieceIndices.length);
+    for (let vertex = 0; vertex < pieceIndices.length; vertex += 1) {
+      legacyEntryIndices[vertex] = chartOffset + pieceIndices[vertex]!;
     }
 
     expect(prepared.staticGeometryBytes).toBe(legacyBytes);
@@ -147,11 +150,24 @@ describe("surface source preparation", () => {
     // array answers both the palette entry and the material chart index.
     expect(copy.referenceDirections).toBe(geometry.referenceDirections);
     expect(copy.indices).toBe(geometry.indices);
-    expect(copy.seamIds).toBe(geometry.seamIds);
+    // No seam ids, and the two upload-only arrays are released once the entry
+    // index is built: 2.1 MB an interval at the shipped sizes.
+    expect(copy.seamIds).toBeNull();
+    expect(geometry.pieceIndices).toBeNull();
+    expect(geometry.seamIds).toBeNull();
     expect(copy.materialChartIndices).toBe(copy.preparedEntryIndices);
     expect(prepared.createStaticGeometryCopy().preparedEntryIndices).toBe(copy.preparedEntryIndices);
-    expect(copy.referenceDirections.byteLength + copy.indices.byteLength + copy.seamIds.byteLength
+    expect(copy.referenceDirections.byteLength + copy.indices.byteLength
       + copy.preparedEntryIndices.byteLength + copy.materialChartIndices.byteLength).toBe(legacyBytes);
+    // A fresh batch over the same resident geometry — what a return visit
+    // prepares — finds the cached entry index and never asks for the released
+    // arrays again.
+    const returning = prepareSurfaceBatch({ kind: "ehpr", batchId: "palaeo-lm",
+      staticGeometryIdentity: "identity:palaeo-lm:sha", vertexCount: geometry.vertexCount,
+      triangleCount: geometry.triangleCount, chartCount, surfaceAppearance: "palaeo-land",
+      chartIndexOffset: chartOffset, pieceTriangleRanges: geometry.pieceTriangleRanges,
+      requireGeometry: () => geometry, baseColorRgb: [0.4, 0.5, 0.6] });
+    expect(returning.createStaticGeometryCopy().preparedEntryIndices).toBe(copy.preparedEntryIndices);
     const controls = prepared.createDisplayControlsCopy();
     expect(controls.displayHeightStart).toEqual({ kind: "uniform", value: 0 });
     expect(controls.displayHeightEnd).toEqual({ kind: "uniform", value: 0 });

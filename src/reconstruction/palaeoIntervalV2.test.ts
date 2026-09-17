@@ -497,11 +497,12 @@ describe("palaeo-coastline interval frame", () => {
     const copy = batch.createStaticGeometryCopy();
     expect(copy.referenceDirections).toHaveLength(batch.vertexCount * 3);
     expect(copy.indices).toHaveLength(batch.triangleCount * 3);
-    expect(copy.seamIds).toHaveLength(batch.vertexCount);
+    // Every palaeo vertex is its own seam and the renderer uploads none of
+    // them, so the copy carries no seam-id array and the ledger counts none.
+    expect(copy.seamIds).toBeNull();
     expect(copy.preparedEntryIndices).toHaveLength(batch.vertexCount);
     expect(copy.materialChartIndices).toHaveLength(batch.vertexCount);
-    expect(new Set(copy.seamIds).size).toBe(batch.vertexCount);
-    const bytes = [copy.referenceDirections, copy.indices, copy.seamIds, copy.preparedEntryIndices,
+    const bytes = [copy.referenceDirections, copy.indices, copy.preparedEntryIndices,
       copy.materialChartIndices].reduce((sum, array) => sum + array.byteLength, 0);
     expect(bytes).toBe(batch.staticGeometryBytes);
     for (let vertex = 0; vertex < batch.vertexCount; vertex += 1) {
@@ -520,17 +521,16 @@ describe("palaeo-coastline interval frame", () => {
     // are the same number per vertex.
     expect(copy.materialChartIndices).toBe(copy.preparedEntryIndices);
     // A second copy of the same batch allocates nothing at all: the reference
-    // directions, triangle indices and seam ids are the resident interval's own
-    // arrays, transferred out of the worker, and the entry indices are built
-    // once per resident class.
+    // directions and triangle indices are the resident interval's own arrays,
+    // transferred out of the worker, and the entry indices are built once per
+    // resident class geometry and cached against it.
     const again = batch.createStaticGeometryCopy();
     expect(again.referenceDirections).toBe(copy.referenceDirections);
     expect(again.indices).toBe(copy.indices);
-    expect(again.seamIds).toBe(copy.seamIds);
     expect(again.preparedEntryIndices).toBe(copy.preparedEntryIndices);
     // The whole main-thread allocation a crossing pays for this batch is that
-    // one index array — under a sixth of the bytes the copy used to duplicate.
-    expect(copy.preparedEntryIndices.byteLength * 6).toBeLessThanOrEqual(batch.staticGeometryBytes);
+    // one index array — under a fifth of the bytes the copy used to duplicate.
+    expect(copy.preparedEntryIndices.byteLength * 5).toBeLessThanOrEqual(batch.staticGeometryBytes);
     const covered = prepared.batches.flatMap((entry) => entry.chartTriangleRanges)
       .reduce((sum, range) => sum + range.triangleCount, 0);
     expect(covered).toBe(batch.triangleCount);

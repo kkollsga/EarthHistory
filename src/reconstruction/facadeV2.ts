@@ -17,7 +17,12 @@ export interface PreparedCaoMotionPalette {
 export interface PreparedCaoStaticGeometryCopy {
   readonly referenceDirections: Float32Array;
   readonly indices: Uint32Array;
-  readonly seamIds: Uint32Array;
+  /**
+   * `null` where the batch has none. A palaeo map interval is one seam per
+   * vertex, which nothing uploads and nothing reads, so it carries no array and
+   * its byte ledger drops the `vertexCount * 4` that array would have cost.
+   */
+  readonly seamIds: Uint32Array | null;
   readonly preparedEntryIndices: Uint16Array | Uint32Array;
   readonly materialChartIndices: Uint16Array | Uint32Array;
 }
