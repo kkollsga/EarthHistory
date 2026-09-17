@@ -469,7 +469,6 @@ function preparedBatch(
   chartOffset: number,
   chartCount: number,
   identity: PreparedCaoPalaeoIntervalIdentity,
-  requirePayload: () => LoadedPalaeoIntervalClass,
 ): PreparedCaoSpatialBatch {
   const { geometry } = resident;
   return prepareSurfaceBatch({
@@ -483,9 +482,71 @@ function preparedBatch(
     surfaceAppearance: PALAEO_SURFACE_CLASS_APPEARANCES[resident.surfaceClass],
     chartIndexOffset: chartOffset,
     pieceTriangleRanges: geometry.pieceTriangleRanges,
-    requireGeometry: () => requirePayload().geometry,
+    // The resident interval's own geometry, not a lease's view of it: this
+    // descriptor outlives the revision that first asked for it, and the store's
+    // residency is what ends its life. The per-revision release guard is added
+    // by the wrapper in `createPreparedCaoPalaeoInterval`.
+    requireGeometry: () => resident.geometry,
     baseColorRgb: identity.baseColorRgb[resident.surfaceClass],
   });
+}
+
+/**
+ * Everything a prepared revision of one interval carries that the requested age
+ * does not move: one batch descriptor per resident class, and the largest edge
+ * over them.
+ *
+ * Building these was measured at most of the 55-65 ms a crossing spent turning
+ * an already-prepared interval into a publishable revision, and none of it is a
+ * function of the age. `chartTriangleRanges` alone is one frozen object per
+ * piece — several thousand per interval — remapped from piece space into chart
+ * space, and the remap answer is the interval's, not the request's. So it is
+ * built once per resident interval and every later request wraps it.
+ */
+interface PalaeoIntervalBatchTemplate {
+  /** The package identity and class colours the descriptors were built for. */
+  readonly identityKey: string;
+  readonly batches: readonly PreparedCaoSpatialBatch[];
+  readonly maximumEdgeDegrees: number;
+}
+
+/**
+ * One batch template per resident interval, dropped with the interval itself —
+ * the same residency bound that owns `PALAEO_IDENTITY_TABLES` and
+ * `PALAEO_FRAME_SCRATCH`, and for the same reason.
+ */
+const PALAEO_BATCH_TEMPLATES = new WeakMap<LoadedPalaeoInterval, PalaeoIntervalBatchTemplate>();
+
+/**
+ * The package identity the descriptors name. A batch states its static geometry
+ * as `package@revision:class:sha`, and its base colour comes from the manifest,
+ * so a template built under one package must not be reused under another.
+ */
+function palaeoBatchTemplateKey(identity: PreparedCaoPalaeoIntervalIdentity): string {
+  const colours = (Object.keys(PALAEO_SURFACE_CLASS_APPEARANCES) as PalaeoSurfaceClass[])
+    .map((surfaceClass) => identity.baseColorRgb[surfaceClass]?.join(",") ?? "")
+    .join("|");
+  return `${identity.packageId}@${identity.packageRevision}:${colours}`;
+}
+
+function palaeoIntervalBatchTemplate(
+  interval: LoadedPalaeoInterval,
+  chartCount: number,
+  classChartOffsets: ReadonlyMap<PalaeoSurfaceClass, number>,
+  identity: PreparedCaoPalaeoIntervalIdentity,
+): PalaeoIntervalBatchTemplate {
+  const identityKey = palaeoBatchTemplateKey(identity);
+  const cached = PALAEO_BATCH_TEMPLATES.get(interval);
+  if (cached && cached.identityKey === identityKey) return cached;
+  const template: PalaeoIntervalBatchTemplate = Object.freeze({
+    identityKey,
+    batches: Object.freeze(interval.classes.map((entry) =>
+      preparedBatch(entry, classChartOffsets.get(entry.surfaceClass)!, chartCount, identity))),
+    maximumEdgeDegrees: interval.classes.reduce(
+      (largest, entry) => Math.max(largest, entry.geometry.maximumEdgeDegrees), 0),
+  });
+  PALAEO_BATCH_TEMPLATES.set(interval, template);
+  return template;
 }
 
 /**
@@ -520,13 +581,28 @@ export function createPreparedCaoPalaeoInterval(
       poseQuaternion: Object.freeze([...chart.poseQuaternion]) as unknown as typeof chart.poseQuaternion,
       inversePoseQuaternion:
         Object.freeze([...chart.inversePoseQuaternion]) as unknown as typeof chart.inversePoseQuaternion })));
-  const maximumEdgeDegrees = interval.classes.reduce(
-    (largest, entry) => Math.max(largest, entry.geometry.maximumEdgeDegrees), 0);
-  const batches = interval.classes.map((entry) => preparedBatch(entry,
-    frame.classChartOffsets.get(entry.surfaceClass)!, charts.length, identity, () => {
-      if (!resident) throw new Error("palaeo-coastline interval released");
-      return entry;
-    }));
+  const template = palaeoIntervalBatchTemplate(interval, charts.length,
+    frame.classChartOffsets, identity);
+  const requireResident = () => {
+    if (!resident) throw new Error("palaeo-coastline interval released");
+  };
+  // The lease guard is this revision's; the descriptor under it is the resident
+  // interval's. Releasing a revision must stop *this* revision reading the
+  // geometry, and must not take the interval's own arrays with it — another
+  // revision of the same interval, or the member already on the GPU, still owns
+  // them. So the guard is a wrapper, and it is the only per-request allocation
+  // a batch costs.
+  const batches = template.batches.map((batch) => Object.freeze({
+    ...batch,
+    createStaticGeometryCopy: () => {
+      requireResident();
+      return batch.createStaticGeometryCopy();
+    },
+    createDisplayControlsCopy: () => {
+      requireResident();
+      return batch.createDisplayControlsCopy();
+    },
+  }));
   const release = () => {
     resident = null;
     paletteValues = null;
@@ -560,7 +636,7 @@ export function createPreparedCaoPalaeoInterval(
     intervalIndex: interval.intervalIndex,
     fromAgeMa: interval.fromAgeMa,
     toAgeMa: interval.toAgeMa,
-    maximumEdgeDegrees,
+    maximumEdgeDegrees: template.maximumEdgeDegrees,
     motionPalette: Object.freeze({ stride: PREPARED_MOTION_PALETTE_STRIDE,
       entryCount: frame.entryCount,
       createValuesCopy: () => {

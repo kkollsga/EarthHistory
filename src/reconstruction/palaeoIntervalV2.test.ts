@@ -447,6 +447,65 @@ describe("palaeo-coastline interval frame", () => {
     runner.dispose();
   });
 
+  /**
+   * A crossing into an already-prepared interval spent 55-65 ms turning it into
+   * a publishable revision, and none of that work is a function of the age. The
+   * identity strings, the frame scratch and the per-class batch descriptors —
+   * `chartTriangleRanges` above all, one frozen object per piece — belong to
+   * the resident interval. This is the assertion that they are built once:
+   * every one of them comes back as the same instance, which is a stronger
+   * statement than a call count because it also proves nothing was copied.
+   */
+  it("rebuilds only the age's half of a second request for the same interval", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const first = await runtime.requestPalaeoInterval(398).prepared;
+    let macrotask = false;
+    setTimeout(() => { macrotask = true; }, 0);
+    const second = await runtime.requestPalaeoInterval(390).prepared;
+    // Everything the request had to do, it did in microtasks: an interval this
+    // runtime already holds never reaches a timer, a fetch or a worker.
+    expect(macrotask).toBe(false);
+    expect(second.intervalId).toBe(first.intervalId);
+
+    // The descriptors: the same chart ranges and the same static geometry key.
+    // The batch object itself is this revision's, because the released-lease
+    // guard is, and it is the only per-request allocation a batch costs.
+    expect(second.batches[0]!.chartTriangleRanges).toBe(first.batches[0]!.chartTriangleRanges);
+    expect(second.batches[0]!.staticGeometryIdentity)
+      .toBe(first.batches[0]!.staticGeometryIdentity);
+    expect(second.batches[0]).not.toBe(first.batches[0]);
+    expect(second.maximumEdgeDegrees).toBe(first.maximumEdgeDegrees);
+    // The identity table: the evidence and surface-evidence records a chart
+    // carries are the interval's own, not the age's.
+    expect(second.charts[0]!.evidence).toBe(first.charts[0]!.evidence);
+    expect(second.charts[0]!.surfaceEvidence).toBe(first.charts[0]!.surfaceEvidence);
+    expect(second.charts[0]!.chartId).toBe(first.charts[0]!.chartId);
+    // The frame scratch: two evaluations of the same interval write into one
+    // set of chart objects and one palette buffer.
+    const early = runtime.evaluatePalaeoMotionNow(396)!;
+    const late = runtime.evaluatePalaeoMotionNow(392)!;
+    expect(late.charts).toBe(early.charts);
+    expect(late.paletteValues).toBe(early.paletteValues);
+
+    // The age's half did move, and it is the half a publication reports.
+    expect(second.requestedAgeMa).toBe(390);
+    expect(second.activeChartCount).toBe(1);
+    expect(first.activeChartCount).toBe(2);
+    expect(second.identity).not.toBe(first.identity);
+
+    // Releasing one revision's lease must not take the geometry the resident
+    // interval still owns with it: the other revision of the same interval can
+    // still copy it, and so can the member already on the GPU.
+    first.release();
+    expect(() => second.batches[0]!.createStaticGeometryCopy()).not.toThrow();
+    expect(() => first.batches[0]!.createStaticGeometryCopy()).toThrow(/released/);
+    second.release();
+    runtime.dispose();
+  });
+
   // Folded in from the deleted `palaeoPublication.test.ts`, which proved these
   // on the adapter that used to wrap an interval as a revision. The prepared
   // interval now states them itself, so they are asserted on the real one.
@@ -535,6 +594,11 @@ describe("palaeo-coastline interval frame", () => {
       .reduce((sum, range) => sum + range.triangleCount, 0);
     expect(covered).toBe(batch.triangleCount);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.charts.length * 11);
+    // The lease contract, unchanged by the descriptor being shared: releasing
+    // this revision stops *this* revision reading the geometry. It does not
+    // destroy the arrays — the resident interval still owns them, and another
+    // revision of the same interval reads them through its own guard — which is
+    // what the test above asserts from the other side.
     prepared.release();
     expect(() => batch.createStaticGeometryCopy()).toThrow(/released/);
     runtime.dispose();

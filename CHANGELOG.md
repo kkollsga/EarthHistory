@@ -18,6 +18,18 @@ All notable changes to EarthHistory will be recorded here.
   declined and the crossing that needs the interval uploads it itself, exactly
   as before. Nothing about what is drawn changes; only when the upload happens.
 
+- **A second request for a resident map interval rebuilds only what the age
+  moves.** Turning an interval the runtime already held into a publishable
+  revision cost 55-65 ms on the crossing frame, and most of it was work the
+  requested age does not change: one batch descriptor per class, and inside it
+  one frozen `chartTriangleRanges` object per piece — several thousand an
+  interval — remapped from piece space into chart space. Those descriptors and
+  the interval's largest edge are now built once per resident interval, beside
+  the identity table and frame scratch that were already cached there, and each
+  request wraps them in its own released-lease guard. The lease contract is
+  unchanged: releasing a revision stops that revision reading the geometry and
+  does not destroy arrays the resident interval still owns.
+
 ### Fixed
 
 - **A resident map interval no longer holds two arrays nothing reads.**
