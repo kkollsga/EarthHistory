@@ -333,7 +333,7 @@ describe("palaeo-coastline interval store", () => {
     runner.dispose();
   });
 
-  it("falls back to the neighbour cache when the prepared ceiling would be exceeded", async () => {
+  it("trims to the prepared ceiling instead of collapsing to the neighbour cache", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
     const largest = Math.max(...fixture.catalog.intervals.map((interval) => interval.payload.bytes));
@@ -346,9 +346,61 @@ describe("palaeo-coastline interval store", () => {
     await store.load(intervalUnit("402-380"));
     await store.load(intervalUnit("380-360"));
     await store.load(intervalUnit("360-340"));
-    // Over the ceiling the neighbour bounds apply again, so the interval being
-    // drawn is what survives rather than whatever was prepared last.
+    // Contract change: over the ceiling the store used to hand the whole set to
+    // the neighbour cache. It now drops the farthest interval by age until the
+    // set fits the ceiling again. Here the ceiling is one payload's worth of
+    // bytes against a retained cost many times that, so the set trims to the
+    // one interval being drawn either way; what the ceiling affords is what
+    // survives, not a fixed three.
     expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("counts retained typed-array bytes, not the payload file's", async () => {
+    const fixture = palaeoFixture();
+    const runner = createPalaeoTriangulationRunner();
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
+      fixture.fetcher, runner);
+    const loaded = await store.load(intervalUnit("402-380"));
+    const interval = loaded.value as LoadedPalaeoInterval;
+    const geometryBytes = interval.classes.reduce((sum, entry) => sum
+      + entry.geometry.referenceDirections.byteLength + entry.geometry.indices.byteLength
+      + (entry.geometry.pieceIndices?.byteLength ?? 0)
+      + (entry.geometry.seamIds?.byteLength ?? 0), 0);
+    // The payload file is a fraction of what the decoded interval holds; the
+    // ledger the prepared ceiling reads must be the larger figure or the
+    // ceiling bounds nothing.
+    expect(geometryBytes).toBeGreaterThan(0);
+    expect(store.intervalLedger.residentRetainedBytes)
+      .toBe(store.intervalLedger.residentSourceBytes + geometryBytes);
+    expect(store.intervalLedger.residentRetainedBytes)
+      .toBeGreaterThan(store.intervalLedger.residentSourceBytes);
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("holds what the prepared ceiling affords, above and below three", async () => {
+    const fixture = palaeoFixture({}, LONG_INTERVALS);
+    const catalogs = await loadedCatalogs(fixture);
+    const runner = createPalaeoTriangulationRunner();
+    const probe = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner);
+    await probe.load(intervalUnit("402-380"));
+    const oneInterval = probe.intervalLedger.residentRetainedBytes;
+    probe.dispose();
+    // Four affordable intervals: more than the neighbour cache's three, which
+    // is what the fallback used to cut the prepared set down to.
+    const store = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner,
+      { ...DEFAULT_SURFACE_RESIDENCY_POLICY, maxPreparedBytes: oneInterval * 4 });
+    store.noteCurrentAge(395);
+    for (const id of ["402-380", "380-360", "360-340", "340-320", "320-300"]) {
+      await store.load(intervalUnit(id));
+    }
+    expect(store.intervalLedger.residentCount).toBe(4);
+    expect(store.intervalLedger.residentRetainedBytes).toBeLessThanOrEqual(oneInterval * 4);
+    // Farthest from 395 Ma is the one that went.
+    expect(store.resident(intervalUnit("320-300"))).toBeNull();
     expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
     store.dispose();
     runner.dispose();

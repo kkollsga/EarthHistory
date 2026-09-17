@@ -5,6 +5,22 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Changed
 
+- **The prepared-interval ceiling is measured in what an interval actually
+  holds.** `residentIntervals: "all"` keeps every map interval the background
+  walk prepares under a 64 MiB ceiling, but the ledger that ceiling read summed
+  the intervals' *payload file* bytes — 7.69 MiB for the whole shipped set of
+  25, against a decoded cost measured at ~8.4 MB an interval. The ceiling could
+  therefore never fire, and the walk grew the heap by ~210 MB with nothing
+  bounding it. The store now sums the retained typed arrays (payload plus the
+  vertex, index and upload-only arrays the triangulation hands back), publishes
+  the figure as `residentRetainedBytes` beside the unchanged
+  `residentSourceBytes`, and trims to the ceiling by dropping the interval
+  farthest from the current age. Over the ceiling the policy no longer collapses
+  to the three-interval neighbour cache: a set that asked to hold everything it
+  could afford was handing back the least it could. A crossing into a trimmed
+  interval re-fetches ~0.31 MB of ring payload and re-triangulates on the
+  background walk's worker, which is the cost the neighbour cache always paid.
+
 - **A background-prepared map interval is uploaded to the GPU while the main
   thread is idle.** The background walk finishes the whole timeline seconds
   before a scrub reaches most of it, but a prepared interval was only decoded

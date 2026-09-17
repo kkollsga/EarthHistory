@@ -707,11 +707,17 @@ export interface SurfaceResidencyPolicy {
    *
    * `"all"` keeps every interval the engine's background scheduler prepares, so
    * a crossing is a swap of geometry already in hand. `maxPreparedBytes` is
-   * what bounds it: over that ceiling the store falls back to `"nearest"`
-   * rather than growing without limit.
+   * what bounds it: over that ceiling the farthest interval by age is dropped
+   * until the set fits again. It does *not* fall back to `"nearest"` — trimming
+   * to three residents is a worse answer than trimming to what the ceiling
+   * affords, and it is the answer the earlier fallback gave.
    */
   readonly residentIntervals: "nearest" | "all";
-  /** Decoded interval payload bytes `"all"` may hold before the fallback. */
+  /**
+   * Retained typed-array bytes `"all"` may hold — the decoded geometry, not the
+   * payload file, because the geometry is ~27x the payload and is what occupies
+   * the heap.
+   */
   readonly maxPreparedBytes: number;
   readonly maximumResidentIntervalBytes: number;
   readonly maximumResidentIntervalCount: number;
@@ -726,10 +732,12 @@ export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.f
   residentIntervals: "all" as const,
   // The 25 compiled intervals of the shipped classes are 7.69 MiB of ring
   // payload; what they cost resident is the decoded geometry, measured at
-  // ~9 MB an interval. Sixty-four MiB is the bound on that, and leaves headroom
-  // for a package that gains a class without silently dropping back to the
-  // neighbour cache. (The earlier "about 36 MB of payload" here was never the
-  // shipped figure; the ledger it justified is checked in `loaderV2.test.ts`.)
+  // ~8.4 MB an interval. Sixty-four MiB is the bound on that — about seven
+  // intervals, the drawn one and three neighbours either side — and it is now
+  // measured in the same currency by `residentRetainedBytes`, so the ceiling
+  // actually fires instead of comparing 7.69 MiB of payload against 64 MiB.
+  // (The earlier "about 36 MB of payload" here was never the shipped figure;
+  // the ledger it justified is checked in `loaderV2.test.ts`.)
   maxPreparedBytes: 64 * 1024 * 1024,
   // The two bounds below govern the `"nearest"` fallback. Two intervals of
   // every compiled class sit far inside six MiB; the bound
@@ -791,10 +799,35 @@ const ABSENT_CHECKPOINT_LEDGER = Object.freeze({
 });
 
 const ABSENT_INTERVAL_LEDGER = Object.freeze({
-  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
+  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, residentRetainedBytes: 0,
+  pendingReservedSourceBytes: 0,
   maximumResidentCount: 2, maximumPendingCount: 2, maximumResidentSourceBytes: 0,
   maximumPreparedSourceBytes: 0,
 });
+
+/**
+ * Typed-array bytes one decoded interval really holds.
+ *
+ * The payload file is what a catalog declares and what the neighbour cache's
+ * reservation is sized in; it is not what an interval costs once decoded. The
+ * triangulation hands back a vertex direction array, an index array and — until
+ * `prepareSurfaceBatch` has read them — the two upload-only arrays, and those
+ * are handed through to the renderer's batch without a copy. Measured over the
+ * shipped set that is ~8.4 MB an interval against ~0.31 MB of payload, so a
+ * ceiling denominated in payload bytes is ~27x too small to bound anything.
+ */
+function palaeoIntervalRetainedBytes(interval: LoadedPalaeoInterval): number {
+  let bytes = 0;
+  for (const entry of interval.classes) {
+    const geometry = entry.geometry;
+    bytes += entry.sourceBytes
+      + geometry.referenceDirections.byteLength
+      + geometry.indices.byteLength
+      + (geometry.pieceIndices?.byteLength ?? 0)
+      + (geometry.seamIds?.byteLength ?? 0);
+  }
+  return bytes;
+}
 
 /**
  * One residency owner over both surface units.
@@ -824,7 +857,7 @@ export class CaoSurfaceResidencyStore {
   private catalogs: readonly LoadedPalaeoClassCatalog[] = [];
   private runner: PalaeoTriangulationRunner | null = null;
   private maximumResidentIntervalBytes = 0;
-  /** Bytes the `"all"` policy may hold; 0 while detached or under the fallback. */
+  /** Retained typed-array bytes the `"all"` policy may hold; 0 while detached. */
   private preparedCeilingBytes = 0;
   private readonly residentIntervals =
     new Map<string, { value: LoadedPalaeoInterval; used: number }>();
@@ -912,8 +945,10 @@ export class CaoSurfaceResidencyStore {
     if (this.palaeo === null) return ABSENT_INTERVAL_LEDGER;
     return Object.freeze({
       residentCount: this.residentIntervals.size, pendingCount: this.pendingIntervals.size,
-      residentSourceBytes: [...this.residentIntervals.keys()]
-        .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
+      residentSourceBytes: this.residentSourceBytes(),
+      // What the `"all"` ceiling is actually measured against; `residentSourceBytes`
+      // stays the payload figure the package's reservation is written in.
+      residentRetainedBytes: this.residentRetainedBytes(),
       pendingReservedSourceBytes: [...this.pendingIntervals.keys()]
         .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
       maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
@@ -1033,18 +1068,21 @@ export class CaoSurfaceResidencyStore {
     return 0;
   }
 
-  private residentIntervalBytes(): number {
+  /** Declared payload bytes of the resident set; the neighbour cache's currency. */
+  private residentSourceBytes(): number {
     return [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0);
   }
 
+  /** Typed-array bytes the resident set really holds; the `"all"` ceiling's currency. */
+  private residentRetainedBytes(): number {
+    let bytes = 0;
+    for (const cached of this.residentIntervals.values()) {
+      bytes += palaeoIntervalRetainedBytes(cached.value);
+    }
+    return bytes;
+  }
+
   private evictIntervals(): void {
-    // Under `"all"` nothing is evicted while the prepared set fits its ceiling:
-    // the whole point of preparing every interval is that a crossing finds its
-    // geometry decoded. Over the ceiling the neighbour cache below takes over,
-    // so the policy degrades to the one the mode shipped with rather than
-    // holding bytes nobody bounded.
-    if (this.policy.residentIntervals === "all"
-        && this.residentIntervalBytes() <= this.preparedCeilingBytes) return;
     // Farthest from the current age first; the least recently read one breaks a
     // tie, which is the whole order when no age has been noted yet. A pinned
     // unit is never a candidate: the policy names the geometry every
@@ -1060,11 +1098,25 @@ export class CaoSurfaceResidencyStore {
       this.residentIntervals.delete(victim[0]);
       return true;
     };
+    if (this.policy.residentIntervals === "all") {
+      // `"all"` is bounded by its own ceiling and by nothing else. Falling into
+      // the neighbour cache's count and payload bounds on the first byte over
+      // the ceiling is what collapsed a 25-interval prepared set to three: the
+      // policy that asked to hold everything it could afford kept the least it
+      // could. Here the set is trimmed *to* the ceiling, farthest by age, and a
+      // crossing into a trimmed interval re-fetches ~0.31 MB of ring payload and
+      // re-triangulates on the background walk's worker.
+      while (this.residentIntervals.size > 1
+        && this.residentRetainedBytes() > this.preparedCeilingBytes) {
+        if (!dropFarthest()) break;
+      }
+      return;
+    }
     while (this.residentIntervals.size > this.policy.maximumResidentIntervalCount) {
       if (!dropFarthest()) break;
     }
     while (this.residentIntervals.size > 1
-      && this.residentIntervalBytes() > this.maximumResidentIntervalBytes) {
+      && this.residentSourceBytes() > this.maximumResidentIntervalBytes) {
       if (!dropFarthest()) break;
     }
   }
