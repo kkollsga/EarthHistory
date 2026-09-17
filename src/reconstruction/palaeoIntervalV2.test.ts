@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
+import { decideIntervalRequest } from "./intervalSettle";
 import { chartPickStateFromMotionFrame } from "./motionFrameV2";
 import { CaoSurfaceResidencyStore, DEFAULT_SURFACE_RESIDENCY_POLICY, intervalUnit,
   loadVerifiedPalaeoClassCatalogs, palaeoWarmWindowIntervalIds, selectPalaeoIntervalForAge,
@@ -1247,6 +1248,38 @@ describe("palaeo-coastline background preparation", () => {
       await delay(5);
     }
   }
+
+  /**
+   * The crossing policy's own predicate, asked of the runtime that answers it.
+   *
+   * A crossing into an interval the walk has already prepared must cost a swap,
+   * not a settle: `decideIntervalRequest` reads `isPrepared`, and the pump
+   * implements it through the runtime. If the runtime answered for the
+   * published interval instead of the store, every crossing would pay the
+   * 120 ms settle even though the map was in hand.
+   */
+  it("answers prepared for a walked neighbour, so a crossing into it is a swap", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(330).prepared;
+    expect(published.intervalId).toBe("340-320");
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The neighbour the walk prepared, asked at its own midpoint exactly as the
+    // pump's `intervalIsPrepared` asks it.
+    expect(runtime.palaeoMotionResidentAt(310)).toBe(true);
+    // And the decision the pump would take on that answer: a request at once,
+    // with no settle, while the scrub is still moving fast.
+    const decision = decideIntervalRequest({
+      nowMs: 1_000, ageMa: 310, lastAgeMa: 330, lastAgeAtMs: 990,
+      currentIntervalIndex: 4, preparedIntervalIndex: 3,
+      isPrepared: (index) => index === 4,
+    });
+    expect(decision).toEqual({ kind: "request", index: 4, reason: "resident" });
+    published.release();
+    runtime.dispose();
+  });
 
   it("walks every remaining interval nearest by age, one job at a time", async () => {
     const gated = schedulerFixture();
