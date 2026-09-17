@@ -618,6 +618,12 @@ async function main() {
           intervalPublishes: publishes.length,
           publishes, startIntervalId,
           endIntervalId: canvas?.dataset.caoPalaeoIntervalId ?? "",
+          // A "preloaded" member is only warm if the scene actually compiled
+          // it; a parented hidden group has nothing on the GPU behind it, and
+          // the longest frame cannot tell the two apart.
+          warmedMembers: Number(canvas?.dataset.caoPalaeoWarmedMembers ?? "0"),
+          residentIntervals: Number(canvas?.dataset.caoResidentIntervals ?? "0"),
+          warmFailure: canvas?.dataset.caoPalaeoWarmFailure ?? "",
           motionProbeSamples: samples.length,
           posedFrames: posed,
           poseAgeChanges,
