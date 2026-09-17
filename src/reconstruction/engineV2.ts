@@ -76,6 +76,17 @@ export const PALAEO_BACKGROUND_IDLE_TIMEOUT_MS = 200;
 /** How long the scheduler waits before re-checking a foreground request in flight. */
 export const PALAEO_BACKGROUND_FOREGROUND_WAIT_MS = 25;
 
+/**
+ * One map interval the background walk has finished preparing, as the scene's
+ * idle pre-upload reads it: the id to ask for, and the age band that orders the
+ * queue nearest-first.
+ */
+export interface PalaeoPreparedInterval {
+  readonly intervalId: string;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+}
+
 export interface CaoTimelineLoadingState {
   readonly status: "idle" | "loading" | "ready" | "paused";
   readonly foregroundStatus: "idle" | "loading" | "ready";
@@ -187,6 +198,15 @@ export class CaoReconstructionRuntime {
   private palaeoPreparingIntervalId: string | null = null;
   private palaeoBackgroundComplete = false;
   private readonly palaeoPreparedIntervalIds = new Set<string>();
+  /** Told the id of each interval the walk finishes; see `onPalaeoIntervalPrepared`. */
+  private readonly palaeoPreparedListeners = new Set<(notice: PalaeoPreparedInterval) => void>();
+  /**
+   * Prepared intervals handed out off the request chain, for the revision
+   * identity alone. Negative because it is not a request serial: an idle
+   * pre-upload must not supersede the foreground request in flight, and reusing
+   * the chain's counter here would make every prepared identity ambiguous.
+   */
+  private palaeoPreloadSerial = 0;
   /**
    * Frames the synchronous pose declined to evaluate, cumulative for the life
    * of the runtime. A scrub that leaves this at 0 never had to skip; a rising
@@ -755,6 +775,81 @@ export class CaoReconstructionRuntime {
   }
 
   /**
+   * Notified with the interval id each time the background walk finishes
+   * preparing one. The scene subscribes so it can upload that interval as a
+   * hidden GPU member while the main thread is idle, which is what makes a
+   * first visit to a prepared interval cost what a return visit costs. Answers
+   * the unsubscribe.
+   */
+  onPalaeoIntervalPrepared(listener: (notice: PalaeoPreparedInterval) => void): () => void {
+    this.palaeoPreparedListeners.add(listener);
+    return () => { this.palaeoPreparedListeners.delete(listener); };
+  }
+
+  private notePalaeoIntervalPrepared(intervalId: string): void {
+    const interval = this.residentInterval(intervalId);
+    if (interval === null) return;
+    const notice: PalaeoPreparedInterval = Object.freeze({ intervalId,
+      fromAgeMa: interval.fromAgeMa, toAgeMa: interval.toAgeMa });
+    for (const listener of [...this.palaeoPreparedListeners]) {
+      try {
+        listener(notice);
+      } catch {
+        // The walk is not a listener's error path; a scene that could not take
+        // the notification still gets the interval on the crossing that needs it.
+      }
+    }
+  }
+
+  /**
+   * A prepared revision for an interval that is already resident, built
+   * synchronously and off the request chain.
+   *
+   * `requestPalaeoInterval` is the foreground path: it supersedes whatever is
+   * in flight, which is right for a crossing and wrong for an idle pre-upload
+   * that must be invisible to the scrub. This answers null wherever the
+   * interval or the palette is not already in hand — it starts no fetch, takes
+   * no lease budget from a request that could still arrive, and never
+   * supersedes one — so the caller either gets a revision it can upload now or
+   * nothing at all.
+   *
+   * The pose is the interval's own midpoint. Nothing draws this revision: the
+   * crossing that makes its member current publishes its own age onto the
+   * resident buffers, so the age this was posed at never reaches the screen.
+   */
+  prepareResidentPalaeoIntervalNow(intervalId: string): PreparedCaoPalaeoInterval | null {
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return null;
+    // Never spends the last lease a foreground crossing is entitled to.
+    const chain = this.chains.interval;
+    if (chain.leases.size + 1 >= chain.maximumLeases) return null;
+    const interval = this.residentInterval(intervalId);
+    const paletteEntries = this.residentPaletteEntries();
+    if (!interval || !paletteEntries) return null;
+    const midpointAgeMa = (interval.fromAgeMa + interval.toAgeMa) / 2;
+    if (!palaeoIntervalCoversAge(midpointAgeMa, interval.fromAgeMa, interval.toAgeMa)) return null;
+    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries,
+      midpointAgeMa, midpointAgeMa);
+    this.palaeoPreloadSerial -= 1;
+    const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
+      requestId: this.palaeoPreloadSerial, packageId: this.manifest.packageId,
+      packageRevision: this.manifest.revision,
+      frameIdentity: packageFrameIdentity(this.manifest.frame),
+      baseColorRgb: this.palaeoBaseColors(palaeo),
+    }, (identity) => { this.chains.interval.leases.delete(identity); });
+    this.chains.interval.leases.set(prepared.identity, prepared.release);
+    return prepared;
+  }
+
+  private palaeoBaseColors(
+    palaeo: NonNullable<ReconstructionPackageManifestV2["palaeoCoastlines"]>,
+  ): Record<PalaeoSurfaceClass, readonly [number, number, number]> {
+    return Object.fromEntries(palaeo.classes.map((entry) =>
+      [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
+      readonly [number, number, number]>;
+  }
+
+  /**
    * Prepares the published map interval covering one age. A request for an age
    * still inside the interval already in flight keeps that load running: the
    * interval is the streaming unit, and restarting it on every scrub sample
@@ -861,6 +956,11 @@ export class CaoReconstructionRuntime {
       this.palaeoPreparedIntervalIds.add(intervalId);
       try {
         await this.surfaces.load(intervalUnit(intervalId), controller.signal);
+        // Told only on the walk's own success, and only once per interval: the
+        // scene's idle pre-upload is what turns a prepared interval into a
+        // hidden GPU member, and an interval that failed to prepare has no
+        // geometry to upload.
+        if (owns()) this.notePalaeoIntervalPrepared(intervalId);
       } catch {
         // Opportunistic; the crossing that needs this interval loads it itself.
       }
@@ -995,9 +1095,7 @@ export class CaoReconstructionRuntime {
     requireCurrent();
     const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa,
       palaeoSupportAgeMa(interval, requestedAgeMa));
-    const baseColorRgb = Object.fromEntries(palaeo.classes.map((entry) =>
-      [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
-      readonly [number, number, number]>;
+    const baseColorRgb = this.palaeoBaseColors(palaeo);
     const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
       requestId, packageId: this.manifest.packageId, packageRevision: this.manifest.revision,
       frameIdentity: packageFrameIdentity(this.manifest.frame), baseColorRgb,

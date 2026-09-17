@@ -1149,6 +1149,56 @@ describe("palaeo-coastline background preparation", () => {
     runtime.dispose();
   });
 
+  /**
+   * The idle pre-upload's half of the contract. The walk prepares the timeline
+   * long before a scrub reaches most of it, but a prepared interval is only
+   * decoded triangles until something uploads them: the scene is told each one
+   * so it can take that upload at idle, and it needs a revision it can publish
+   * without superseding the crossing that may be in flight.
+   */
+  it("tells a listener each interval the walk prepares and prepares a resident one off the chain",
+    async () => {
+      const gated = schedulerFixture();
+      const runtime = new CaoReconstructionRuntime(
+        await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+      runtime.setPalaeoCoastlinesEnabled(true);
+      const notices: string[] = [];
+      const stop = runtime.onPalaeoIntervalPrepared((notice) => {
+        expect(notice.fromAgeMa).toBeGreaterThan(notice.toAgeMa);
+        notices.push(notice.intervalId);
+      });
+      const published = await runtime.requestPalaeoInterval(330).prepared;
+      published.release();
+      await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+      // The interval the foreground request loaded is not one the walk prepared,
+      // so the notices are exactly the five the walk took, in its own order.
+      expect(notices).toEqual(["360-340", "320-300", "380-360", "300-280", "402-380"]);
+
+      // Two of them, uploaded hidden by the scene, off the request chain: no
+      // lease left behind, no supersession, and the pose is the interval's own.
+      const request = runtime.requestPalaeoInterval(310);
+      const first = runtime.prepareResidentPalaeoIntervalNow("360-340")!;
+      expect(first.intervalId).toBe("360-340");
+      expect(first.requestedAgeMa).toBe(350);
+      expect(first.batches.length).toBeGreaterThan(0);
+      first.release();
+      const second = runtime.prepareResidentPalaeoIntervalNow("402-380")!;
+      expect(second.identity).not.toBe(first.identity);
+      second.release();
+      // The foreground crossing that was in flight the whole time still lands.
+      const crossing = await request.prepared;
+      expect(crossing.intervalId).toBe("320-300");
+      crossing.release();
+      expect(runtime.ledger.palaeo.preparedLeaseCount).toBe(0);
+
+      // An interval that is not resident, and a runtime with the mode off,
+      // answer null rather than starting a load of their own.
+      runtime.setPalaeoCoastlinesEnabled(false);
+      expect(runtime.prepareResidentPalaeoIntervalNow("360-340")).toBeNull();
+      stop();
+      runtime.dispose();
+    });
+
   it("starts no job while a foreground request is pending and resumes after it", async () => {
     const gated = schedulerFixture(["300-280"]);
     const runtime = new CaoReconstructionRuntime(

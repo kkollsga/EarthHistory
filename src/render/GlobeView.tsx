@@ -5,7 +5,7 @@ import type {
   LonLat,
   WorldSnapshot,
 } from "../data";
-import { GlobeScene, type SpatialFocusKind } from "./GlobeScene";
+import { GlobeScene, type PalaeoIntervalPreloadSource, type SpatialFocusKind } from "./GlobeScene";
 import type { CaoMotionFrame, CaoPalaeoIntervalFrame, MaterialAddress, PreparedCaoPalaeoInterval,
   PreparedCaoRevision } from "../reconstruction";
 import { chartPickStateFromMotionFrame } from "../reconstruction";
@@ -50,6 +50,12 @@ export interface GlobeViewProps {
     requestedAgeMa: number,
     publishedIntervalId: string | null,
   ) => CaoPalaeoIntervalFrame | null;
+  /**
+   * The engine's background interval walk, for the scene's idle pre-upload. A
+   * scene given one uploads each prepared interval as a hidden GPU member while
+   * the main thread is idle, so a first visit costs what a return visit costs.
+   */
+  palaeoPreloadSource?: PalaeoIntervalPreloadSource | null;
   /** Verified EHPT bytes; the scene decodes them against its own segment count. */
   palaeoToneBytes?: Uint8Array | null;
   palaeoToneTableIndex?: number;
@@ -76,6 +82,7 @@ export function GlobeView({
   onPalaeoPublicationFailed,
   palaeoFrame = null,
   evaluatePalaeoMotionNow,
+  palaeoPreloadSource = null,
   palaeoToneBytes = null,
   palaeoToneTableIndex = -1,
   palaeoToneIntervalId = null,
@@ -100,6 +107,7 @@ export function GlobeView({
     caoMotionFrame,
     caoWithheld,
     palaeoInterval,
+    palaeoPreloadSource,
     snapshot,
     layers,
     selectedPoiId,
@@ -118,6 +126,7 @@ export function GlobeView({
     caoMotionFrame,
     caoWithheld,
     palaeoInterval,
+    palaeoPreloadSource,
     snapshot,
     layers,
     selectedPoiId,
@@ -156,6 +165,7 @@ export function GlobeView({
         scene.setVerticalExaggeration(current.verticalExaggeration);
         scene.setPreparedCaoRevision(current.caoRevision);
         scene.setPreparedPalaeoInterval(current.palaeoInterval);
+        scene.setPalaeoIntervalPreloadSource(current.palaeoPreloadSource);
         scene.setCaoFoundationWithheld(current.caoWithheld);
         scene.setEditorialSnapshot(current.snapshot);
         scene.setLayers(current.layers);
@@ -290,6 +300,15 @@ export function GlobeView({
         : "palaeo-coastline pose failed");
     }
   }, [palaeoFrame]);
+
+  // The scene keeps the subscription for as long as it is given one; the
+  // unsubscribe is the scene's own, taken again on every source change.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (scene === null) return undefined;
+    scene.setPalaeoIntervalPreloadSource(palaeoPreloadSource);
+    return () => { sceneRef.current?.setPalaeoIntervalPreloadSource(null); };
+  }, [palaeoPreloadSource]);
 
   useEffect(() => {
     sceneRef.current?.setPalaeoOutlineTones(

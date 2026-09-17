@@ -587,6 +587,31 @@ export function residentIntervalBudget(
     : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH };
 }
 
+/**
+ * How long an idle pre-upload may wait for a genuinely idle slot before it is
+ * taken anyway. Long enough that a live gesture is never interrupted by it, and
+ * short enough that a settled page finishes the timeline rather than stalling
+ * one crossing short of it.
+ */
+const PALAEO_PRELOAD_IDLE_TIMEOUT_MS = 2_000;
+
+/** One map interval the background walk has finished preparing. */
+export interface PalaeoPreparedIntervalNotice {
+  readonly intervalId: string;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+}
+
+/**
+ * The engine, as the idle pre-upload uses it: it says when an interval has been
+ * prepared, and it hands back a revision for one already resident without
+ * starting a fetch or superseding the foreground request.
+ */
+export interface PalaeoIntervalPreloadSource {
+  onPalaeoIntervalPrepared(listener: (notice: PalaeoPreparedIntervalNotice) => void): () => void;
+  prepareResidentPalaeoIntervalNow(intervalId: string): PreparedCaoPalaeoInterval | null;
+}
+
 /** The residency the surface set actually holds, as the renderer reports it. */
 export interface CaoResidencyReporter {
   residentGpuBytes(): number;
@@ -720,6 +745,17 @@ export class GlobeScene {
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
   private publishedPalaeoIntervalId: string | null = null;
+  /**
+   * The idle pre-upload queue: map intervals the background walk has prepared
+   * and this scene has not yet uploaded as a hidden GPU member. See
+   * `setPalaeoIntervalPreloadSource`.
+   */
+  private readonly palaeoPreloadQueue = new Map<string, PalaeoPreparedIntervalNotice>();
+  private readonly palaeoPreloadedIntervalIds = new Set<string>();
+  private palaeoPreloadSource: PalaeoIntervalPreloadSource | null = null;
+  private palaeoPreloadUnsubscribe: (() => void) | null = null;
+  private palaeoPreloadHandle: number | null = null;
+  private palaeoPreloadIsIdleHandle = false;
   private palaeoPublicationFailureReason: string | null = null;
   private palaeoIntervalSourceBytes = 0;
   /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
@@ -1112,6 +1148,118 @@ export class GlobeScene {
   }
 
   /**
+   * Subscribes the scene to the engine's background interval walk, so an
+   * interval it prepares becomes a hidden GPU member while the main thread is
+   * idle.
+   *
+   * A first visit to an interval used to cost the geometry upload, the
+   * publication and their commit on the one frame the scrub crossed into it,
+   * while every later visit was a visibility switch and a retarget. The walk
+   * already finishes long before the scrub reaches most of the timeline, so the
+   * upload is taken here instead — one member per idle callback, nearest by age
+   * first, and only where the renderer's residency ceilings leave room. By the
+   * time the crossing arrives the member exists and it takes the retarget path.
+   *
+   * Passing null unsubscribes. The scene owns the subscription for its life.
+   */
+  setPalaeoIntervalPreloadSource(source: PalaeoIntervalPreloadSource | null): void {
+    this.palaeoPreloadUnsubscribe?.();
+    this.palaeoPreloadUnsubscribe = null;
+    this.palaeoPreloadSource = source;
+    this.palaeoPreloadQueue.clear();
+    if (source === null) {
+      this.cancelPalaeoPreload();
+      return;
+    }
+    this.palaeoPreloadUnsubscribe = source.onPalaeoIntervalPrepared((notice) => {
+      if (this.disposed || this.palaeoPreloadedIntervalIds.has(notice.intervalId)) return;
+      this.palaeoPreloadQueue.set(notice.intervalId, notice);
+      this.schedulePalaeoPreload();
+    });
+  }
+
+  private schedulePalaeoPreload(): void {
+    if (this.disposed || this.palaeoPreloadHandle !== null
+        || this.palaeoPreloadQueue.size === 0) return;
+    const run = () => {
+      this.palaeoPreloadHandle = null;
+      this.runPalaeoPreloadStep();
+    };
+    const requestIdle = (globalThis as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (typeof requestIdle === "function") {
+      this.palaeoPreloadIsIdleHandle = true;
+      this.palaeoPreloadHandle = requestIdle(run, { timeout: PALAEO_PRELOAD_IDLE_TIMEOUT_MS });
+      return;
+    }
+    this.palaeoPreloadIsIdleHandle = false;
+    this.palaeoPreloadHandle = setTimeout(run, 0) as unknown as number;
+  }
+
+  private cancelPalaeoPreload(): void {
+    if (this.palaeoPreloadHandle === null) return;
+    const cancelIdle = (globalThis as {
+      cancelIdleCallback?: (handle: number) => void;
+    }).cancelIdleCallback;
+    if (this.palaeoPreloadIsIdleHandle && typeof cancelIdle === "function") {
+      cancelIdle(this.palaeoPreloadHandle);
+    } else if (!this.palaeoPreloadIsIdleHandle) {
+      clearTimeout(this.palaeoPreloadHandle);
+    }
+    this.palaeoPreloadHandle = null;
+  }
+
+  /**
+   * Uploads at most one hidden member, then re-arms while the queue holds more.
+   * One per callback because the upload is the very cost being moved off the
+   * crossing: taking several in one idle slot would put it back on a frame.
+   */
+  private runPalaeoPreloadStep(): void {
+    const source = this.palaeoPreloadSource;
+    if (this.disposed || source === null) return;
+    const next = this.nextPalaeoPreload();
+    if (next !== null) {
+      this.palaeoPreloadQueue.delete(next.intervalId);
+      // Marked before the attempt, not after it: an interval the engine or the
+      // renderer declines must leave the queue, or the idle callback spins on
+      // it and never reaches the intervals behind it.
+      this.palaeoPreloadedIntervalIds.add(next.intervalId);
+      if (next.intervalId !== this.publishedPalaeoIntervalId) {
+        const prepared = source.prepareResidentPalaeoIntervalNow(next.intervalId);
+        if (prepared !== null) {
+          try {
+            this.caoFoundationRenderer.preloadInterval(prepared, this.verticalExaggeration);
+            this.publishCaoResidencyDataset();
+          } catch {
+            // A pre-upload is speculative: a refusal leaves the crossing that
+            // needs this interval to upload it itself, exactly as it does now.
+            // `preloadInterval` released the lease on its way out.
+          }
+        }
+      }
+    }
+    this.schedulePalaeoPreload();
+  }
+
+  /** The queued interval nearest by age to the one on screen. */
+  private nextPalaeoPreload(): PalaeoPreparedIntervalNotice | null {
+    const ageMa = this.palaeoRequestedAgeMa;
+    let best: PalaeoPreparedIntervalNotice | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const notice of this.palaeoPreloadQueue.values()) {
+      if (ageMa === null) return notice;
+      const distance = ageMa > notice.fromAgeMa ? ageMa - notice.fromAgeMa
+        : ageMa <= notice.toAgeMa ? notice.toAgeMa - ageMa : 0;
+      if (distance < bestDistance) {
+        best = notice;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  /**
    * Makes one Cao 2017 map interval the drawn one, or clears the layer.
    *
    * A map interval is the streaming unit, but it is no longer replaced: the
@@ -1445,6 +1593,10 @@ export class GlobeScene {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.palaeoPreloadUnsubscribe?.();
+    this.palaeoPreloadUnsubscribe = null;
+    this.palaeoPreloadSource = null;
+    this.cancelPalaeoPreload();
     cancelAnimationFrame(this.frameHandle);
     this.resizeObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.handleMotionPreference);

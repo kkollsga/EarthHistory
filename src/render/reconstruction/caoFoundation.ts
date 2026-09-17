@@ -2630,7 +2630,7 @@ export class CaoFoundationSurfaceRenderer {
     }
     // A map interval is resident rather than replaced: `publishInterval` keeps
     // one member per interval it has uploaded and makes one of them current.
-    if (unit === "interval") return this.publishInterval(revision, verticalExaggeration);
+    if (unit === "interval") return this.publishInterval(revision, verticalExaggeration, true)!;
     const state = this.unitState(unit);
     const token = this.publisher.begin(revision.identity);
     let resource: CaoFoundationPublicationResource | null = null;
@@ -2748,7 +2748,35 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
-   * Makes one prepared map interval the drawn one.
+   * Uploads one prepared map interval as a hidden member, without drawing it.
+   *
+   * The first visit to an interval is the expensive one — it uploads the
+   * geometry, builds the publication and commits all of that on the frame the
+   * scrub crossed into it — while every later visit is a visibility switch and
+   * a retarget. Taking the upload at idle, after the background walk has
+   * prepared the interval, is what makes a first visit cost what a return visit
+   * costs, because by then the member already exists and the crossing takes the
+   * retarget path.
+   *
+   * It never evicts. A preload is speculative and the current interval is not:
+   * where the residency ceilings leave no room the preload is declined and the
+   * crossing that needs the interval uploads it itself, exactly as it does
+   * today. Answers whether a member was uploaded; the lease is taken over and
+   * released either way, as `publish` does.
+   */
+  preloadInterval(revision: PreparedCaoRevision, verticalExaggeration: number): boolean {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    if (!Number.isFinite(revision.requestedAgeMa) || revision.requestedAgeMa < 0) {
+      revision.release();
+      throw new Error("Cao foundation requested age is invalid");
+    }
+    const before = this.residentIntervals.size;
+    this.publishInterval(revision, verticalExaggeration, false);
+    return this.residentIntervals.size > before;
+  }
+
+  /**
+   * Makes one prepared map interval the drawn one, or uploads it hidden.
    *
    * The set keeps a member per interval it has uploaded, so a crossing has two
    * shapes. An interval the set has already seen is a visibility switch: its
@@ -2758,6 +2786,11 @@ export class CaoFoundationSurfaceRenderer {
    * seen uploads its geometry once and adds a member for it, evicting the
    * farthest resident by age when the ceiling is already met.
    *
+   * `present` is what separates a crossing from an idle pre-upload. A preload
+   * builds the same member and leaves it hidden and not current, declines
+   * rather than evicting, and answers null where it did nothing — an interval
+   * already resident, or no room under the ceilings.
+   *
    * Because nothing is replaced, no arm is spent here: `armStaticGeometryChange`
    * still guards the Cao 2024 stack, whose geometry must never change within
    * the renderer's lifetime.
@@ -2765,12 +2798,20 @@ export class CaoFoundationSurfaceRenderer {
   private publishInterval(
     revision: PreparedCaoRevision,
     verticalExaggeration: number,
-  ): CaoFoundationDiagnostics {
+    present: boolean,
+  ): CaoFoundationDiagnostics | null {
     const state = this.unitState("interval");
     const slot = caoIntervalSlot(caoStaticGeometryKey(revision));
     const resident = this.residentIntervals.get(slot) ?? null;
     const residentMember = this.publisher.current()?.resources.member(slot) ?? null;
     if (resident !== null && residentMember !== null) {
+      // A preload of an interval whose member is already on the GPU is the
+      // whole point of the preload having run: nothing to upload, and no pose
+      // to apply to a member nobody is looking at.
+      if (!present) {
+        revision.release();
+        return null;
+      }
       try {
         // The only work a return visit does: the age's palette and poses onto
         // buffers that are already on the GPU. A shape that does not match is
@@ -2795,6 +2836,12 @@ export class CaoFoundationSurfaceRenderer {
     let uploaded: CaoFoundationGeometryResource | null = null;
     try {
       const reservation = estimateCaoFoundationGeometryReservation(revision, this.limits);
+      // Declined before the upload, not after it: a preload that cannot be
+      // admitted must not spend the buffers it would then have to retire.
+      if (!present && !this.residentIntervalHasRoomFor(reservation, slot)) {
+        revision.release();
+        return null;
+      }
       this.setTotalsWith("interval", revision);
       let admitted = resident;
       let evicted: readonly CaoResidentInterval[] = [];
@@ -2806,6 +2853,9 @@ export class CaoFoundationSurfaceRenderer {
         }
         uploaded = geometry;
         evicted = this.residentIntervalEvictions(geometry, revision.requestedAgeMa, slot);
+        // The room check above is what makes this hold; the assertion is here
+        // because a preload that evicted the drawn interval would be invisible.
+        if (!present && evicted.length > 0) throw new Error("a preloaded Cao map interval must not evict");
         admitted = { slot, staticGeometry: geometry, anchorAgeMa: revision.requestedAgeMa };
       }
       const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
@@ -2834,6 +2884,9 @@ export class CaoFoundationSurfaceRenderer {
       resource = createPublicationResource(revision, admitted.staticGeometry, packed,
         verticalExaggeration, this.retirement, true);
       resource.setCountryLineToneTable(this.countryLineToneTable);
+      // A preloaded member is parented so its buffers stay on the GPU, and
+      // hidden so nothing draws it until a crossing makes it current.
+      if (!present) resource.group.visible = false;
       const members = new Map(previous?.resources.entries() ?? []);
       for (const victim of evicted) members.delete(victim.slot);
       members.set(slot, resource);
@@ -2864,14 +2917,16 @@ export class CaoFoundationSurfaceRenderer {
       }
       this.residentIntervals.set(slot, admitted);
       uploaded = null;
-      state.staticGeometry = admitted.staticGeometry;
-      state.publishedIdentity = revision.identity;
-      state.domainVisible = true;
       resource = null;
-      this.makeIntervalCurrent(slot);
+      if (present) {
+        state.staticGeometry = admitted.staticGeometry;
+        state.publishedIdentity = revision.identity;
+        state.domainVisible = true;
+        this.makeIntervalCurrent(slot);
+      }
       this.applyReleasableSurfaceClasses();
       revision.release();
-      return this.diagnostics("interval");
+      return present ? this.diagnostics("interval") : null;
     } catch (error) {
       resource?.disposeUnsubmitted();
       uploaded?.dispose();
@@ -2893,6 +2948,22 @@ export class CaoFoundationSurfaceRenderer {
     this.currentIntervalSlot = slot;
     const member = this.publisher.current()?.resources.member(slot) ?? null;
     if (member) member.group.visible = true;
+  }
+
+  /**
+   * Whether one more resident interval of `incomingBytes` fits under both
+   * ceilings without evicting anything. A preload asks before it uploads; a
+   * crossing does not ask, because it evicts to make its own room.
+   */
+  private residentIntervalHasRoomFor(incomingBytes: number, incomingSlot: CaoSurfaceSlot): boolean {
+    let count = 1;
+    let bytes = incomingBytes;
+    for (const resident of this.residentIntervals.values()) {
+      if (resident.slot === incomingSlot) continue;
+      count += 1;
+      bytes += resident.staticGeometry.trackedGpuBufferBytes;
+    }
+    return count <= this.residentIntervalCeiling && bytes <= this.residentIntervalByteCeiling;
   }
 
   /**

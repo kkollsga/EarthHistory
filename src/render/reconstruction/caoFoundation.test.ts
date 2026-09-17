@@ -2198,6 +2198,75 @@ describe("palaeo interval publication", () => {
     surface.disposeForRendererTeardown();
   });
 
+  /**
+   * The idle pre-upload contract. A first visit to a background-prepared
+   * interval used to pay the geometry upload and the publication on the frame
+   * it crossed into; taking the upload at idle makes the crossing a visibility
+   * switch and a retarget, which is what a return visit already costs. The
+   * upload counter is the assertion: publish the preloaded interval and it must
+   * not move.
+   */
+  it("uploads a preloaded interval hidden, and a first visit to it uploads nothing", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    const releases: string[] = [];
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    expect(surface.preloadInterval(palaeoInterval("402-380", 0, "a",
+      () => releases.push("a"), { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8)).toBe(true);
+    expect(surface.preloadInterval(palaeoInterval("380-359", 1, "b",
+      () => releases.push("b"), { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8)).toBe(true);
+    // Two members on the GPU, and the lease of each preload given back, exactly
+    // as `publish` gives one back.
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(uploads.get("a")).toBe(1);
+    expect(uploads.get("b")).toBe(1);
+    expect(releases).toEqual(["a", "b"]);
+    // Nothing is drawn: no interval is current, so the layer is still off.
+    expect(group.children).toHaveLength(2);
+    expect(group.children.filter((child) => child.visible)).toHaveLength(0);
+    expect(surface.publishedIdentity("interval")).toBeNull();
+    // A preload of a member already resident is a no-op that still gives the
+    // lease back, so an idle callback cannot double-upload an interval.
+    expect(surface.preloadInterval(palaeoInterval("402-380", 0, "a", () => releases.push("a2"),
+      { requestedAgeMa: 391, onStaticCopy: upload("a") }), 8)).toBe(false);
+    expect(uploads.get("a")).toBe(1);
+    expect(releases).toEqual(["a", "b", "a2"]);
+
+    // The first visit: a publication at a live age onto buffers already there.
+    const first = surface.publish(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 365, onStaticCopy: upload("b") }), 8, "interval");
+    expect(uploads.get("b")).toBe(1);
+    expect(first.requestedAgeMa).toBe(365);
+    expect(surface.residentIntervalCount()).toBe(2);
+    expect(group.children.filter((child) => child.visible).map((child) => child.name))
+      .toEqual([`cao-foundation:${first.identity}`]);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("declines a preload rather than evicting the interval on screen", () => {
+    const group = new Group();
+    const uploads = new Map<string, number>();
+    const upload = (id: string) => () => uploads.set(id, (uploads.get(id) ?? 0) + 1);
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 1 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    const drawn = surface.publish(palaeoInterval("402-380", 0, "a", undefined,
+      { requestedAgeMa: 390, onStaticCopy: upload("a") }), 8, "interval");
+    let released = 0;
+    expect(surface.preloadInterval(palaeoInterval("380-359", 1, "b", () => { released += 1; },
+      { requestedAgeMa: 370, onStaticCopy: upload("b") }), 8)).toBe(false);
+    // Nothing uploaded, nothing evicted, and the declined preload still gave
+    // its lease back to the interval store.
+    expect(uploads.get("b")).toBeUndefined();
+    expect(released).toBe(1);
+    expect(surface.residentIntervalCount()).toBe(1);
+    expect(surface.publishedIdentity("interval")).toBe(drawn.identity);
+    surface.disposeForRendererTeardown();
+  });
+
   it("evicts the interval farthest by age when the residency ceiling is met", () => {
     const group = new Group();
     const uploads = new Map<string, number>();

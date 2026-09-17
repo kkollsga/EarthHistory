@@ -3,6 +3,21 @@
 All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
+### Changed
+
+- **A background-prepared map interval is uploaded to the GPU while the main
+  thread is idle.** The background walk finishes the whole timeline seconds
+  before a scrub reaches most of it, but a prepared interval was only decoded
+  triangles until a crossing uploaded them — so a *first* visit paid the
+  geometry upload, the publication and their commit on the one frame it crossed
+  into, while every later visit was a visibility switch and a retarget. The
+  engine now reports each interval the walk prepares, and the scene uploads it
+  as a hidden GPU member at idle priority — one member per idle callback,
+  nearest by age first — so the first crossing takes the retarget path too. A
+  pre-upload never evicts: where the residency ceilings leave no room it is
+  declined and the crossing that needs the interval uploads it itself, exactly
+  as before. Nothing about what is drawn changes; only when the upload happens.
+
 ### Fixed
 
 - **A resident map interval no longer holds two arrays nothing reads.**
