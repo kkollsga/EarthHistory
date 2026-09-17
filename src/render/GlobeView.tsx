@@ -276,11 +276,15 @@ export function GlobeView({
         if (sceneRef.current === null) palaeoInterval?.release();
       };
     }
-    const published = scene.setPreparedPalaeoInterval(palaeoInterval);
-    if (palaeoInterval !== null && published === null) {
-      onPalaeoPublicationFailed?.(scene.palaeoFallbackReason()
-        || "palaeo-coastline publication failed");
-    }
+    // The publish itself runs at the top of the next frame, so the answer
+    // arrives there too: this effect runs inside the age-change dispatch, and
+    // the ~26 ms of publish work is exactly what must not run there.
+    scene.setPreparedPalaeoInterval(palaeoInterval, (published) => {
+      if (palaeoInterval !== null && published === null) {
+        onPalaeoPublicationFailed?.(scene.palaeoFallbackReason()
+          || "palaeo-coastline publication failed");
+      }
+    });
     return undefined;
     // `onPalaeoPublicationFailed` is a stable ref callback; re-running this
     // effect on its identity would re-publish the same interval.

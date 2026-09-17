@@ -5,6 +5,30 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Changed
 
+- **A preloaded map interval is actually warmed, not just parented.** Parenting
+  a hidden member uploaded nothing: the renderer's object walk returns early for
+  `visible === false`, so a "preloaded" interval had no attribute buffers and no
+  compiled program until the crossing that drew it — which is why a first visit
+  still spent ~50 ms on its first drawn frame. The renderer now offers every
+  freshly preloaded member to a warmer, and the scene warms it with
+  `compileAsync`: the member is shown for the synchronous traversal that
+  collects the work, hidden again before the call returns its promise, and its
+  buffers and pipeline are built over the following microtasks. The warm is
+  speculative — a renderer without `compileAsync`, or a compile that fails,
+  leaves the member parented, hidden and cold, and the crossing pays what it
+  paid before. `data-cao-palaeo-warmed-members` reports how many were warmed.
+
+- **The map-interval publish runs on the frame, not on the input handler.**
+  Publishing a prepared interval — packing the palette, building the pick state,
+  retargeting and making the member current — is ~26 ms of synchronous work, and
+  it ran inside the age-change dispatch, where it was the input handler's own
+  cost. It is now queued and drained at the top of the next animation frame,
+  before that frame renders, so the handler returns immediately and the work
+  lands on the frame that would have drawn the interval anyway. Latest wins: a
+  publish superseded within one frame releases its runtime lease and is not
+  reported as a failure, and a publish still queued when the scene is disposed
+  releases its lease too.
+
 - **The prepared-interval ceiling is measured in what an interval actually
   holds.** `residentIntervals: "all"` keeps every map interval the background
   walk prepares under a 64 MiB ceiling, but the ledger that ceiling read summed

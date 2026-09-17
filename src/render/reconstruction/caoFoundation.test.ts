@@ -2246,6 +2246,58 @@ describe("palaeo interval publication", () => {
     surface.disposeForRendererTeardown();
   });
 
+  /**
+   * A parented hidden group is not on the GPU: the renderer's object walk
+   * returns early for `visible === false`, so nothing traverses a preloaded
+   * member, no buffer is created and no program is compiled — the crossing that
+   * drew it still paid both. The warmer is how the owner does that work at
+   * idle, so the contract is that it is offered every preloaded member, once,
+   * while the member is still hidden, and never the drawn one.
+   */
+  it("offers each preloaded member to the warmer once, and never the drawn one", () => {
+    const group = new Group();
+    const warmed: { name: string; visible: boolean }[] = [];
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    surface.setMemberWarmer((member) => warmed.push({ name: member.name, visible: member.visible }));
+    const preloaded = surface.preloadInterval(
+      palaeoInterval("402-380", 0, "a", undefined, { requestedAgeMa: 390 }), 8);
+    expect(preloaded).toBe(true);
+    expect(warmed).toHaveLength(1);
+    // Hidden as the warmer receives it: the warm shows it for the traversal and
+    // hides it again before any frame runs. The renderer never shows it.
+    expect(warmed[0]!.visible).toBe(false);
+    expect(warmed[0]!.name).toBe(group.children[0]!.name);
+    expect(surface.warmedMembers()).toBe(1);
+    // A second preload of the same interval uploads nothing, so there is
+    // nothing to warm either.
+    expect(surface.preloadInterval(
+      palaeoInterval("402-380", 0, "a", undefined, { requestedAgeMa: 391 }), 8)).toBe(false);
+    expect(warmed).toHaveLength(1);
+    // A drawn publication is warm by definition — it is about to be rendered.
+    surface.publish(palaeoInterval("380-359", 1, "b", undefined,
+      { requestedAgeMa: 370 }), 8, "interval");
+    expect(warmed).toHaveLength(1);
+    expect(surface.warmedMembers()).toBe(1);
+    surface.disposeForRendererTeardown();
+  });
+
+  it("refuses a warmer that leaves the member visible, and hides it anyway", () => {
+    const group = new Group();
+    const surface = new CaoFoundationSurfaceRenderer(group, palaeoRetirementOwner(8),
+      { ...limits, maxResidentIntervals: 25 },
+      { staticGeometryRetirement: palaeoRetirementOwner(8) });
+    surface.setMemberWarmer((member) => { member.visible = true; });
+    expect(() => surface.preloadInterval(
+      palaeoInterval("402-380", 0, "a", undefined, { requestedAgeMa: 390 }), 8))
+      .toThrow("must leave the member hidden");
+    // The guard cannot depend on anyone catching it: a member left visible
+    // draws the wrong interval over the current one on the very next frame.
+    expect(group.children.filter((child) => child.visible)).toHaveLength(0);
+    surface.disposeForRendererTeardown();
+  });
+
   it("declines a preload rather than evicting the interval on screen", () => {
     const group = new Group();
     const uploads = new Map<string, number>();

@@ -2261,6 +2261,19 @@ export interface CaoFoundationLayerVisibility {
   readonly palaeoCoastlines: boolean;
 }
 
+/**
+ * Warms a map-interval member that has just been uploaded hidden.
+ *
+ * Parenting a hidden group is not enough to put anything on the GPU: the
+ * renderer's object walk returns early for `visible === false`, so a preloaded
+ * member is never traversed, its buffers are never created and its pipeline is
+ * never compiled. The crossing that shows it therefore still paid the upload
+ * and the program compile on its first drawn frame. The warmer is the scene's
+ * way of doing that work while the main thread is idle; the renderer only says
+ * which group needs it and when. Warming must leave the group hidden.
+ */
+export type CaoMemberWarmer = (group: THREE.Group) => void;
+
 export interface CaoFoundationRendererOptions {
   /**
    * Owner that retires a replaced static geometry after the renderer's
@@ -2500,6 +2513,10 @@ export class CaoFoundationSurfaceRenderer {
   private currentIntervalSlot: CaoSurfaceSlot | null = null;
   private residentIntervalCeiling: number;
   private residentIntervalByteCeiling: number;
+  /** Warms a freshly preloaded hidden member; see `CaoMemberWarmer`. */
+  private memberWarmer: CaoMemberWarmer | null = null;
+  /** Hidden members warmed since the renderer was built, for the residency account. */
+  private warmedMemberCount = 0;
 
   constructor(
     private readonly parent: THREE.Group,
@@ -2537,6 +2554,23 @@ export class CaoFoundationSurfaceRenderer {
   /** Map intervals resident right now; the drawn one included. */
   residentIntervalCount(): number {
     return this.residentIntervals.size;
+  }
+
+  /**
+   * Installs the warmer an idle pre-upload uses, or clears it.
+   *
+   * Only the scene can warm a member — the work needs the renderer, the camera
+   * and the drawn scene, none of which this class owns — so the renderer names
+   * the group and the owner decides how. Without a warmer a preload is exactly
+   * what it was: a parented hidden group with nothing on the GPU behind it.
+   */
+  setMemberWarmer(warm: CaoMemberWarmer | null): void {
+    this.memberWarmer = warm;
+  }
+
+  /** Hidden members this renderer has asked the warmer to warm. */
+  warmedMembers(): number {
+    return this.warmedMemberCount;
   }
 
   private unitState(unit: CaoSurfaceUnit): CaoSurfaceUnitState {
@@ -2916,6 +2950,7 @@ export class CaoFoundationSurfaceRenderer {
         });
       }
       this.residentIntervals.set(slot, admitted);
+      const committed = resource;
       uploaded = null;
       resource = null;
       if (present) {
@@ -2925,6 +2960,26 @@ export class CaoFoundationSurfaceRenderer {
         this.makeIntervalCurrent(slot);
       }
       this.applyReleasableSurfaceClasses();
+      // Only a hidden member is warmed, and only after the class releases have
+      // run: warming a batch whose buffers are about to be released would put
+      // them straight back. A warm is speculative like the preload that asked
+      // for it, so a failure leaves the member exactly as it was — parented,
+      // hidden and cold — and the crossing pays what it pays today.
+      if (!present && this.memberWarmer !== null) {
+        this.warmedMemberCount += 1;
+        try {
+          this.memberWarmer(committed.group);
+        } catch {
+          // Reported by the warmer's owner; the committed member stands.
+        }
+        // Hidden first, then reported: a member left visible draws the wrong
+        // interval over the current one on the very next frame, so the guard
+        // must not depend on anyone catching it.
+        if (committed.group.visible) {
+          committed.group.visible = false;
+          throw new Error("Cao map interval warmer must leave the member hidden");
+        }
+      }
       revision.release();
       return present ? this.diagnostics("interval") : null;
     } catch (error) {

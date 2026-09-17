@@ -232,6 +232,9 @@ interface RendererLike {
   setPixelRatio(value: number): void;
   setSize(width: number, height: number, updateStyle?: boolean): void;
   render(scene: THREE.Object3D, camera: THREE.Camera): void;
+  compileAsync?(
+    object: THREE.Object3D, camera: THREE.Camera, targetScene?: THREE.Object3D,
+  ): Promise<unknown>;
   getContext?(): WebGLRenderingContext | WebGL2RenderingContext;
   dispose(): void;
 }
@@ -595,6 +598,103 @@ export function residentIntervalBudget(
  */
 const PALAEO_PRELOAD_IDLE_TIMEOUT_MS = 2_000;
 
+/**
+ * One publish held until the frame that will draw it, latest wins.
+ *
+ * A prepared interval owns a runtime lease, and publishing takes that lease
+ * over. Deferring the publish therefore means owning the lease in the meantime:
+ * a queued publish that is superseded, or one still queued when the scene is
+ * torn down, has to release what the publish would have released. A superseded
+ * publish is not a failed one, so its caller hears nothing — answering it would
+ * report a publication failure for an interval the age has simply moved past.
+ */
+export class DeferredPublishQueue<Payload extends { release(): void }, Result> {
+  /** `undefined` is the empty state, because a queued `null` is the clear. */
+  private queued: {
+    readonly payload: Payload | null;
+    readonly onPublished?: (result: Result) => void;
+  } | undefined = undefined;
+
+  queue(payload: Payload | null, onPublished?: (result: Result) => void): void {
+    this.queued?.payload?.release();
+    this.queued = { payload, onPublished };
+  }
+
+  /** Whether a publish is waiting. */
+  pending(): boolean {
+    return this.queued !== undefined;
+  }
+
+  /** Runs the waiting publish, if any, and answers whether one ran. */
+  drain(publish: (payload: Payload | null) => Result): boolean {
+    const queued = this.queued;
+    if (queued === undefined) return false;
+    this.queued = undefined;
+    // The publish runs whether or not anyone is listening: `f?.(publish(x))`
+    // skips the argument too when `f` is undefined, which would silently drop
+    // every publish queued without a callback.
+    const result = publish(queued.payload);
+    queued.onPublished?.(result);
+    return true;
+  }
+
+  /** Drops a waiting publish and releases its lease. Nothing is published. */
+  abandon(): void {
+    this.queued?.payload?.release();
+    this.queued = undefined;
+  }
+}
+
+/** The part of the renderer a member warm uses. */
+export interface CaoMemberWarmRenderer {
+  compileAsync?(
+    object: THREE.Object3D, camera: THREE.Camera, targetScene?: THREE.Object3D,
+  ): Promise<unknown>;
+}
+
+/**
+ * Puts one preloaded map-interval member's buffers and pipeline on the GPU
+ * without ever drawing it.
+ *
+ * Parenting a hidden group uploads nothing: `Renderer._projectObject` returns
+ * early for `visible === false`, so the member is not traversed, no attribute
+ * buffer is created for it and no program is compiled — which is why the first
+ * crossing into a "preloaded" interval still paid a ~50 ms first-draw frame.
+ * `compileAsync` does both halves of that work (`_geometries.updateForRender`
+ * builds the buffers, `_pipelines.getForRender` compiles the program), but only
+ * for objects its own traversal reaches.
+ *
+ * So the group is shown for exactly the synchronous part of the call. The
+ * traversal that collects the work items runs before `compileAsync` reaches its
+ * first `await`, so hiding the group again the instant the call returns its
+ * promise is enough: no animation frame can run in between, and the uploads and
+ * compiles that follow read the captured work items rather than `visible`.
+ *
+ * Answers whether the warm was started. A renderer without `compileAsync` — the
+ * classic WebGL renderer, or a test double — warms nothing and says so.
+ */
+export function warmCaoMember(
+  renderer: CaoMemberWarmRenderer,
+  group: THREE.Group,
+  camera: THREE.Camera,
+  scene: THREE.Object3D,
+  onFailure?: (error: unknown) => void,
+): boolean {
+  if (typeof renderer.compileAsync !== "function") return false;
+  const hidden = !group.visible;
+  group.visible = true;
+  let pending: Promise<unknown>;
+  try {
+    pending = renderer.compileAsync(group, camera, scene);
+  } finally {
+    // Restored in `finally` and never on a later turn: a member left visible
+    // draws the wrong interval over the current one on the very next frame.
+    if (hidden) group.visible = false;
+  }
+  void Promise.resolve(pending).catch((error: unknown) => onFailure?.(error));
+  return true;
+}
+
 /** One map interval the background walk has finished preparing. */
 export interface PalaeoPreparedIntervalNotice {
   readonly intervalId: string;
@@ -756,6 +856,11 @@ export class GlobeScene {
   private palaeoPreloadUnsubscribe: (() => void) | null = null;
   private palaeoPreloadHandle: number | null = null;
   private palaeoPreloadIsIdleHandle = false;
+  /** Hidden members whose buffers and pipeline this scene has warmed at idle. */
+  private palaeoWarmedMembers = 0;
+  /** The publish waiting for the next frame. See `setPreparedPalaeoInterval`. */
+  private readonly queuedPalaeoPublish =
+    new DeferredPublishQueue<PreparedCaoPalaeoInterval, CaoFoundationDiagnostics | null>();
   private palaeoPublicationFailureReason: string | null = null;
   private palaeoIntervalSourceBytes = 0;
   /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
@@ -837,6 +942,9 @@ export class GlobeScene {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
           CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
     );
+    // The renderer names the hidden member; only the scene has the renderer,
+    // the camera and the drawn scene the warm needs.
+    this.caoFoundationRenderer.setMemberWarmer((group) => this.warmPalaeoMember(group));
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1242,6 +1350,21 @@ export class GlobeScene {
     this.schedulePalaeoPreload();
   }
 
+  /**
+   * Warms one hidden member the renderer has just preloaded, and publishes how
+   * many have been warmed so a bench can tell a warm preload from a cold one.
+   */
+  private warmPalaeoMember(group: THREE.Group): void {
+    const warmed = warmCaoMember(this.renderer, group, this.camera, this.scene, (error) => {
+      // A warm is speculative: the member stays parented and hidden, and the
+      // crossing that shows it pays the upload it would have paid anyway.
+      this.renderer.domElement.dataset.caoPalaeoWarmFailure =
+        error instanceof Error ? error.message : "palaeo member warm failed";
+    });
+    if (warmed) this.palaeoWarmedMembers += 1;
+    this.renderer.domElement.dataset.caoPalaeoWarmedMembers = String(this.palaeoWarmedMembers);
+  }
+
   /** The queued interval nearest by age to the one on screen. */
   private nextPalaeoPreload(): PalaeoPreparedIntervalNotice | null {
     const ageMa = this.palaeoRequestedAgeMa;
@@ -1275,7 +1398,37 @@ export class GlobeScene {
    * does for a native revision, so the interval store is free to evict the
    * decoded payload once its buffers are the publication's own.
    */
-  setPreparedPalaeoInterval(interval: PreparedCaoPalaeoInterval | null): CaoFoundationDiagnostics | null {
+  setPreparedPalaeoInterval(
+    interval: PreparedCaoPalaeoInterval | null,
+    onPublished?: (diagnostics: CaoFoundationDiagnostics | null) => void,
+  ): void {
+    // Latest wins, and the superseded interval's lease is released here because
+    // the publish that would have taken it over never runs.
+    this.queuedPalaeoPublish.queue(interval, onPublished);
+  }
+
+  /**
+   * Drains the queued publish at the top of a frame.
+   *
+   * The publish is ~26 ms of synchronous work — palette pack, pick state,
+   * retarget, make-current — and it used to run inside the age-change dispatch,
+   * where it was the input handler's own cost and showed up as a boundary
+   * spike on the very task that should have returned in a millisecond. The
+   * frame is where that work belongs: the interval is not on screen until a
+   * frame draws it anyway, so taking it here costs the same frame and leaves
+   * the handler free.
+   */
+  private drainQueuedPalaeoPublish(): void {
+    this.queuedPalaeoPublish.drain((interval) => this.publishPreparedPalaeoIntervalNow(interval));
+  }
+
+  /**
+   * Publishes one prepared map interval synchronously. Only the frame drain
+   * calls it; everything else queues through `setPreparedPalaeoInterval`.
+   */
+  private publishPreparedPalaeoIntervalNow(
+    interval: PreparedCaoPalaeoInterval | null,
+  ): CaoFoundationDiagnostics | null {
     if (interval === null) {
       this.clearPalaeoPublication();
       this.updatePalaeoDomainVisibility();
@@ -1597,6 +1750,10 @@ export class GlobeScene {
     this.palaeoPreloadUnsubscribe = null;
     this.palaeoPreloadSource = null;
     this.cancelPalaeoPreload();
+    // A publish queued for a frame that will never run still owns a runtime
+    // lease; nothing else can release it once the scene is gone.
+    this.queuedPalaeoPublish.abandon();
+    this.caoFoundationRenderer.setMemberWarmer(null);
     cancelAnimationFrame(this.frameHandle);
     this.resizeObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.handleMotionPreference);
@@ -2178,6 +2335,10 @@ export class GlobeScene {
 
   private readonly frame = (now: number): void => {
     if (this.disposed) return;
+    // Before anything else this frame: a queued publish must be on the GPU
+    // before the render below, or the frame draws the interval the age has
+    // already left.
+    this.drainQueuedPalaeoPublish();
     const frameTime = now - this.previousFrame;
     this.previousFrame = now;
     if (frameTime > 0 && frameTime < 250) {
