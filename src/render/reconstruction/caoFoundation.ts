@@ -507,6 +507,23 @@ export interface CaoFoundationLimits {
   readonly maxTextureSize: number;
   readonly maxPublicationBytes: number;
   readonly maxSpatialIndexBytes: number;
+  /**
+   * Map intervals whose static geometry the set keeps on the GPU at once.
+   *
+   * One is the streaming behaviour a swap always had: the incoming interval's
+   * geometry replaces the resident one. Above one, an interval the set has
+   * already uploaded stays alive with its member hidden, so a crossing back to
+   * it is a visibility switch rather than an upload. Absent means one.
+   */
+  readonly maxResidentIntervals?: number;
+  /**
+   * Vertex and index buffer bytes the resident map intervals may hold together.
+   * Admission evicts the farthest resident by age until the incoming interval
+   * fits; the interval being made current is never evicted, so a single
+   * interval larger than the ceiling is still drawn — the per-composition
+   * vertex and triangle limits are what bound that one.
+   */
+  readonly maxResidentIntervalGpuBytes?: number;
 }
 
 export interface PackedCaoPalette {
@@ -704,9 +721,11 @@ function geometryHoldsGpuBuffers(geometry: THREE.BufferGeometry): boolean {
 }
 
 function staticGeometryByteLength(batch: PreparedCaoStaticGeometryCopy): number {
+  // `seamIds` is absent for a palaeo map interval, which is one seam per vertex
+  // and uploads none of them; the ledger counts what is retained.
   return [batch.referenceDirections, batch.indices, batch.seamIds,
     batch.preparedEntryIndices, batch.materialChartIndices]
-    .reduce((sum, value) => safeAdd(sum, value.byteLength, "Cao batch"), 0);
+    .reduce((sum, value) => value === null ? sum : safeAdd(sum, value.byteLength, "Cao batch"), 0);
 }
 
 function staticLineGeometryByteLength(batch: PreparedCaoLineGeometryCopy): number {
@@ -758,7 +777,7 @@ function validateStaticGeometryCopy(
 ): void {
   if (batch.referenceDirections.length !== vertexCount * 3
       || batch.indices.length !== triangleCount * 3
-      || batch.seamIds.length !== vertexCount
+      || (batch.seamIds !== null && batch.seamIds.length !== vertexCount)
       || batch.preparedEntryIndices.length !== vertexCount
       || batch.materialChartIndices.length !== vertexCount) {
     throw new Error("Cao foundation batch attribute length mismatch");
@@ -2242,6 +2261,19 @@ export interface CaoFoundationLayerVisibility {
   readonly palaeoCoastlines: boolean;
 }
 
+/**
+ * Warms a map-interval member that has just been uploaded hidden.
+ *
+ * Parenting a hidden group is not enough to put anything on the GPU: the
+ * renderer's object walk returns early for `visible === false`, so a preloaded
+ * member is never traversed, its buffers are never created and its pipeline is
+ * never compiled. The crossing that shows it therefore still paid the upload
+ * and the program compile on its first drawn frame. The warmer is the scene's
+ * way of doing that work while the main thread is idle; the renderer only says
+ * which group needs it and when. Warming must leave the group hidden.
+ */
+export type CaoMemberWarmer = (group: THREE.Group) => void;
+
 export interface CaoFoundationRendererOptions {
   /**
    * Owner that retires a replaced static geometry after the renderer's
@@ -2325,6 +2357,36 @@ export const CAO_SURFACE_UNITS: readonly CaoSurfaceUnit[] =
   Object.freeze(["native", "interval"] as const);
 
 /**
+ * A member's key in the set.
+ *
+ * The Cao 2024 stack owns one slot for the renderer's lifetime. Every map
+ * interval the set keeps GPU-resident owns its own, keyed by the static
+ * geometry it uploaded, so a crossing back to an interval the set has already
+ * seen finds that member instead of replacing the resident one. The `interval`
+ * unit names whichever of those slots is current; the rest stay parented with
+ * their groups hidden.
+ */
+type CaoSurfaceSlot = string;
+
+const CAO_NATIVE_SLOT: CaoSurfaceSlot = "native";
+
+function caoIntervalSlot(staticGeometryKey: string): CaoSurfaceSlot {
+  return `interval:${staticGeometryKey}`;
+}
+
+/**
+ * The key a revision's static geometry is resident under: the package it came
+ * from and every batch identity in it. Two prepared revisions of the same map
+ * interval share it, which is what makes a return visit free.
+ */
+function caoStaticGeometryKey(revision: PreparedCaoRevision): string {
+  return `${revision.packageId}@${revision.packageRevision}:${[
+    ...revision.batches.map((batch) => batch.staticGeometryIdentity),
+    ...revision.lineBatches.map((batch) => batch.staticGeometryIdentity),
+  ].join("|")}`;
+}
+
+/**
  * One publication of the surface set: the member resources on screen, and which
  * of them this publication is responsible for retiring.
  *
@@ -2336,62 +2398,62 @@ export const CAO_SURFACE_UNITS: readonly CaoSurfaceUnit[] =
  * disposes only the member it built and leaves the surfaces on screen alone.
  */
 class CaoSurfaceSetResource implements OwnedPrototypeResources {
-  private readonly owned: Set<CaoSurfaceUnit>;
+  private readonly owned: Set<CaoSurfaceSlot>;
 
   constructor(
-    private readonly members: Map<CaoSurfaceUnit, CaoFoundationPublicationResource>,
-    owned: Iterable<CaoSurfaceUnit>,
+    private readonly members: Map<CaoSurfaceSlot, CaoFoundationPublicationResource>,
+    owned: Iterable<CaoSurfaceSlot>,
   ) {
     this.owned = new Set(owned);
   }
 
-  member(unit: CaoSurfaceUnit): CaoFoundationPublicationResource | null {
-    return this.members.get(unit) ?? null;
+  member(slot: CaoSurfaceSlot): CaoFoundationPublicationResource | null {
+    return this.members.get(slot) ?? null;
   }
 
-  entries(): readonly (readonly [CaoSurfaceUnit, CaoFoundationPublicationResource])[] {
+  entries(): readonly (readonly [CaoSurfaceSlot, CaoFoundationPublicationResource])[] {
     return [...this.members];
   }
 
   /** Takes over every member `previous` still owns and this set also carries. */
   adopt(previous: CaoSurfaceSetResource | null): void {
     if (previous === null) return;
-    for (const [unit, member] of previous.members) {
-      if (!previous.owned.has(unit) || this.members.get(unit) !== member) continue;
-      previous.owned.delete(unit);
-      this.owned.add(unit);
+    for (const [slot, member] of previous.members) {
+      if (!previous.owned.has(slot) || this.members.get(slot) !== member) continue;
+      previous.owned.delete(slot);
+      this.owned.add(slot);
     }
   }
 
   /** Undoes `adopt` when the publication it was staged for never committed. */
   disown(previous: CaoSurfaceSetResource | null): void {
     if (previous === null) return;
-    for (const [unit, member] of previous.members) {
-      if (previous.owned.has(unit) || this.members.get(unit) !== member) continue;
-      this.owned.delete(unit);
-      previous.owned.add(unit);
+    for (const [slot, member] of previous.members) {
+      if (previous.owned.has(slot) || this.members.get(slot) !== member) continue;
+      this.owned.delete(slot);
+      previous.owned.add(slot);
     }
   }
 
   get byteLength(): number {
     let bytes = 0;
-    for (const unit of this.owned) bytes += this.members.get(unit)?.byteLength ?? 0;
+    for (const slot of this.owned) bytes += this.members.get(slot)?.byteLength ?? 0;
     return bytes;
   }
 
   disposeUnsubmitted(): void {
-    for (const unit of [...this.owned]) {
-      this.owned.delete(unit);
-      this.members.get(unit)?.disposeUnsubmitted();
+    for (const slot of [...this.owned]) {
+      this.owned.delete(slot);
+      this.members.get(slot)?.disposeUnsubmitted();
     }
   }
 
   retireAfterGpuWork(): Promise<void> {
-    return Promise.all([...this.owned].map(async (unit) => {
-      await this.members.get(unit)!.retireAfterGpuWork();
+    return Promise.all([...this.owned].map(async (slot) => {
+      await this.members.get(slot)!.retireAfterGpuWork();
       // Dropped from the ledger one member at a time: a refusal leaves the
       // member it refused owned here, and the publisher disposes it.
-      this.owned.delete(unit);
+      this.owned.delete(slot);
     })).then(() => {});
   }
 }
@@ -2400,6 +2462,40 @@ interface CaoSurfaceUnitState {
   staticGeometry: CaoFoundationGeometryResource | null;
   domainVisible: boolean;
   publishedIdentity: string | null;
+}
+
+/**
+ * One map interval the set keeps on the GPU.
+ *
+ * `anchorAgeMa` is the age the interval was first published at — its position
+ * in time, not the age of the last visit — because it is what admission
+ * measures "farthest by age" against when it has to make room.
+ */
+interface CaoResidentInterval {
+  readonly slot: CaoSurfaceSlot;
+  readonly staticGeometry: CaoFoundationGeometryResource;
+  readonly anchorAgeMa: number;
+  /**
+   * The published map-interval id this member holds, where the revision named
+   * one. Residency is keyed by the static geometry key, which is what makes a
+   * return visit free; the id is what the engine's warm window is stated in, so
+   * it is recorded here rather than recovered from the key.
+   */
+  readonly intervalId: string | null;
+}
+
+/**
+ * The published interval id a revision names, or null for the Cao 2024 stack.
+ *
+ * A prepared map interval *is* a `PreparedCaoRevision` with interval-only
+ * fields on top (`PreparedCaoPalaeoInterval`), and the renderer deliberately
+ * consumes the narrow type — it must not need to know which arm prepared a
+ * revision. Reading the one field the warm window is keyed by, where it exists,
+ * is narrower than widening the type the whole renderer takes.
+ */
+function caoRevisionIntervalId(revision: PreparedCaoRevision): string | null {
+  const id = (revision as { readonly intervalId?: unknown }).intervalId;
+  return typeof id === "string" && id.length > 0 ? id : null;
 }
 
 /**
@@ -2429,6 +2525,19 @@ export class CaoFoundationSurfaceRenderer {
   /** Batch ids whose GPU buffers are currently released; their CPU source is retained. */
   private readonly releasedStaticGeometryBatches = new Set<string>();
   private readonly staticGeometryRetirement: GpuRetirementOwner | null;
+  /**
+   * Map intervals whose static geometry is uploaded, keyed by their set slot.
+   * Bounded by `maxResidentIntervals` and `maxResidentIntervalGpuBytes`; the
+   * one named by `currentIntervalSlot` is the one drawn.
+   */
+  private readonly residentIntervals = new Map<CaoSurfaceSlot, CaoResidentInterval>();
+  private currentIntervalSlot: CaoSurfaceSlot | null = null;
+  private residentIntervalCeiling: number;
+  private residentIntervalByteCeiling: number;
+  /** Warms a freshly preloaded hidden member; see `CaoMemberWarmer`. */
+  private memberWarmer: CaoMemberWarmer | null = null;
+  /** Hidden members warmed since the renderer was built, for the residency account. */
+  private warmedMemberCount = 0;
 
   constructor(
     private readonly parent: THREE.Group,
@@ -2437,12 +2546,73 @@ export class CaoFoundationSurfaceRenderer {
     options: CaoFoundationRendererOptions = {},
   ) {
     this.staticGeometryRetirement = options.staticGeometryRetirement ?? null;
+    this.residentIntervalCeiling = Math.max(1, Math.floor(limits.maxResidentIntervals ?? 1));
+    this.residentIntervalByteCeiling =
+      limits.maxResidentIntervalGpuBytes ?? Number.POSITIVE_INFINITY;
+  }
+
+  /**
+   * How many map intervals may stay resident, and the buffer bytes they may
+   * hold together. This is a memory policy, owned by the explicit quality
+   * selection and the device's reported memory — not by the automatic quality
+   * watchdog, whose downgrade is about shading detail. Lowering it mid-session
+   * makes the next crossing evict down to it rather than tearing members down
+   * mid-frame.
+   */
+  setResidentIntervalCeiling(count: number, maxBytes?: number): void {
+    if (!Number.isFinite(count) || count < 1) {
+      throw new Error("Cao resident map interval ceiling must be at least one");
+    }
+    this.residentIntervalCeiling = Math.floor(count);
+    if (maxBytes !== undefined) {
+      if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
+        throw new Error("Cao resident map interval byte ceiling must be positive");
+      }
+      this.residentIntervalByteCeiling = maxBytes;
+    }
+  }
+
+  /** Map intervals resident right now; the drawn one included. */
+  residentIntervalCount(): number {
+    return this.residentIntervals.size;
+  }
+
+  /**
+   * Installs the warmer an idle pre-upload uses, or clears it.
+   *
+   * Only the scene can warm a member — the work needs the renderer, the camera
+   * and the drawn scene, none of which this class owns — so the renderer names
+   * the group and the owner decides how. Without a warmer a preload is exactly
+   * what it was: a parented hidden group with nothing on the GPU behind it.
+   */
+  setMemberWarmer(warm: CaoMemberWarmer | null): void {
+    this.memberWarmer = warm;
+  }
+
+  /** Hidden members this renderer has asked the warmer to warm. */
+  warmedMembers(): number {
+    return this.warmedMemberCount;
   }
 
   private unitState(unit: CaoSurfaceUnit): CaoSurfaceUnitState {
     const state = this.units.get(unit);
     if (!state) throw new Error("unknown Cao surface unit");
     return state;
+  }
+
+  /**
+   * The set slot a unit names. The Cao 2024 stack always has one; the interval
+   * unit names whichever resident interval is current, and none before the
+   * first map is published.
+   */
+  private slotFor(unit: CaoSurfaceUnit): CaoSurfaceSlot | null {
+    return unit === "native" ? CAO_NATIVE_SLOT : this.currentIntervalSlot;
+  }
+
+  /** The published member a unit draws, or null when it draws nothing. */
+  private memberFor(unit: CaoSurfaceUnit): CaoFoundationPublicationResource | null {
+    const slot = this.slotFor(unit);
+    return slot === null ? null : this.publisher.current()?.resources.member(slot) ?? null;
   }
 
   /**
@@ -2482,17 +2652,20 @@ export class CaoFoundationSurfaceRenderer {
       triangles += batch.segmentCount * 2;
       sourceBytes += batch.staticGeometryBytes;
     }
-    for (const [otherUnit, state] of this.units) {
-      if (otherUnit === unit || state.staticGeometry === null) continue;
-      for (const batch of state.staticGeometry.batches) {
+    // The other member of the drawn composition, and only it: an interval kept
+    // resident behind the current one draws nothing, so it spends no vertices
+    // or triangles. What bounds those is `maxResidentIntervalGpuBytes`.
+    const other = this.unitState(unit === "native" ? "interval" : "native").staticGeometry;
+    if (other !== null) {
+      for (const batch of other.batches) {
         vertices += batch.vertexCount;
         triangles += batch.triangleCount;
       }
-      for (const batch of state.staticGeometry.lineBatches) {
+      for (const batch of other.lineBatches) {
         vertices += batch.segmentCount * POLYLINE_QUAD_VERTICES_PER_SEGMENT;
         triangles += batch.segmentCount * 2;
       }
-      sourceBytes += state.staticGeometry.retainedCpuBytes;
+      sourceBytes += other.retainedCpuBytes;
     }
     if (vertices > this.limits.maxVertices || triangles > this.limits.maxTriangles
         || sourceBytes > this.limits.maxRetainedSourceBytes) {
@@ -2510,6 +2683,9 @@ export class CaoFoundationSurfaceRenderer {
       revision.release();
       throw new Error("Cao foundation requested age is invalid");
     }
+    // A map interval is resident rather than replaced: `publishInterval` keeps
+    // one member per interval it has uploaded and makes one of them current.
+    if (unit === "interval") return this.publishInterval(revision, verticalExaggeration, true)!;
     const state = this.unitState(unit);
     const token = this.publisher.begin(revision.identity);
     let resource: CaoFoundationPublicationResource | null = null;
@@ -2520,10 +2696,7 @@ export class CaoFoundationSurfaceRenderer {
     try {
       const reservation = estimateCaoFoundationGeometryReservation(revision, this.limits);
       this.setTotalsWith(unit, revision);
-      const expectedStaticKey = `${revision.packageId}@${revision.packageRevision}:${[
-        ...revision.batches.map((batch) => batch.staticGeometryIdentity),
-        ...revision.lineBatches.map((batch) => batch.staticGeometryIdentity),
-      ].join("|")}`;
+      const expectedStaticKey = caoStaticGeometryKey(revision);
       let retiredStaticGeometry: CaoFoundationGeometryResource | null = null;
       if (!state.staticGeometry || state.staticGeometry.key !== expectedStaticKey) {
         if (state.staticGeometry) {
@@ -2565,7 +2738,7 @@ export class CaoFoundationSurfaceRenderer {
       const previous = this.publisher.current();
       // Only the member being replaced is retired by this publication; the
       // other members are adopted by the incoming set.
-      const replacedMember = previous?.resources.member(unit) ?? null;
+      const replacedMember = previous?.resources.member(CAO_NATIVE_SLOT) ?? null;
       const retiredMemberBytes = replacedMember?.byteLength ?? 0;
       if (retiredMemberBytes > 0 && (this.retirement.pendingCount() + 1 > this.retirement.maxPendingResources
           || this.retirement.pendingBytes() + retiredMemberBytes > this.retirement.maxPendingBytes)) {
@@ -2578,8 +2751,8 @@ export class CaoFoundationSurfaceRenderer {
       // would flash the outline back to a single ink for one frame.
       resource.setCountryLineToneTable(this.countryLineToneTable);
       const members = new Map(previous?.resources.entries() ?? []);
-      members.set(unit, resource);
-      const nextSet = new CaoSurfaceSetResource(members, [unit]);
+      members.set(CAO_NATIVE_SLOT, resource);
+      const nextSet = new CaoSurfaceSetResource(members, [CAO_NATIVE_SLOT]);
       if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", nextSet)) {
         throw new Error("Cao foundation publication became stale");
       }
@@ -2630,6 +2803,368 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
+   * Keeps only the map intervals the warm window still covers, retiring the
+   * rest.
+   *
+   * A warmed hidden member holds its GPU buffers *and* the decoded arrays they
+   * were uploaded from, so the engine dropping its half of a prepared interval
+   * frees nothing while the member is still parented. This is the renderer's
+   * half of the same re-centre: it takes the existing eviction shape — restage
+   * the set without those members, let the outgoing publication retire them,
+   * retire their static geometry through its own owner — with the window, not a
+   * ceiling, choosing the victims.
+   *
+   * The drawn interval is never a victim, whatever the window says, and neither
+   * is a member whose revision named no interval id. Answers how many members
+   * were retired.
+   */
+  retainResidentIntervals(intervalIds: readonly string[]): number {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    const keep = new Set(intervalIds);
+    const evicted = [...this.residentIntervals.values()].filter((resident) =>
+      resident.intervalId !== null && !keep.has(resident.intervalId)
+      && resident.slot !== this.currentIntervalSlot);
+    if (evicted.length === 0) return 0;
+    const previous = this.publisher.current();
+    if (previous === null) return 0;
+    if (this.staticGeometryRetirement === null) {
+      throw new Error("Cao static geometry replacement requires a retirement owner");
+    }
+    const evictedMembers = evicted.map((victim) => previous.resources.member(victim.slot) ?? null);
+    const retiredMemberBytes = evictedMembers.reduce(
+      (sum, member) => sum + (member?.byteLength ?? 0), 0);
+    const retiredMemberCount = evictedMembers.filter((member) => member !== null).length;
+    // Backpressure is a refusal, not a failure: the window is re-applied on the
+    // next re-centre, and holding a member one window longer is a bounded miss
+    // where overrunning the retirement owner is not.
+    if (retiredMemberCount > 0
+        && (this.retirement.pendingCount() + retiredMemberCount > this.retirement.maxPendingResources
+        || this.retirement.pendingBytes() + retiredMemberBytes > this.retirement.maxPendingBytes)) {
+      return 0;
+    }
+    const token = this.publisher.begin(previous.requestId);
+    const members = new Map(previous.resources.entries());
+    for (const victim of evicted) members.delete(victim.slot);
+    // Owns nothing new: this publication adds no member, it only stops carrying
+    // the ones the window dropped.
+    const nextSet = new CaoSurfaceSetResource(members, []);
+    if (!this.publisher.stage(token, previous.ageMa, previous.stage, nextSet)) {
+      throw new Error("Cao foundation publication became stale");
+    }
+    nextSet.adopt(previous.resources);
+    const publication = this.publisher.commit(token);
+    if (!publication) {
+      nextSet.disown(previous.resources);
+      throw new Error("Cao foundation publication commit failed");
+    }
+    for (const member of evictedMembers) if (member) this.parent.remove(member.group);
+    for (const victim of evicted) {
+      this.residentIntervals.delete(victim.slot);
+      const geometry = victim.staticGeometry;
+      void this.staticGeometryRetirement.retire({
+        byteLength: geometry.byteLength,
+        dispose: () => geometry.dispose(),
+      });
+    }
+    return evicted.length;
+  }
+
+  /**
+   * Uploads one prepared map interval as a hidden member, without drawing it.
+   *
+   * The first visit to an interval is the expensive one — it uploads the
+   * geometry, builds the publication and commits all of that on the frame the
+   * scrub crossed into it — while every later visit is a visibility switch and
+   * a retarget. Taking the upload at idle, after the background walk has
+   * prepared the interval, is what makes a first visit cost what a return visit
+   * costs, because by then the member already exists and the crossing takes the
+   * retarget path.
+   *
+   * It never evicts. A preload is speculative and the current interval is not:
+   * where the residency ceilings leave no room the preload is declined and the
+   * crossing that needs the interval uploads it itself, exactly as it does
+   * today. Answers whether a member was uploaded; the lease is taken over and
+   * released either way, as `publish` does.
+   */
+  preloadInterval(revision: PreparedCaoRevision, verticalExaggeration: number): boolean {
+    if (this.disposed) throw new Error("Cao foundation renderer is disposed");
+    if (!Number.isFinite(revision.requestedAgeMa) || revision.requestedAgeMa < 0) {
+      revision.release();
+      throw new Error("Cao foundation requested age is invalid");
+    }
+    const before = this.residentIntervals.size;
+    this.publishInterval(revision, verticalExaggeration, false);
+    return this.residentIntervals.size > before;
+  }
+
+  /**
+   * Makes one prepared map interval the drawn one, or uploads it hidden.
+   *
+   * The set keeps a member per interval it has uploaded, so a crossing has two
+   * shapes. An interval the set has already seen is a visibility switch: its
+   * member is shown, the outgoing one is hidden, and the incoming age is
+   * retargeted onto the resident palette and poses — no geometry upload, no
+   * retirement, no static geometry replacement. An interval the set has not
+   * seen uploads its geometry once and adds a member for it, evicting the
+   * farthest resident by age when the ceiling is already met.
+   *
+   * `present` is what separates a crossing from an idle pre-upload. A preload
+   * builds the same member and leaves it hidden and not current, declines
+   * rather than evicting, and answers null where it did nothing — an interval
+   * already resident, or no room under the ceilings.
+   *
+   * Because nothing is replaced, no arm is spent here: `armStaticGeometryChange`
+   * still guards the Cao 2024 stack, whose geometry must never change within
+   * the renderer's lifetime.
+   */
+  private publishInterval(
+    revision: PreparedCaoRevision,
+    verticalExaggeration: number,
+    present: boolean,
+  ): CaoFoundationDiagnostics | null {
+    const state = this.unitState("interval");
+    const slot = caoIntervalSlot(caoStaticGeometryKey(revision));
+    const resident = this.residentIntervals.get(slot) ?? null;
+    const residentMember = this.publisher.current()?.resources.member(slot) ?? null;
+    if (resident !== null && residentMember !== null) {
+      // A preload of an interval whose member is already on the GPU is the
+      // whole point of the preload having run: nothing to upload, and no pose
+      // to apply to a member nobody is looking at.
+      if (!present) {
+        revision.release();
+        return null;
+      }
+      try {
+        // The only work a return visit does: the age's palette and poses onto
+        // buffers that are already on the GPU. A shape that does not match is
+        // a different revision of the same geometry key and is refused there.
+        const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
+        const pick = createChartPickState(revision);
+        residentMember.retargetMotion(packed, revision.display.fraction, pick.chartPoses,
+          pick.chartActive, revision.requestedAgeMa, revision.materialCorrections);
+        this.makeIntervalCurrent(slot);
+        state.staticGeometry = resident.staticGeometry;
+        state.publishedIdentity = revision.identity;
+        state.domainVisible = true;
+        revision.release();
+        return this.diagnostics("interval");
+      } catch (error) {
+        revision.release();
+        throw error;
+      }
+    }
+    const token = this.publisher.begin(revision.identity);
+    let resource: CaoFoundationPublicationResource | null = null;
+    let uploaded: CaoFoundationGeometryResource | null = null;
+    try {
+      const reservation = estimateCaoFoundationGeometryReservation(revision, this.limits);
+      // Declined before the upload, not after it: a preload that cannot be
+      // admitted must not spend the buffers it would then have to retire.
+      if (!present && !this.residentIntervalHasRoomFor(reservation, slot)) {
+        revision.release();
+        return null;
+      }
+      this.setTotalsWith("interval", revision);
+      let admitted = resident;
+      let evicted: readonly CaoResidentInterval[] = [];
+      if (admitted === null) {
+        const geometry = createCaoFoundationGeometryResource(revision, this.limits);
+        if (geometry.byteLength > reservation) {
+          geometry.dispose();
+          throw new Error("Cao static geometry reservation mismatch");
+        }
+        uploaded = geometry;
+        evicted = this.residentIntervalEvictions(geometry, revision.requestedAgeMa, slot);
+        // The room check above is what makes this hold; the assertion is here
+        // because a preload that evicted the drawn interval would be invisible.
+        if (!present && evicted.length > 0) throw new Error("a preloaded Cao map interval must not evict");
+        admitted = { slot, staticGeometry: geometry, anchorAgeMa: revision.requestedAgeMa,
+          intervalId: caoRevisionIntervalId(revision) };
+      }
+      const packed = packPreparedCaoPalette(revision, this.limits.maxTextureSize);
+      const publicationBytes = safeAdd(safeAdd(safeAdd(safeAdd(packed.data.byteLength,
+        revision.charts.length * (8 * Float32Array.BYTES_PER_ELEMENT + Uint8Array.BYTES_PER_ELEMENT),
+        "Cao publication"), estimateNativeBoundaryBufferBytes(revision), "Cao publication"),
+      estimateTopologyOwnershipBytes(revision), "Cao publication"),
+      estimateCountryLineToneTextureBytes(revision), "Cao publication");
+      // The ledger holds every resident member's publication at once, which is
+      // what the set-wide `maxPublicationBytes` is sized for.
+      if (!Number.isSafeInteger(this.limits.maxPublicationBytes) || this.limits.maxPublicationBytes < 1
+          || publicationBytes > this.limits.maxPublicationBytes - this.publisher.retainedBytes()) {
+        throw new Error("Cao foundation palette publication exceeds limit");
+      }
+      const previous = this.publisher.current();
+      const evictedMembers = evicted.map((victim) =>
+        previous?.resources.member(victim.slot) ?? null);
+      const retiredMemberBytes = evictedMembers.reduce(
+        (sum, member) => sum + (member?.byteLength ?? 0), 0);
+      const retiredMemberCount = evictedMembers.filter((member) => member !== null).length;
+      if (retiredMemberCount > 0
+          && (this.retirement.pendingCount() + retiredMemberCount > this.retirement.maxPendingResources
+          || this.retirement.pendingBytes() + retiredMemberBytes > this.retirement.maxPendingBytes)) {
+        throw new Error("Cao foundation GPU retirement backpressure bound exceeded");
+      }
+      resource = createPublicationResource(revision, admitted.staticGeometry, packed,
+        verticalExaggeration, this.retirement, true);
+      resource.setCountryLineToneTable(this.countryLineToneTable);
+      // A preloaded member is parented so its buffers stay on the GPU, and
+      // hidden so nothing draws it until a crossing makes it current.
+      if (!present) resource.group.visible = false;
+      const members = new Map(previous?.resources.entries() ?? []);
+      for (const victim of evicted) members.delete(victim.slot);
+      members.set(slot, resource);
+      const nextSet = new CaoSurfaceSetResource(members, [slot]);
+      if (!this.publisher.stage(token, revision.requestedAgeMa, "settled", nextSet)) {
+        throw new Error("Cao foundation publication became stale");
+      }
+      this.parent.add(resource.group);
+      nextSet.adopt(previous?.resources ?? null);
+      const publication = this.publisher.commit(token);
+      if (!publication) {
+        nextSet.disown(previous?.resources ?? null);
+        this.parent.remove(resource.group);
+        throw new Error("Cao foundation publication commit failed");
+      }
+      // The evicted members are left owned by the outgoing set, which the
+      // publisher retires; their geometry is retired separately, exactly as a
+      // replacement's was when one interval was resident at a time.
+      for (const member of evictedMembers) if (member) this.parent.remove(member.group);
+      for (const victim of evicted) {
+        this.residentIntervals.delete(victim.slot);
+        if (victim.slot === this.currentIntervalSlot) this.currentIntervalSlot = null;
+        const geometry = victim.staticGeometry;
+        void this.staticGeometryRetirement!.retire({
+          byteLength: geometry.byteLength,
+          dispose: () => geometry.dispose(),
+        });
+      }
+      this.residentIntervals.set(slot, admitted);
+      const committed = resource;
+      uploaded = null;
+      resource = null;
+      if (present) {
+        state.staticGeometry = admitted.staticGeometry;
+        state.publishedIdentity = revision.identity;
+        state.domainVisible = true;
+        this.makeIntervalCurrent(slot);
+      }
+      this.applyReleasableSurfaceClasses();
+      // Only a hidden member is warmed, and only after the class releases have
+      // run: warming a batch whose buffers are about to be released would put
+      // them straight back. A warm is speculative like the preload that asked
+      // for it, so a failure leaves the member exactly as it was — parented,
+      // hidden and cold — and the crossing pays what it pays today.
+      if (!present && this.memberWarmer !== null) {
+        this.warmedMemberCount += 1;
+        try {
+          this.memberWarmer(committed.group);
+        } catch {
+          // Reported by the warmer's owner; the committed member stands.
+        }
+        // Hidden first, then reported: a member left visible draws the wrong
+        // interval over the current one on the very next frame, so the guard
+        // must not depend on anyone catching it.
+        if (committed.group.visible) {
+          committed.group.visible = false;
+          throw new Error("Cao map interval warmer must leave the member hidden");
+        }
+      }
+      revision.release();
+      return present ? this.diagnostics("interval") : null;
+    } catch (error) {
+      resource?.disposeUnsubmitted();
+      uploaded?.dispose();
+      revision.release();
+      throw error;
+    }
+  }
+
+  /**
+   * Shows one resident interval and hides the one it replaces. The members that
+   * are neither stay parented and hidden: their geometry is on the GPU, which
+   * is the whole point of keeping them.
+   */
+  private makeIntervalCurrent(slot: CaoSurfaceSlot): void {
+    if (this.currentIntervalSlot !== null && this.currentIntervalSlot !== slot) {
+      const outgoing = this.publisher.current()?.resources.member(this.currentIntervalSlot) ?? null;
+      if (outgoing) outgoing.group.visible = false;
+    }
+    this.currentIntervalSlot = slot;
+    const member = this.publisher.current()?.resources.member(slot) ?? null;
+    if (member) member.group.visible = true;
+  }
+
+  /**
+   * Whether one more resident interval of `incomingBytes` fits under both
+   * ceilings without evicting anything. A preload asks before it uploads; a
+   * crossing does not ask, because it evicts to make its own room.
+   */
+  private residentIntervalHasRoomFor(incomingBytes: number, incomingSlot: CaoSurfaceSlot): boolean {
+    let count = 1;
+    let bytes = incomingBytes;
+    for (const resident of this.residentIntervals.values()) {
+      if (resident.slot === incomingSlot) continue;
+      count += 1;
+      bytes += resident.staticGeometry.trackedGpuBufferBytes;
+    }
+    return count <= this.residentIntervalCeiling && bytes <= this.residentIntervalByteCeiling;
+  }
+
+  /**
+   * The residents that must go for `incoming` to be admitted, farthest by age
+   * first.
+   *
+   * Two ceilings bound residency: how many intervals may be resident, and the
+   * vertex and index buffer bytes they may hold together. The incoming interval
+   * is never a candidate — it is the one about to be drawn — so a ceiling of
+   * one is exactly the streaming behaviour a swap always had. Eviction retires
+   * geometry, so it is also bounded by what the static-geometry retirement
+   * owner can still hold.
+   */
+  private residentIntervalEvictions(
+    incoming: CaoFoundationGeometryResource,
+    requestedAgeMa: number,
+    incomingSlot: CaoSurfaceSlot,
+  ): readonly CaoResidentInterval[] {
+    const maxBytes = this.residentIntervalByteCeiling;
+    let count = 1;
+    let bytes = incoming.trackedGpuBufferBytes;
+    const candidates: CaoResidentInterval[] = [];
+    for (const resident of this.residentIntervals.values()) {
+      if (resident.slot === incomingSlot) continue;
+      candidates.push(resident);
+      count += 1;
+      bytes += resident.staticGeometry.trackedGpuBufferBytes;
+    }
+    if (count <= this.residentIntervalCeiling && bytes <= maxBytes) return [];
+    if (this.staticGeometryRetirement === null) {
+      throw new Error("Cao static geometry replacement requires a retirement owner");
+    }
+    // Farthest by age first; ties resolve to the older anchor, then the slot, so
+    // the order a ceiling produces is the same on every run.
+    candidates.sort((left, right) =>
+      Math.abs(right.anchorAgeMa - requestedAgeMa) - Math.abs(left.anchorAgeMa - requestedAgeMa)
+      || right.anchorAgeMa - left.anchorAgeMa
+      || (left.slot < right.slot ? -1 : left.slot > right.slot ? 1 : 0));
+    const evicted: CaoResidentInterval[] = [];
+    let pendingBytes = this.staticGeometryRetirement.pendingBytes();
+    let pendingCount = this.staticGeometryRetirement.pendingCount();
+    while (candidates.length > 0 && (count > this.residentIntervalCeiling || bytes > maxBytes)) {
+      const victim = candidates.shift()!;
+      pendingCount += 1;
+      pendingBytes += victim.staticGeometry.byteLength;
+      if (pendingCount > this.staticGeometryRetirement.maxPendingResources
+          || pendingBytes > this.staticGeometryRetirement.maxPendingBytes) {
+        throw new Error("Cao foundation GPU retirement backpressure bound exceeded");
+      }
+      evicted.push(victim);
+      count -= 1;
+      bytes -= victim.staticGeometry.trackedGpuBufferBytes;
+    }
+    return evicted;
+  }
+
+  /**
    * One unit's slice of the set's diagnostics. The dataset keys the browser
    * suite reads are per unit — `caoFoundation*` is the Cao 2024 member and
    * `caoPalaeo*` the map interval — so each answer is scoped to the member that
@@ -2637,7 +3172,7 @@ export class CaoFoundationSurfaceRenderer {
    */
   diagnostics(unit: CaoSurfaceUnit = "native"): CaoFoundationDiagnostics {
     const state = this.unitState(unit);
-    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    const member = this.memberFor(unit);
     const batches = state.staticGeometry?.batches ?? [];
     return Object.freeze({
       identity: member === null ? null : state.publishedIdentity,
@@ -2711,8 +3246,7 @@ export class CaoFoundationSurfaceRenderer {
    * applies a composition.
    */
   publishedIdentity(unit: CaoSurfaceUnit = "native"): string | null {
-    return this.publisher.current()?.resources.member(unit) === null
-      ? null : this.unitState(unit).publishedIdentity;
+    return this.memberFor(unit) === null ? null : this.unitState(unit).publishedIdentity;
   }
 
   /**
@@ -2721,7 +3255,7 @@ export class CaoFoundationSurfaceRenderer {
    */
   surfaceView(unit: CaoSurfaceUnit = "native"): CaoFoundationSurfaceView | null {
     const state = this.unitState(unit);
-    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    const member = this.memberFor(unit);
     if (!state.domainVisible || !state.staticGeometry || member === null) return null;
     return { geometry: state.staticGeometry, publication: member, mode: this.surfaceMode(unit) };
   }
@@ -2764,7 +3298,9 @@ export class CaoFoundationSurfaceRenderer {
   setDomainVisibility(visible: boolean, unit: CaoSurfaceUnit = "native"): CaoFoundationDiagnostics {
     const state = this.unitState(unit);
     state.domainVisible = visible;
-    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    // Only the drawn member follows the unit's visibility; the intervals kept
+    // resident beside it stay hidden until a crossing makes one of them current.
+    const member = this.memberFor(unit);
     if (member) member.group.visible = visible;
     return this.diagnostics(unit);
   }
@@ -2841,18 +3377,47 @@ export class CaoFoundationSurfaceRenderer {
    * drops by exactly the released batches' buffers and rises again on exit.
    */
   gpuResidentBytes(unit: CaoSurfaceUnit = "native"): number {
-    const state = this.unitState(unit);
+    return this.geometryGpuBytes(this.unitState(unit).staticGeometry);
+  }
+
+  /**
+   * GPU buffer bytes the whole set holds: the Cao 2024 stack and every map
+   * interval kept resident, drawn or hidden. This is the residency ledger the
+   * page publishes, so an interval that is warm but off screen is still counted
+   * against the ceiling a reader is checking.
+   */
+  residentGpuBytes(): number {
+    let bytes = this.geometryGpuBytes(this.unitState("native").staticGeometry);
+    for (const resident of this.residentIntervals.values()) {
+      bytes += this.geometryGpuBytes(resident.staticGeometry);
+    }
+    return bytes;
+  }
+
+  private geometryGpuBytes(geometry: CaoFoundationGeometryResource | null): number {
     let bytes = 0;
-    for (const batch of state.staticGeometry?.batches ?? []) {
+    for (const batch of geometry?.batches ?? []) {
       if (this.releasedStaticGeometryBatches.has(batch.batchId)) continue;
       if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
       bytes += batch.trackedGpuBytes;
     }
-    for (const batch of state.staticGeometry?.lineBatches ?? []) {
+    for (const batch of geometry?.lineBatches ?? []) {
       if (!geometryHoldsGpuBuffers(batch.geometry)) continue;
       bytes += batch.trackedGpuBytes;
     }
     return bytes;
+  }
+
+  /**
+   * Every geometry the renderer holds: the Cao 2024 stack and every resident
+   * map interval. The D1 release policy walks this rather than the drawn units,
+   * so an interval that is hidden behind the current one is left in the same
+   * state as the one on screen.
+   */
+  private *heldGeometries(): Generator<CaoFoundationGeometryResource> {
+    const native = this.unitState("native").staticGeometry;
+    if (native !== null) yield native;
+    for (const resident of this.residentIntervals.values()) yield resident.staticGeometry;
   }
 
   /**
@@ -2871,8 +3436,8 @@ export class CaoFoundationSurfaceRenderer {
   /** GPU bytes currently handed back under the release policy. */
   releasedStaticGpuBytes(): number {
     let bytes = 0;
-    for (const state of this.units.values()) {
-      for (const batch of state.staticGeometry?.batches ?? []) {
+    for (const geometry of this.heldGeometries()) {
+      for (const batch of geometry.batches) {
         if (this.releasedStaticGeometryBatches.has(batch.batchId)) bytes += batch.trackedGpuBytes;
       }
     }
@@ -2881,8 +3446,8 @@ export class CaoFoundationSurfaceRenderer {
 
   private applyReleasableSurfaceClasses(): void {
     const releasable = new Set(this.releasableSurfaceClasses);
-    for (const state of this.units.values()) {
-      for (const batch of state.staticGeometry?.batches ?? []) {
+    for (const geometry of this.heldGeometries()) {
+      for (const batch of geometry.batches) {
         const released = this.releasedStaticGeometryBatches.has(batch.batchId);
         if (releasable.has(batch.surfaceClass)) {
           if (released) continue;
@@ -2953,7 +3518,7 @@ export class CaoFoundationSurfaceRenderer {
   ): CaoFoundationDiagnostics {
     if (this.disposed) throw new Error("Cao foundation renderer is disposed");
     const state = this.unitState(unit);
-    const member = this.publisher.current()?.resources.member(unit) ?? null;
+    const member = this.memberFor(unit);
     if (member === null) throw new Error("Cao foundation has no published surface to retarget");
     const packed = packCaoPaletteValues(paletteValues, entryCount, this.limits.maxTextureSize);
     member.retargetMotion(
@@ -2976,9 +3541,14 @@ export class CaoFoundationSurfaceRenderer {
   }
 
   /**
-   * Retires one unit's publication, or the whole set when no unit is named.
-   * Dropping one member republishes the set without it, so the other member
-   * stays on screen and is never rebuilt.
+   * Retires one unit's publications, or the whole set when no unit is named.
+   * Dropping a unit republishes the set without it, so the other unit stays on
+   * screen and is never rebuilt.
+   *
+   * The interval unit drops every resident member, not only the drawn one: the
+   * layer is off, and a hidden member is still a publication on the ledger. The
+   * geometry stays uploaded, exactly as the single resident's did before, so
+   * re-enabling the layer costs no upload.
    */
   clear(unit?: CaoSurfaceUnit): void {
     if (this.disposed) return;
@@ -2987,13 +3557,18 @@ export class CaoFoundationSurfaceRenderer {
       this.removePublishedMembers();
       this.publisher.dispose();
       for (const state of this.units.values()) state.publishedIdentity = null;
+      this.currentIntervalSlot = null;
       return;
     }
     const state = this.unitState(unit);
-    const dropped = current?.resources.member(unit) ?? null;
-    if (!current || dropped === null) return;
-    const remaining = current.resources.entries().filter(([memberUnit]) => memberUnit !== unit);
+    const slots = new Set<CaoSurfaceSlot>(unit === "native"
+      ? [CAO_NATIVE_SLOT] : this.residentIntervals.keys());
+    const dropped = current === null ? []
+      : current.resources.entries().filter(([slot]) => slots.has(slot)).map(([, member]) => member);
+    if (!current || dropped.length === 0) return;
+    const remaining = current.resources.entries().filter(([slot]) => !slots.has(slot));
     state.publishedIdentity = null;
+    if (unit === "interval") this.currentIntervalSlot = null;
     if (remaining.length === 0) {
       this.removePublishedMembers();
       this.publisher.dispose();
@@ -3009,7 +3584,7 @@ export class CaoFoundationSurfaceRenderer {
       nextSet.disown(current.resources);
       throw new Error("Cao foundation publication commit failed");
     }
-    this.parent.remove(dropped.group);
+    for (const member of dropped) this.parent.remove(member.group);
   }
 
   private removePublishedMembers(): void {
@@ -3031,5 +3606,7 @@ export class CaoFoundationSurfaceRenderer {
       state.staticGeometry = null;
       state.publishedIdentity = null;
     }
+    this.residentIntervals.clear();
+    this.currentIntervalSlot = null;
   }
 }

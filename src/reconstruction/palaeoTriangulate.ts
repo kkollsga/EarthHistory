@@ -79,10 +79,25 @@ export interface PreparedPalaeoIntervalGeometry {
   /** Unit directions at the payload's present-day reference frame, xyz per vertex. */
   readonly referenceDirections: Float32Array;
   readonly indices: Uint32Array;
-  /** Owning piece of every vertex; a triangle never spans two pieces. */
-  readonly pieceIndices: Uint32Array;
-  /** `PALAEO_SEAM_ID_BASE + vertex`, in the renderer's seam-id shape. */
-  readonly seamIds: Uint32Array;
+  /**
+   * Owning piece of every vertex; a triangle never spans two pieces.
+   *
+   * Upload-only, and released to `null` once the per-vertex palette-entry index
+   * it is the input to has been built (`prepareSurfaceBatch`). Nothing reads it
+   * afterwards — the entry index carries the same number shifted into chart
+   * space, and the cache that holds it outlives every prepared batch of this
+   * resident interval — so holding it costs 1.06 MB an interval for nothing.
+   */
+  pieceIndices: Uint32Array | null;
+  /**
+   * `PALAEO_SEAM_ID_BASE + vertex`, in the renderer's seam-id shape.
+   *
+   * Released with `pieceIndices` and for the same reason: the renderer never
+   * uploads a palaeo batch's seam ids and never reads one. Every palaeo vertex
+   * is its own seam, so the array was a dense encoding of the identity
+   * function.
+   */
+  seamIds: Uint32Array | null;
   readonly pieceTriangleRanges: readonly PalaeoPieceTriangleRange[];
   readonly vertexCount: number;
   readonly triangleCount: number;
@@ -297,7 +312,9 @@ export function preparePalaeoRingGeometry(
   for (let vertex = 0; vertex < seamIds.length; vertex += 1) seamIds[vertex] = PALAEO_SEAM_ID_BASE + vertex;
   return Object.freeze({
     metadata: palaeoRingPayloadMetadata(payload),
-    geometry: Object.freeze({
+    // Not frozen: `pieceIndices` and `seamIds` are released once the prepared
+    // batch has consumed them, and a frozen object cannot give them back.
+    geometry: ({
       referenceDirections: new Float32Array(directions),
       indices: new Uint32Array(indices),
       pieceIndices: new Uint32Array(pieceIndices),
@@ -342,10 +359,13 @@ export function handlePalaeoTriangulationRequest(
     return {
       response: { requestId: request.requestId, ok: true, metadata: prepared.metadata,
         geometry: prepared.geometry },
+      // Freshly triangulated geometry always owns all four; the release only
+      // happens once a prepared batch has consumed the two upload-only arrays,
+      // which is on the main thread and after this message.
       transfer: [prepared.geometry.referenceDirections.buffer as ArrayBuffer,
         prepared.geometry.indices.buffer as ArrayBuffer,
-        prepared.geometry.pieceIndices.buffer as ArrayBuffer,
-        prepared.geometry.seamIds.buffer as ArrayBuffer],
+        prepared.geometry.pieceIndices!.buffer as ArrayBuffer,
+        prepared.geometry.seamIds!.buffer as ArrayBuffer],
     };
   } catch (error) {
     return { response: { requestId: request.requestId, ok: false,

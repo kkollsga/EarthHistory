@@ -119,9 +119,10 @@ describe("palaeo-coastline triangulation", () => {
     const { geometry } = preparePalaeoRingPayload(fixture());
     expect(geometry.pieceTriangleRanges.map((range) => range.pieceIndex)).toEqual([0, 1]);
     for (let triangle = 0; triangle < geometry.triangleCount; triangle += 1) {
-      const pieces = new Set([geometry.pieceIndices[geometry.indices[triangle * 3]!],
-        geometry.pieceIndices[geometry.indices[triangle * 3 + 1]!],
-        geometry.pieceIndices[geometry.indices[triangle * 3 + 2]!]]);
+      const pieceIndices = geometry.pieceIndices!;
+      const pieces = new Set([pieceIndices[geometry.indices[triangle * 3]!],
+        pieceIndices[geometry.indices[triangle * 3 + 1]!],
+        pieceIndices[geometry.indices[triangle * 3 + 2]!]]);
       expect(pieces.size).toBe(1);
       const range = geometry.pieceTriangleRanges.find((candidate) =>
         triangle >= candidate.firstTriangle && triangle < candidate.firstTriangle + candidate.triangleCount)!;
@@ -157,7 +158,7 @@ describe("palaeo-coastline triangulation", () => {
     const bytes = (geometry: PreparedPalaeoIntervalGeometry) => [
       new Uint8Array(geometry.referenceDirections.buffer.slice(0)),
       new Uint8Array(geometry.indices.buffer.slice(0)),
-      new Uint8Array(geometry.pieceIndices.buffer.slice(0)),
+      new Uint8Array(geometry.pieceIndices!.buffer.slice(0)),
     ];
     expect(bytes(first)).toEqual(bytes(second));
     expect(first.pieceTriangleRanges).toEqual(second.pieceTriangleRanges);

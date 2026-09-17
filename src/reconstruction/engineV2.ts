@@ -1,12 +1,14 @@
 import { packageFrameIdentity } from "./identity";
 import {
   CaoSurfaceResidencyStore,
+  DEFAULT_SURFACE_RESIDENCY_POLICY,
   checkpointUnit,
   intervalUnit,
   loadVerifiedCaoFoundationMetadata,
   loadVerifiedCaoFullMotionPalette,
   loadVerifiedCaoStaticFoundation,
   loadVerifiedPalaeoClassCatalogs,
+  palaeoWarmWindowIntervalIds,
   selectPalaeoIntervalForAge,
   surfaceUnitsEqual,
   warmVerifiedCaoCheckpointAssets,
@@ -20,7 +22,7 @@ import { createPalaeoTriangulationRunner, type PalaeoTriangulationRunner } from 
 import { createPreparedCaoPalaeoInterval, evaluateCaoPalaeoIntervalFrame,
   type CaoPalaeoIntervalFrame, type PreparedCaoPalaeoInterval } from "./palaeoIntervalV2";
 import { loadVerifiedBytes } from "./assetLoader";
-import type { PalaeoSurfaceClass } from "./palaeoRings";
+import { palaeoIntervalCoversAge, type PalaeoSurfaceClass } from "./palaeoRings";
 import type { StaticAssetFetcher } from "./assetLoader";
 import { immutableReconstructionPackageManifestV2, type PalaeoCoastlineSurfaceClassId,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -38,8 +40,54 @@ import type { PreparedPaletteEntry } from "./palette";
  */
 const PALAEO_INTERVAL_EDGE_MA = 0.001;
 
+/**
+ * The age one interval's lifecycles may be judged at: the requested age, held
+ * inside that interval's own half-open `(TOAGE, FROMAGE]` range.
+ *
+ * Every evaluation of a map interval passes through this, because the interval
+ * a caller holds is not always one that contains the age. Two ways it is not.
+ * Across a boundary the outgoing map is still the geometry on screen while the
+ * live age has already moved into the next interval. And inside the 0.01 Ma
+ * seam between two adjacent published intervals — the ages the padded exclusive
+ * bound `58.01` leaves above the neighbour's inclusive `58` — the selector
+ * deliberately answers the older interval rather than no map at all, so the age
+ * it hands back is a hair *below* that interval's own young edge. Passing
+ * either age through unheld made `evaluateCaoPalaeoIntervalFrame` throw out of
+ * the render-loop effect, which unmounted the globe: measured 2026-09-17 at the
+ * 58 Ma end of a 117 -> 58 scrub, where the slider's round-trip lands the age
+ * at 58.00000000000009 and the seam fallback answers `81-58`.
+ */
+function palaeoSupportAgeMa(
+  interval: { readonly fromAgeMa: number; readonly toAgeMa: number },
+  requestedAgeMa: number,
+): number {
+  return Math.min(interval.fromAgeMa,
+    Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
+}
+
 /** Background warming waits until the foreground age has rested this long. */
 export const CAO_FOREGROUND_SETTLE_MS = 250;
+
+/**
+ * Deadline the background interval scheduler gives `requestIdleCallback` before
+ * it takes the next job anyway. Long enough that a busy main thread keeps its
+ * frames, short enough that a quiet tab prepares the 25 intervals in seconds.
+ */
+export const PALAEO_BACKGROUND_IDLE_TIMEOUT_MS = 200;
+
+/** How long the scheduler waits before re-checking a foreground request in flight. */
+export const PALAEO_BACKGROUND_FOREGROUND_WAIT_MS = 25;
+
+/**
+ * One map interval the background walk has finished preparing, as the scene's
+ * idle pre-upload reads it: the id to ask for, and the age band that orders the
+ * queue nearest-first.
+ */
+export interface PalaeoPreparedInterval {
+  readonly intervalId: string;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+}
 
 export interface CaoTimelineLoadingState {
   readonly status: "idle" | "loading" | "ready" | "paused";
@@ -141,6 +189,53 @@ export class CaoReconstructionRuntime {
   private palaeoRunner: PalaeoTriangulationRunner | null = null;
   private palaeoOutlineTones: Promise<Uint8Array> | null = null;
   private palaeoOutlineTonesResident = false;
+  /**
+   * The background interval scheduler: one controller per enablement, the id it
+   * is working on, the ids it has already taken, and whether every interval of
+   * this enablement has been through it. A crossing is only free if the
+   * interval it enters was prepared before the scrub reached it, so after the
+   * first publish this walks the rest of the timeline at idle priority.
+   */
+  private palaeoBackgroundController: AbortController | null = null;
+  private palaeoPreparingIntervalId: string | null = null;
+  /** Whether the walk has prepared every interval of the *window*, not of the timeline. */
+  private palaeoBackgroundComplete = false;
+  private readonly palaeoPreparedIntervalIds = new Set<string>();
+  /**
+   * The warm window: how many intervals it spans, which ids it covers now, and
+   * who is told when it moves. The renderer owns the span — a low profile or a
+   * small device takes a narrower one — and sets it through
+   * `setPalaeoWarmWindowIntervals`; the default is the policy's.
+   */
+  private palaeoWarmWindowIntervals = DEFAULT_SURFACE_RESIDENCY_POLICY.warmWindowIntervals;
+  private palaeoWindowIntervalIds: readonly string[] = Object.freeze([]);
+  /** The interval the window is centred on; null before the first one is drawn. */
+  private palaeoDrawnIntervalId: string | null = null;
+  private readonly palaeoWindowListeners = new Set<(intervalIds: readonly string[]) => void>();
+  /** Told the id of each interval the walk finishes; see `onPalaeoIntervalPrepared`. */
+  private readonly palaeoPreparedListeners = new Set<(notice: PalaeoPreparedInterval) => void>();
+  /**
+   * Prepared intervals handed out off the request chain, for the revision
+   * identity alone. Negative because it is not a request serial: an idle
+   * pre-upload must not supersede the foreground request in flight, and reusing
+   * the chain's counter here would make every prepared identity ambiguous.
+   */
+  private palaeoPreloadSerial = 0;
+  /**
+   * Frames the synchronous pose declined to evaluate, cumulative for the life
+   * of the runtime. A scrub that leaves this at 0 never had to skip; a rising
+   * count is the layer standing on its previous pose, which is visible only
+   * here.
+   */
+  private palaeoSkippedFrames = 0;
+  /**
+   * Foreground `requestPalaeoInterval` calls still in flight. The scheduler
+   * starts no job while this is above zero: a background fetch and decode must
+   * never be what the interval a crossing is waiting for queues behind.
+   */
+  private palaeoForegroundRequests = 0;
+  /** The age the scheduler orders its remaining intervals around. */
+  private palaeoRequestedAgeMa: number | null = null;
 
   readonly manifest: ReconstructionPackageManifestV2;
 
@@ -215,6 +310,7 @@ export class CaoReconstructionRuntime {
     this.chains.checkpoint.active?.abort();
     this.chains.interval.active?.abort();
     this.background?.abort();
+    this.stopPalaeoBackgroundPreparation();
     this.lifetime.abort();
     this.palaeoCatalogController?.abort();
     this.surfaces.dispose();
@@ -260,7 +356,22 @@ export class CaoReconstructionRuntime {
       ? this.manifest.palaeoCoastlines?.outlineTones.binary.bytes ?? 0 : 0;
     const palaeo = Object.freeze({ enabled: this.palaeoEnabled, catalogSourceBytes: palaeoCatalogBytes,
       outlineToneSourceBytes: palaeoToneBytes,
+      // The background scheduler's progress. `preparedIntervals` is what is
+      // decoded and resident right now — an eviction under the byte ceiling or
+      // a window re-centre lowers it — so a consumer that keys a dataset on
+      // "every interval the window covers is in hand" reads
+      // `backgroundPreparationComplete` beside it. That flag means the *window*
+      // is complete, not the timeline: the walk stops at the window edge, and
+      // the flag drops back to false each time the window moves.
+      preparedIntervals: palaeoStore.residentCount,
+      preparingIntervalId: this.palaeoPreparingIntervalId,
+      // The ids the warm window covers right now: the drawn interval and its
+      // neighbours by schedule index. `preparedIntervals` converges on this
+      // many, not on the 25 of the timeline.
+      windowIntervals: this.palaeoWindowIntervalIds,
+      backgroundPreparationComplete: this.palaeoBackgroundComplete,
       intervalStore: palaeoStore, preparedLeaseCount: this.chains.interval.leases.size,
+      skippedFrames: this.palaeoSkippedFrames,
       totalSourceBytes: palaeoCatalogBytes + palaeoToneBytes + palaeoStore.residentSourceBytes
         + palaeoStore.pendingReservedSourceBytes });
     return Object.freeze({ foundationResidentSourceBytes,
@@ -474,7 +585,29 @@ export class CaoReconstructionRuntime {
     if (enabled && !palaeo) throw new Error("Cao package has no palaeo-coastline section");
     if (enabled === this.palaeoEnabled) return;
     this.palaeoEnabled = enabled;
-    // Every in-flight interval request is stale the moment the mode changes.
+    // Every in-flight interval request is stale the moment the mode changes,
+    // and so is everything the background scheduler prepared for the enablement
+    // that is ending: turning the mode off frees the store, so the ids it holds
+    // would name intervals nothing is keeping.
+    this.stopPalaeoBackgroundPreparation();
+    this.palaeoBackgroundComplete = false;
+    this.palaeoPreparedIntervalIds.clear();
+    this.palaeoRequestedAgeMa = null;
+    // The window is a property of the enablement that is ending: its listeners
+    // are told it covers nothing, so a scene retires the members it warmed for
+    // it rather than holding them across a mode toggle.
+    this.palaeoDrawnIntervalId = null;
+    if (this.palaeoWindowIntervalIds.length > 0) {
+      this.palaeoWindowIntervalIds = Object.freeze([]);
+      this.surfaces.setWindowIntervalIds([]);
+      for (const listener of [...this.palaeoWindowListeners]) {
+        try {
+          listener(this.palaeoWindowIntervalIds);
+        } catch {
+          // A toggle is not a listener's error path.
+        }
+      }
+    }
     const chain = this.chains.interval;
     chain.serial += 1;
     chain.active?.abort();
@@ -567,8 +700,20 @@ export class CaoReconstructionRuntime {
     requestedAgeMa: number,
     publishedIntervalId?: string | null,
   ): CaoPalaeoIntervalFrame | null {
+    // The live requested age, so this is the basis eviction measures against.
+    this.surfaces.noteCurrentAge(requestedAgeMa);
     const resident = this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null);
     if (resident === null) return null;
+    // The clamp above is the contract; this is the assertion that it held. A
+    // pose is one frame of an optional layer, so an age this runtime cannot
+    // honour against the interval it holds skips the frame — the previous pose
+    // stands — rather than throwing into the render loop that called it.
+    if (!Number.isFinite(resident.poseAgeMa)
+        || !palaeoIntervalCoversAge(resident.supportAgeMa,
+          resident.interval.fromAgeMa, resident.interval.toAgeMa)) {
+      this.palaeoSkippedFrames += 1;
+      return null;
+    }
     return evaluateCaoPalaeoIntervalFrame(
       resident.interval, resident.paletteEntries, resident.poseAgeMa, resident.supportAgeMa);
   }
@@ -598,7 +743,13 @@ export class CaoReconstructionRuntime {
         || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
-    this.surfaces.noteCurrentAge(requestedAgeMa);
+    // No `noteCurrentAge` here. This helper answers two callers: the live pose
+    // and `palaeoMotionResidentAt`, which the pump probes at an arbitrary
+    // interval's midpoint to ask whether a target is already prepared. Noting
+    // that probe's age moved the basis eviction measures its distances from, so
+    // a probe far from the camera could make the interval on screen the
+    // farthest resident one and evict what is being drawn. The live-age paths
+    // note it themselves; a residency question is a read, not a pose.
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     // The geometry on screen is the published interval's. Once the age has
     // crossed a boundary the incoming interval is not published yet, and posing
@@ -617,8 +768,11 @@ export class CaoReconstructionRuntime {
     const interval = published
       ?? (record ? this.residentInterval(record.intervalId) : null);
     if (!interval) return null;
-    const supportAgeMa = published === null ? requestedAgeMa
-      : Math.min(interval.fromAgeMa, Math.max(requestedAgeMa, interval.toAgeMa + PALAEO_INTERVAL_EDGE_MA));
+    // Held for every interval, not only the outgoing one: the selector's seam
+    // fallback answers an interval that does not contain the age either, and
+    // that age reaches here with `published === null` because the seam's own
+    // interval is the one already published.
+    const supportAgeMa = palaeoSupportAgeMa(interval, requestedAgeMa);
     const paletteEntries = this.residentPaletteEntries();
     return paletteEntries === null ? null
       : { interval, paletteEntries, poseAgeMa: requestedAgeMa, supportAgeMa };
@@ -648,6 +802,8 @@ export class CaoReconstructionRuntime {
     if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
+    // The live requested age, so this is the basis eviction measures against.
+    this.surfaces.noteCurrentAge(requestedAgeMa);
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     if (!record) return null;
     const interval = this.residentInterval(record.intervalId);
@@ -660,7 +816,158 @@ export class CaoReconstructionRuntime {
     if (!this.palaeoEnabled || serial !== this.chains.interval.serial || this.lifetime.signal.aborted) {
       throw new DOMException("stale palaeo-coastline motion evaluation", "AbortError");
     }
-    return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
+    return evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa,
+      palaeoSupportAgeMa(interval, requestedAgeMa));
+  }
+
+  /**
+   * Notified with the interval id each time the background walk finishes
+   * preparing one. The scene subscribes so it can upload that interval as a
+   * hidden GPU member while the main thread is idle, which is what makes a
+   * first visit to a prepared interval cost what a return visit costs. Answers
+   * the unsubscribe.
+   */
+  onPalaeoIntervalPrepared(listener: (notice: PalaeoPreparedInterval) => void): () => void {
+    this.palaeoPreparedListeners.add(listener);
+    return () => { this.palaeoPreparedListeners.delete(listener); };
+  }
+
+  /**
+   * Notified with the warm window's ids each time it re-centres. The scene
+   * subscribes so it can retire the GPU members and the queued pre-uploads the
+   * window no longer covers: the heap the window bounds is held on both sides
+   * of the publish, and evicting only the store's half would leave the warmed
+   * member — and the CPU arrays it aliases — alive. Answers the unsubscribe.
+   */
+  onPalaeoWarmWindowChanged(listener: (intervalIds: readonly string[]) => void): () => void {
+    this.palaeoWindowListeners.add(listener);
+    return () => { this.palaeoWindowListeners.delete(listener); };
+  }
+
+  /**
+   * How many intervals the warm window spans, drawn one included. The renderer
+   * owns this: the window exists to bound the heap that a warmed GPU member
+   * pins, so the profile that decides how many members may be resident is the
+   * one that decides how many intervals are prepared for them.
+   */
+  setPalaeoWarmWindowIntervals(count: number): void {
+    const span = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
+    if (span === this.palaeoWarmWindowIntervals) return;
+    this.palaeoWarmWindowIntervals = span;
+    this.recentrePalaeoWarmWindow(this.palaeoDrawnIntervalId);
+  }
+
+  /** The ids the warm window covers now; empty before the first interval is drawn. */
+  get palaeoWarmWindow(): readonly string[] {
+    return this.palaeoWindowIntervalIds;
+  }
+
+  /**
+   * Re-centres the warm window on the interval being drawn.
+   *
+   * Cheap by construction: it computes ids, drops the store's references to
+   * what the window no longer covers, and tells its listeners. Nothing here
+   * fetches, decodes, uploads or retires — the newly covered intervals are
+   * prepared by the background walk's idle slot, and the listeners take their
+   * own retirements at idle — so a crossing that calls this never waits for the
+   * window it moved.
+   */
+  private recentrePalaeoWarmWindow(drawnIntervalId: string | null): void {
+    this.palaeoDrawnIntervalId = drawnIntervalId;
+    const catalogs = this.resolvedPalaeoCatalogs;
+    const radius = Math.floor((this.palaeoWarmWindowIntervals - 1) / 2);
+    const next = catalogs === null ? Object.freeze([])
+      : palaeoWarmWindowIntervalIds(catalogs, drawnIntervalId, radius);
+    if (next.length === this.palaeoWindowIntervalIds.length
+        && next.every((id, index) => this.palaeoWindowIntervalIds[index] === id)) return;
+    // The first centring is the one the first crossing makes, and that crossing
+    // starts the walk itself once it has published. Only a *re*-centre has to
+    // restart it, so the first map still never queues behind the window.
+    const recentred = this.palaeoWindowIntervalIds.length > 0;
+    this.palaeoWindowIntervalIds = next;
+    this.surfaces.setWindowIntervalIds(next);
+    const covered = new Set(next);
+    // An interval the window dropped must be a candidate again: the walk skips
+    // what it has already taken, and a scrub that comes back to it would
+    // otherwise find it neither prepared nor queued to be.
+    for (const id of [...this.palaeoPreparedIntervalIds]) {
+      if (!covered.has(id)) this.palaeoPreparedIntervalIds.delete(id);
+    }
+    for (const listener of [...this.palaeoWindowListeners]) {
+      try {
+        listener(next);
+      } catch {
+        // A listener that could not take the window still draws correctly; it
+        // holds more than the window until the next re-centre it does take.
+      }
+    }
+    // The window grew or moved, so there is work again even if the last walk
+    // reported the previous window complete.
+    this.palaeoBackgroundComplete = false;
+    if (recentred) this.startPalaeoBackgroundPreparation();
+  }
+
+  private notePalaeoIntervalPrepared(intervalId: string): void {
+    const interval = this.residentInterval(intervalId);
+    if (interval === null) return;
+    const notice: PalaeoPreparedInterval = Object.freeze({ intervalId,
+      fromAgeMa: interval.fromAgeMa, toAgeMa: interval.toAgeMa });
+    for (const listener of [...this.palaeoPreparedListeners]) {
+      try {
+        listener(notice);
+      } catch {
+        // The walk is not a listener's error path; a scene that could not take
+        // the notification still gets the interval on the crossing that needs it.
+      }
+    }
+  }
+
+  /**
+   * A prepared revision for an interval that is already resident, built
+   * synchronously and off the request chain.
+   *
+   * `requestPalaeoInterval` is the foreground path: it supersedes whatever is
+   * in flight, which is right for a crossing and wrong for an idle pre-upload
+   * that must be invisible to the scrub. This answers null wherever the
+   * interval or the palette is not already in hand — it starts no fetch, takes
+   * no lease budget from a request that could still arrive, and never
+   * supersedes one — so the caller either gets a revision it can upload now or
+   * nothing at all.
+   *
+   * The pose is the interval's own midpoint. Nothing draws this revision: the
+   * crossing that makes its member current publishes its own age onto the
+   * resident buffers, so the age this was posed at never reaches the screen.
+   */
+  prepareResidentPalaeoIntervalNow(intervalId: string): PreparedCaoPalaeoInterval | null {
+    const palaeo = this.manifest.palaeoCoastlines;
+    if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return null;
+    // Never spends the last lease a foreground crossing is entitled to.
+    const chain = this.chains.interval;
+    if (chain.leases.size + 1 >= chain.maximumLeases) return null;
+    const interval = this.residentInterval(intervalId);
+    const paletteEntries = this.residentPaletteEntries();
+    if (!interval || !paletteEntries) return null;
+    const midpointAgeMa = (interval.fromAgeMa + interval.toAgeMa) / 2;
+    if (!palaeoIntervalCoversAge(midpointAgeMa, interval.fromAgeMa, interval.toAgeMa)) return null;
+    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries,
+      midpointAgeMa, midpointAgeMa);
+    this.palaeoPreloadSerial -= 1;
+    const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
+      requestId: this.palaeoPreloadSerial, packageId: this.manifest.packageId,
+      packageRevision: this.manifest.revision,
+      frameIdentity: packageFrameIdentity(this.manifest.frame),
+      baseColorRgb: this.palaeoBaseColors(palaeo),
+    }, (identity) => { this.chains.interval.leases.delete(identity); });
+    this.chains.interval.leases.set(prepared.identity, prepared.release);
+    return prepared;
+  }
+
+  private palaeoBaseColors(
+    palaeo: NonNullable<ReconstructionPackageManifestV2["palaeoCoastlines"]>,
+  ): Record<PalaeoSurfaceClass, readonly [number, number, number]> {
+    return Object.fromEntries(palaeo.classes.map((entry) =>
+      [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
+      readonly [number, number, number]>;
   }
 
   /**
@@ -705,9 +1012,148 @@ export class CaoReconstructionRuntime {
       if (!record) return;
       this.attachIntervalStore(palaeo, catalogs);
       await this.surfaces.load(intervalUnit(record.intervalId), signal);
+      this.palaeoPreparedIntervalIds.add(record.intervalId);
     } catch {
       // Prefetch stays opportunistic; a foreground request reports its own failure.
     }
+  }
+
+  /**
+   * Prepares the intervals the warm window covers, in the background.
+   *
+   * Started by the first interval that publishes: before that there is nothing
+   * on screen to protect, and the first map must not queue behind the window.
+   * From then on the window is walked nearest-by-age first, one job at a time,
+   * at idle priority, so a crossing finds the interval it enters already
+   * fetched, decoded and triangulated instead of paying for all three on the
+   * frame that needs the geometry.
+   *
+   * It stops at the window edge rather than walking the whole timeline. A
+   * prepared interval retains the decoded arrays its warmed GPU member aliases,
+   * so "all 25" was ~163 MB of heap that nothing would release; the window is
+   * what bounds it. Each re-centre restarts the walk on whatever the window
+   * newly covers.
+   */
+  private startPalaeoBackgroundPreparation(): void {
+    if (this.palaeoBackgroundController !== null || this.palaeoBackgroundComplete
+        || !this.palaeoEnabled || this.lifetime.signal.aborted) return;
+    const controller = new AbortController();
+    this.palaeoBackgroundController = controller;
+    void this.runPalaeoBackgroundPreparation(controller).catch(() => {
+      // The scheduler is opportunistic: a foreground request reports its own
+      // failure, and an interval this could not prepare is still fetched on the
+      // crossing that needs it.
+    }).finally(() => {
+      if (this.palaeoBackgroundController === controller) {
+        this.palaeoBackgroundController = null;
+        this.palaeoPreparingIntervalId = null;
+      }
+    });
+  }
+
+  /** Cancels the scheduler and the job it has in flight. */
+  private stopPalaeoBackgroundPreparation(): void {
+    this.palaeoBackgroundController?.abort();
+    this.palaeoBackgroundController = null;
+    this.palaeoPreparingIntervalId = null;
+  }
+
+  private async runPalaeoBackgroundPreparation(controller: AbortController): Promise<void> {
+    const owns = () => this.palaeoBackgroundController === controller && !controller.signal.aborted
+      && !this.lifetime.signal.aborted && this.palaeoEnabled;
+    while (owns()) {
+      // Yield first, every time round: the pause is what keeps this off the
+      // frames a live gesture is producing, and a foreground request that
+      // arrives mid-walk holds the next job back until it has landed.
+      await this.pausePalaeoBackgroundPreparation();
+      if (!owns()) return;
+      if (this.palaeoForegroundRequests > 0) continue;
+      const catalogs = this.resolvedPalaeoCatalogs;
+      if (catalogs === null) return;
+      const intervalId = this.nextPalaeoIntervalToPrepare(catalogs);
+      if (intervalId === null) {
+        this.palaeoPreparingIntervalId = null;
+        // The window is complete, not the timeline: a re-centre clears this and
+        // starts the walk again on what the window newly covers.
+        this.palaeoBackgroundComplete = true;
+        return;
+      }
+      this.palaeoPreparingIntervalId = intervalId;
+      // Taken before the load, not after it: an interval whose payload cannot
+      // be prepared must leave the queue anyway, or the walk spins on it and
+      // never reaches the intervals behind it.
+      this.palaeoPreparedIntervalIds.add(intervalId);
+      try {
+        await this.surfaces.load(intervalUnit(intervalId), controller.signal);
+        // Told only on the walk's own success, and only once per interval: the
+        // scene's idle pre-upload is what turns a prepared interval into a
+        // hidden GPU member, and an interval that failed to prepare has no
+        // geometry to upload.
+        if (owns()) this.notePalaeoIntervalPrepared(intervalId);
+      } catch {
+        // Opportunistic; the crossing that needs this interval loads it itself.
+      }
+      if (this.palaeoPreparingIntervalId === intervalId) this.palaeoPreparingIntervalId = null;
+    }
+  }
+
+  /**
+   * One idle slot, or a fixed wait while a foreground request is in flight.
+   * `requestIdleCallback` where the browser has it, a zero-delay timeout
+   * otherwise — Safari and the test environment both take the timeout.
+   */
+  private pausePalaeoBackgroundPreparation(): Promise<void> {
+    if (this.palaeoForegroundRequests > 0) {
+      return new Promise<void>((resolve) =>
+        void setTimeout(resolve, PALAEO_BACKGROUND_FOREGROUND_WAIT_MS));
+    }
+    const requestIdle = (globalThis as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    return new Promise<void>((resolve) => {
+      if (typeof requestIdle === "function") {
+        requestIdle(() => resolve(), { timeout: PALAEO_BACKGROUND_IDLE_TIMEOUT_MS });
+        return;
+      }
+      void setTimeout(resolve, 0);
+    });
+  }
+
+  /**
+   * The next interval to prepare: nearest by age to the one being drawn, ties
+   * broken by the published interval order, and never one the warm window has
+   * stopped covering. Nearest first because a scrub reaches the neighbours
+   * before it reaches the window edge, so the order the walk takes is the order
+   * the crossings will.
+   */
+  private nextPalaeoIntervalToPrepare(catalogs: readonly LoadedPalaeoClassCatalog[]): string | null {
+    const ageMa = this.palaeoRequestedAgeMa;
+    // Null, not an empty set, while no interval has been drawn: an empty window
+    // is "nothing is covered yet", and the walk only ever runs after a publish.
+    const window = this.palaeoWindowIntervalIds.length === 0
+      ? null : new Set(this.palaeoWindowIntervalIds);
+    const distance = (record: { readonly fromAgeMa: number; readonly toAgeMa: number }): number => {
+      if (ageMa === null) return 0;
+      if (ageMa > record.fromAgeMa) return ageMa - record.fromAgeMa;
+      if (ageMa <= record.toAgeMa) return record.toAgeMa - ageMa;
+      return 0;
+    };
+    let best: { readonly intervalId: string; readonly distance: number;
+      readonly intervalIndex: number } | null = null;
+    for (const entry of catalogs) {
+      for (const record of entry.catalog.intervals) {
+        if (window !== null && !window.has(record.intervalId)) continue;
+        if (this.palaeoPreparedIntervalIds.has(record.intervalId)) continue;
+        if (this.surfaces.isResident(intervalUnit(record.intervalId))) continue;
+        const candidate = { intervalId: record.intervalId, distance: distance(record),
+          intervalIndex: record.intervalIndex };
+        if (best === null || candidate.distance < best.distance
+            || (candidate.distance === best.distance && candidate.intervalIndex < best.intervalIndex)) {
+          best = candidate;
+        }
+      }
+    }
+    return best?.intervalId ?? null;
   }
 
   private attachIntervalStore(
@@ -728,7 +1174,26 @@ export class CaoReconstructionRuntime {
       ? Promise.resolve(this.fullPaletteEntries) : this.motionPalette();
   }
 
+  /**
+   * The foreground prepare, counted while it is in flight. The count is what
+   * the background scheduler yields to, and it is taken here rather than in
+   * `requestPalaeoInterval` so every exit — resolved, rejected, superseded —
+   * gives it back.
+   */
   private async preparePalaeo(
+    requestId: number,
+    requestedAgeMa: number,
+    signal: AbortSignal,
+  ): Promise<PreparedCaoPalaeoInterval> {
+    this.palaeoForegroundRequests += 1;
+    try {
+      return await this.preparePalaeoInterval(requestId, requestedAgeMa, signal);
+    } finally {
+      this.palaeoForegroundRequests -= 1;
+    }
+  }
+
+  private async preparePalaeoInterval(
     requestId: number,
     requestedAgeMa: number,
     signal: AbortSignal,
@@ -752,23 +1217,31 @@ export class CaoReconstructionRuntime {
     if (!record) throw new Error("no palaeo-coastline interval covers the requested age");
     this.attachIntervalStore(palaeo, catalogs);
     // The foreground age is what residency is kept around: a prefetched
-    // neighbour must not be evicted for being the one nobody has read yet.
+    // neighbour must not be evicted for being the one nobody has read yet, and
+    // it is the age the background walk orders the rest of the timeline by.
     this.surfaces.noteCurrentAge(requestedAgeMa);
+    this.palaeoRequestedAgeMa = requestedAgeMa;
+    // Before the load, so the interval this crossing is about to draw is inside
+    // the window the load's own eviction pass measures against.
+    this.recentrePalaeoWarmWindow(record.intervalId);
     const loaded = await this.surfaces.load(intervalUnit(record.intervalId), signal);
+    this.palaeoPreparedIntervalIds.add(record.intervalId);
     if (loaded.kind !== "interval") throw new Error("palaeo-coastline request resolved a native unit");
     const interval = loaded.value;
     requireCurrent();
     const paletteEntries = await this.palaeoPaletteEntries();
     requireCurrent();
-    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa);
-    const baseColorRgb = Object.fromEntries(palaeo.classes.map((entry) =>
-      [entry.surfaceClass, entry.baseColorRgb])) as Record<PalaeoSurfaceClass,
-      readonly [number, number, number]>;
+    const frame = evaluateCaoPalaeoIntervalFrame(interval, paletteEntries, requestedAgeMa,
+      palaeoSupportAgeMa(interval, requestedAgeMa));
+    const baseColorRgb = this.palaeoBaseColors(palaeo);
     const prepared = createPreparedCaoPalaeoInterval(interval, frame, {
       requestId, packageId: this.manifest.packageId, packageRevision: this.manifest.revision,
       frameIdentity: packageFrameIdentity(this.manifest.frame), baseColorRgb,
     }, (identity) => { this.chains.interval.leases.delete(identity); });
     this.chains.interval.leases.set(prepared.identity, prepared.release);
+    // The first publication of an enablement starts the walk over the rest of
+    // the timeline; every later one finds it already running or complete.
+    this.startPalaeoBackgroundPreparation();
     return prepared;
   }
 

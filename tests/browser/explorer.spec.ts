@@ -850,6 +850,13 @@ test("crosses exactly one Cao 2017 map interval when scrubbing 94 to 80 Ma @pala
     // The mode never drops into an error state mid-scrub.
     expect(await globe(page).getAttribute("data-cao-palaeo-fallback-reason") ?? "").toBe("");
   }
+  // A crossing becomes a request only once the scrub settles in the new map
+  // (120 ms) or that map is already prepared, so the interval id read straight
+  // after the last sample can still be the outgoing map: the settled id is the
+  // one this test is about, and the count of crossings is unchanged.
+  await expect.poll(() => globe(page).getAttribute("data-cao-palaeo-interval-id"),
+    { timeout: 30_000 }).toBe("81-58");
+  if (observed[observed.length - 1] !== "81-58") observed.push("81-58");
   expect(observed).toEqual(["94-81", "81-58"]);
   expect(errors).toEqual([]);
 });

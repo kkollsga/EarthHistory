@@ -110,16 +110,44 @@ export type SurfaceSource = EhgbSurfaceSource | EhprSurfaceSource;
 /**
  * Bytes the renderer retains for one prepared batch.
  *
- * `staticGeometryByteLength` sums the five arrays of the copy, and the material
+ * `staticGeometryByteLength` sums the arrays of the copy, and the material
  * chart index is counted beside the palette entry index even when one array
  * answers both, because the renderer's ledger is over attributes and not over
  * allocations. For an EHGB payload this is exactly
  * `payload.byteLength - 32 + (narrow ? 0 : vertexCount * 4)`.
+ *
+ * A palaeo copy carries no seam ids — nothing uploads or reads them, and the
+ * interval releases the array — so its ledger drops that `vertexCount * 4`.
  */
-function surfaceGeometryByteLength(vertexCount: number, triangleCount: number, narrow: boolean): number {
+function surfaceGeometryByteLength(
+  vertexCount: number,
+  triangleCount: number,
+  narrow: boolean,
+  retainsSeamIds: boolean,
+): number {
   const entryBytes = vertexCount * (narrow ? 2 : 4);
-  return vertexCount * 12 + vertexCount * 4 + triangleCount * 12 + entryBytes * 2;
+  return vertexCount * 12 + (retainsSeamIds ? vertexCount * 4 : 0)
+    + triangleCount * 12 + entryBytes * 2;
 }
+
+/**
+ * One per-vertex palette-entry index per resident class geometry.
+ *
+ * The worker cannot build it: the offset a class starts at is the sum of the
+ * piece counts of the classes before it, which is only known once every class
+ * of the interval is resident, while each class is triangulated on its own. The
+ * same array answers both the palette entry index and the material chart index,
+ * because for a palaeo batch they are the same number — one piece is one chart
+ * and one palette entry.
+ *
+ * Keyed on the resident geometry and not held in a `prepareSurfaceBatch`
+ * closure, because a closure is per prepared revision: a return visit to an
+ * interval builds a new batch over the same geometry, and rebuilding the array
+ * there would be ~1.2 MiB per crossing and would need `pieceIndices` kept alive
+ * forever. Bounded by residency exactly as the interval store's own caches are.
+ */
+const PALAEO_ENTRY_INDICES = new WeakMap<PreparedPalaeoIntervalGeometry,
+{ readonly chartIndexOffset: number; readonly indices: Uint16Array | Uint32Array }>();
 
 /**
  * Prepares one surface source as the batch the renderer publishes.
@@ -133,7 +161,8 @@ export function prepareSurfaceBatch(
   limits: SurfacePreparationLimits = DEFAULT_SURFACE_PREPARATION_LIMITS,
 ): PreparedSurfaceBatch {
   const narrow = source.chartCount <= limits.narrowEntryIndexMaxCharts;
-  const staticGeometryBytes = surfaceGeometryByteLength(source.vertexCount, source.triangleCount, narrow);
+  const staticGeometryBytes = surfaceGeometryByteLength(
+    source.vertexCount, source.triangleCount, narrow, source.kind === "ehgb");
   const common = {
     batchId: source.batchId,
     staticGeometryIdentity: source.staticGeometryIdentity,
@@ -165,21 +194,32 @@ export function prepareSurfaceBatch(
     });
   }
   const chartIndexOffset = source.chartIndexOffset;
-  // One per-vertex index array per resident class, built on the first copy and
-  // reused by every later one. The worker cannot build it: the offset a class
-  // starts at is the sum of the piece counts of the classes before it, which is
-  // only known once all three classes of the interval are resident, while each
-  // class is triangulated on its own. Rebuilding it per copy was ~1.2 MiB of
-  // the per-crossing allocation, and the same array answers both the palette
-  // entry index and the material chart index because for a palaeo batch they
-  // are the same number: one piece is one chart and one palette entry.
-  let sharedEntryIndices: Uint16Array | Uint32Array | null = null;
   const entryIndices = () => {
-    if (sharedEntryIndices) return sharedEntryIndices;
-    const current = source.requireGeometry().pieceIndices;
-    const indices = narrow ? new Uint16Array(current.length) : new Uint32Array(current.length);
-    for (let vertex = 0; vertex < current.length; vertex += 1) indices[vertex] = chartIndexOffset + current[vertex]!;
-    sharedEntryIndices = indices;
+    const geometry = source.requireGeometry();
+    const cached = PALAEO_ENTRY_INDICES.get(geometry);
+    if (cached) {
+      // The offset is the sum of the piece counts of the classes before this
+      // one inside the same resident interval, so it cannot move while the
+      // geometry lives. If it ever did, the input to rebuild from is gone.
+      if (cached.chartIndexOffset !== chartIndexOffset) {
+        throw new Error("palaeo chart index offset changed for a resident interval class");
+      }
+      return cached.indices;
+    }
+    const pieceIndices = geometry.pieceIndices;
+    if (pieceIndices === null) {
+      throw new Error("palaeo piece indices released before the entry index was built");
+    }
+    const indices = narrow ? new Uint16Array(pieceIndices.length) : new Uint32Array(pieceIndices.length);
+    for (let vertex = 0; vertex < pieceIndices.length; vertex += 1) {
+      indices[vertex] = chartIndexOffset + pieceIndices[vertex]!;
+    }
+    PALAEO_ENTRY_INDICES.set(geometry, { chartIndexOffset, indices });
+    // Both inputs are upload-only and this was their one reader. Releasing them
+    // here, rather than leaving them on the resident geometry, is 2.1 MB an
+    // interval — 44 MiB across the 25 the high profile keeps.
+    geometry.pieceIndices = null;
+    geometry.seamIds = null;
     return indices;
   };
   return Object.freeze({
@@ -197,14 +237,15 @@ export function prepareSurfaceBatch(
     // the renderer uploads it and reads it for picking — and the interval store
     // owns the lifetime of the resident arrays, so a crossing no longer pays
     // ~10 MiB of copies in the one frame that publishes the incoming interval.
-    // `seamIds` comes from the worker with the rest of the geometry.
+    // No seam ids: every palaeo vertex is its own seam, the renderer neither
+    // uploads nor reads them, and `entryIndices()` releases the array.
     createStaticGeometryCopy: (): PreparedCaoStaticGeometryCopy => {
       const current = source.requireGeometry();
       const preparedEntryIndices = entryIndices();
       return {
         referenceDirections: current.referenceDirections,
         indices: current.indices,
-        seamIds: current.seamIds,
+        seamIds: null,
         preparedEntryIndices,
         materialChartIndices: preparedEntryIndices,
       };

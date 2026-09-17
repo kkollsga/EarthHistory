@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
+import { decideIntervalRequest } from "./intervalSettle";
 import { chartPickStateFromMotionFrame } from "./motionFrameV2";
-import { CaoSurfaceResidencyStore, intervalUnit, loadVerifiedPalaeoClassCatalogs,
-  selectPalaeoIntervalForAge, type LoadedPalaeoClassCatalog,
-  type LoadedPalaeoInterval } from "./loaderV2";
+import { CaoSurfaceResidencyStore, DEFAULT_SURFACE_RESIDENCY_POLICY, intervalUnit,
+  loadVerifiedPalaeoClassCatalogs, palaeoWarmWindowIntervalIds, selectPalaeoIntervalForAge,
+  type LoadedPalaeoClassCatalog,
+  type LoadedPalaeoInterval, type SurfaceResidencyPolicy } from "./loaderV2";
 import { packageAssetPath, type StaticAssetFetcher } from "./assetLoader";
 import { validatePalaeoCoastlineAssets, type PalaeoCoastlineAssets,
   type ReconstructionPackageManifestV2 } from "./packageV2";
@@ -46,19 +48,53 @@ const INTERVALS = [
   { intervalId: "360-340", intervalIndex: 2, fromAgeMa: 360, toAgeMa: 340 },
 ] as const;
 
-const LIFECYCLES = [
-  { youngestExclusiveMa: 380, oldestMa: 402 },
-  // Off the published schedule: shipped inside 402-380 with its own dates.
-  { youngestExclusiveMa: 395, oldestMa: 400 },
-  { youngestExclusiveMa: 360, oldestMa: 380 },
-  { youngestExclusiveMa: 340, oldestMa: 360 },
+/**
+ * The shipped schedule's padded bounds: an interval's exclusive young bound is
+ * written 0.01 Ma above its neighbour's inclusive old bound, so the ages in
+ * `(380, 380.01]` are covered by neither and the selector's seam fallback
+ * answers the older map. `INTERVALS` above abuts exactly and has no seam.
+ */
+const SEAM_INTERVALS = [
+  { intervalId: "402-380", intervalIndex: 0, fromAgeMa: 402, toAgeMa: 380.01 },
+  { intervalId: "380-360", intervalIndex: 1, fromAgeMa: 380, toAgeMa: 360.01 },
+] as const;
+
+type IntervalSpec = { readonly intervalId: string; readonly intervalIndex: number;
+  readonly fromAgeMa: number; readonly toAgeMa: number };
+
+/**
+ * One lifecycle per interval, plus the off-schedule piece the first interval
+ * ships. `payloadFor` indexes into this, so the two must be generated from the
+ * same schedule or a longer one would pose its pieces against another's dates.
+ */
+function lifecyclesFor(intervals: readonly IntervalSpec[]) {
+  return [
+    { youngestExclusiveMa: intervals[0]!.toAgeMa, oldestMa: intervals[0]!.fromAgeMa },
+    // Off the published schedule: shipped inside the first interval with its own dates.
+    { youngestExclusiveMa: 395, oldestMa: 400 },
+    ...intervals.slice(1).map((interval) =>
+      ({ youngestExclusiveMa: interval.toAgeMa, oldestMa: interval.fromAgeMa })),
+  ];
+}
+
+const LIFECYCLES = lifecyclesFor(INTERVALS);
+
+/**
+ * A six-interval schedule for the background scheduler, whose order and pauses
+ * are only visible where the walk has more than one interval left to take.
+ */
+const LONG_INTERVALS: readonly IntervalSpec[] = [
+  ...INTERVALS,
+  { intervalId: "340-320", intervalIndex: 3, fromAgeMa: 340, toAgeMa: 320 },
+  { intervalId: "320-300", intervalIndex: 4, fromAgeMa: 320, toAgeMa: 300 },
+  { intervalId: "300-280", intervalIndex: 5, fromAgeMa: 300, toAgeMa: 280 },
 ];
 
 const square = (west: number, south: number, size: number): readonly LonLat[] => [
   [west, south], [west + size, south], [west + size, south + size], [west, south + size],
 ];
 
-function payloadFor(interval: typeof INTERVALS[number]): ArrayBuffer {
+function payloadFor(interval: IntervalSpec): ArrayBuffer {
   const lifecycleIndex = interval.intervalIndex === 0 ? 0 : interval.intervalIndex + 1;
   const pieces = [{ chartIndex: 0, lifecycleIndex, rings: [{ lonLat: square(0, 0, 3) }] }];
   if (interval.intervalIndex === 0) {
@@ -77,10 +113,10 @@ function payloadFor(interval: typeof INTERVALS[number]): ArrayBuffer {
  */
 const TONE_SEGMENT_COUNT = 8;
 
-function toneTablesPayload(): Uint8Array {
+function toneTablesPayload(schedule: readonly IntervalSpec[] = INTERVALS): Uint8Array {
   // Table i marks segment i light, so a decode that read the wrong table is
   // visible in the counts rather than only in the bytes.
-  return encodePalaeoOutlineToneTables(INTERVALS.map((_, table) =>
+  return encodePalaeoOutlineToneTables(schedule.map((_, table) =>
     Array.from({ length: TONE_SEGMENT_COUNT }, (_unused, segment) =>
       (segment === table ? PALAEO_OUTLINE_TONE_SHALLOW
         : PALAEO_OUTLINE_TONE_LAND) as PalaeoOutlineToneClass)), TONE_SEGMENT_COUNT);
@@ -94,9 +130,12 @@ interface PalaeoFixture {
   readonly requestedUrls: string[];
 }
 
-function palaeoFixture(overrides: Partial<PalaeoCoastlineAssets["reservation"]> = {}): PalaeoFixture {
+function palaeoFixture(
+  overrides: Partial<PalaeoCoastlineAssets["reservation"]> = {},
+  schedule: readonly IntervalSpec[] = INTERVALS,
+): PalaeoFixture {
   const assets = new Map<string, ArrayBuffer>();
-  const intervals = INTERVALS.map((interval) => {
+  const intervals = schedule.map((interval) => {
     const payload = payloadFor(interval);
     const url = `palaeo-lm-${interval.intervalId}.ehpr`;
     assets.set(`palaeo/lm/${url}`, payload);
@@ -104,13 +143,14 @@ function palaeoFixture(overrides: Partial<PalaeoCoastlineAssets["reservation"]> 
     return { ...interval, url, bytes: payload.byteLength, sha256: sha256(payload),
       pieces: decodedPieces, rings: decodedPieces, vertices: decodedPieces * 4 };
   });
-  const catalogOptions = { bindingPlateId: BINDING_PLATE_ID, lifecycles: LIFECYCLES, intervals };
+  const catalogOptions = { bindingPlateId: BINDING_PLATE_ID, lifecycles: lifecyclesFor(schedule),
+    intervals };
   const catalog = palaeoClassCatalogFixture(catalogOptions);
   const catalogBytes = new TextEncoder()
     .encode(JSON.stringify(palaeoClassCatalogDocumentFixture(catalogOptions))).buffer as ArrayBuffer;
   assets.set(CATALOG_URL, catalogBytes);
   const toneCatalog = new TextEncoder().encode("{}").buffer as ArrayBuffer;
-  const tones = toneTablesPayload();
+  const tones = toneTablesPayload(schedule);
   const toneBinary = tones.buffer.slice(tones.byteOffset,
     tones.byteOffset + tones.byteLength) as ArrayBuffer;
   assets.set("palaeo/outline-tones.json", toneCatalog);
@@ -158,8 +198,9 @@ async function intervalResidency(
   catalogs: readonly LoadedPalaeoClassCatalog[],
   fetcher: StaticAssetFetcher,
   runner: ReturnType<typeof createPalaeoTriangulationRunner>,
+  policy: SurfaceResidencyPolicy = DEFAULT_SURFACE_RESIDENCY_POLICY,
 ): Promise<CaoSurfaceResidencyStore> {
-  const store = new CaoSurfaceResidencyStore(await manifestWithPalaeo(section), fetcher);
+  const store = new CaoSurfaceResidencyStore(await manifestWithPalaeo(section), fetcher, policy);
   store.attachIntervals(section, catalogs, runner);
   return store;
 }
@@ -229,6 +270,10 @@ describe("palaeo-coastline interval store", () => {
     runner.dispose();
   });
 
+  /** The neighbour cache the prepared policy falls back to over its ceiling. */
+  const NEAREST_POLICY: SurfaceResidencyPolicy =
+    { ...DEFAULT_SURFACE_RESIDENCY_POLICY, residentIntervals: "nearest" };
+
   it("evicts the interval farthest from the current age, not the least recently read", async () => {
     const fixture = palaeoFixture();
     const runner = createPalaeoTriangulationRunner();
@@ -237,7 +282,7 @@ describe("palaeo-coastline interval store", () => {
     const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: twoIntervals } },
-      await loadedCatalogs(fixture), fixture.fetcher, runner);
+      await loadedCatalogs(fixture), fixture.fetcher, runner, NEAREST_POLICY);
     // 395 Ma sits inside 402-380. A least-recently-used order would evict that
     // interval, which is the one being drawn; the distance order evicts the far
     // 360-340 instead.
@@ -260,11 +305,105 @@ describe("palaeo-coastline interval store", () => {
     const store = await intervalResidency(
       { ...fixture.section, reservation: { ...fixture.section.reservation,
         maxResidentSourceBytes: oneInterval } },
-      await loadedCatalogs(fixture), fixture.fetcher, runner);
+      await loadedCatalogs(fixture), fixture.fetcher, runner, NEAREST_POLICY);
     await store.load(intervalUnit("402-380"));
     await store.load(intervalUnit("380-360"));
     expect(store.intervalLedger.residentCount).toBe(1);
     expect(store.intervalLedger.residentSourceBytes).toBeLessThanOrEqual(oneInterval);
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("keeps every prepared interval resident while the ceiling holds", async () => {
+    const fixture = palaeoFixture();
+    const runner = createPalaeoTriangulationRunner();
+    const largest = Math.max(...fixture.catalog.intervals.map((interval) => interval.payload.bytes));
+    // The package reservation would bound the neighbour cache to one interval.
+    // The prepared policy is not bounded by it: what a crossing needs decoded
+    // is every interval, and the ceiling is what says how many that may be.
+    const store = await intervalResidency(
+      { ...fixture.section, reservation: { ...fixture.section.reservation,
+        maxResidentSourceBytes: largest } },
+      await loadedCatalogs(fixture), fixture.fetcher, runner);
+    store.noteCurrentAge(395);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("360-340"));
+    expect(store.intervalLedger.residentCount).toBe(3);
+    expect(store.intervalLedger.maximumPreparedSourceBytes).toBe(64 * 1024 * 1024);
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("trims to the prepared ceiling instead of collapsing to the neighbour cache", async () => {
+    const fixture = palaeoFixture();
+    const runner = createPalaeoTriangulationRunner();
+    const largest = Math.max(...fixture.catalog.intervals.map((interval) => interval.payload.bytes));
+    const store = await intervalResidency(
+      { ...fixture.section, reservation: { ...fixture.section.reservation,
+        maxResidentSourceBytes: largest } },
+      await loadedCatalogs(fixture), fixture.fetcher, runner,
+      { ...DEFAULT_SURFACE_RESIDENCY_POLICY, maxPreparedBytes: largest });
+    store.noteCurrentAge(395);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("360-340"));
+    // Contract change: over the ceiling the store used to hand the whole set to
+    // the neighbour cache. It now drops the farthest interval by age until the
+    // set fits the ceiling again. Here the ceiling is one payload's worth of
+    // bytes against a retained cost many times that, so the set trims to the
+    // one interval being drawn either way; what the ceiling affords is what
+    // survives, not a fixed three.
+    expect(store.intervalLedger.residentCount).toBe(1);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("counts retained typed-array bytes, not the payload file's", async () => {
+    const fixture = palaeoFixture();
+    const runner = createPalaeoTriangulationRunner();
+    const store = await intervalResidency(fixture.section, await loadedCatalogs(fixture),
+      fixture.fetcher, runner);
+    const loaded = await store.load(intervalUnit("402-380"));
+    const interval = loaded.value as LoadedPalaeoInterval;
+    const geometryBytes = interval.classes.reduce((sum, entry) => sum
+      + entry.geometry.referenceDirections.byteLength + entry.geometry.indices.byteLength
+      + (entry.geometry.pieceIndices?.byteLength ?? 0)
+      + (entry.geometry.seamIds?.byteLength ?? 0), 0);
+    // The payload file is a fraction of what the decoded interval holds; the
+    // ledger the prepared ceiling reads must be the larger figure or the
+    // ceiling bounds nothing.
+    expect(geometryBytes).toBeGreaterThan(0);
+    expect(store.intervalLedger.residentRetainedBytes)
+      .toBe(store.intervalLedger.residentSourceBytes + geometryBytes);
+    expect(store.intervalLedger.residentRetainedBytes)
+      .toBeGreaterThan(store.intervalLedger.residentSourceBytes);
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("holds what the prepared ceiling affords, above and below three", async () => {
+    const fixture = palaeoFixture({}, LONG_INTERVALS);
+    const catalogs = await loadedCatalogs(fixture);
+    const runner = createPalaeoTriangulationRunner();
+    const probe = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner);
+    await probe.load(intervalUnit("402-380"));
+    const oneInterval = probe.intervalLedger.residentRetainedBytes;
+    probe.dispose();
+    // Four affordable intervals: more than the neighbour cache's three, which
+    // is what the fallback used to cut the prepared set down to.
+    const store = await intervalResidency(fixture.section, catalogs, fixture.fetcher, runner,
+      { ...DEFAULT_SURFACE_RESIDENCY_POLICY, maxPreparedBytes: oneInterval * 4 });
+    store.noteCurrentAge(395);
+    for (const id of ["402-380", "380-360", "360-340", "340-320", "320-300"]) {
+      await store.load(intervalUnit(id));
+    }
+    expect(store.intervalLedger.residentCount).toBe(4);
+    expect(store.intervalLedger.residentRetainedBytes).toBeLessThanOrEqual(oneInterval * 4);
+    // Farthest from 395 Ma is the one that went.
+    expect(store.resident(intervalUnit("320-300"))).toBeNull();
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
     store.dispose();
     runner.dispose();
   });
@@ -362,6 +501,65 @@ describe("palaeo-coastline interval frame", () => {
     runner.dispose();
   });
 
+  /**
+   * A crossing into an already-prepared interval spent 55-65 ms turning it into
+   * a publishable revision, and none of that work is a function of the age. The
+   * identity strings, the frame scratch and the per-class batch descriptors —
+   * `chartTriangleRanges` above all, one frozen object per piece — belong to
+   * the resident interval. This is the assertion that they are built once:
+   * every one of them comes back as the same instance, which is a stronger
+   * statement than a call count because it also proves nothing was copied.
+   */
+  it("rebuilds only the age's half of a second request for the same interval", async () => {
+    const fixture = palaeoFixture();
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const first = await runtime.requestPalaeoInterval(398).prepared;
+    let macrotask = false;
+    setTimeout(() => { macrotask = true; }, 0);
+    const second = await runtime.requestPalaeoInterval(390).prepared;
+    // Everything the request had to do, it did in microtasks: an interval this
+    // runtime already holds never reaches a timer, a fetch or a worker.
+    expect(macrotask).toBe(false);
+    expect(second.intervalId).toBe(first.intervalId);
+
+    // The descriptors: the same chart ranges and the same static geometry key.
+    // The batch object itself is this revision's, because the released-lease
+    // guard is, and it is the only per-request allocation a batch costs.
+    expect(second.batches[0]!.chartTriangleRanges).toBe(first.batches[0]!.chartTriangleRanges);
+    expect(second.batches[0]!.staticGeometryIdentity)
+      .toBe(first.batches[0]!.staticGeometryIdentity);
+    expect(second.batches[0]).not.toBe(first.batches[0]);
+    expect(second.maximumEdgeDegrees).toBe(first.maximumEdgeDegrees);
+    // The identity table: the evidence and surface-evidence records a chart
+    // carries are the interval's own, not the age's.
+    expect(second.charts[0]!.evidence).toBe(first.charts[0]!.evidence);
+    expect(second.charts[0]!.surfaceEvidence).toBe(first.charts[0]!.surfaceEvidence);
+    expect(second.charts[0]!.chartId).toBe(first.charts[0]!.chartId);
+    // The frame scratch: two evaluations of the same interval write into one
+    // set of chart objects and one palette buffer.
+    const early = runtime.evaluatePalaeoMotionNow(396)!;
+    const late = runtime.evaluatePalaeoMotionNow(392)!;
+    expect(late.charts).toBe(early.charts);
+    expect(late.paletteValues).toBe(early.paletteValues);
+
+    // The age's half did move, and it is the half a publication reports.
+    expect(second.requestedAgeMa).toBe(390);
+    expect(second.activeChartCount).toBe(1);
+    expect(first.activeChartCount).toBe(2);
+    expect(second.identity).not.toBe(first.identity);
+
+    // Releasing one revision's lease must not take the geometry the resident
+    // interval still owns with it: the other revision of the same interval can
+    // still copy it, and so can the member already on the GPU.
+    first.release();
+    expect(() => second.batches[0]!.createStaticGeometryCopy()).not.toThrow();
+    expect(() => first.batches[0]!.createStaticGeometryCopy()).toThrow(/released/);
+    second.release();
+    runtime.dispose();
+  });
+
   // Folded in from the deleted `palaeoPublication.test.ts`, which proved these
   // on the adapter that used to wrap an interval as a revision. The prepared
   // interval now states them itself, so they are asserted on the real one.
@@ -412,11 +610,12 @@ describe("palaeo-coastline interval frame", () => {
     const copy = batch.createStaticGeometryCopy();
     expect(copy.referenceDirections).toHaveLength(batch.vertexCount * 3);
     expect(copy.indices).toHaveLength(batch.triangleCount * 3);
-    expect(copy.seamIds).toHaveLength(batch.vertexCount);
+    // Every palaeo vertex is its own seam and the renderer uploads none of
+    // them, so the copy carries no seam-id array and the ledger counts none.
+    expect(copy.seamIds).toBeNull();
     expect(copy.preparedEntryIndices).toHaveLength(batch.vertexCount);
     expect(copy.materialChartIndices).toHaveLength(batch.vertexCount);
-    expect(new Set(copy.seamIds).size).toBe(batch.vertexCount);
-    const bytes = [copy.referenceDirections, copy.indices, copy.seamIds, copy.preparedEntryIndices,
+    const bytes = [copy.referenceDirections, copy.indices, copy.preparedEntryIndices,
       copy.materialChartIndices].reduce((sum, array) => sum + array.byteLength, 0);
     expect(bytes).toBe(batch.staticGeometryBytes);
     for (let vertex = 0; vertex < batch.vertexCount; vertex += 1) {
@@ -435,21 +634,25 @@ describe("palaeo-coastline interval frame", () => {
     // are the same number per vertex.
     expect(copy.materialChartIndices).toBe(copy.preparedEntryIndices);
     // A second copy of the same batch allocates nothing at all: the reference
-    // directions, triangle indices and seam ids are the resident interval's own
-    // arrays, transferred out of the worker, and the entry indices are built
-    // once per resident class.
+    // directions and triangle indices are the resident interval's own arrays,
+    // transferred out of the worker, and the entry indices are built once per
+    // resident class geometry and cached against it.
     const again = batch.createStaticGeometryCopy();
     expect(again.referenceDirections).toBe(copy.referenceDirections);
     expect(again.indices).toBe(copy.indices);
-    expect(again.seamIds).toBe(copy.seamIds);
     expect(again.preparedEntryIndices).toBe(copy.preparedEntryIndices);
     // The whole main-thread allocation a crossing pays for this batch is that
-    // one index array — under a sixth of the bytes the copy used to duplicate.
-    expect(copy.preparedEntryIndices.byteLength * 6).toBeLessThanOrEqual(batch.staticGeometryBytes);
+    // one index array — under a fifth of the bytes the copy used to duplicate.
+    expect(copy.preparedEntryIndices.byteLength * 5).toBeLessThanOrEqual(batch.staticGeometryBytes);
     const covered = prepared.batches.flatMap((entry) => entry.chartTriangleRanges)
       .reduce((sum, range) => sum + range.triangleCount, 0);
     expect(covered).toBe(batch.triangleCount);
     expect(prepared.motionPalette.createValuesCopy()).toHaveLength(prepared.charts.length * 11);
+    // The lease contract, unchanged by the descriptor being shared: releasing
+    // this revision stops *this* revision reading the geometry. It does not
+    // destroy the arrays — the resident interval still owns them, and another
+    // revision of the same interval reads them through its own guard — which is
+    // what the test above asserts from the other side.
     prepared.release();
     expect(() => batch.createStaticGeometryCopy()).toThrow(/released/);
     runtime.dispose();
@@ -796,6 +999,52 @@ describe("palaeo-coastline scrub retarget", () => {
     runtime.dispose();
   });
 
+  it("poses a seam age against the published map instead of tearing the scene down", async () => {
+    const fixture = palaeoFixture({}, SEAM_INTERVALS);
+    const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
+      fixture.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(390).prepared;
+    expect(published.intervalId).toBe("402-380");
+    // The crossing first: the age is inside 380-360 while 402-380 is still the
+    // geometry on screen, and the support age is held inside 402-380.
+    const crossing = runtime.evaluatePalaeoMotionNow(379.5, "402-380")!;
+    expect(crossing.intervalId).toBe("402-380");
+    expect(crossing.supportAgeMa).toBeCloseTo(380.011, 6);
+    // The shipped defect. An age in the seam belongs to no interval, so the
+    // selector answers the older one — which is the interval already published,
+    // so nothing here looks like a crossing at all and the support age used to
+    // pass through unheld, a hair below 402-380's own young edge. Measured at
+    // the 58 Ma end of a 117 -> 58 scrub, where the slider round-trip lands the
+    // age at 58.00000000000009: the throw escaped the render-loop effect and
+    // React unmounted the globe.
+    const seamAgeMa = 380 + 1e-13;
+    expect(selectPalaeoIntervalForAge(
+      await loadVerifiedPalaeoClassCatalogs(fixture.section, fixture.fetcher),
+      seamAgeMa)?.intervalId).toBe("402-380");
+    const seam = runtime.evaluatePalaeoMotionNow(seamAgeMa, "402-380")!;
+    expect(seam.intervalId).toBe("402-380");
+    expect(seam.requestedAgeMa).toBe(seamAgeMa);
+    expect(seam.supportAgeMa).toBeCloseTo(380.011, 6);
+    expect(seam.charts.map((chart) => chart.support.kind)).toContain("supported");
+    // The same age through the two paths that do not know what is published.
+    expect(runtime.evaluatePalaeoMotionNow(seamAgeMa)!.intervalId).toBe("402-380");
+    expect((await runtime.evaluatePalaeoMotion(seamAgeMa))!.intervalId).toBe("402-380");
+    // No frame was skipped: the clamp answered every one of them.
+    expect(runtime.ledger.palaeo.skippedFrames).toBe(0);
+    // And the swap the scrub was heading for still lands. One lease at a time,
+    // so the published interval is released before the next is asked for.
+    published.release();
+    const swapped = await runtime.requestPalaeoInterval(seamAgeMa).prepared;
+    expect(swapped.intervalId).toBe("402-380");
+    swapped.release();
+    const younger = await runtime.requestPalaeoInterval(370).prepared;
+    expect(younger.intervalId).toBe("380-360");
+    expect(runtime.evaluatePalaeoMotionNow(370, "380-360")!.intervalId).toBe("380-360");
+    younger.release();
+    runtime.dispose();
+  });
+
   it("finds its neighbour resident for a crossing in either direction", async () => {
     const fixture = palaeoFixture();
     const runtime = new CaoReconstructionRuntime(await manifestWithPalaeo(fixture.section),
@@ -943,5 +1192,401 @@ describe("palaeo-coastline evidence summary", () => {
       editedChartIds: [], loading: false });
     expect(palaeoCoastlineEvidenceSummary(null, { loading: true, unavailableReason: null }).loading)
       .toBe(true);
+  });
+});
+
+/**
+ * The background walk that makes a crossing free: after the first interval of
+ * an enablement is published, every remaining interval is fetched, decoded and
+ * triangulated at idle priority so the scrub never reaches a cold one.
+ */
+describe("palaeo-coastline background preparation", () => {
+  const intervalIdFromPath = (path: string): string | null =>
+    /palaeo-lm-(.+)\.ehpr$/.exec(path)?.[1] ?? null;
+
+  /**
+   * The six-interval fixture with every payload fetch observable: the order
+   * they start in, how many are ever in flight at once, and a gate per interval
+   * so a fetch can be held open while the scheduler is watched.
+   */
+  function schedulerFixture(held: readonly string[] = []) {
+    const fixture = palaeoFixture({}, LONG_INTERVALS);
+    const holding = new Set(held);
+    const gates = new Map<string, () => void>();
+    const started: string[] = [];
+    let inFlight = 0;
+    let peakInFlight = 0;
+    const fetcher: StaticAssetFetcher = async (url, signal, options) => {
+      const intervalId = intervalIdFromPath(packageAssetPath(url));
+      if (intervalId === null) return fixture.fetcher(url, signal, options);
+      started.push(intervalId);
+      inFlight += 1;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      try {
+        if (holding.has(intervalId)) {
+          await new Promise<void>((release) => gates.set(intervalId, release));
+        }
+        return await fixture.fetcher(url, signal, options);
+      } finally {
+        inFlight -= 1;
+      }
+    };
+    const release = (intervalId: string) => {
+      holding.delete(intervalId);
+      gates.get(intervalId)?.();
+      gates.delete(intervalId);
+    };
+    return { fixture, fetcher, started, release, peakInFlight: () => peakInFlight };
+  }
+
+  const delay = (ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+
+  async function waitFor(ready: () => boolean, timeoutMs = 5_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (!ready()) {
+      if (Date.now() > deadline) throw new Error("background preparation did not reach the state");
+      await delay(5);
+    }
+  }
+
+  /**
+   * The crossing policy's own predicate, asked of the runtime that answers it.
+   *
+   * A crossing into an interval the walk has already prepared must cost a swap,
+   * not a settle: `decideIntervalRequest` reads `isPrepared`, and the pump
+   * implements it through the runtime. If the runtime answered for the
+   * published interval instead of the store, every crossing would pay the
+   * 120 ms settle even though the map was in hand.
+   */
+  it("answers prepared for a walked neighbour, so a crossing into it is a swap", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(330).prepared;
+    expect(published.intervalId).toBe("340-320");
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The neighbour the walk prepared, asked at its own midpoint exactly as the
+    // pump's `intervalIsPrepared` asks it.
+    expect(runtime.palaeoMotionResidentAt(310)).toBe(true);
+    // And the decision the pump would take on that answer: a request at once,
+    // with no settle, while the scrub is still moving fast.
+    const decision = decideIntervalRequest({
+      nowMs: 1_000, ageMa: 310, lastAgeMa: 330, lastAgeAtMs: 990,
+      currentIntervalIndex: 4, preparedIntervalIndex: 3,
+      isPrepared: (index) => index === 4,
+    });
+    expect(decision).toEqual({ kind: "request", index: 4, reason: "resident" });
+    published.release();
+    runtime.dispose();
+  });
+
+  /**
+   * The same predicate, asked at a midpoint far from the camera.
+   *
+   * `palaeoMotionResidentAt` shares its resident lookup with the live pose, and
+   * that lookup used to note the age it was asked about — which is the basis
+   * the store measures eviction distance from. The pump asks the question at an
+   * arbitrary interval's midpoint, so a probe far from the camera rewrote the
+   * basis, and the next eviction judged the interval on screen the farthest
+   * resident one and dropped what was being drawn. A residency question is a
+   * read now; only the live-age paths note a basis.
+   */
+  it("leaves the eviction basis on the live age when a far midpoint is probed", async () => {
+    const noted: number[] = [];
+    const note = CaoSurfaceResidencyStore.prototype.noteCurrentAge;
+    const recorder = vi.spyOn(CaoSurfaceResidencyStore.prototype, "noteCurrentAge")
+      .mockImplementation(function (this: CaoSurfaceResidencyStore, requestedAgeMa: number) {
+        noted.push(requestedAgeMa);
+        note.call(this, requestedAgeMa);
+      });
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(395).prepared;
+    expect(published.intervalId).toBe("402-380");
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The live pose the camera is on: this path does note the age it draws.
+    expect(runtime.evaluatePalaeoMotionNow(395, "402-380")).not.toBeNull();
+    const beforeProbe = noted.length;
+    // The pump's `intervalIsPrepared` question about the far edge of the warm
+    // window, asked at that interval's own midpoint — 65 Ma from the pose.
+    expect(runtime.palaeoMotionResidentAt(330)).toBe(true);
+    expect(noted.slice(beforeProbe)).toEqual([]);
+    const basis = noted[noted.length - 1]!;
+    expect(basis).toBe(395);
+    published.release();
+    runtime.dispose();
+    recorder.mockRestore();
+    // And the consequence, against a real store left on the basis the engine
+    // noted: the interval being drawn survives the eviction the next load
+    // triggers, because the distances are still measured from the live age.
+    const runner = createPalaeoTriangulationRunner();
+    const twoIntervals = gated.fixture.catalog.intervals[0]!.payload.bytes
+      + gated.fixture.catalog.intervals[1]!.payload.bytes;
+    const store = await intervalResidency(
+      { ...gated.fixture.section, reservation: { ...gated.fixture.section.reservation,
+        maxResidentSourceBytes: twoIntervals } },
+      await loadedCatalogs(gated.fixture), gated.fixture.fetcher, runner,
+      { ...DEFAULT_SURFACE_RESIDENCY_POLICY, residentIntervals: "nearest" });
+    store.noteCurrentAge(basis);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("340-320"));
+    expect(store.intervalLedger.residentCount).toBeLessThanOrEqual(2);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("340-320"))).toBeNull();
+    store.dispose();
+    runner.dispose();
+  });
+
+  it("walks every remaining interval nearest by age, one job at a time", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(330).prepared;
+    expect(published.intervalId).toBe("340-320");
+    published.release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // Nearest first from 330 Ma, ties broken by the published order: the walk
+    // takes the intervals in the order a scrub would cross them.
+    expect(gated.started).toEqual(["340-320", "360-340", "320-300", "380-360", "300-280", "402-380"]);
+    expect(gated.peakInFlight()).toBe(1);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(6);
+    expect(runtime.ledger.palaeo.preparingIntervalId).toBeNull();
+    runtime.dispose();
+  });
+
+  /**
+   * The idle pre-upload's half of the contract. The walk prepares the timeline
+   * long before a scrub reaches most of it, but a prepared interval is only
+   * decoded triangles until something uploads them: the scene is told each one
+   * so it can take that upload at idle, and it needs a revision it can publish
+   * without superseding the crossing that may be in flight.
+   */
+  it("tells a listener each interval the walk prepares and prepares a resident one off the chain",
+    async () => {
+      const gated = schedulerFixture();
+      const runtime = new CaoReconstructionRuntime(
+        await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+      runtime.setPalaeoCoastlinesEnabled(true);
+      const notices: string[] = [];
+      const stop = runtime.onPalaeoIntervalPrepared((notice) => {
+        expect(notice.fromAgeMa).toBeGreaterThan(notice.toAgeMa);
+        notices.push(notice.intervalId);
+      });
+      const published = await runtime.requestPalaeoInterval(330).prepared;
+      published.release();
+      await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+      // The interval the foreground request loaded is not one the walk prepared,
+      // so the notices are exactly the five the walk took, in its own order.
+      expect(notices).toEqual(["360-340", "320-300", "380-360", "300-280", "402-380"]);
+
+      // Two of them, uploaded hidden by the scene, off the request chain: no
+      // lease left behind, no supersession, and the pose is the interval's own.
+      const request = runtime.requestPalaeoInterval(310);
+      const first = runtime.prepareResidentPalaeoIntervalNow("360-340")!;
+      expect(first.intervalId).toBe("360-340");
+      expect(first.requestedAgeMa).toBe(350);
+      expect(first.batches.length).toBeGreaterThan(0);
+      first.release();
+      const second = runtime.prepareResidentPalaeoIntervalNow("402-380")!;
+      expect(second.identity).not.toBe(first.identity);
+      second.release();
+      // The foreground crossing that was in flight the whole time still lands.
+      const crossing = await request.prepared;
+      expect(crossing.intervalId).toBe("320-300");
+      crossing.release();
+      expect(runtime.ledger.palaeo.preparedLeaseCount).toBe(0);
+
+      // An interval that is not resident, and a runtime with the mode off,
+      // answer null rather than starting a load of their own.
+      runtime.setPalaeoCoastlinesEnabled(false);
+      expect(runtime.prepareResidentPalaeoIntervalNow("360-340")).toBeNull();
+      stop();
+      runtime.dispose();
+    });
+
+  it("starts no job while a foreground request is pending and resumes after it", async () => {
+    const gated = schedulerFixture(["300-280"]);
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(330).prepared;
+    published.release();
+    // Issued before the scheduler's first idle slot, which was scheduled while
+    // the publication above was still on the stack.
+    const pending = runtime.requestPalaeoInterval(290);
+    await delay(150);
+    // Only the two foreground intervals were ever fetched: the walk has five
+    // intervals left and took none of them while the request was in flight.
+    expect(gated.started).toEqual(["340-320", "300-280"]);
+    expect(runtime.ledger.palaeo.preparingIntervalId).toBeNull();
+    expect(runtime.ledger.palaeo.backgroundPreparationComplete).toBe(false);
+    gated.release("300-280");
+    const prepared = await pending.prepared;
+    expect(prepared.intervalId).toBe("300-280");
+    prepared.release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // Four, not six: the crossing to 290 Ma re-centred the warm window on
+    // `300-280`, the youngest interval of the fixture, so the window is the
+    // three intervals above it and itself. `402-380` and `380-360` are outside
+    // it and the walk stops at its edge.
+    expect(new Set(gated.started).size).toBe(4);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["360-340", "340-320", "320-300", "300-280"]);
+    runtime.dispose();
+  });
+
+  it("answers a foreground request for a prepared interval without fetching it again", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(330).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    const fetchedBefore = gated.started.length;
+    // The far end of the timeline, prepared last and never drawn: the crossing
+    // it belongs to must cost no fetch at all.
+    const prepared = await runtime.requestPalaeoInterval(390).prepared;
+    expect(prepared.intervalId).toBe("402-380");
+    expect(gated.started.length).toBe(fetchedBefore);
+    prepared.release();
+    runtime.dispose();
+  });
+
+  it("cancels the walk and frees every prepared interval when the layer goes off", async () => {
+    const gated = schedulerFixture(["360-340"]);
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(330).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.preparingIntervalId === "360-340");
+    runtime.setPalaeoCoastlinesEnabled(false);
+    const ledger = runtime.ledger.palaeo;
+    expect(ledger.preparingIntervalId).toBeNull();
+    expect(ledger.backgroundPreparationComplete).toBe(false);
+    expect(ledger.preparedIntervals).toBe(0);
+    expect(ledger.totalSourceBytes).toBe(0);
+    const startedWhenOff = gated.started.length;
+    gated.release("360-340");
+    await delay(150);
+    // Nothing the walk had queued survives the toggle.
+    expect(gated.started.length).toBe(startedWhenOff);
+    expect(runtime.ledger.palaeo.totalSourceBytes).toBe(0);
+    runtime.dispose();
+  });
+
+  /**
+   * The window's membership rule, on the shape the shipped schedule has: 24
+   * contiguous Cao 2017 intervals and one detached LGM state. Stated on the
+   * pure function because the runtime tests below can only reach a window
+   * through a crossing, and an end of the schedule is exactly where a crossing
+   * cannot centre one.
+   */
+  it("centres the warm window by schedule index, clamps at both ends and isolates the LGM state",
+    () => {
+      const schedule = [
+        ...LONG_INTERVALS.map((interval) => ({ intervalId: interval.intervalId,
+          intervalIndex: interval.intervalIndex })),
+        { intervalId: "lgm", intervalIndex: 6 },
+      ];
+      const catalogs = [{ catalog: { intervals: schedule, detachedIntervalIds: ["lgm"] } }] as
+        unknown as readonly LoadedPalaeoClassCatalog[];
+      // The middle: three either side, seven in all.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "340-320", 3))
+        .toEqual(["402-380", "380-360", "360-340", "340-320", "320-300", "300-280"]);
+      // The oldest end: clamped, not slid inwards. Four intervals is the honest
+      // answer where the schedule stops.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "402-380", 3))
+        .toEqual(["402-380", "380-360", "360-340", "340-320"]);
+      // The youngest end of the contiguous schedule; the detached state is not
+      // its neighbour, so it is not swept in.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "300-280", 3))
+        .toEqual(["360-340", "340-320", "320-300", "300-280"]);
+      // The detached state is its own window of one, whatever the radius.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "lgm", 3)).toEqual(["lgm"]);
+      // The low profile's radius of one.
+      expect(palaeoWarmWindowIntervalIds(catalogs, "340-320", 1))
+        .toEqual(["360-340", "340-320", "320-300"]);
+      expect(palaeoWarmWindowIntervalIds(catalogs, null, 3)).toEqual([]);
+      expect(palaeoWarmWindowIntervalIds([], "340-320", 3)).toEqual([]);
+    });
+
+  it("re-centres at idle: evicts the far side and prepares the near side", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(390).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The oldest end: the window is `402-380` and the three below it.
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["402-380", "380-360", "360-340", "340-320"]);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    const startedBefore = new Set(gated.started);
+    expect(startedBefore.has("320-300")).toBe(false);
+
+    // A crossing to the youngest end. The window re-centres on the crossing
+    // itself — which is why the interval it draws is inside it — but the
+    // preparation of what it newly covers is the walk's, at idle.
+    (await runtime.requestPalaeoInterval(290).prepared).release();
+    expect(runtime.ledger.palaeo.windowIntervals)
+      .toEqual(["360-340", "340-320", "320-300", "300-280"]);
+    // The far side is gone the moment the window moved: the two oldest
+    // intervals were prepared and are not resident any more.
+    expect(runtime.ledger.palaeo.preparedIntervals).toBeLessThanOrEqual(3);
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(4);
+    // The near side was prepared by the walk, not by the crossing.
+    expect(gated.started).toContain("320-300");
+    runtime.dispose();
+  });
+
+  /**
+   * The window is sized so a scrub cannot outrun it. Three boundaries is as far
+   * as a fast sweep reaches before the walk has re-centred, and every interval
+   * it crosses into is one the window already prepared — so no crossing fetches
+   * and, in the scene, none uploads: each takes the retarget path onto a member
+   * that is already warm.
+   */
+  it("crosses three boundaries inside the initial window without a single fetch", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(390).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    const fetchesBefore = gated.started.length;
+    const crossed: string[] = [];
+    for (const ageMa of [370, 350, 330]) {
+      const prepared = await runtime.requestPalaeoInterval(ageMa).prepared;
+      crossed.push(prepared.intervalId);
+      prepared.release();
+    }
+    expect(crossed).toEqual(["380-360", "360-340", "340-320"]);
+    // Measured before the walk's next idle slot: the sweep itself started no
+    // fetch, so every crossing was a swap of geometry already in hand.
+    expect(gated.started.length).toBe(fetchesBefore);
+    runtime.dispose();
+  });
+
+  it("restarts the walk on the next enablement", async () => {
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    (await runtime.requestPalaeoInterval(330).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    runtime.setPalaeoCoastlinesEnabled(false);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    expect(runtime.ledger.palaeo.backgroundPreparationComplete).toBe(false);
+    (await runtime.requestPalaeoInterval(330).prepared).release();
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    expect(runtime.ledger.palaeo.preparedIntervals).toBe(6);
+    runtime.dispose();
   });
 });

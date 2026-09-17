@@ -572,6 +572,47 @@ export async function loadVerifiedPalaeoClassCatalogs(
   return Object.freeze(loaded);
 }
 
+/**
+ * The ids of the warm window centred on the drawn interval.
+ *
+ * The window is the policy that bounds the heap: every prepared interval keeps
+ * the decoded arrays its warmed GPU member aliases, so "prepare all 25" is a
+ * fixed ~8.4 MB x 25 of retained typed arrays whatever the byte ceilings say.
+ * A window of `2 * radius + 1` intervals centred on the drawn one holds what a
+ * scrub can reach before the walk can refill it, and nothing else.
+ *
+ * Indexed by the published schedule, not by age: the schedule is contiguous and
+ * the crossings follow it, so `drawn ± radius` is exactly "the intervals the
+ * next few crossings will enter". Clamped at the ends rather than slid back
+ * inwards — an end window is smaller, which is the honest answer, not a window
+ * that pretends the timeline continues.
+ *
+ * A detached interval — the LGM lowstand is the only one — is its own window of
+ * one. It does not abut its neighbour, so no crossing walks into it and none
+ * walks out of it along the schedule; warming its neighbours by index would
+ * warm intervals 19 Ma away from the state on screen.
+ */
+export function palaeoWarmWindowIntervalIds(
+  catalogs: readonly LoadedPalaeoClassCatalog[],
+  drawnIntervalId: string | null,
+  radius: number,
+): readonly string[] {
+  const catalog = catalogs[0]?.catalog;
+  if (!catalog || drawnIntervalId === null) return Object.freeze([]);
+  const detached = new Set(catalog.detachedIntervalIds);
+  if (detached.has(drawnIntervalId)) return Object.freeze([drawnIntervalId]);
+  const schedule = catalog.intervals
+    .filter((interval) => !detached.has(interval.intervalId))
+    .slice()
+    .sort((left, right) => left.intervalIndex - right.intervalIndex);
+  const centre = schedule.findIndex((interval) => interval.intervalId === drawnIntervalId);
+  if (centre < 0) return Object.freeze([]);
+  const span = Math.max(0, Math.floor(radius));
+  return Object.freeze(schedule
+    .slice(Math.max(0, centre - span), centre + span + 1)
+    .map((interval) => interval.intervalId));
+}
+
 /** The published interval covering an age, using the same `(TOAGE, FROMAGE]` rule as a piece. */
 export function selectPalaeoIntervalForAge(
   catalogs: readonly LoadedPalaeoClassCatalog[],
@@ -696,6 +737,37 @@ export const PINNED_SURFACE_UNIT_IDS: readonly string[] = Object.freeze([
  */
 export interface SurfaceResidencyPolicy {
   readonly pinnedUnitIds: readonly string[];
+  /**
+   * How many map intervals may stay decoded.
+   *
+   * `"nearest"` is the neighbour cache the mode shipped with: the drawn
+   * interval and both of its neighbours, bounded by
+   * `maximumResidentIntervalCount` and `maximumResidentIntervalBytes`. Every
+   * other crossing then pays a fetch, a decode and a triangulation on the frame
+   * that needs the geometry, which is what a map crossing cost.
+   *
+   * `"all"` keeps every interval inside the warm window the engine's background
+   * scheduler prepares, so a crossing is a swap of geometry already in hand.
+   * The window is what bounds it — intervals outside it are evicted when it
+   * re-centres — and `maxPreparedBytes` is the guard behind it: over that
+   * ceiling the farthest interval by age is dropped until the set fits again.
+   * It does *not* fall back to `"nearest"` — trimming to three residents is a
+   * worse answer than trimming to what the window and the ceiling afford, and
+   * it is the answer the earlier fallback gave.
+   */
+  readonly residentIntervals: "nearest" | "all";
+  /**
+   * Intervals the warm window holds, drawn one included; see
+   * `palaeoWarmWindowIntervalIds`. An odd count, because the window is centred:
+   * the radius is `(count - 1) / 2`.
+   */
+  readonly warmWindowIntervals: number;
+  /**
+   * Retained typed-array bytes `"all"` may hold — the decoded geometry, not the
+   * payload file, because the geometry is ~27x the payload and is what occupies
+   * the heap.
+   */
+  readonly maxPreparedBytes: number;
   readonly maximumResidentIntervalBytes: number;
   readonly maximumResidentIntervalCount: number;
   readonly releaseReplacedNativeGpuBuffers: boolean;
@@ -703,7 +775,33 @@ export interface SurfaceResidencyPolicy {
 
 export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.freeze({
   pinnedUnitIds: PINNED_SURFACE_UNIT_IDS,
-  // Two intervals of every compiled class sit far inside six MiB; the bound
+  // Both quality profiles prepare whatever the window covers. They differ in
+  // how wide the window is and in what reaches the GPU, not in what a prepared
+  // interval costs, and a crossing that has to triangulate is the one cost
+  // neither profile can pay inside a frame.
+  residentIntervals: "all" as const,
+  // Seven: the drawn interval and three neighbours either side. Measured
+  // 2026-09-17, a prepared interval retains ~8.4 MB of decoded typed arrays
+  // that its warmed GPU member aliases, so preparing all 25 cost ~163 MB of
+  // heap growth against a 60 MB stop rule. The window is the policy that bounds
+  // that: seven intervals is ~59 MB, and three crossings either way — further
+  // than a scrub reaches before the idle walk has refilled the window — still
+  // land on geometry already in hand. The renderer's low profile takes three
+  // (`residentIntervalBudget`), which is the neighbour cache plus the
+  // background walk that fills it.
+  warmWindowIntervals: 7,
+  // The 25 compiled intervals of the shipped classes are 7.69 MiB of ring
+  // payload; what they cost resident is the decoded geometry, measured at
+  // ~8.4 MB an interval. Sixty-four MiB is the guard behind the window, not the
+  // thing that sizes it — a seven-interval window is ~59 MB, so the ceiling
+  // fires only where an interval decodes larger than the measured mean. It is
+  // measured in the same currency by `residentRetainedBytes`, so it actually
+  // fires instead of comparing 7.69 MiB of payload against 64 MiB.
+  // (The earlier "about 36 MB of payload" here was never the shipped figure;
+  // the ledger it justified is checked in `loaderV2.test.ts`.)
+  maxPreparedBytes: 64 * 1024 * 1024,
+  // The two bounds below govern the `"nearest"` fallback. Two intervals of
+  // every compiled class sit far inside six MiB; the bound
   // exists so a scrub that walks the timeline cannot accumulate decoded
   // intervals without an owner. Three residents are the current interval and
   // both of its neighbours: two was one neighbour, and a scrub that reversed
@@ -762,9 +860,35 @@ const ABSENT_CHECKPOINT_LEDGER = Object.freeze({
 });
 
 const ABSENT_INTERVAL_LEDGER = Object.freeze({
-  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, pendingReservedSourceBytes: 0,
+  residentCount: 0, pendingCount: 0, residentSourceBytes: 0, residentRetainedBytes: 0,
+  pendingReservedSourceBytes: 0,
   maximumResidentCount: 2, maximumPendingCount: 2, maximumResidentSourceBytes: 0,
+  maximumPreparedSourceBytes: 0,
 });
+
+/**
+ * Typed-array bytes one decoded interval really holds.
+ *
+ * The payload file is what a catalog declares and what the neighbour cache's
+ * reservation is sized in; it is not what an interval costs once decoded. The
+ * triangulation hands back a vertex direction array, an index array and — until
+ * `prepareSurfaceBatch` has read them — the two upload-only arrays, and those
+ * are handed through to the renderer's batch without a copy. Measured over the
+ * shipped set that is ~8.4 MB an interval against ~0.31 MB of payload, so a
+ * ceiling denominated in payload bytes is ~27x too small to bound anything.
+ */
+function palaeoIntervalRetainedBytes(interval: LoadedPalaeoInterval): number {
+  let bytes = 0;
+  for (const entry of interval.classes) {
+    const geometry = entry.geometry;
+    bytes += entry.sourceBytes
+      + geometry.referenceDirections.byteLength
+      + geometry.indices.byteLength
+      + (geometry.pieceIndices?.byteLength ?? 0)
+      + (geometry.seamIds?.byteLength ?? 0);
+  }
+  return bytes;
+}
 
 /**
  * One residency owner over both surface units.
@@ -794,6 +918,8 @@ export class CaoSurfaceResidencyStore {
   private catalogs: readonly LoadedPalaeoClassCatalog[] = [];
   private runner: PalaeoTriangulationRunner | null = null;
   private maximumResidentIntervalBytes = 0;
+  /** Retained typed-array bytes the `"all"` policy may hold; 0 while detached. */
+  private preparedCeilingBytes = 0;
   private readonly residentIntervals =
     new Map<string, { value: LoadedPalaeoInterval; used: number }>();
   private readonly pendingIntervals = new Map<string, PendingPalaeoInterval>();
@@ -802,6 +928,13 @@ export class CaoSurfaceResidencyStore {
   private clock = 0;
   /** Age the runtime last asked for; the distance eviction measures against. */
   private currentAgeMa: number | null = null;
+  /**
+   * The warm window, or empty while no interval has been drawn. Empty means
+   * "unbounded by window": only the byte guard applies, which is what the store
+   * did before the window existed and what a detached-from-the-engine test
+   * still exercises.
+   */
+  private windowIntervalIds: ReadonlySet<string> = new Set();
 
   constructor(
     private readonly manifest: ReconstructionPackageManifestV2,
@@ -832,6 +965,11 @@ export class CaoSurfaceResidencyStore {
     this.runner = runner;
     this.maximumResidentIntervalBytes = Math.min(this.policy.maximumResidentIntervalBytes,
       palaeo.reservation.maxResidentSourceBytes);
+    // The package's `maxResidentSourceBytes` is the neighbour cache's
+    // reservation — four worst-case payloads — so it cannot bound a policy that
+    // holds every interval. The prepared ceiling is the policy's alone.
+    this.preparedCeilingBytes = this.policy.residentIntervals === "all"
+      ? this.policy.maxPreparedBytes : 0;
   }
 
   /** Whether a unit's bytes are pinned for the life of the package. */
@@ -850,7 +988,9 @@ export class CaoSurfaceResidencyStore {
     this.catalogs = [];
     this.runner = null;
     this.maximumResidentIntervalBytes = 0;
+    this.preparedCeilingBytes = 0;
     this.residentIntervals.clear();
+    this.windowIntervalIds = new Set();
     for (const record of this.pendingIntervals.values()) record.controller.abort();
     for (const waiter of [...this.waiters]) {
       this.waiters.delete(waiter);
@@ -874,12 +1014,15 @@ export class CaoSurfaceResidencyStore {
     if (this.palaeo === null) return ABSENT_INTERVAL_LEDGER;
     return Object.freeze({
       residentCount: this.residentIntervals.size, pendingCount: this.pendingIntervals.size,
-      residentSourceBytes: [...this.residentIntervals.keys()]
-        .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
+      residentSourceBytes: this.residentSourceBytes(),
+      // What the `"all"` ceiling is actually measured against; `residentSourceBytes`
+      // stays the payload figure the package's reservation is written in.
+      residentRetainedBytes: this.residentRetainedBytes(),
       pendingReservedSourceBytes: [...this.pendingIntervals.keys()]
         .reduce((sum, id) => sum + this.intervalAssetBytes(id), 0),
       maximumResidentCount: this.policy.maximumResidentIntervalCount, maximumPendingCount: 2,
-      maximumResidentSourceBytes: this.maximumResidentIntervalBytes });
+      maximumResidentSourceBytes: this.maximumResidentIntervalBytes,
+      maximumPreparedSourceBytes: this.preparedCeilingBytes });
   }
 
   /** The age eviction measures against; a note, never a request. */
@@ -888,10 +1031,40 @@ export class CaoSurfaceResidencyStore {
   }
 
   /**
+   * Re-centres the warm window and drops what it no longer covers. Answers the
+   * ids that were evicted, so the caller can retire whatever it built on them.
+   *
+   * Called from the background walk's idle slot, never from the crossing: a
+   * crossing that waited for the window to settle would pay the eviction on the
+   * frame it is drawing, and the geometry it is about to draw is resident
+   * either way.
+   */
+  setWindowIntervalIds(intervalIds: readonly string[]): readonly string[] {
+    this.windowIntervalIds = new Set(intervalIds);
+    const evicted: string[] = [];
+    if (this.windowIntervalIds.size === 0) return Object.freeze(evicted);
+    for (const id of [...this.residentIntervals.keys()]) {
+      if (this.windowIntervalIds.has(id) || this.isPinned(intervalUnit(id))) continue;
+      this.residentIntervals.delete(id);
+      evicted.push(id);
+    }
+    return Object.freeze(evicted);
+  }
+
+  /** The window the store is holding to; empty means the byte guard alone. */
+  get windowIntervals(): readonly string[] {
+    return Object.freeze([...this.windowIntervalIds]);
+  }
+
+  /**
    * A unit already decoded, without starting any load. A scrub retarget inside
    * one map interval reads through here rather than through `load`, so moving
    * the age can never start a fetch the foreground request did not ask for.
    */
+  isResident(unit: SurfaceUnitId): boolean {
+    return unit.kind === "interval" && this.residentIntervals.has(unit.id);
+  }
+
   resident(unit: SurfaceUnitId): LoadedSurfaceUnit | null {
     if (unit.kind !== "interval") return null;
     const cached = this.residentIntervals.get(unit.id);
@@ -990,6 +1163,20 @@ export class CaoSurfaceResidencyStore {
     return 0;
   }
 
+  /** Declared payload bytes of the resident set; the neighbour cache's currency. */
+  private residentSourceBytes(): number {
+    return [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0);
+  }
+
+  /** Typed-array bytes the resident set really holds; the `"all"` ceiling's currency. */
+  private residentRetainedBytes(): number {
+    let bytes = 0;
+    for (const cached of this.residentIntervals.values()) {
+      bytes += palaeoIntervalRetainedBytes(cached.value);
+    }
+    return bytes;
+  }
+
   private evictIntervals(): void {
     // Farthest from the current age first; the least recently read one breaks a
     // tie, which is the whole order when no age has been noted yet. A pinned
@@ -1006,12 +1193,35 @@ export class CaoSurfaceResidencyStore {
       this.residentIntervals.delete(victim[0]);
       return true;
     };
+    if (this.policy.residentIntervals === "all") {
+      // Outside the warm window first: the window is the policy that bounds the
+      // heap, and an interval it no longer covers is held by nothing. Dropped
+      // here as well as in `setWindowIntervalIds` because a load that lands
+      // after the window moved past it must not be kept.
+      if (this.windowIntervalIds.size > 0) {
+        for (const id of [...this.residentIntervals.keys()]) {
+          if (this.windowIntervalIds.has(id) || this.isPinned(intervalUnit(id))) continue;
+          this.residentIntervals.delete(id);
+        }
+      }
+      // `"all"` is then bounded by its own ceiling and by nothing else. Falling into
+      // the neighbour cache's count and payload bounds on the first byte over
+      // the ceiling is what collapsed a 25-interval prepared set to three: the
+      // policy that asked to hold everything it could afford kept the least it
+      // could. Here the set is trimmed *to* the ceiling, farthest by age, and a
+      // crossing into a trimmed interval re-fetches ~0.31 MB of ring payload and
+      // re-triangulates on the background walk's worker.
+      while (this.residentIntervals.size > 1
+        && this.residentRetainedBytes() > this.preparedCeilingBytes) {
+        if (!dropFarthest()) break;
+      }
+      return;
+    }
     while (this.residentIntervals.size > this.policy.maximumResidentIntervalCount) {
       if (!dropFarthest()) break;
     }
     while (this.residentIntervals.size > 1
-      && [...this.residentIntervals.keys()].reduce((sum, id) => sum + this.intervalAssetBytes(id), 0)
-        > this.maximumResidentIntervalBytes) {
+      && this.residentSourceBytes() > this.maximumResidentIntervalBytes) {
       if (!dropFarthest()) break;
     }
   }

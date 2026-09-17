@@ -4,6 +4,277 @@ All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-09-17
+### Changed
+
+- **The background walk prepares a sliding window, not the whole timeline.**
+  Preparing all 25 map intervals kept ~8.4 MB of decoded typed arrays each, and
+  the warmed GPU member aliases them, so a settled page grew the heap ~163 MB
+  against a 60 MB stop rule — memory no ceiling could give back, because both
+  halves were holding it on purpose. The walk now stops at a warm window
+  centred on the interval being drawn: seven intervals on the desktop profile
+  (drawn ± 3 by schedule index), three where the low profile or a reported
+  `deviceMemory` under 4 GiB applies, clamped at the ends of the schedule, and
+  one for the detached LGM state, which abuts no neighbour. A crossing
+  re-centres the window on itself and nothing else — no fetch, no upload, no
+  retirement — and the walk's next idle slot prepares what it newly covers
+  while the store and the renderer drop what it no longer does, the drawn
+  interval never among them. Three boundaries is as far as a fast sweep reaches
+  before the window has moved, and every interval inside it is already prepared
+  and warmed, so those crossings still take the retarget path. The byte
+  ceilings stay as guards behind the window. `palaeo.windowIntervals` reports
+  the ids the window covers, and `backgroundPreparationComplete` now means the
+  window is complete rather than the timeline.
+
+- **A preloaded map interval is actually warmed, not just parented.** Parenting
+  a hidden member uploaded nothing: the renderer's object walk returns early for
+  `visible === false`, so a "preloaded" interval had no attribute buffers and no
+  compiled program until the crossing that drew it — which is why a first visit
+  still spent ~50 ms on its first drawn frame. The renderer now offers every
+  freshly preloaded member to a warmer, and the scene warms it with
+  `compileAsync`: the member is shown for the synchronous traversal that
+  collects the work, hidden again before the call returns its promise, and its
+  buffers and pipeline are built over the following microtasks. The warm is
+  speculative — a renderer without `compileAsync`, or a compile that fails,
+  leaves the member parented, hidden and cold, and the crossing pays what it
+  paid before. `data-cao-palaeo-warmed-members` reports how many were warmed.
+
+- **The map-interval publish runs on the frame, not on the input handler.**
+  Publishing a prepared interval — packing the palette, building the pick state,
+  retargeting and making the member current — is ~26 ms of synchronous work, and
+  it ran inside the age-change dispatch, where it was the input handler's own
+  cost. It is now queued and drained at the end of the next animation frame,
+  after that frame renders, so the handler returns immediately. The position is
+  measured, not incidental: the publish and the new member's first drawn frame
+  are two costs, and the input dispatch used to split them across two frames.
+  Draining at the *top* of a frame put both on one frame and cost a whole extra
+  vsync — `fastScrub117to58` longest-frame p50 went from 116.6 ms to 133.3 ms —
+  while draining after the render keeps the split and takes it to 66.8 ms, with
+  no frame at or above 100 ms in two of three repetitions. Latest wins: a
+  publish superseded within one frame releases its runtime lease and is not
+  reported as a failure, and a publish still queued when the scene is disposed
+  releases its lease too.
+
+- **The prepared-interval ceiling is measured in what an interval actually
+  holds.** `residentIntervals: "all"` keeps every map interval the background
+  walk prepares under a 64 MiB ceiling, but the ledger that ceiling read summed
+  the intervals' *payload file* bytes — 7.69 MiB for the whole shipped set of
+  25, against a decoded cost measured at ~8.4 MB an interval. The ceiling could
+  therefore never fire, and the walk grew the heap by ~210 MB with nothing
+  bounding it. The store now sums the retained typed arrays (payload plus the
+  vertex, index and upload-only arrays the triangulation hands back), publishes
+  the figure as `residentRetainedBytes` beside the unchanged
+  `residentSourceBytes`, and trims to the ceiling by dropping the interval
+  farthest from the current age. Over the ceiling the policy no longer collapses
+  to the three-interval neighbour cache: a set that asked to hold everything it
+  could afford was handing back the least it could. A crossing into a trimmed
+  interval re-fetches ~0.31 MB of ring payload and re-triangulates on the
+  background walk's worker, which is the cost the neighbour cache always paid.
+
+- **A background-prepared map interval is uploaded to the GPU while the main
+  thread is idle.** The background walk finishes the whole timeline seconds
+  before a scrub reaches most of it, but a prepared interval was only decoded
+  triangles until a crossing uploaded them — so a *first* visit paid the
+  geometry upload, the publication and their commit on the one frame it crossed
+  into, while every later visit was a visibility switch and a retarget. The
+  engine now reports each interval the walk prepares, and the scene uploads it
+  as a hidden GPU member at idle priority — one member per idle callback,
+  nearest by age first — so the first crossing takes the retarget path too. A
+  pre-upload never evicts: where the residency ceilings leave no room it is
+  declined and the crossing that needs the interval uploads it itself, exactly
+  as before. Nothing about what is drawn changes; only when the upload happens.
+
+- **A second request for a resident map interval rebuilds only what the age
+  moves.** Turning an interval the runtime already held into a publishable
+  revision cost 55-65 ms on the crossing frame, and most of it was work the
+  requested age does not change: one batch descriptor per class, and inside it
+  one frozen `chartTriangleRanges` object per piece — several thousand an
+  interval — remapped from piece space into chart space. Those descriptors and
+  the interval's largest edge are now built once per resident interval, beside
+  the identity table and frame scratch that were already cached there, and each
+  request wraps them in its own released-lease guard. The lease contract is
+  unchanged: releasing a revision stops that revision reading the geometry and
+  does not destroy arrays the resident interval still owns.
+
+- **The evidence summary no longer runs on the frame that publishes a
+  crossing.** Setting the prepared interval as state is what makes the scene
+  publish it, so that commit lands on the frame the scrub crossed into the new
+  map — and the same commit rebuilt the map key's evidence summary, which walks
+  every chart of the interval to decide which sources are posed. The summary now
+  reads a deferred view of the prepared interval, so React renders it at low
+  priority after the publication, and the key rows it feeds are a memoised
+  component. Nothing shown changes; the evidence lines settle one render later.
+
+### Fixed
+
+- **A residency probe no longer moves the age eviction measures from.** The
+  pump asks `palaeoMotionResidentAt` at a candidate interval's midpoint to learn
+  whether that target is already prepared, and the shared resident lookup noted
+  that midpoint as the store's current age — the basis `evictIntervals` sorts
+  distances by — so a probe far from the camera could make the interval on
+  screen the farthest resident one and evict what was being drawn. Only the
+  live-age paths note the basis now; the residency question is a read.
+
+- **A resident map interval no longer holds two arrays nothing reads.**
+  `pieceIndices` and `seamIds` are u32 per vertex — 1.06 MB each at the shipped
+  sizes, 2.1 MB an interval and 44 MiB across the 25 the high profile keeps.
+  `pieceIndices` had exactly one reader, the per-vertex palette-entry index
+  built from it; `seamIds` had none at all beyond a length check, because every
+  palaeo vertex is its own seam and the renderer never uploads a palaeo seam id.
+  The entry index is now cached against the resident geometry rather than in a
+  per-revision closure — so a return visit reuses it instead of rebuilding it —
+  and both inputs are released once it exists. A palaeo static-geometry copy
+  carries `seamIds: null` and its byte ledger drops the matching
+  `vertexCount * 4`; the native Cao 2024 arm is unchanged.
+
+- **The GPU residency keys now move on every interval publish.**
+  `data-cao-foundation-gpu-bytes` and `data-cao-resident-intervals` were written
+  only by the native revision path and by a composition change. A map-interval
+  crossing is neither — the composition stays `palaeo` from the first entry into
+  the band to the last — so both keys froze at the first crossing's reading
+  (20,395,812 B, one resident) while the surface set really held three members
+  and 38,609,378 B. Every reader of them, bench rows included, was asserting a
+  number that had stopped moving. `setPreparedPalaeoInterval` and
+  `clearPalaeoPublication` now publish the keys, and the reading is a separate
+  exported function so a test can prove it changes between two publishes.
+  Residency itself was never broken; only its account of itself was. The stale
+  claim that the 25 compiled intervals "decode from about 36 MB of payload" is
+  corrected in `loaderV2.ts` — the shipped catalogs are 7.69 MiB.
+
+- **GPU residency no longer follows the automatic quality watchdog.** The
+  watchdog in `GlobeScene.publishStats` fires whenever the frame-time p95 passes
+  33 ms over 120 samples, which the heavy initial load does on every run, and it
+  called `setResidentIntervalCeiling(1)`. There is no path back to the high
+  profile inside a session, so `data-cao-resident-intervals` stayed at 1 for the
+  whole session, every map-interval crossing evicted the outgoing interval and
+  re-uploaded the incoming one, and the cheap return-visit path was never taken
+  — 17.4 MB of a 57.7 MB budget in use. The resident-interval ceiling is now a
+  memory policy: 25 intervals and 55 MiB, lowered to 8 and 24 MiB only when the
+  user explicitly selects the low profile or `navigator.deviceMemory` reports
+  under 4 GiB. The watchdog's downgrade governs shading detail alone.
+
+- **A fast scrub across map boundaries no longer tears the globe down.** A
+  117 -> 58 Ma scrub over 2 s threw `palaeo-coastline age is outside the
+  resident interval` out of the renderer's synchronous pose effect, and React
+  unmounted the scene: no globe canvas was left in the document, reproduced 3/3.
+  The cause was the 0.01 Ma seam the padded interval bounds leave between two
+  adjacent maps. An age in `(58, 58.01]` is covered by no interval, so the
+  selector deliberately answers the older one, `81-58` — which is also the
+  interval already published, so nothing in the engine looked like a boundary
+  crossing and the 0.1.20 support-age clamp, which only ran on the crossing
+  branch, was skipped. The requested age then reached the evaluator a hair below
+  `81-58`'s own young edge and its range check threw. The scrub ends at exactly
+  58 Ma, where the slider's own round-trip lands the age at 58.00000000000009,
+  so this fired on every run. The support age is now held inside whichever
+  interval is actually evaluated on every path — the synchronous pose, the
+  asynchronous retarget and the interval prepare. A pose the runtime still
+  cannot honour skips the frame instead of throwing, leaving the previous pose
+  on screen and counting itself in the engine ledger as
+  `palaeo.skippedFrames`, and both palaeo effects in `GlobeView` now catch a
+  throw and name it in `data-cao-palaeo-fallback-reason` rather than letting it
+  reach React. Replayed as a unit case over a padded schedule — the crossing,
+  the seam age through all three entry points, then the swap — and proven by
+  mutation (restoring the clamp to the crossing branch alone fails it, and the
+  mutation was restored). The harness transaction now completes three
+  repetitions with the canvas present and no page errors.
+
+### Changed
+
+- **A map interval is requested once the scrub settles in it, not the instant
+  the age crosses into it.** A fast scrub crosses several Cao 2017 boundaries in
+  a second, and every map it passed through was fetched, triangulated and
+  published only to be discarded by the next crossing — the gesture waiting
+  behind loads for ages the user never stopped at. The pump now takes its
+  decision from a pure `decideIntervalRequest`: a crossing into a map that is
+  already prepared is requested at once, because publishing it is a swap and
+  costs nothing; otherwise the request waits until the age has stood still for
+  120 ms or the scrub is slower than 2 Ma per 100 ms. Until then the outgoing
+  map stays drawn and is posed at the live age by the renderer's synchronous
+  path, a held crossing never blocks the one after it, and the neighbour
+  prefetch is unchanged. Unit cases cover a fast sweep across four boundaries
+  requesting only the map it stops in, a slow scrub requesting each, a prepared
+  map requested immediately, the settle timer firing after 120 ms of stillness,
+  and the layer going off cancelling that timer; proven by mutation (a decision
+  that never holds fails the sweep case, and the mutation was restored).
+- **Every map interval is prepared in the background once the first one is
+  published.** A Cao 2017 crossing used to fetch, decode and triangulate the
+  interval it was entering on the frame that needed the geometry, because the
+  residency store held only the drawn interval and its two neighbours — so any
+  crossing the 3-interval prefetch had not anticipated paid the whole cost at
+  once. The engine now walks the rest of the timeline after the first
+  publication of an enablement: nearest by age first, one worker job at a time,
+  at `requestIdleCallback` priority where the browser has it and a zero-delay
+  timeout otherwise, and never starting a job while a foreground
+  `requestPalaeoInterval` is in flight. The residency policy gains
+  `residentIntervals: "all"` for both quality profiles with a `maxPreparedBytes`
+  ceiling of 64 MiB (the 25 compiled intervals decode from about 36 MB of
+  payload); over that ceiling the store falls back to the neighbour cache it
+  shipped with rather than growing unbounded. The engine ledger publishes the
+  walk's progress as `palaeo.preparedIntervals`,
+  `palaeo.preparingIntervalId` and `palaeo.backgroundPreparationComplete`.
+  Turning the layer off still cancels the walk and frees every prepared byte, so
+  the zero-bytes-when-off contract is unchanged, and a foreground request for an
+  interval the walk already prepared resolves from the store without a second
+  fetch. Proven by mutation: dropping the foreground pause, replacing the
+  nearest-by-age order with the published order, and reverting the policy to the
+  neighbour cache each fail a new case, and all three mutations were restored.
+- **A map-interval crossing is a visibility switch, not a geometry
+  replacement.** The surface set now keeps one member per prepared interval it
+  has uploaded: the geometry goes to the GPU once and stays there with the
+  member parented and hidden, so a crossing back into an interval the set has
+  already seen shows that member, hides the outgoing one and retargets the
+  incoming age onto the resident palette and poses. No geometry upload, no
+  static-geometry retirement, and no arm — `armStaticGeometryChange` now guards
+  only the Cao 2024 stack, whose geometry must never change within the
+  renderer's lifetime. `GlobeScene.setPreparedPalaeoInterval` is the same call
+  and means "make this interval the drawn one"; every `data-cao-palaeo-*` answer
+  for the drawn interval is unchanged.
+- **Residency is bounded and stated.** The set's vertex (1,000,000), triangle
+  (1,280,000) and retained-source (64 MiB) ceilings are now per *drawn*
+  composition — the Cao 2024 stack plus the one interval on screen — because an
+  interval kept behind the current one draws nothing. What bounds those is a
+  separate residency policy: at most 25 resident intervals holding at most
+  55 MiB of vertex and index buffers, measured at about 40 MB over the promoted
+  interval set. The low quality profile keeps one interval, which is the
+  upload-on-swap behaviour the renderer has always had, and a mid-session drop
+  to that profile evicts down on the next crossing rather than mid-frame. When
+  the ceiling is met, the interval farthest by age is evicted first and its
+  geometry retired through the existing owner. The publication ledger, which
+  holds every resident member at once, moves from 4 MiB to 20 MiB: 25 interval
+  publications reserve 12.5 MiB, and a Cao 2024 scrub sample must still fit
+  beside the publication it replaces.
+- **`data-cao-foundation-gpu-bytes` is the whole set's residency.** It sums the
+  Cao 2024 stack and every resident map interval, drawn or hidden, so a warm
+  interval off screen is counted against the ceiling a reader is checking;
+  `data-cao-resident-intervals` says how many are resident. The D1 release
+  policy is unchanged and still applies to the Cao 2024 members. Proven by
+  mutation: forcing a re-upload on a return visit and reversing the eviction
+  order each fail the new cases, and both mutations were restored.
+### Added
+
+- **The palaeo bench measures a fast multi-boundary scrub and what the layer
+  keeps resident.** `scripts/bench/palaeo-coastlines-performance.mjs` gains two
+  transactions for the resident-intervals program, whose thresholds were written
+  before measuring in the plan and are carried in the stop rule beside the
+  result. `fastScrub117to58` drives 117 -> 58 Ma over 2 s in 40 steps from
+  inside the page — a driver round trip per step would cost more than the step
+  it places — across the 117-94 / 94-81 / 81-58 boundaries, and reports the
+  longest rAF interval, the frames over 33 ms, the interval publishes, and
+  whether the outgoing map kept being posed while the next one was prepared,
+  read from `window.__earthHistoryMotionProbe`. `residencyAfterWarmup` reads the
+  JS heap (Chrome `--enable-precise-memory-info`), `data-cao-foundation-gpu-bytes`
+  and `data-cao-foundation-static-bytes` 15 s after the layer has settled at
+  90 Ma, against a 0 Ma baseline outside the map domain. `--only=` narrows a
+  `--transactions-only` run to named transactions; a transaction it excludes is
+  reported as not measured and is judged by nothing rather than counted as a
+  pass, and a page error during a transaction fails the run whatever its frame
+  times say. The v0.1.20 baseline is recorded in
+  `docs/research/resident-intervals-baseline-v0.1.20.json`: the fast scrub's
+  longest frame is 133.3 ms against a 33 ms threshold and ends in
+  `palaeo-coastline age is outside the resident interval` with the globe canvas
+  gone, while heap growth (44.7 MB) and GPU residency (11.4 MB) are inside their
+  budgets.
+
 ## [0.1.20] - 2026-09-16
 ### Fixed
 

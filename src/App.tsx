@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState,
+  type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Aperture,
   BookOpen,
@@ -58,13 +59,15 @@ import {
   PALAEO_MAP_INTERVALS,
   CaoReconstructionRuntime,
   contentAddressedAssetCacheMode,
+  createSettleTimer,
+  decideIntervalRequest,
   palaeoCoastlineEvidenceSummary,
   palaeoIntervalEvidenceStatus,
   palaeoIntervalIsDetached,
   palaeoIntervalKeyLine,
   selectPalaeoInterval,
   type CaoMotionFrame, type CaoPalaeoIntervalFrame, type CaoTimelineLoadingState,
-  type PreparedCaoPalaeoInterval, type PreparedCaoRevision,
+  type PreparedCaoPalaeoInterval, type PreparedCaoRevision, type SettleTimer,
   type MaterialAddress, type ReconstructionPackageManifestV2, type StaticAssetFetcher } from "./reconstruction";
 
 type Panel = "notes" | "sources" | "layers" | "about" | "quality" | null;
@@ -258,6 +261,34 @@ export function mapKeyTimelineHint(
   return undefined;
 }
 
+/**
+ * The map key's palaeo rows: one line per cited source posed on screen.
+ *
+ * Memoised and separate from `App` because it is the one part of the key that
+ * grows with the interval — a reference per active source — and it must not be
+ * re-rendered on the commit that publishes a crossing. Its inputs move only
+ * when the deferred evidence summary does, which is a later, low-priority
+ * render by construction.
+ */
+const PalaeoEvidenceKeyRows = memo(function PalaeoEvidenceKeyRows({ visible, evidence }: {
+  readonly visible: boolean;
+  readonly evidence: PalaeoCoastlineEvidence;
+}) {
+  if (!visible) return null;
+  if (evidence.references.length > 0) {
+    return <>{evidence.references.map((reference) => (
+      <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
+        {reference.editorial ? " · EarthHistory modification after this reference" : ""}
+        {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
+    ))}</>;
+  }
+  if (evidence.sourceIds.length > 0) {
+    return <>{evidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}</>;
+  }
+  return <span>No palaeo-coastline charts on screen{evidence.unavailableReason === null
+    ? "" : ` · ${evidence.unavailableReason}`}</span>;
+});
+
 export default function App() {
   const initial = useRef(parseInitialState()).current;
   const initialPoi = pointsOfInterest.find((poi) => poi.id === initial.focus);
@@ -354,6 +385,15 @@ export default function App() {
   /** Sign of the last age step; +1 is scrubbing towards older ages. */
   const palaeoAgeDirectionRef = useRef(0);
   const palaeoLastAgeRef = useRef(initial.age);
+  /** When that age arrived, on the same clock the settle decision is made on. */
+  const palaeoLastAgeAtRef = useRef(Number.NEGATIVE_INFINITY);
+  /**
+   * The age sample before the live one, and when it arrived: the pump measures
+   * scrub velocity and stillness against it to decide whether a boundary
+   * crossing is worth a map load yet. No previous sample means the first pump
+   * of the session, which must not be delayed.
+   */
+  const palaeoAgeSampleRef = useRef({ ageMa: initial.age, atMs: Number.NEGATIVE_INFINITY });
   const palaeoPumpRef = useRef<{ pump(): void } | null>(null);
   // The scene reports a publication it refused. Until it did, the pump believed
   // its own bookkeeping, short-circuited on an interval that was never on
@@ -370,6 +410,15 @@ export default function App() {
       caoRuntimeRef.current?.evaluatePalaeoMotionNow(requestedAgeMa, publishedIntervalId) ?? null, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
+  /**
+   * The runtime, handed to the scene so its idle pre-upload can turn each
+   * background-prepared interval into a hidden GPU member. Recomputed when the
+   * runtime becomes ready, so the scene is given it then and not on whichever
+   * render happens to follow. Declared after the ref it reads: a `useMemo`
+   * factory runs during the render that declares it.
+   */
+  const palaeoPreloadSource = useMemo(
+    () => (caoRuntimeReady ? caoRuntimeRef.current : null), [caoRuntimeReady]);
   const lastStatsUpdate = useRef(0);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -737,7 +786,10 @@ export default function App() {
   // above returns early from, so the map pump gets its own age watch.
   useEffect(() => {
     palaeoAgeDirectionRef.current = Math.sign(ageMa - palaeoLastAgeRef.current);
+    palaeoAgeSampleRef.current = { ageMa: palaeoLastAgeRef.current,
+      atMs: palaeoLastAgeAtRef.current };
     palaeoLastAgeRef.current = ageMa;
+    palaeoLastAgeAtRef.current = performance.now();
     palaeoPumpRef.current?.pump();
   }, [ageMa]);
 
@@ -791,6 +843,8 @@ export default function App() {
       frameSerial: 0,
       /** The `<interval>|<direction>` the neighbour warm-up has already been asked for. */
       prefetchedFrom: "",
+      /** The pending settle re-evaluation of a held crossing, once it exists. */
+      settle: null as SettleTimer | null,
       // Consecutive recoveries attempted for one interval. A publication that
       // keeps failing is a real defect and must end in a visible error, not in
       // a request loop.
@@ -866,11 +920,40 @@ export default function App() {
       })();
     };
 
+    // Whether a map is already in hand, asked at the middle of the interval so
+    // the answer is about the map and not about one age inside it.
+    const intervalIsPrepared = (index: number) => {
+      const interval = PALAEO_MAP_INTERVALS[index];
+      if (interval === undefined) return false;
+      return runtime.palaeoMotionResidentAt((interval.oldestMa + interval.youngestMa) / 2);
+    };
+
     const pump = () => {
       if (state.disposed || state.inFlight) return;
       const targetAgeMa = requestedAgeRef.current;
       const index = selectPalaeoInterval(PALAEO_MAP_INTERVALS, targetAgeMa);
-      if (index < 0) {
+      const preparedIntervalId = palaeoPreparedRef.current?.intervalId ?? null;
+      const decision = decideIntervalRequest({
+        nowMs: performance.now(),
+        ageMa: targetAgeMa,
+        lastAgeMa: palaeoAgeSampleRef.current.ageMa,
+        lastAgeAtMs: palaeoAgeSampleRef.current.atMs,
+        currentIntervalIndex: index,
+        preparedIntervalIndex: preparedIntervalId === null ? -1
+          : PALAEO_MAP_INTERVALS.findIndex((interval) => interval.id === preparedIntervalId),
+        isPrepared: intervalIsPrepared,
+      });
+      if (decision.kind === "hold") {
+        // A fast scrub crosses maps it never stops in. Loading each one costs
+        // a fetch, a triangulation and a publication that the next crossing
+        // discards, with the gesture waiting behind them; the outgoing map
+        // stays drawn and is posed at the live age by the renderer's own
+        // synchronous path until the scrub settles here or leaves.
+        state.settle?.arm(decision.settleInMs);
+        return;
+      }
+      state.settle?.cancel();
+      if (decision.kind === "none") {
         // No published map covers this age: fall back to today's composition
         // and drop the lease rather than holding a map the age does not reach.
         const previous = palaeoPreparedRef.current;
@@ -888,7 +971,7 @@ export default function App() {
         state.recoveringIntervalId = intervalId;
         state.recoveries = 0;
       }
-      if (palaeoPreparedRef.current?.intervalId === intervalId) {
+      if (decision.kind === "satisfied") {
         setPalaeoLoading(false);
         retarget(targetAgeMa);
         prefetchNeighbour(index);
@@ -976,9 +1059,13 @@ export default function App() {
 
     palaeoPumpRef.current = { pump };
     palaeoPublishFailedRef.current = publishFailed;
+    // The held crossing's own trigger: the age effect wakes the pump while the
+    // scrub moves, and this wakes it when the scrub has stopped moving.
+    state.settle = createSettleTimer(() => { pump(); });
     pump();
     return () => {
       state.disposed = true;
+      state.settle?.cancel();
       if (palaeoPumpRef.current?.pump === pump) palaeoPumpRef.current = null;
       if (palaeoPublishFailedRef.current === publishFailed) palaeoPublishFailedRef.current = null;
       palaeoPreparedRef.current?.release();
@@ -1100,12 +1187,19 @@ export default function App() {
   // Read off the interval actually published, not off the requested age: the
   // source ids are the ones whose charts are posed on screen, and a load in
   // flight leaves the previous map — and its evidence — visible.
+  // Deferred, because the publication is what the urgent commit of
+  // `palaeoPrepared` is for. The scene publishes the incoming map from an
+  // effect of that commit, on the frame the scrub crossed into it, while this
+  // summary walks every chart of the interval to decide which sources are
+  // posed — thousands of them — and nothing on screen moves when it lands one
+  // render later. React renders it at low priority, off the publish frame.
+  const reportedPalaeoPrepared = useDeferredValue(palaeoPrepared);
   const palaeoEvidence: PalaeoCoastlineEvidence = useMemo(
-    () => palaeoCoastlineEvidenceSummary(palaeoPrepared,
+    () => palaeoCoastlineEvidenceSummary(reportedPalaeoPrepared,
       { loading: palaeoLoading,
         unavailableReason: palaeoAssetsAvailable ? null : PALAEO_CHARTS_ABSENT },
       palaeoSourceCitation),
-    [palaeoAssetsAvailable, palaeoLoading, palaeoPrepared]);
+    [palaeoAssetsAvailable, palaeoLoading, reportedPalaeoPrepared]);
   const palaeoIntervalIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, ageMa);
   const palaeoInterval = palaeoIntervalIndex < 0 ? null : PALAEO_MAP_INTERVALS[palaeoIntervalIndex]!;
   const palaeoKeyVisible = layers.palaeoCoastlines;
@@ -1589,6 +1683,7 @@ export default function App() {
           onPalaeoPublicationFailed={handlePalaeoPublicationFailed}
           palaeoFrame={palaeoFrame}
           evaluatePalaeoMotionNow={evaluatePalaeoMotionNow}
+          palaeoPreloadSource={palaeoPreloadSource}
           palaeoToneBytes={palaeoToneBytes}
           palaeoToneTableIndex={palaeoPrepared?.intervalIndex ?? -1}
           palaeoToneIntervalId={palaeoPrepared?.intervalId ?? null}
@@ -1702,17 +1797,7 @@ export default function App() {
             )}
             <div className="surface-evidence-key">
               <strong>Evidence in this view</strong>
-              {palaeoKeyVisible && palaeoEvidence.references.map((reference) => (
-                <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
-                  {reference.editorial ? " · EarthHistory modification after this reference" : ""}
-                  {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
-              ))}
-              {palaeoKeyVisible && palaeoEvidence.references.length === 0
-                && palaeoEvidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}
-              {palaeoKeyVisible && palaeoEvidence.references.length === 0
-                && palaeoEvidence.sourceIds.length === 0
-                && <span>No palaeo-coastline charts on screen{palaeoEvidence.unavailableReason === null
-                  ? "" : ` · ${palaeoEvidence.unavailableReason}`}</span>}
+              <PalaeoEvidenceKeyRows visible={palaeoKeyVisible} evidence={palaeoEvidence} />
               {greaterIndiaVisible && <span>{GREATER_INDIA_EVIDENCE_LINE}</span>}
               {restoredMarginsVisible && <span>{RESTORED_COLLISION_MARGIN_EVIDENCE_LINE}</span>}
               {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}

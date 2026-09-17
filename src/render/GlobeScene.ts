@@ -232,6 +232,9 @@ interface RendererLike {
   setPixelRatio(value: number): void;
   setSize(width: number, height: number, updateStyle?: boolean): void;
   render(scene: THREE.Object3D, camera: THREE.Camera): void;
+  compileAsync?(
+    object: THREE.Object3D, camera: THREE.Camera, targetScene?: THREE.Object3D,
+  ): Promise<unknown>;
   getContext?(): WebGLRenderingContext | WebGL2RenderingContext;
   dispose(): void;
 }
@@ -522,26 +525,247 @@ function createCaoGpuRetirementOwner(
  * instance kept. Retained source is 48 + 30 MiB minus the headroom that was
  * duplicated.
  *
+ * The vertex, triangle and retained-source ceilings are per *drawn*
+ * composition — the Cao 2024 stack and the one map interval on screen — and
+ * keep the numbers above. Map intervals the set keeps resident behind the drawn
+ * one spend no vertices or triangles, because they draw nothing; what bounds
+ * them is `maxResidentIntervalGpuBytes`.
+ *
+ * Residency: up to 25 map intervals stay uploaded, so a crossing back into one
+ * is a visibility switch. Measured 2026-09-16 on the promoted interval set,
+ * the whole set's vertex and index buffers are about 40 MB; 55 MiB is the
+ * ceiling, which leaves headroom for the refinement the worst interval reaches
+ * and makes eviction the exception rather than the steady state. Residency is a
+ * memory policy, not a shading profile: see `residentIntervalBudget`.
+ *
  * The publication ledger is the one number the union is not simply the larger
- * of: it now holds both members at once. Measured on the loaded public package
- * 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a 5,675-entry
- * palette, its per-chart pose table, the exact-knot boundary and ownership
- * layers and the outline tone texture. A map-interval publication is a palette
- * and a pose table only, under the 512 KiB its own instance reserved. Inside
- * the band a scrub sample must fit beside both of those and beside the
- * publication it replaces, which is still retiring behind the submission fence:
- * 676 + 512 + 676 + 676 KiB is over 2 MiB, so 2 MiB would refuse a scrub sample
- * and blank the globe. 4 MiB carries that worst case with the headroom the Cao
- * 2024 arm had on its own.
+ * of: it now holds every resident member at once. Measured on the loaded public
+ * package 2026-09-16, the Cao 2024 publication at 0 Ma is 676,177 B — a
+ * 5,675-entry palette, its per-chart pose table, the exact-knot boundary and
+ * ownership layers and the outline tone texture. A map-interval publication is
+ * a palette and a pose table only, under the 512 KiB its own instance reserved.
+ * Twenty-five of those reserve 12.5 MiB, and a scrub sample inside the band
+ * must still fit beside the Cao 2024 publication it replaces, which is retiring
+ * behind the submission fence: 12.5 MiB + 676 + 676 KiB is under 14 MiB, and
+ * 20 MiB carries it with the headroom the 4 MiB union kept.
  */
 const CAO_SURFACE_SET_LIMITS = Object.freeze({
   maxBatches: 512,
   maxVertices: 1_000_000,
   maxTriangles: 1_280_000,
   maxRetainedSourceBytes: 64 * 1024 * 1024,
-  maxPublicationBytes: 4 * 1024 * 1024,
+  maxPublicationBytes: 20 * 1024 * 1024,
   maxSpatialIndexBytes: 1024 * 1024,
+  maxResidentIntervalGpuBytes: 55 * 1024 * 1024,
 });
+
+/** Map intervals kept on the GPU at once; see `CAO_SURFACE_SET_LIMITS`. */
+const CAO_RESIDENT_INTERVALS_HIGH = 25;
+const CAO_RESIDENT_INTERVALS_LOW = 8;
+/**
+ * Intervals the engine's warm window covers, drawn one included.
+ *
+ * Seven is the drawn interval and three neighbours either side; three is the
+ * drawn one and one either side. This is the bound that actually holds the
+ * heap: a warmed hidden member pins the decoded arrays it was uploaded from, so
+ * the counts above bound GPU bytes while this bounds what the CPU keeps. It is
+ * a narrower number than the GPU residency deliberately — the window is what a
+ * scrub can cross before the idle walk refills it, not everything that fits.
+ */
+const CAO_WARM_WINDOW_INTERVALS_HIGH = 7;
+const CAO_WARM_WINDOW_INTERVALS_LOW = 3;
+const CAO_RESIDENT_INTERVAL_BYTES_HIGH = 55 * 1024 * 1024;
+const CAO_RESIDENT_INTERVAL_BYTES_LOW = 24 * 1024 * 1024;
+/** Device memory, in GiB, under which the small residency budget is taken. */
+const CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB = 4;
+
+/**
+ * How much residency a map-interval crossing may reuse: the members that may
+ * stay on the GPU, the buffer bytes they may hold, and how wide the engine's
+ * warm window is.
+ *
+ * Residency is a memory policy and not a shading profile. The automatic quality
+ * watchdog downgrades shading when frames are slow, and slow frames are exactly
+ * what residency fixes: collapsing the ceiling with the profile meant the first
+ * heavy load turned every later crossing into a fresh upload, and there is no
+ * path back to "high" within a session. So only two things lower it — the user
+ * explicitly selecting the low profile, and a device that has told us it has
+ * little memory.
+ *
+ * `windowIntervals` is the same decision taken one level in. The counts and
+ * bytes above are ceilings — a guard against a set that grew — while the window
+ * is what is actually prepared and warmed, and it is what bounds the heap that
+ * a warmed member pins. A device that may hold 8 members prepares 3 intervals,
+ * not because 8 would not fit on the GPU but because the arrays behind them
+ * would not fit in the heap.
+ */
+export function residentIntervalBudget(
+  requested: RequestedQuality,
+  deviceMemoryGb: number | undefined,
+): { readonly intervals: number; readonly bytes: number; readonly windowIntervals: number } {
+  const small = requested === "low"
+    || (typeof deviceMemoryGb === "number" && Number.isFinite(deviceMemoryGb)
+      && deviceMemoryGb < CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB);
+  return small
+    ? { intervals: CAO_RESIDENT_INTERVALS_LOW, bytes: CAO_RESIDENT_INTERVAL_BYTES_LOW,
+      windowIntervals: CAO_WARM_WINDOW_INTERVALS_LOW }
+    : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH,
+      windowIntervals: CAO_WARM_WINDOW_INTERVALS_HIGH };
+}
+
+/**
+ * How long an idle pre-upload may wait for a genuinely idle slot before it is
+ * taken anyway. Long enough that a live gesture is never interrupted by it, and
+ * short enough that a settled page finishes the timeline rather than stalling
+ * one crossing short of it.
+ */
+const PALAEO_PRELOAD_IDLE_TIMEOUT_MS = 2_000;
+
+/**
+ * One publish held until the frame that will draw it, latest wins.
+ *
+ * A prepared interval owns a runtime lease, and publishing takes that lease
+ * over. Deferring the publish therefore means owning the lease in the meantime:
+ * a queued publish that is superseded, or one still queued when the scene is
+ * torn down, has to release what the publish would have released. A superseded
+ * publish is not a failed one, so its caller hears nothing — answering it would
+ * report a publication failure for an interval the age has simply moved past.
+ */
+export class DeferredPublishQueue<Payload extends { release(): void }, Result> {
+  /** `undefined` is the empty state, because a queued `null` is the clear. */
+  private queued: {
+    readonly payload: Payload | null;
+    readonly onPublished?: (result: Result) => void;
+  } | undefined = undefined;
+
+  queue(payload: Payload | null, onPublished?: (result: Result) => void): void {
+    this.queued?.payload?.release();
+    this.queued = { payload, onPublished };
+  }
+
+  /** Whether a publish is waiting. */
+  pending(): boolean {
+    return this.queued !== undefined;
+  }
+
+  /** Runs the waiting publish, if any, and answers whether one ran. */
+  drain(publish: (payload: Payload | null) => Result): boolean {
+    const queued = this.queued;
+    if (queued === undefined) return false;
+    this.queued = undefined;
+    // The publish runs whether or not anyone is listening: `f?.(publish(x))`
+    // skips the argument too when `f` is undefined, which would silently drop
+    // every publish queued without a callback.
+    const result = publish(queued.payload);
+    queued.onPublished?.(result);
+    return true;
+  }
+
+  /** Drops a waiting publish and releases its lease. Nothing is published. */
+  abandon(): void {
+    this.queued?.payload?.release();
+    this.queued = undefined;
+  }
+}
+
+/** The part of the renderer a member warm uses. */
+export interface CaoMemberWarmRenderer {
+  compileAsync?(
+    object: THREE.Object3D, camera: THREE.Camera, targetScene?: THREE.Object3D,
+  ): Promise<unknown>;
+}
+
+/**
+ * Puts one preloaded map-interval member's buffers and pipeline on the GPU
+ * without ever drawing it.
+ *
+ * Parenting a hidden group uploads nothing: `Renderer._projectObject` returns
+ * early for `visible === false`, so the member is not traversed, no attribute
+ * buffer is created for it and no program is compiled — which is why the first
+ * crossing into a "preloaded" interval still paid a ~50 ms first-draw frame.
+ * `compileAsync` does both halves of that work (`_geometries.updateForRender`
+ * builds the buffers, `_pipelines.getForRender` compiles the program), but only
+ * for objects its own traversal reaches.
+ *
+ * So the group is shown for exactly the synchronous part of the call. The
+ * traversal that collects the work items runs before `compileAsync` reaches its
+ * first `await`, so hiding the group again the instant the call returns its
+ * promise is enough: no animation frame can run in between, and the uploads and
+ * compiles that follow read the captured work items rather than `visible`.
+ *
+ * Answers whether the warm was started. A renderer without `compileAsync` — the
+ * classic WebGL renderer, or a test double — warms nothing and says so.
+ */
+export function warmCaoMember(
+  renderer: CaoMemberWarmRenderer,
+  group: THREE.Group,
+  camera: THREE.Camera,
+  scene: THREE.Object3D,
+  onFailure?: (error: unknown) => void,
+): boolean {
+  if (typeof renderer.compileAsync !== "function") return false;
+  const hidden = !group.visible;
+  group.visible = true;
+  let pending: Promise<unknown>;
+  try {
+    pending = renderer.compileAsync(group, camera, scene);
+  } finally {
+    // Restored in `finally` and never on a later turn: a member left visible
+    // draws the wrong interval over the current one on the very next frame.
+    if (hidden) group.visible = false;
+  }
+  void Promise.resolve(pending).catch((error: unknown) => onFailure?.(error));
+  return true;
+}
+
+/** One map interval the background walk has finished preparing. */
+export interface PalaeoPreparedIntervalNotice {
+  readonly intervalId: string;
+  readonly fromAgeMa: number;
+  readonly toAgeMa: number;
+}
+
+/**
+ * The engine, as the idle pre-upload uses it: it says when an interval has been
+ * prepared, and it hands back a revision for one already resident without
+ * starting a fetch or superseding the foreground request.
+ */
+export interface PalaeoIntervalPreloadSource {
+  onPalaeoIntervalPrepared(listener: (notice: PalaeoPreparedIntervalNotice) => void): () => void;
+  /** Told the warm window each time it re-centres; see `onPalaeoWarmWindowChanged`. */
+  onPalaeoWarmWindowChanged(listener: (intervalIds: readonly string[]) => void): () => void;
+  /** How wide the window is; the renderer's profile owns this, not the engine's. */
+  setPalaeoWarmWindowIntervals(count: number): void;
+  prepareResidentPalaeoIntervalNow(intervalId: string): PreparedCaoPalaeoInterval | null;
+}
+
+/** The residency the surface set actually holds, as the renderer reports it. */
+export interface CaoResidencyReporter {
+  residentGpuBytes(): number;
+  residentIntervalCount(): number;
+  releasedSurfaceClasses(): readonly string[];
+}
+
+/**
+ * Writes the three residency keys from one reading of the surface set.
+ *
+ * Separated from the scene so the keys can be proved to move: they are the only
+ * published account of what the GPU holds, and every one of their readers is
+ * outside this module.
+ */
+export function writeCaoResidencyDataset(
+  dataset: Record<string, string | undefined>,
+  renderer: CaoResidencyReporter,
+): void {
+  dataset.caoFoundationGpuBytes = String(renderer.residentGpuBytes());
+  dataset.caoResidentIntervals = String(renderer.residentIntervalCount());
+  dataset.caoFoundationReleasedClasses = renderer.releasedSurfaceClasses().join(" ");
+}
+
+/** What `navigator.deviceMemory` reports, where the browser reports it. */
+function reportedDeviceMemoryGb(): number | undefined {
+  return (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+}
 /**
  * Publications retire one member at a time: a scrub sample replaces the Cao
  * 2024 member, a crossing replaces the map interval, and a crossing can land in
@@ -551,9 +775,14 @@ const CAO_SURFACE_SET_LIMITS = Object.freeze({
  */
 const CAO_SURFACE_RETIREMENT_MAX_RESOURCES = 3;
 const CAO_SURFACE_RETIREMENT_MAX_BYTES = 44 * 1024 * 1024;
-/** Only a map-interval change replaces static geometry, one swap at a time. */
-const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 1;
-const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 40 * 1024 * 1024;
+/**
+ * Only a map-interval eviction retires static geometry. At the low profile that
+ * is one swap at a time, as it always was; at the high profile it happens only
+ * once residency is full, and a single crossing may have to make room for a
+ * large interval by evicting more than one resident.
+ */
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES = 4;
+const CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES = 64 * 1024 * 1024;
 
 interface PreparedAnchorMarker {
   readonly id: string;
@@ -643,8 +872,33 @@ export class GlobeScene {
   private palaeoOutlineToneIntervalId: string | null = null;
   /** The interval whose charts are published, and the one its geometry belongs to. */
   private publishedPalaeoIntervalId: string | null = null;
+  /**
+   * The idle pre-upload queue: map intervals the background walk has prepared
+   * and this scene has not yet uploaded as a hidden GPU member. See
+   * `setPalaeoIntervalPreloadSource`.
+   */
+  private readonly palaeoPreloadQueue = new Map<string, PalaeoPreparedIntervalNotice>();
+  private readonly palaeoPreloadedIntervalIds = new Set<string>();
+  private palaeoPreloadSource: PalaeoIntervalPreloadSource | null = null;
+  private palaeoPreloadUnsubscribe: (() => void) | null = null;
+  private palaeoWindowUnsubscribe: (() => void) | null = null;
+  /**
+   * The warm window the engine last published, and whether the renderer has
+   * been trimmed to it. The trim is taken in the idle pre-upload step rather
+   * than in the notification: the notification arrives on the crossing that
+   * moved the window, and retiring GPU members there would put the cost back on
+   * the frame the window exists to protect.
+   */
+  private palaeoWindowIntervalIds: readonly string[] = [];
+  private palaeoWindowTrimPending = false;
+  private palaeoPreloadHandle: number | null = null;
+  private palaeoPreloadIsIdleHandle = false;
+  /** Hidden members whose buffers and pipeline this scene has warmed at idle. */
+  private palaeoWarmedMembers = 0;
+  /** The publish waiting for the next frame. See `setPreparedPalaeoInterval`. */
+  private readonly queuedPalaeoPublish =
+    new DeferredPublishQueue<PreparedCaoPalaeoInterval, CaoFoundationDiagnostics | null>();
   private palaeoPublicationFailureReason: string | null = null;
-  private palaeoStaticIntervalId: string | null = null;
   private palaeoIntervalSourceBytes = 0;
   /** Verified EHPT bytes and the table the active interval reads, held until a decode is possible. */
   private palaeoTonePayload: Uint8Array | null = null;
@@ -716,11 +970,18 @@ export class GlobeScene {
       this.globeGroup,
       createCaoGpuRetirementOwner(renderer, backend,
         CAO_SURFACE_RETIREMENT_MAX_RESOURCES, CAO_SURFACE_RETIREMENT_MAX_BYTES),
-      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize },
+      { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize,
+        maxResidentIntervals: residentIntervalBudget(
+          requestedQuality, reportedDeviceMemoryGb()).intervals,
+        maxResidentIntervalGpuBytes: residentIntervalBudget(
+          requestedQuality, reportedDeviceMemoryGb()).bytes },
       {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
           CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
     );
+    // The renderer names the hidden member; only the scene has the renderer,
+    // the camera and the drawn scene the warm needs.
+    this.caoFoundationRenderer.setMemberWarmer((group) => this.warmPalaeoMember(group));
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1032,38 +1293,245 @@ export class GlobeScene {
   }
 
   /**
-   * Publishes one Cao 2017 map interval on the palaeo instance, or clears it.
+   * Subscribes the scene to the engine's background interval walk, so an
+   * interval it prepares becomes a hidden GPU member while the main thread is
+   * idle.
    *
-   * A map interval is the streaming unit, so a new interval is a static
-   * geometry replacement: the swap is armed with its reason first, and the arm
-   * is spent by exactly that publication. Scrubbing inside an interval never
-   * reaches here — `retargetPalaeoMotion` re-poses the resident geometry — so a
-   * sample that stays inside one map cannot cost a geometry rebuild.
+   * A first visit to an interval used to cost the geometry upload, the
+   * publication and their commit on the one frame the scrub crossed into it,
+   * while every later visit was a visibility switch and a retarget. The walk
+   * already finishes long before the scrub reaches most of the timeline, so the
+   * upload is taken here instead — one member per idle callback, nearest by age
+   * first, and only where the renderer's residency ceilings leave room. By the
+   * time the crossing arrives the member exists and it takes the retarget path.
+   *
+   * Passing null unsubscribes. The scene owns the subscription for its life.
+   */
+  setPalaeoIntervalPreloadSource(source: PalaeoIntervalPreloadSource | null): void {
+    this.palaeoPreloadUnsubscribe?.();
+    this.palaeoPreloadUnsubscribe = null;
+    this.palaeoWindowUnsubscribe?.();
+    this.palaeoWindowUnsubscribe = null;
+    this.palaeoPreloadSource = source;
+    this.palaeoPreloadQueue.clear();
+    if (source === null) {
+      this.cancelPalaeoPreload();
+      return;
+    }
+    // The window's width is the renderer's decision, so it is pushed on
+    // attachment and again whenever the quality selection moves it.
+    source.setPalaeoWarmWindowIntervals(
+      residentIntervalBudget(this.requestedQuality, reportedDeviceMemoryGb()).windowIntervals);
+    this.palaeoPreloadUnsubscribe = source.onPalaeoIntervalPrepared((notice) => {
+      if (this.disposed || this.palaeoPreloadedIntervalIds.has(notice.intervalId)) return;
+      this.palaeoPreloadQueue.set(notice.intervalId, notice);
+      this.schedulePalaeoPreload();
+    });
+    this.palaeoWindowUnsubscribe = source.onPalaeoWarmWindowChanged((intervalIds) => {
+      this.notePalaeoWarmWindow(intervalIds);
+    });
+  }
+
+  /**
+   * Takes the engine's re-centred warm window: forgets the pre-uploads it no
+   * longer covers and arms the trim of the members already uploaded for them.
+   *
+   * Forgetting matters as much as trimming. `palaeoPreloadedIntervalIds` is
+   * what stops the idle step re-attempting an interval, so an interval the
+   * window drops has to leave it or a later re-centre that covers it again
+   * would never upload it.
+   */
+  private notePalaeoWarmWindow(intervalIds: readonly string[]): void {
+    if (this.disposed) return;
+    this.palaeoWindowIntervalIds = [...intervalIds];
+    const covered = new Set(intervalIds);
+    for (const id of [...this.palaeoPreloadQueue.keys()]) {
+      if (!covered.has(id)) this.palaeoPreloadQueue.delete(id);
+    }
+    for (const id of [...this.palaeoPreloadedIntervalIds]) {
+      if (!covered.has(id)) this.palaeoPreloadedIntervalIds.delete(id);
+    }
+    this.palaeoWindowTrimPending = true;
+    this.schedulePalaeoPreload();
+  }
+
+  private schedulePalaeoPreload(): void {
+    if (this.disposed || this.palaeoPreloadHandle !== null
+        || (this.palaeoPreloadQueue.size === 0 && !this.palaeoWindowTrimPending)) return;
+    const run = () => {
+      this.palaeoPreloadHandle = null;
+      this.runPalaeoPreloadStep();
+    };
+    const requestIdle = (globalThis as {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (typeof requestIdle === "function") {
+      this.palaeoPreloadIsIdleHandle = true;
+      this.palaeoPreloadHandle = requestIdle(run, { timeout: PALAEO_PRELOAD_IDLE_TIMEOUT_MS });
+      return;
+    }
+    this.palaeoPreloadIsIdleHandle = false;
+    this.palaeoPreloadHandle = setTimeout(run, 0) as unknown as number;
+  }
+
+  private cancelPalaeoPreload(): void {
+    if (this.palaeoPreloadHandle === null) return;
+    const cancelIdle = (globalThis as {
+      cancelIdleCallback?: (handle: number) => void;
+    }).cancelIdleCallback;
+    if (this.palaeoPreloadIsIdleHandle && typeof cancelIdle === "function") {
+      cancelIdle(this.palaeoPreloadHandle);
+    } else if (!this.palaeoPreloadIsIdleHandle) {
+      clearTimeout(this.palaeoPreloadHandle);
+    }
+    this.palaeoPreloadHandle = null;
+  }
+
+  /**
+   * Uploads at most one hidden member, then re-arms while the queue holds more.
+   * One per callback because the upload is the very cost being moved off the
+   * crossing: taking several in one idle slot would put it back on a frame.
+   */
+  private runPalaeoPreloadStep(): void {
+    const source = this.palaeoPreloadSource;
+    if (this.disposed || source === null) return;
+    // The trim first, and before the upload: retiring what the window dropped
+    // is what makes room — on the GPU and in the heap — for what it newly
+    // covers, and doing it in the same idle slot keeps both off the frames.
+    if (this.palaeoWindowTrimPending) {
+      this.palaeoWindowTrimPending = false;
+      try {
+        if (this.caoFoundationRenderer.retainResidentIntervals(this.palaeoWindowIntervalIds) > 0) {
+          this.publishCaoResidencyDataset();
+        }
+      } catch {
+        // A trim is speculative in exactly the way a preload is: a refusal
+        // leaves the members resident until the next re-centre re-arms it.
+      }
+    }
+    const next = this.nextPalaeoPreload();
+    if (next !== null) {
+      this.palaeoPreloadQueue.delete(next.intervalId);
+      // Marked before the attempt, not after it: an interval the engine or the
+      // renderer declines must leave the queue, or the idle callback spins on
+      // it and never reaches the intervals behind it.
+      this.palaeoPreloadedIntervalIds.add(next.intervalId);
+      if (next.intervalId !== this.publishedPalaeoIntervalId) {
+        const prepared = source.prepareResidentPalaeoIntervalNow(next.intervalId);
+        if (prepared !== null) {
+          try {
+            this.caoFoundationRenderer.preloadInterval(prepared, this.verticalExaggeration);
+            this.publishCaoResidencyDataset();
+          } catch {
+            // A pre-upload is speculative: a refusal leaves the crossing that
+            // needs this interval to upload it itself, exactly as it does now.
+            // `preloadInterval` released the lease on its way out.
+          }
+        }
+      }
+    }
+    this.schedulePalaeoPreload();
+  }
+
+  /**
+   * Warms one hidden member the renderer has just preloaded, and publishes how
+   * many have been warmed so a bench can tell a warm preload from a cold one.
+   */
+  private warmPalaeoMember(group: THREE.Group): void {
+    const warmed = warmCaoMember(this.renderer, group, this.camera, this.scene, (error) => {
+      // A warm is speculative: the member stays parented and hidden, and the
+      // crossing that shows it pays the upload it would have paid anyway.
+      this.renderer.domElement.dataset.caoPalaeoWarmFailure =
+        error instanceof Error ? error.message : "palaeo member warm failed";
+    });
+    if (warmed) this.palaeoWarmedMembers += 1;
+    this.renderer.domElement.dataset.caoPalaeoWarmedMembers = String(this.palaeoWarmedMembers);
+  }
+
+  /** The queued interval nearest by age to the one on screen. */
+  private nextPalaeoPreload(): PalaeoPreparedIntervalNotice | null {
+    const ageMa = this.palaeoRequestedAgeMa;
+    let best: PalaeoPreparedIntervalNotice | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const notice of this.palaeoPreloadQueue.values()) {
+      if (ageMa === null) return notice;
+      const distance = ageMa > notice.fromAgeMa ? ageMa - notice.fromAgeMa
+        : ageMa <= notice.toAgeMa ? notice.toAgeMa - ageMa : 0;
+      if (distance < bestDistance) {
+        best = notice;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Makes one Cao 2017 map interval the drawn one, or clears the layer.
+   *
+   * A map interval is the streaming unit, but it is no longer replaced: the
+   * surface set keeps a member per interval it has uploaded, so a crossing into
+   * an interval already resident is a visibility switch and a retarget, and a
+   * crossing into a new one uploads it once and keeps it. No static geometry
+   * change is armed here — that arm guards the Cao 2024 stack, whose geometry
+   * must never change. Scrubbing inside an interval never reaches here —
+   * `retargetPalaeoMotion` re-poses the resident geometry — so a sample that
+   * stays inside one map cannot cost a geometry rebuild.
    *
    * `publish` takes over the interval's lease and releases it, exactly as it
    * does for a native revision, so the interval store is free to evict the
    * decoded payload once its buffers are the publication's own.
    */
-  setPreparedPalaeoInterval(interval: PreparedCaoPalaeoInterval | null): CaoFoundationDiagnostics | null {
+  setPreparedPalaeoInterval(
+    interval: PreparedCaoPalaeoInterval | null,
+    onPublished?: (diagnostics: CaoFoundationDiagnostics | null) => void,
+  ): void {
+    // Latest wins, and the superseded interval's lease is released here because
+    // the publish that would have taken it over never runs.
+    this.queuedPalaeoPublish.queue(interval, onPublished);
+  }
+
+  /**
+   * Drains the queued publish at the top of a frame.
+   *
+   * The publish is ~26 ms of synchronous work — palette pack, pick state,
+   * retarget, make-current — and it used to run inside the age-change dispatch,
+   * where it was the input handler's own cost and showed up as a boundary
+   * spike on the very task that should have returned in a millisecond. The
+   * frame is where that work belongs: the interval is not on screen until a
+   * frame draws it anyway, so taking it here costs the same frame and leaves
+   * the handler free.
+   */
+  private drainQueuedPalaeoPublish(): void {
+    this.queuedPalaeoPublish.drain((interval) => this.publishPreparedPalaeoIntervalNow(interval));
+  }
+
+  /**
+   * Publishes one prepared map interval synchronously. Only the frame drain
+   * calls it; everything else queues through `setPreparedPalaeoInterval`.
+   */
+  private publishPreparedPalaeoIntervalNow(
+    interval: PreparedCaoPalaeoInterval | null,
+  ): CaoFoundationDiagnostics | null {
     if (interval === null) {
       this.clearPalaeoPublication();
       this.updatePalaeoDomainVisibility();
       return null;
     }
     try {
-      if (this.palaeoStaticIntervalId !== null && this.palaeoStaticIntervalId !== interval.intervalId) {
-        this.caoFoundationRenderer.armStaticGeometryChange(
-          `palaeo-coastline map interval ${this.palaeoStaticIntervalId} to ${interval.intervalId}`);
-      }
       const diagnostics = this.caoFoundationRenderer.publish(
         interval, this.verticalExaggeration, "interval");
       this.palaeoPublicationFailureReason = null;
       this.publishedPalaeoIntervalId = interval.intervalId;
-      this.palaeoStaticIntervalId = interval.intervalId;
       this.palaeoIntervalSourceBytes = interval.activeSourceBytes;
       this.palaeoRequestedAgeMa = interval.requestedAgeMa;
       this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
+      // A map-interval crossing changes no composition, so the composition-change
+      // path below never runs for it. Without this the two residency keys freeze
+      // at the value the first composition change wrote while the surface set
+      // goes on uploading and keeping members, and every reader of them —
+      // benches, browser assertions — measures a number that stopped moving.
+      this.publishCaoResidencyDataset();
       return diagnostics;
     } catch (error) {
       // A failed palaeo publication must never take the native surface with it.
@@ -1080,6 +1548,20 @@ export class GlobeScene {
         this.palaeoPublicationFailureReason;
       return null;
     }
+  }
+
+  /**
+   * Records a pose failure without taking the layer down.
+   *
+   * The published geometry and its lease are untouched: a frame that could not
+   * be posed leaves the previous pose on screen, which is a frozen map for a
+   * frame or two rather than no globe at all. The reason reaches the dataset so
+   * a probe or a bench transaction sees it, because nothing else reports it —
+   * the throw it replaces used to unmount the scene from inside a React effect.
+   */
+  notePalaeoMotionFallback(reason: string): void {
+    this.palaeoPublicationFailureReason = reason;
+    this.renderer.domElement.dataset.caoPalaeoFallbackReason = reason;
   }
 
   /**
@@ -1210,6 +1692,9 @@ export class GlobeScene {
     this.publishedPalaeoIntervalId = null;
     this.palaeoIntervalSourceBytes = 0;
     this.guideLabelTonesStaleSince = performance.now();
+    // Dropping the interval members is the largest single residency change the
+    // renderer makes; the keys must report it rather than the last publish.
+    this.publishCaoResidencyDataset();
   }
 
   setEditorialSnapshot(snapshot: WorldSnapshot | null): void {
@@ -1285,6 +1770,11 @@ export class GlobeScene {
 
   setQuality(value: RequestedQuality): void {
     this.requestedQuality = value;
+    // An explicit selection is the only thing that moves the residency budget;
+    // the automatic downgrade below governs shading detail alone.
+    const budget = residentIntervalBudget(value, reportedDeviceMemoryGb());
+    this.caoFoundationRenderer.setResidentIntervalCeiling(budget.intervals, budget.bytes);
+    this.palaeoPreloadSource?.setPalaeoWarmWindowIntervals(budget.windowIntervals);
     const next = initialEffectiveQuality(value);
     if (next !== this.effectiveQuality) this.applyEffectiveQuality(next);
   }
@@ -1340,6 +1830,16 @@ export class GlobeScene {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.palaeoPreloadUnsubscribe?.();
+    this.palaeoPreloadUnsubscribe = null;
+    this.palaeoWindowUnsubscribe?.();
+    this.palaeoWindowUnsubscribe = null;
+    this.palaeoPreloadSource = null;
+    this.cancelPalaeoPreload();
+    // A publish queued for a frame that will never run still owns a runtime
+    // lease; nothing else can release it once the scene is gone.
+    this.queuedPalaeoPublish.abandon();
+    this.caoFoundationRenderer.setMemberWarmer(null);
     cancelAnimationFrame(this.frameHandle);
     this.resizeObserver.disconnect();
     this.reducedMotion.removeEventListener("change", this.handleMotionPreference);
@@ -1385,6 +1885,9 @@ export class GlobeScene {
 
   private applyEffectiveQuality(value: "high" | "low"): void {
     this.effectiveQuality = value;
+    // Shading detail only. The resident-interval budget is `setQuality`'s, so
+    // the automatic watchdog cannot turn every later crossing back into an
+    // upload — which is the cost it is trying to avoid.
     this.globeMesh.geometry.dispose();
     this.globeMesh.geometry = this.makeGlobeGeometry();
     this.cloudMesh.geometry.dispose();
@@ -1528,15 +2031,13 @@ export class GlobeScene {
    * the publication identity does not depend on whether the group is visible.
    */
   /**
-   * Publishes what the Cao 2024 unit actually holds on the GPU, and which
+   * Publishes what the surface set actually holds on the GPU — the Cao 2024
+   * stack and every map interval kept resident, drawn or hidden — and which
    * classes D1 has released. Separate from `caoFoundationStaticBytes`, which is
    * the resource's fixed budget and does not move when buffers are handed back.
    */
   private publishCaoResidencyDataset(): void {
-    const dataset = this.renderer.domElement.dataset;
-    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.gpuResidentBytes());
-    dataset.caoFoundationReleasedClasses =
-      this.caoFoundationRenderer.releasedSurfaceClasses().join(" ");
+    writeCaoResidencyDataset(this.renderer.domElement.dataset, this.caoFoundationRenderer);
   }
 
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {
@@ -1993,6 +2494,14 @@ export class GlobeScene {
       console.error("Cao foundation render failed", error);
     }
     if (now - this.lastStatsAt >= 1000) this.publishStats(now);
+    // After the render, not before it. The publish and the new member's first
+    // drawn frame are two costs, and the dispatch used to split them across two
+    // frames: publish on the input task, first draw on the next frame. Draining
+    // at the top of a frame put both on one frame and cost a whole extra vsync
+    // on the longest frame of a fast scrub (116.6 ms to 133.3 ms p50, measured
+    // on `fastScrub117to58`). Draining here keeps the split and still takes the
+    // work off the input handler.
+    this.drainQueuedPalaeoPublish();
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 
