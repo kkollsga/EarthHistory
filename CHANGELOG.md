@@ -5,6 +5,20 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Fixed
 
+- **The GPU residency keys now move on every interval publish.**
+  `data-cao-foundation-gpu-bytes` and `data-cao-resident-intervals` were written
+  only by the native revision path and by a composition change. A map-interval
+  crossing is neither — the composition stays `palaeo` from the first entry into
+  the band to the last — so both keys froze at the first crossing's reading
+  (20,395,812 B, one resident) while the surface set really held three members
+  and 38,609,378 B. Every reader of them, bench rows included, was asserting a
+  number that had stopped moving. `setPreparedPalaeoInterval` and
+  `clearPalaeoPublication` now publish the keys, and the reading is a separate
+  exported function so a test can prove it changes between two publishes.
+  Residency itself was never broken; only its account of itself was. The stale
+  claim that the 25 compiled intervals "decode from about 36 MB of payload" is
+  corrected in `loaderV2.ts` — the shipped catalogs are 7.69 MiB.
+
 - **GPU residency no longer follows the automatic quality watchdog.** The
   watchdog in `GlobeScene.publishStats` fires whenever the frame-time p95 passes
   33 ms over 120 samples, which the heavy initial load does on every run, and it

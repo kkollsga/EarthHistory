@@ -587,6 +587,29 @@ export function residentIntervalBudget(
     : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH };
 }
 
+/** The residency the surface set actually holds, as the renderer reports it. */
+export interface CaoResidencyReporter {
+  residentGpuBytes(): number;
+  residentIntervalCount(): number;
+  releasedSurfaceClasses(): readonly string[];
+}
+
+/**
+ * Writes the three residency keys from one reading of the surface set.
+ *
+ * Separated from the scene so the keys can be proved to move: they are the only
+ * published account of what the GPU holds, and every one of their readers is
+ * outside this module.
+ */
+export function writeCaoResidencyDataset(
+  dataset: Record<string, string | undefined>,
+  renderer: CaoResidencyReporter,
+): void {
+  dataset.caoFoundationGpuBytes = String(renderer.residentGpuBytes());
+  dataset.caoResidentIntervals = String(renderer.residentIntervalCount());
+  dataset.caoFoundationReleasedClasses = renderer.releasedSurfaceClasses().join(" ");
+}
+
 /** What `navigator.deviceMemory` reports, where the browser reports it. */
 function reportedDeviceMemoryGb(): number | undefined {
   return (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
@@ -1119,6 +1142,12 @@ export class GlobeScene {
       this.palaeoRequestedAgeMa = interval.requestedAgeMa;
       this.applyLayerVisibility();
       this.guideLabelTonesStaleSince = performance.now();
+      // A map-interval crossing changes no composition, so the composition-change
+      // path below never runs for it. Without this the two residency keys freeze
+      // at the value the first composition change wrote while the surface set
+      // goes on uploading and keeping members, and every reader of them —
+      // benches, browser assertions — measures a number that stopped moving.
+      this.publishCaoResidencyDataset();
       return diagnostics;
     } catch (error) {
       // A failed palaeo publication must never take the native surface with it.
@@ -1279,6 +1308,9 @@ export class GlobeScene {
     this.publishedPalaeoIntervalId = null;
     this.palaeoIntervalSourceBytes = 0;
     this.guideLabelTonesStaleSince = performance.now();
+    // Dropping the interval members is the largest single residency change the
+    // renderer makes; the keys must report it rather than the last publish.
+    this.publishCaoResidencyDataset();
   }
 
   setEditorialSnapshot(snapshot: WorldSnapshot | null): void {
@@ -1610,11 +1642,7 @@ export class GlobeScene {
    * the resource's fixed budget and does not move when buffers are handed back.
    */
   private publishCaoResidencyDataset(): void {
-    const dataset = this.renderer.domElement.dataset;
-    dataset.caoFoundationGpuBytes = String(this.caoFoundationRenderer.residentGpuBytes());
-    dataset.caoResidentIntervals = String(this.caoFoundationRenderer.residentIntervalCount());
-    dataset.caoFoundationReleasedClasses =
-      this.caoFoundationRenderer.releasedSurfaceClasses().join(" ");
+    writeCaoResidencyDataset(this.renderer.domElement.dataset, this.caoFoundationRenderer);
   }
 
   private updatePalaeoDomainVisibility(advanceHysteresis = false): void {

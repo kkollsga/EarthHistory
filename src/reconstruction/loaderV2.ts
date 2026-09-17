@@ -724,10 +724,12 @@ export const DEFAULT_SURFACE_RESIDENCY_POLICY: SurfaceResidencyPolicy = Object.f
   // the GPU, not in what is decoded, and a crossing that has to triangulate is
   // the one cost neither profile can pay inside a frame.
   residentIntervals: "all" as const,
-  // The 25 compiled intervals of the shipped classes decode from about 36 MB of
-  // payload. Sixty-four MiB leaves headroom for a package that gains a class
-  // without silently dropping back to the neighbour cache, and is what keeps
-  // "prepare everything" bounded.
+  // The 25 compiled intervals of the shipped classes are 7.69 MiB of ring
+  // payload; what they cost resident is the decoded geometry, measured at
+  // ~9 MB an interval. Sixty-four MiB is the bound on that, and leaves headroom
+  // for a package that gains a class without silently dropping back to the
+  // neighbour cache. (The earlier "about 36 MB of payload" here was never the
+  // shipped figure; the ledger it justified is checked in `loaderV2.test.ts`.)
   maxPreparedBytes: 64 * 1024 * 1024,
   // The two bounds below govern the `"nearest"` fallback. Two intervals of
   // every compiled class sit far inside six MiB; the bound
