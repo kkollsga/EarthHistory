@@ -22,9 +22,14 @@ All notable changes to EarthHistory will be recorded here.
   Publishing a prepared interval — packing the palette, building the pick state,
   retargeting and making the member current — is ~26 ms of synchronous work, and
   it ran inside the age-change dispatch, where it was the input handler's own
-  cost. It is now queued and drained at the top of the next animation frame,
-  before that frame renders, so the handler returns immediately and the work
-  lands on the frame that would have drawn the interval anyway. Latest wins: a
+  cost. It is now queued and drained at the end of the next animation frame,
+  after that frame renders, so the handler returns immediately. The position is
+  measured, not incidental: the publish and the new member's first drawn frame
+  are two costs, and the input dispatch used to split them across two frames.
+  Draining at the *top* of a frame put both on one frame and cost a whole extra
+  vsync — `fastScrub117to58` longest-frame p50 went from 116.6 ms to 133.3 ms —
+  while draining after the render keeps the split and takes it to 66.8 ms, with
+  no frame at or above 100 ms in two of three repetitions. Latest wins: a
   publish superseded within one frame releases its runtime lease and is not
   reported as a failure, and a publish still queued when the scene is disposed
   releases its lease too.
