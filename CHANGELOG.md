@@ -3,6 +3,8 @@
 All notable changes to EarthHistory will be recorded here.
 
 ## [Unreleased]
+
+## [0.1.21] - 2026-09-17
 ### Changed
 
 - **The background walk prepares a sliding window, not the whole timeline.**
@@ -272,7 +274,6 @@ All notable changes to EarthHistory will be recorded here.
   `palaeo-coastline age is outside the resident interval` with the globe canvas
   gone, while heap growth (44.7 MB) and GPU residency (11.4 MB) are inside their
   budgets.
-
 
 ## [0.1.20] - 2026-09-16
 ### Fixed
