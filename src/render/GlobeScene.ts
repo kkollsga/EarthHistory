@@ -2335,10 +2335,6 @@ export class GlobeScene {
 
   private readonly frame = (now: number): void => {
     if (this.disposed) return;
-    // Before anything else this frame: a queued publish must be on the GPU
-    // before the render below, or the frame draws the interval the age has
-    // already left.
-    this.drainQueuedPalaeoPublish();
     const frameTime = now - this.previousFrame;
     this.previousFrame = now;
     if (frameTime > 0 && frameTime < 250) {
@@ -2412,6 +2408,14 @@ export class GlobeScene {
       console.error("Cao foundation render failed", error);
     }
     if (now - this.lastStatsAt >= 1000) this.publishStats(now);
+    // After the render, not before it. The publish and the new member's first
+    // drawn frame are two costs, and the dispatch used to split them across two
+    // frames: publish on the input task, first draw on the next frame. Draining
+    // at the top of a frame put both on one frame and cost a whole extra vsync
+    // on the longest frame of a fast scrub (116.6 ms to 133.3 ms p50, measured
+    // on `fastScrub117to58`). Draining here keeps the split and still takes the
+    // work off the input handler.
+    this.drainQueuedPalaeoPublish();
     this.frameHandle = requestAnimationFrame(this.frame);
   };
 

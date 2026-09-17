@@ -224,12 +224,20 @@ describe("deferred publish queue", () => {
     expect(queue.drain(() => { throw new Error("must not publish"); })).toBe(false);
   });
 
-  it("drains before the frame renders, and abandons on dispose", () => {
+  /**
+   * The publish and the new member's first drawn frame are two costs, and the
+   * input dispatch used to split them across two frames. Draining at the top of
+   * a frame put both on one frame: the longest frame of `fastScrub117to58` went
+   * from 116.6 ms to 133.3 ms p50. Draining after the render keeps the split —
+   * 66.8 ms p50 — so the position is the contract, not an implementation
+   * detail.
+   */
+  it("drains after the frame renders, and abandons on dispose", () => {
     const source = readFileSync(new URL("./GlobeScene.ts", import.meta.url), "utf8");
     const drain = source.indexOf("this.drainQueuedPalaeoPublish();");
     const render = source.indexOf("this.renderer.render(this.scene, this.camera);");
-    expect(drain).toBeGreaterThan(0);
-    expect(render).toBeGreaterThan(drain);
+    expect(render).toBeGreaterThan(0);
+    expect(drain).toBeGreaterThan(render);
     expect(source).toContain("this.queuedPalaeoPublish.abandon();");
   });
 });
