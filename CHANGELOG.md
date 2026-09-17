@@ -5,6 +5,18 @@ All notable changes to EarthHistory will be recorded here.
 ## [Unreleased]
 ### Fixed
 
+- **GPU residency no longer follows the automatic quality watchdog.** The
+  watchdog in `GlobeScene.publishStats` fires whenever the frame-time p95 passes
+  33 ms over 120 samples, which the heavy initial load does on every run, and it
+  called `setResidentIntervalCeiling(1)`. There is no path back to the high
+  profile inside a session, so `data-cao-resident-intervals` stayed at 1 for the
+  whole session, every map-interval crossing evicted the outgoing interval and
+  re-uploaded the incoming one, and the cheap return-visit path was never taken
+  — 17.4 MB of a 57.7 MB budget in use. The resident-interval ceiling is now a
+  memory policy: 25 intervals and 55 MiB, lowered to 8 and 24 MiB only when the
+  user explicitly selects the low profile or `navigator.deviceMemory` reports
+  under 4 GiB. The watchdog's downgrade governs shading detail alone.
+
 - **A fast scrub across map boundaries no longer tears the globe down.** A
   117 -> 58 Ma scrub over 2 s threw `palaeo-coastline age is outside the
   resident interval` out of the renderer's synchronous pose effect, and React

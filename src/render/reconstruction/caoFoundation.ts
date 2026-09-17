@@ -2497,6 +2497,7 @@ export class CaoFoundationSurfaceRenderer {
   private readonly residentIntervals = new Map<CaoSurfaceSlot, CaoResidentInterval>();
   private currentIntervalSlot: CaoSurfaceSlot | null = null;
   private residentIntervalCeiling: number;
+  private residentIntervalByteCeiling: number;
 
   constructor(
     private readonly parent: THREE.Group,
@@ -2506,18 +2507,29 @@ export class CaoFoundationSurfaceRenderer {
   ) {
     this.staticGeometryRetirement = options.staticGeometryRetirement ?? null;
     this.residentIntervalCeiling = Math.max(1, Math.floor(limits.maxResidentIntervals ?? 1));
+    this.residentIntervalByteCeiling =
+      limits.maxResidentIntervalGpuBytes ?? Number.POSITIVE_INFINITY;
   }
 
   /**
-   * How many map intervals may stay resident. The quality profile owns this:
-   * dropping to the low profile mid-session lowers the ceiling, and the next
-   * crossing evicts down to it rather than tearing members down mid-frame.
+   * How many map intervals may stay resident, and the buffer bytes they may
+   * hold together. This is a memory policy, owned by the explicit quality
+   * selection and the device's reported memory — not by the automatic quality
+   * watchdog, whose downgrade is about shading detail. Lowering it mid-session
+   * makes the next crossing evict down to it rather than tearing members down
+   * mid-frame.
    */
-  setResidentIntervalCeiling(count: number): void {
+  setResidentIntervalCeiling(count: number, maxBytes?: number): void {
     if (!Number.isFinite(count) || count < 1) {
       throw new Error("Cao resident map interval ceiling must be at least one");
     }
     this.residentIntervalCeiling = Math.floor(count);
+    if (maxBytes !== undefined) {
+      if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
+        throw new Error("Cao resident map interval byte ceiling must be positive");
+      }
+      this.residentIntervalByteCeiling = maxBytes;
+    }
   }
 
   /** Map intervals resident right now; the drawn one included. */
@@ -2897,7 +2909,7 @@ export class CaoFoundationSurfaceRenderer {
     requestedAgeMa: number,
     incomingSlot: CaoSurfaceSlot,
   ): readonly CaoResidentInterval[] {
-    const maxBytes = this.limits.maxResidentIntervalGpuBytes ?? Number.POSITIVE_INFINITY;
+    const maxBytes = this.residentIntervalByteCeiling;
     let count = 1;
     let bytes = incoming.trackedGpuBufferBytes;
     const candidates: CaoResidentInterval[] = [];

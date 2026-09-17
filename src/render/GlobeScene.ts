@@ -532,9 +532,8 @@ function createCaoGpuRetirementOwner(
  * is a visibility switch. Measured 2026-09-16 on the promoted interval set,
  * the whole set's vertex and index buffers are about 40 MB; 55 MiB is the
  * ceiling, which leaves headroom for the refinement the worst interval reaches
- * and makes eviction the exception rather than the steady state. The low
- * quality profile sets the ceiling to one interval, which is the upload-on-swap
- * behaviour this renderer has always had.
+ * and makes eviction the exception rather than the steady state. Residency is a
+ * memory policy, not a shading profile: see `residentIntervalBudget`.
  *
  * The publication ledger is the one number the union is not simply the larger
  * of: it now holds every resident member at once. Measured on the loaded public
@@ -559,7 +558,39 @@ const CAO_SURFACE_SET_LIMITS = Object.freeze({
 
 /** Map intervals kept on the GPU at once; see `CAO_SURFACE_SET_LIMITS`. */
 const CAO_RESIDENT_INTERVALS_HIGH = 25;
-const CAO_RESIDENT_INTERVALS_LOW = 1;
+const CAO_RESIDENT_INTERVALS_LOW = 8;
+const CAO_RESIDENT_INTERVAL_BYTES_HIGH = 55 * 1024 * 1024;
+const CAO_RESIDENT_INTERVAL_BYTES_LOW = 24 * 1024 * 1024;
+/** Device memory, in GiB, under which the small residency budget is taken. */
+const CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB = 4;
+
+/**
+ * How much GPU residency a map-interval crossing may reuse.
+ *
+ * Residency is a memory policy and not a shading profile. The automatic quality
+ * watchdog downgrades shading when frames are slow, and slow frames are exactly
+ * what residency fixes: collapsing the ceiling with the profile meant the first
+ * heavy load turned every later crossing into a fresh upload, and there is no
+ * path back to "high" within a session. So only two things lower it — the user
+ * explicitly selecting the low profile, and a device that has told us it has
+ * little memory.
+ */
+export function residentIntervalBudget(
+  requested: RequestedQuality,
+  deviceMemoryGb: number | undefined,
+): { readonly intervals: number; readonly bytes: number } {
+  const small = requested === "low"
+    || (typeof deviceMemoryGb === "number" && Number.isFinite(deviceMemoryGb)
+      && deviceMemoryGb < CAO_RESIDENT_INTERVAL_SMALL_DEVICE_MEMORY_GB);
+  return small
+    ? { intervals: CAO_RESIDENT_INTERVALS_LOW, bytes: CAO_RESIDENT_INTERVAL_BYTES_LOW }
+    : { intervals: CAO_RESIDENT_INTERVALS_HIGH, bytes: CAO_RESIDENT_INTERVAL_BYTES_HIGH };
+}
+
+/** What `navigator.deviceMemory` reports, where the browser reports it. */
+function reportedDeviceMemoryGb(): number | undefined {
+  return (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+}
 /**
  * Publications retire one member at a time: a scrub sample replaces the Cao
  * 2024 member, a crossing replaces the map interval, and a crossing can land in
@@ -739,8 +770,10 @@ export class GlobeScene {
       createCaoGpuRetirementOwner(renderer, backend,
         CAO_SURFACE_RETIREMENT_MAX_RESOURCES, CAO_SURFACE_RETIREMENT_MAX_BYTES),
       { ...CAO_SURFACE_SET_LIMITS, maxTextureSize: maximumTextureSize,
-        maxResidentIntervals: this.effectiveQuality === "high"
-          ? CAO_RESIDENT_INTERVALS_HIGH : CAO_RESIDENT_INTERVALS_LOW },
+        maxResidentIntervals: residentIntervalBudget(
+          requestedQuality, reportedDeviceMemoryGb()).intervals,
+        maxResidentIntervalGpuBytes: residentIntervalBudget(
+          requestedQuality, reportedDeviceMemoryGb()).bytes },
       {
         staticGeometryRetirement: createCaoGpuRetirementOwner(renderer, backend,
           CAO_STATIC_GEOMETRY_RETIREMENT_MAX_RESOURCES, CAO_STATIC_GEOMETRY_RETIREMENT_MAX_BYTES) },
@@ -1321,6 +1354,10 @@ export class GlobeScene {
 
   setQuality(value: RequestedQuality): void {
     this.requestedQuality = value;
+    // An explicit selection is the only thing that moves the residency budget;
+    // the automatic downgrade below governs shading detail alone.
+    const budget = residentIntervalBudget(value, reportedDeviceMemoryGb());
+    this.caoFoundationRenderer.setResidentIntervalCeiling(budget.intervals, budget.bytes);
     const next = initialEffectiveQuality(value);
     if (next !== this.effectiveQuality) this.applyEffectiveQuality(next);
   }
@@ -1421,10 +1458,9 @@ export class GlobeScene {
 
   private applyEffectiveQuality(value: "high" | "low"): void {
     this.effectiveQuality = value;
-    // The next crossing evicts down to the new ceiling; nothing on screen is
-    // torn down mid-frame to meet it.
-    this.caoFoundationRenderer.setResidentIntervalCeiling(
-      value === "high" ? CAO_RESIDENT_INTERVALS_HIGH : CAO_RESIDENT_INTERVALS_LOW);
+    // Shading detail only. The resident-interval budget is `setQuality`'s, so
+    // the automatic watchdog cannot turn every later crossing back into an
+    // upload — which is the cost it is trying to avoid.
     this.globeMesh.geometry.dispose();
     this.globeMesh.geometry = this.makeGlobeGeometry();
     this.cloudMesh.geometry.dispose();
