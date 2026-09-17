@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CaoReconstructionRuntime } from "./engineV2";
 import { decideIntervalRequest } from "./intervalSettle";
 import { chartPickStateFromMotionFrame } from "./motionFrameV2";
@@ -1279,6 +1279,66 @@ describe("palaeo-coastline background preparation", () => {
     expect(decision).toEqual({ kind: "request", index: 4, reason: "resident" });
     published.release();
     runtime.dispose();
+  });
+
+  /**
+   * The same predicate, asked at a midpoint far from the camera.
+   *
+   * `palaeoMotionResidentAt` shares its resident lookup with the live pose, and
+   * that lookup used to note the age it was asked about — which is the basis
+   * the store measures eviction distance from. The pump asks the question at an
+   * arbitrary interval's midpoint, so a probe far from the camera rewrote the
+   * basis, and the next eviction judged the interval on screen the farthest
+   * resident one and dropped what was being drawn. A residency question is a
+   * read now; only the live-age paths note a basis.
+   */
+  it("leaves the eviction basis on the live age when a far midpoint is probed", async () => {
+    const noted: number[] = [];
+    const note = CaoSurfaceResidencyStore.prototype.noteCurrentAge;
+    const recorder = vi.spyOn(CaoSurfaceResidencyStore.prototype, "noteCurrentAge")
+      .mockImplementation(function (this: CaoSurfaceResidencyStore, requestedAgeMa: number) {
+        noted.push(requestedAgeMa);
+        note.call(this, requestedAgeMa);
+      });
+    const gated = schedulerFixture();
+    const runtime = new CaoReconstructionRuntime(
+      await manifestWithPalaeo(gated.fixture.section), gated.fetcher);
+    runtime.setPalaeoCoastlinesEnabled(true);
+    const published = await runtime.requestPalaeoInterval(395).prepared;
+    expect(published.intervalId).toBe("402-380");
+    await waitFor(() => runtime.ledger.palaeo.backgroundPreparationComplete);
+    // The live pose the camera is on: this path does note the age it draws.
+    expect(runtime.evaluatePalaeoMotionNow(395, "402-380")).not.toBeNull();
+    const beforeProbe = noted.length;
+    // The pump's `intervalIsPrepared` question about the far edge of the warm
+    // window, asked at that interval's own midpoint — 65 Ma from the pose.
+    expect(runtime.palaeoMotionResidentAt(330)).toBe(true);
+    expect(noted.slice(beforeProbe)).toEqual([]);
+    const basis = noted[noted.length - 1]!;
+    expect(basis).toBe(395);
+    published.release();
+    runtime.dispose();
+    recorder.mockRestore();
+    // And the consequence, against a real store left on the basis the engine
+    // noted: the interval being drawn survives the eviction the next load
+    // triggers, because the distances are still measured from the live age.
+    const runner = createPalaeoTriangulationRunner();
+    const twoIntervals = gated.fixture.catalog.intervals[0]!.payload.bytes
+      + gated.fixture.catalog.intervals[1]!.payload.bytes;
+    const store = await intervalResidency(
+      { ...gated.fixture.section, reservation: { ...gated.fixture.section.reservation,
+        maxResidentSourceBytes: twoIntervals } },
+      await loadedCatalogs(gated.fixture), gated.fixture.fetcher, runner,
+      { ...DEFAULT_SURFACE_RESIDENCY_POLICY, residentIntervals: "nearest" });
+    store.noteCurrentAge(basis);
+    await store.load(intervalUnit("402-380"));
+    await store.load(intervalUnit("380-360"));
+    await store.load(intervalUnit("340-320"));
+    expect(store.intervalLedger.residentCount).toBeLessThanOrEqual(2);
+    expect(store.resident(intervalUnit("402-380"))).not.toBeNull();
+    expect(store.resident(intervalUnit("340-320"))).toBeNull();
+    store.dispose();
+    runner.dispose();
   });
 
   it("walks every remaining interval nearest by age, one job at a time", async () => {

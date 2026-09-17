@@ -105,6 +105,14 @@ All notable changes to EarthHistory will be recorded here.
 
 ### Fixed
 
+- **A residency probe no longer moves the age eviction measures from.** The
+  pump asks `palaeoMotionResidentAt` at a candidate interval's midpoint to learn
+  whether that target is already prepared, and the shared resident lookup noted
+  that midpoint as the store's current age — the basis `evictIntervals` sorts
+  distances by — so a probe far from the camera could make the interval on
+  screen the farthest resident one and evict what was being drawn. Only the
+  live-age paths note the basis now; the residency question is a read.
+
 - **A resident map interval no longer holds two arrays nothing reads.**
   `pieceIndices` and `seamIds` are u32 per vertex — 1.06 MB each at the shipped
   sizes, 2.1 MB an interval and 44 MiB across the 25 the high profile keeps.

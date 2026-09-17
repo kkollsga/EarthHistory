@@ -700,6 +700,8 @@ export class CaoReconstructionRuntime {
     requestedAgeMa: number,
     publishedIntervalId?: string | null,
   ): CaoPalaeoIntervalFrame | null {
+    // The live requested age, so this is the basis eviction measures against.
+    this.surfaces.noteCurrentAge(requestedAgeMa);
     const resident = this.residentPalaeoMotionInputs(requestedAgeMa, publishedIntervalId ?? null);
     if (resident === null) return null;
     // The clamp above is the contract; this is the assertion that it held. A
@@ -741,7 +743,13 @@ export class CaoReconstructionRuntime {
         || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
-    this.surfaces.noteCurrentAge(requestedAgeMa);
+    // No `noteCurrentAge` here. This helper answers two callers: the live pose
+    // and `palaeoMotionResidentAt`, which the pump probes at an arbitrary
+    // interval's midpoint to ask whether a target is already prepared. Noting
+    // that probe's age moved the basis eviction measures its distances from, so
+    // a probe far from the camera could make the interval on screen the
+    // farthest resident one and evict what is being drawn. The live-age paths
+    // note it themselves; a residency question is a read, not a pose.
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     // The geometry on screen is the published interval's. Once the age has
     // crossed a boundary the incoming interval is not published yet, and posing
@@ -794,6 +802,8 @@ export class CaoReconstructionRuntime {
     if (!palaeo || !this.palaeoEnabled || this.lifetime.signal.aborted) return null;
     const catalogs = this.resolvedPalaeoCatalogs;
     if (!catalogs) return null;
+    // The live requested age, so this is the basis eviction measures against.
+    this.surfaces.noteCurrentAge(requestedAgeMa);
     const record = selectPalaeoIntervalForAge(catalogs, requestedAgeMa);
     if (!record) return null;
     const interval = this.residentInterval(record.intervalId);
