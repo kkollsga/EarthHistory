@@ -30,6 +30,15 @@ All notable changes to EarthHistory will be recorded here.
   unchanged: releasing a revision stops that revision reading the geometry and
   does not destroy arrays the resident interval still owns.
 
+- **The evidence summary no longer runs on the frame that publishes a
+  crossing.** Setting the prepared interval as state is what makes the scene
+  publish it, so that commit lands on the frame the scrub crossed into the new
+  map — and the same commit rebuilt the map key's evidence summary, which walks
+  every chart of the interval to decide which sources are posed. The summary now
+  reads a deferred view of the prepared interval, so React renders it at low
+  priority after the publication, and the key rows it feeds are a memoised
+  component. Nothing shown changes; the evidence lines settle one render later.
+
 ### Fixed
 
 - **A resident map interval no longer holds two arrays nothing reads.**

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState,
+  type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Aperture,
   BookOpen,
@@ -259,6 +260,34 @@ export function mapKeyTimelineHint(
   if (timelineWarming === "paused") return "Background timeline warming paused; open the map key to retry";
   return undefined;
 }
+
+/**
+ * The map key's palaeo rows: one line per cited source posed on screen.
+ *
+ * Memoised and separate from `App` because it is the one part of the key that
+ * grows with the interval — a reference per active source — and it must not be
+ * re-rendered on the commit that publishes a crossing. Its inputs move only
+ * when the deferred evidence summary does, which is a later, low-priority
+ * render by construction.
+ */
+const PalaeoEvidenceKeyRows = memo(function PalaeoEvidenceKeyRows({ visible, evidence }: {
+  readonly visible: boolean;
+  readonly evidence: PalaeoCoastlineEvidence;
+}) {
+  if (!visible) return null;
+  if (evidence.references.length > 0) {
+    return <>{evidence.references.map((reference) => (
+      <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
+        {reference.editorial ? " · EarthHistory modification after this reference" : ""}
+        {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
+    ))}</>;
+  }
+  if (evidence.sourceIds.length > 0) {
+    return <>{evidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}</>;
+  }
+  return <span>No palaeo-coastline charts on screen{evidence.unavailableReason === null
+    ? "" : ` · ${evidence.unavailableReason}`}</span>;
+});
 
 export default function App() {
   const initial = useRef(parseInitialState()).current;
@@ -1157,12 +1186,19 @@ export default function App() {
   // Read off the interval actually published, not off the requested age: the
   // source ids are the ones whose charts are posed on screen, and a load in
   // flight leaves the previous map — and its evidence — visible.
+  // Deferred, because the publication is what the urgent commit of
+  // `palaeoPrepared` is for. The scene publishes the incoming map from an
+  // effect of that commit, on the frame the scrub crossed into it, while this
+  // summary walks every chart of the interval to decide which sources are
+  // posed — thousands of them — and nothing on screen moves when it lands one
+  // render later. React renders it at low priority, off the publish frame.
+  const reportedPalaeoPrepared = useDeferredValue(palaeoPrepared);
   const palaeoEvidence: PalaeoCoastlineEvidence = useMemo(
-    () => palaeoCoastlineEvidenceSummary(palaeoPrepared,
+    () => palaeoCoastlineEvidenceSummary(reportedPalaeoPrepared,
       { loading: palaeoLoading,
         unavailableReason: palaeoAssetsAvailable ? null : PALAEO_CHARTS_ABSENT },
       palaeoSourceCitation),
-    [palaeoAssetsAvailable, palaeoLoading, palaeoPrepared]);
+    [palaeoAssetsAvailable, palaeoLoading, reportedPalaeoPrepared]);
   const palaeoIntervalIndex = selectPalaeoInterval(PALAEO_MAP_INTERVALS, ageMa);
   const palaeoInterval = palaeoIntervalIndex < 0 ? null : PALAEO_MAP_INTERVALS[palaeoIntervalIndex]!;
   const palaeoKeyVisible = layers.palaeoCoastlines;
@@ -1760,17 +1796,7 @@ export default function App() {
             )}
             <div className="surface-evidence-key">
               <strong>Evidence in this view</strong>
-              {palaeoKeyVisible && palaeoEvidence.references.map((reference) => (
-                <span key={reference.sourceId}>{reference.citation} · {reference.constrains}
-                  {reference.editorial ? " · EarthHistory modification after this reference" : ""}
-                  {reference.claim === "earthhistory-infers" ? " · EarthHistory inference" : ""}</span>
-              ))}
-              {palaeoKeyVisible && palaeoEvidence.references.length === 0
-                && palaeoEvidence.sourceIds.map((sourceId) => <span key={sourceId}>{sourceId}</span>)}
-              {palaeoKeyVisible && palaeoEvidence.references.length === 0
-                && palaeoEvidence.sourceIds.length === 0
-                && <span>No palaeo-coastline charts on screen{palaeoEvidence.unavailableReason === null
-                  ? "" : ` · ${palaeoEvidence.unavailableReason}`}</span>}
+              <PalaeoEvidenceKeyRows visible={palaeoKeyVisible} evidence={palaeoEvidence} />
               {greaterIndiaVisible && <span>{GREATER_INDIA_EVIDENCE_LINE}</span>}
               {restoredMarginsVisible && <span>{RESTORED_COLLISION_MARGIN_EVIDENCE_LINE}</span>}
               {observedMaterialVisible && <span>Observed modern land · Natural Earth at 0 Ma</span>}
