@@ -405,19 +405,20 @@ export default function App() {
   // Per-frame palaeo motion, evaluated where the native surface is retargeted.
   // Stable for the session: a new identity here would re-run the retarget
   // effect and pose the same age again.
-  /**
-   * The runtime, handed to the scene so its idle pre-upload can turn each
-   * background-prepared interval into a hidden GPU member. Held as state rather
-   * than read from the ref, because the scene must be given it when the runtime
-   * becomes ready and not on whichever render happens to follow.
-   */
-  const palaeoPreloadSource = useMemo(
-    () => (caoRuntimeReady ? caoRuntimeRef.current : null), [caoRuntimeReady]);
   const evaluatePalaeoMotionNow = useCallback(
     (requestedAgeMa: number, publishedIntervalId: string | null) =>
       caoRuntimeRef.current?.evaluatePalaeoMotionNow(requestedAgeMa, publishedIntervalId) ?? null, []);
   const [caoAgeDomainMa, setCaoAgeDomainMa] = useState<readonly [number, number] | null>(null);
   const caoRuntimeRef = useRef<CaoReconstructionRuntime | null>(null);
+  /**
+   * The runtime, handed to the scene so its idle pre-upload can turn each
+   * background-prepared interval into a hidden GPU member. Recomputed when the
+   * runtime becomes ready, so the scene is given it then and not on whichever
+   * render happens to follow. Declared after the ref it reads: a `useMemo`
+   * factory runs during the render that declares it.
+   */
+  const palaeoPreloadSource = useMemo(
+    () => (caoRuntimeReady ? caoRuntimeRef.current : null), [caoRuntimeReady]);
   const lastStatsUpdate = useRef(0);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
